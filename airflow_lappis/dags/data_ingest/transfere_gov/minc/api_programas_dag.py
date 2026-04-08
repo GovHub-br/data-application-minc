@@ -19,17 +19,17 @@ default_args = {
 
 
 @dag(
-    schedule_interval=get_dynamic_schedule("programas_ingest_dag"),
+    dag_id="minc_api_programas_dag",
+    schedule_interval=get_dynamic_schedule("minc_programas_ingest_dag"),
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
     tags=["transfere_gov", "programas", "raw"],
 )
-def api_programas_dag() -> None:
+def minc_api_programas_dag() -> None:
     @task
     def fetch_programas() -> list[dict[str, Any]]:
-        logging.info("[api_programas_dag.py] Iniciando extração de programas")
-
+        logging.info("[minc_api_programas_dag.py] Iniciando extração de programas")
         ids_alvo = Variable.get(
             "transferegov_programas_ids",
             default_var=[46, 47],
@@ -53,17 +53,17 @@ def api_programas_dag() -> None:
                 )
 
         if not programas_data:
-            raise ValueError("[api_programas_dag.py] Nenhum programa foi extraído")
+            raise ValueError("[minc_api_programas_dag.py] Nenhum programa foi extraído")
 
         logging.info(
-            "[api_programas_dag.py] Extração concluída com %s registros",
+            "[minc_api_programas_dag.py] Extração concluída com %s registros",
             len(programas_data),
         )
         return programas_data
 
     @task
     def load_programas_to_postgres(programas_data: list[dict[str, Any]]) -> None:
-        logging.info("[api_programas_dag.py] Iniciando carga no PostgreSQL")
+        logging.info("[minc_api_programas_dag.py] Iniciando carga no PostgreSQL")
 
         db = ClientPostgresDB(get_postgres_conn())
         db.insert_data(
@@ -71,15 +71,15 @@ def api_programas_dag() -> None:
             table_name="raw_programas",
             primary_key=["id_programa"],
             conflict_fields=["id_programa"],
-            schema="raw",
+            schema="transferegov_fundo_a_fundo",
         )
 
         logging.info(
-            "[api_programas_dag.py] Carga concluída com %s registros",
+            "[minc_api_programas_dag.py] Carga concluída com %s registros",
             len(programas_data),
         )
 
     load_programas_to_postgres(fetch_programas())
 
 
-api_programas_dag()
+minc_api_programas_dag()
