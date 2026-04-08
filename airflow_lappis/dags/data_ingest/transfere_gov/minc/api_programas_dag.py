@@ -5,10 +5,11 @@ from typing import Any
 from airflow.decorators import dag, task
 from airflow.models import Variable
 
-from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from cliente_postgres import ClientPostgresDB
+from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from postgres_helpers import get_postgres_conn
 from schedule_loader import get_dynamic_schedule
+
 
 default_args = {
     "owner": "Caio Borges",
