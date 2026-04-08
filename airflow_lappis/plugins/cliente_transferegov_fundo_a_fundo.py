@@ -89,3 +89,58 @@ class ClienteTransfereGov(ClienteBase):
             f"planos for programa: {id_programa}"
         )
         return all_planos
+
+    def get_relatorios_by_plano_acao(
+        self, id_plano_acao: int, limit: int = DEFAULT_PAGE_LIMIT
+    ) -> list | None:
+        """
+        Obtem todos os relatorios de gestao vinculados a um plano de acao,
+        paginando com os parametros limit/offset ate o fim dos registros.
+        """
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
+
+        all_relatorios = []
+        offset = 0
+
+        logging.info(
+            f"[cliente_transferegov.py] Fetching relatorios for plano_acao: {id_plano_acao} "
+            f"with pagination limit={limit}"
+        )
+
+        while True:
+            endpoint = (
+                f"/relatorio_gestao?id_plano_acao=eq.{id_plano_acao}"
+                f"&limit={limit}&offset={offset}"
+            )
+
+            status, data = self.request(
+                http.HTTPMethod.GET, endpoint, headers=self.BASE_HEADER
+            )
+
+            if status != http.HTTPStatus.OK or not isinstance(data, list):
+                logging.warning(
+                    f"[cliente_transferegov.py] Failed to fetch relatorios for plano_acao "
+                    f"{id_plano_acao} at offset {offset}. Status: {status}"
+                )
+                return None
+
+            if not data:
+                break
+
+            all_relatorios.extend(data)
+            logging.info(
+                f"[cliente_transferegov.py] Retrieved {len(data)} registros "
+                f"(offset={offset}). Total acumulado: {len(all_relatorios)}"
+            )
+
+            if len(data) < limit:
+                break
+
+            offset += limit
+
+        logging.info(
+            f"[cliente_transferegov.py] Successfully fetched {len(all_relatorios)} "
+            f"relatorios for plano_acao: {id_plano_acao}"
+        )
+        return all_relatorios
