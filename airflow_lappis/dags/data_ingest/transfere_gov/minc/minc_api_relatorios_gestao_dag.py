@@ -31,7 +31,7 @@ def minc_api_relatorios_gestao_dag() -> None:
         logging.info("[minc_api_relatorios_gestao_dag.py] Iniciando extração de relatórios de gestão")
 
         db = ClientPostgresDB(get_postgres_conn())
-        ids_planos = db.get_id_planos_acao(schema="transferegov_fundo_a_fundo")
+        ids_planos = db.get_id_planos_acao(schema="transferegov_fundo_a_fundo", table_name="raw_planos_acao")
 
         if not ids_planos:
             raise ValueError("[minc_api_relatorios_gestao_dag.py] Nenhum plano de ação encontrado")
