@@ -200,9 +200,9 @@ class ClientPostgresDB:
                 id_programas = [row[0] for row in cursor.fetchall()]
                 return id_programas
 
-    def get_id_planos_acao(self, schema: str = "transfere_gov") -> List[int]:
+    def get_id_planos_acao(self, schema: str = "transfere_gov", table_name: str = "planos_acao") -> List[int]:
         """Extrai todos os IDs de planos de ação da tabela de planos de ação."""
-        query = f"SELECT id_plano_acao FROM {schema}.planos_acao"
+        query = f"SELECT id_plano_acao FROM {schema}.{table_name}"
 
         with psycopg2.connect(self.conn_str) as conn:
             with conn.cursor() as cursor:
