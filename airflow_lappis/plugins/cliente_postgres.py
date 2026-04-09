@@ -210,6 +210,18 @@ class ClientPostgresDB:
                 id_planos_acao = [row[0] for row in cursor.fetchall()]
                 return id_planos_acao
 
+    def get_id_relatorios_gestao(
+        self, schema: str = "transferegov_fundo_a_fundo", table_name: str = "relatorios_gestao"
+    ) -> List[int]:
+        """Extrai todos os IDs de relatorios de gestao da tabela indicada."""
+        query = f"SELECT id_relatorio_gestao FROM {schema}.{table_name}"
+
+        with psycopg2.connect(self.conn_str) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+                id_relatorios = [row[0] for row in cursor.fetchall()]
+                return id_relatorios
+
     def drop_table_if_exists(self, table_name: str, schema: str = "raw") -> None:
         """Remove a tabela se ela existir."""
         conn = psycopg2.connect(self.conn_str)
