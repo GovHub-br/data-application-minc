@@ -144,3 +144,39 @@ class ClienteTransfereGov(ClienteBase):
             f"relatorios for plano_acao: {id_plano_acao}"
         )
         return all_relatorios
+
+
+class ClienteTransfereGovBackend(ClienteBase):
+    BASE_URL = "https://fundos.transferegov.sistema.gov.br/maisbrasil-transferencia-backend/api/public"
+    BASE_HEADER = {"accept": "application/json"}
+
+    def __init__(self) -> None:
+        super().__init__(base_url=ClienteTransfereGovBackend.BASE_URL)
+        logging.info(
+            "[cliente_transferegov_backend.py] Initialized ClienteTransfereGovBackend with base_url: "
+            f"{ClienteTransfereGovBackend.BASE_URL}"
+        )
+
+    def get_anexos_relatorio(self, id_relatorio_gestao: int) -> list | None:
+        """
+        Obtem todos os anexos vinculados a um relatorio de gestao.
+        """
+        endpoint = f"/anexos/relatorio-gestao/{id_relatorio_gestao}"
+        logging.info(
+            f"[cliente_transferegov_backend.py] Fetching anexos for relatorio: {id_relatorio_gestao}"
+        )
+
+        status, data = self.request(
+            http.HTTPMethod.GET, endpoint, headers=self.BASE_HEADER
+        )
+
+        if status == http.HTTPStatus.OK and data:
+            logging.info(
+                f"[cliente_transferegov_backend.py] Successfully fetched anexos for relatorio: {id_relatorio_gestao}"
+            )
+            return data if isinstance(data, list) else [data]
+
+        logging.warning(
+            f"[cliente_transferegov_backend.py] Failed to fetch anexos for relatorio {id_relatorio_gestao}. Status: {status}"
+        )
+        return None
