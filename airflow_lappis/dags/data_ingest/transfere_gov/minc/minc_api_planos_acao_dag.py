@@ -4,6 +4,7 @@ from typing import Any
 
 from airflow.decorators import dag, task
 from airflow.models import Variable
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
@@ -12,7 +13,7 @@ from schedule_loader import get_dynamic_schedule
 
 
 default_args = {
-    "owner": "Caio Borges",
+    "owner": "Wallyson Souza",
     "retries": 3,
     "retry_delay": timedelta(minutes=5),
 }
@@ -90,7 +91,13 @@ def minc_api_planos_acao_dag() -> None:
             len(planos_data),
         )
 
-    load_planos_to_postgres(fetch_planos_acao())
+    trigger_relatorios = TriggerDagRunOperator(
+        task_id="trigger_relatorios",
+        trigger_dag_id="minc_api_relatorios_gestao_dag",
+        wait_for_completion=False,
+    )
+
+    load_planos_to_postgres(fetch_planos_acao()) >> trigger_relatorios
 
 
 minc_api_planos_acao_dag()

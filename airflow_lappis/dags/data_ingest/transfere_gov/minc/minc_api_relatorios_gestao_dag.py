@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from airflow.decorators import dag, task
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
@@ -19,7 +20,7 @@ default_args = {
 
 @dag(
     dag_id="minc_api_relatorios_gestao_dag",
-    schedule_interval=get_dynamic_schedule("minc_relatorios_gestao_dag"),
+    schedule_interval=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -95,7 +96,13 @@ def minc_api_relatorios_gestao_dag() -> None:
             len(relatorios_data),
         )
 
-    load_relatorios_to_postgres(fetch_relatorios_gestao())
+    trigger_anexos = TriggerDagRunOperator(
+        task_id="trigger_anexos",
+        trigger_dag_id="minc_api_anexos_relatorios_dag",
+        wait_for_completion=False,
+    )
+
+    load_relatorios_to_postgres(fetch_relatorios_gestao()) >> trigger_anexos
 
 
 minc_api_relatorios_gestao_dag()
