@@ -2,50 +2,58 @@ import logging
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 import pandas as pd
 from airflow.decorators import dag, task
 from airflow.models import Variable
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from cliente_postgres import ClientPostgresDB
-from extracao_planilhas import extrair_tabela_raw, listar_arquivos_locais
+from extracao_planilhas import extrair_tabela_raw
 from postgres_helpers import get_postgres_conn
-from schedule_loader import get_dynamic_schedule
 
 _REGEX_LPG = re.compile(r"edita(?:is|l)", re.IGNORECASE)
 _REGEX_PNAB = re.compile(r"contemplad|contratad|acompanhament", re.IGNORECASE)
 
-_DEFAULT_PROGRAMAS = [
+_PROGRAMAS = [
     {
         "nome_programa": "LPG",
+        "id_programa": [46, 47],
         "regex_header": r"edita(?:is|l)",
         "regex_flags": "IGNORECASE",
         "col_header_idx": 1,
         "col_categoria_idx": 0,
         "min_len_categoria": 6,
-        "base_dir": "/opt/airflow/data/raw/transferegov/anexos/ESTADO",
-        "schema": "transferegov_lpg",
-        "table": "raw_tabelas_anexos",
+        "bucket": "transferegov-anexos-lpg",
+        "prefix": "anexos/",
+        "schema": "transferegov_fundo_a_fundo",
+        "table": "raw_tabelas_anexos_lpg",
     },
     {
         "nome_programa": "PNAB",
+        "id_programa": [60, 61, 62],
         "regex_header": r"contemplad|contratad|acompanhament",
         "regex_flags": "IGNORECASE",
         "col_header_idx": 1,
         "col_categoria_idx": 0,
         "min_len_categoria": 6,
-        "base_dir": "/opt/airflow/data/raw/transferegov/anexos/PNAB",
-        "schema": "transferegov_pnab",
-        "table": "raw_tabelas_anexos",
+        "bucket": "transferegov-anexos-pnab",
+        "prefix": "anexos/",
+        "schema": "transferegov_fundo_a_fundo",
+        "table": "raw_tabelas_anexos_pnab",
     },
 ]
+
+_S3_CONN_ID = "aws_default"
 
 default_args = {
     "owner": "Caio Borges",
     "retries": 2,
     "retry_delay": timedelta(minutes=5),
 }
+
 
 @dag(
     dag_id="minc_extracao_anexos_dag",
@@ -54,57 +62,96 @@ default_args = {
     catchup=False,
     default_args=default_args,
     tags=["transfere_gov", "anexos", "planilhas", "raw"],
-    params={
-        "programas": _DEFAULT_PROGRAMAS,
-    },
 )
 def minc_extracao_anexos_dag() -> None:
     """DAG de extração de tabelas de anexos (XLSX/XLS/XLSM/ODS) para os
     programas LPG e PNAB, com Dynamic Task Mapping por arquivo.
 
     Fluxo:
-      1. ``listar_arquivos`` — descobre todos os arquivos de planilha e
-         enriquece cada entrada com os parâmetros do programa (regex, dirs).
-      2. ``extrair_tabela`` — processa UM arquivo por vez (via ``.map()``),
-         extraindo as subtabelas com a função ELT ``extrair_tabela_raw``.
-      3. ``carregar_no_postgres`` — persiste os registros no PostgreSQL.
+
+    1. ``listar_arquivos_s3`` — descobre todos os arquivos de planilha nos
+       buckets do MinIO e enriquece cada entrada com os parâmetros do
+       programa (regex, bucket, tabela destino).
+    2. ``baixar_e_extrair`` — para CADA arquivo (via ``.map()``), baixa do
+       MinIO para diretório temporário, extrai as subtabelas com
+       ``extrair_tabela_raw`` e limpa o arquivo temporário.
+    3. ``carregar_no_postgres`` — persiste os registros no PostgreSQL.
     """
 
     @task
-    def listar_arquivos() -> list[dict[str, Any]]:
-        """Lista arquivos de planilha para cada programa configurado e
-        enriquece cada entrada com os parâmetros de extração."""
-        programas: list[dict[str, Any]] = Variable.get(
-            "transferegov_extracao_config",
-            default_var=_DEFAULT_PROGRAMAS,
-            deserialize_json=True,
+    def listar_arquivos_s3() -> list[dict[str, Any]]:
+        """Lista arquivos de planilha em cada bucket do MinIO e enriquece
+        cada entrada com os parâmetros de extração do programa."""
+        ids_validos = set(
+            Variable.get(
+                "transferegov_programas_ids",
+                default_var=[46, 47, 60, 61, 62],
+                deserialize_json=True,
+            )
         )
 
+        hook = S3Hook(aws_conn_id=_S3_CONN_ID)
         arquivos_meta: list[dict[str, Any]] = []
 
-        for prog in programas:
-            nome = prog["nome_programa"]
-            base_dir = prog["base_dir"]
-
-            log.info(
-                "[minc_extracao_anexos_dag.py] Listando arquivos para programa %s em %s",
-                nome,
-                base_dir,
-            )
-
-            try:
-                caminhos = listar_arquivos_locais(base_dir)
-            except FileNotFoundError:
-                log.warning(
-                    "[minc_extracao_anexos_dag.py] Diretório não encontrado para %s: %s — pulando",
-                    nome,
-                    base_dir,
+        for prog in _PROGRAMAS:
+            ids_prog = prog.get("id_programa", [])
+            if isinstance(ids_prog, int):
+                ids_prog = [ids_prog]
+            if ids_prog and not any(i in ids_validos for i in ids_prog):
+                logging.info(
+                    "[minc_extracao_anexos_dag.py] Programa %s (IDs %s) "
+                    "nao esta em transferegov_programas_ids — pulando",
+                    prog["nome_programa"],
+                    ids_prog,
                 )
                 continue
 
-            for caminho in caminhos:
+            nome = prog["nome_programa"]
+            bucket = prog["bucket"]
+            prefix = prog.get("prefix", "")
+
+            logging.info(
+                "[minc_extracao_anexos_dag.py] Listando arquivos para programa %s "
+                "no bucket s3://%s/%s",
+                nome,
+                bucket,
+                prefix,
+            )
+
+            try:
+                keys = hook.list_keys(
+                    bucket_name=bucket,
+                    prefix=prefix,
+                )
+            except Exception as exc:
+                logging.warning(
+                    "[minc_extracao_anexos_dag.py] Erro ao listar bucket %s: %s — pulando",
+                    bucket,
+                    exc,
+                )
+                continue
+
+            if not keys:
+                logging.warning(
+                    "[minc_extracao_anexos_dag.py] Nenhum arquivo encontrado no "
+                    "bucket %s para o programa %s",
+                    bucket,
+                    nome,
+                )
+                continue
+
+            extensoes_validas = {".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"}
+
+            for key in keys:
+                ext = Path(key).suffix.lower()
+                if ext not in extensoes_validas:
+                    continue
+                if Path(key).name.startswith("~$"):
+                    continue
+
                 arquivos_meta.append({
-                    "file_path": caminho,
+                    "key": key,
+                    "bucket": bucket,
                     "nome_programa": nome,
                     "regex_header": prog["regex_header"],
                     "regex_flags": prog.get("regex_flags", "IGNORECASE"),
@@ -115,96 +162,140 @@ def minc_extracao_anexos_dag() -> None:
                     "table": prog["table"],
                 })
 
-            log.info(
+            logging.info(
                 "[minc_extracao_anexos_dag.py] Programa %s: %d arquivos encontrados",
                 nome,
-                len(caminhos),
+                sum(
+                    1
+                    for a in arquivos_meta
+                    if a["nome_programa"] == nome
+                ),
             )
 
         if not arquivos_meta:
-            log.warning(
+            logging.warning(
                 "[minc_extracao_anexos_dag.py] Nenhum arquivo encontrado em nenhum programa"
             )
 
         return arquivos_meta
 
     @task
-    def extrair_tabela(file_meta: dict[str, Any]) -> list[dict[str, Any]]:
-        """Extrai subtabelas de um único arquivo de planilha.
+    def baixar_e_extrair(file_meta: dict[str, Any]) -> list[dict[str, Any]]:
+        """Baixa um arquivo do MinIO para /tmp, extrai as subtabelas e
+        remove o arquivo temporário.
 
         Fail-safe: nunca levanta exceção para não quebrar o Dynamic Task
-        Mapping.  Arquivos com erro retornam lista vazia com flag de erro.
+        Mapping. Arquivos com erro retornam lista vazia com flag de erro.
         """
-        file_path = file_meta["file_path"]
         nome_programa = file_meta["nome_programa"]
+        bucket = file_meta["bucket"]
+        key = file_meta["key"]
 
         flags = 0
         for flag_name in file_meta.get("regex_flags", "IGNORECASE").split("|"):
-            match getattr(re, flag_name.strip(), None):
-                case f if f is not None:
-                    flags |= f
-                case _:
-                    pass
+            flag_val = getattr(re, flag_name.strip(), None)
+            if flag_val is not None:
+                flags |= flag_val
 
         regex_header = re.compile(file_meta["regex_header"], flags)
 
-        log.info(
-            "[minc_extracao_anexos_dag.py] Extraindo '%s' (%s, regex=%s)",
-            Path(file_path).name,
-            nome_programa,
-            file_meta["regex_header"],
-        )
+        hook = S3Hook(aws_conn_id=_S3_CONN_ID)
 
-        try:
-            resultados = extrair_tabela_raw(
-                file_path=file_path,
-                regex_header=regex_header,
-                col_header_idx=file_meta.get("col_header_idx", 1),
-                col_categoria_idx=file_meta.get("col_categoria_idx", 0),
-                min_len_categoria=file_meta.get("min_len_categoria", 6),
+        with TemporaryDirectory(prefix="extracao_") as tmpdir:
+            file_name = Path(key).name
+            local_path = Path(tmpdir) / file_name
+
+            logging.info(
+                "[minc_extracao_anexos_dag.py] Baixando s3://%s/%s -> %s",
+                bucket,
+                key,
+                local_path,
             )
-        except Exception as exc:
-            log.error(
-                "[minc_extracao_anexos_dag.py] Erro ao extrair '%s': %s",
-                Path(file_path).name,
-                exc,
+
+            try:
+                hook.download_file(
+                    key=key,
+                    bucket_name=bucket,
+                    local_path=str(local_path),
+                )
+            except Exception as exc:
+                logging.error(
+                    "[minc_extracao_anexos_dag.py] Erro ao baixar s3://%s/%s: %s",
+                    bucket,
+                    key,
+                    exc,
+                )
+                return [{
+                    "nome_programa": nome_programa,
+                    "nome_arquivo": file_name,
+                    "aba": None,
+                    "tipo_edital": None,
+                    "dados_json": None,
+                    "colunas": None,
+                    "n_linhas": 0,
+                    "erro": repr(exc),
+                    "schema": file_meta["schema"],
+                    "table": file_meta["table"],
+                }]
+
+            logging.info(
+                "[minc_extracao_anexos_dag.py] Extraindo '%s' (%s, regex=%s)",
+                file_name,
+                nome_programa,
+                file_meta["regex_header"],
             )
-            return [{
-                "nome_programa": nome_programa,
-                "nome_arquivo": Path(file_path).name,
-                "aba": None,
-                "tipo_edital": None,
-                "dados_json": None,
-                "colunas": None,
-                "n_linhas": 0,
-                "erro": repr(exc),
-                "schema": file_meta["schema"],
-                "table": file_meta["table"],
-            }]
 
-        registros: list[dict[str, Any]] = []
-        for res in resultados:
-            df = res["dados"]
-            registros.append({
-                "nome_programa": nome_programa,
-                "nome_arquivo": res["nome_arquivo"],
-                "aba": res["aba"],
-                "tipo_edital": res["tipo_edital"],
-                "dados_json": df.to_json(orient="records"),
-                "colunas": list(df.columns),
-                "n_linhas": len(df),
-                "erro": None,
-                "schema": file_meta["schema"],
-                "table": file_meta["table"],
-            })
+            try:
+                resultados = extrair_tabela_raw(
+                    file_path=local_path,
+                    regex_header=regex_header,
+                    col_header_idx=file_meta.get("col_header_idx", 1),
+                    col_categoria_idx=file_meta.get("col_categoria_idx", 0),
+                    min_len_categoria=file_meta.get("min_len_categoria", 6),
+                )
+            except Exception as exc:
+                logging.error(
+                    "[minc_extracao_anexos_dag.py] Erro ao extrair '%s': %s",
+                    file_name,
+                    exc,
+                )
+                return [{
+                    "nome_programa": nome_programa,
+                    "nome_arquivo": file_name,
+                    "aba": None,
+                    "tipo_edital": None,
+                    "dados_json": None,
+                    "colunas": None,
+                    "n_linhas": 0,
+                    "erro": repr(exc),
+                    "schema": file_meta["schema"],
+                    "table": file_meta["table"],
+                }]
 
-        log.info(
-            "[minc_extracao_anexos_dag.py] Extraídos %d subtabelas de '%s'",
-            len(registros),
-            Path(file_path).name,
-        )
+            registros: list[dict[str, Any]] = []
+            for res in resultados:
+                df = res["dados"]
+                registros.append({
+                    "nome_programa": nome_programa,
+                    "nome_arquivo": res["nome_arquivo"],
+                    "aba": res["aba"],
+                    "tipo_edital": res["tipo_edital"],
+                    "dados_json": df.to_json(orient="records"),
+                    "colunas": list(df.columns),
+                    "n_linhas": len(df),
+                    "erro": None,
+                    "schema": file_meta["schema"],
+                    "table": file_meta["table"],
+                })
 
-        return registros
+            logging.info(
+                "[minc_extracao_anexos_dag.py] Extraidos %d subtabelas de '%s'",
+                len(registros),
+                file_name,
+            )
+
+            # TemporaryDirectory limpa o dir ao sair do with-block
+            return registros
 
     @task
     def carregar_no_postgres(
@@ -220,7 +311,6 @@ def minc_extracao_anexos_dag() -> None:
         """
         db = ClientPostgresDB(get_postgres_conn())
 
-        # Agrupa por (schema, table)
         particoes: dict[tuple[str, str], list[dict[str, Any]]] = {}
         erros: list[dict[str, Any]] = []
 
@@ -264,14 +354,14 @@ def minc_extracao_anexos_dag() -> None:
                         schema=schema,
                     )
                     contagem[f"{schema}.{table}"] = len(linhas)
-                    log.info(
+                    logging.info(
                         "[minc_extracao_anexos_dag.py] Carregados %d registros em %s.%s",
                         len(linhas),
                         schema,
                         table,
                     )
                 except Exception as exc:
-                    log.error(
+                    logging.error(
                         "[minc_extracao_anexos_dag.py] Erro ao carregar em %s.%s: %s",
                         schema,
                         table,
@@ -280,12 +370,12 @@ def minc_extracao_anexos_dag() -> None:
                     contagem[f"{schema}.{table}_erros"] = len(linhas)
 
         if erros:
-            log.warning(
-                "[minc_extracao_anexos_dag.py] %d arquivos com erro de extração (pulados)",
+            logging.warning(
+                "[minc_extracao_anexos_dag.py] %d arquivos com erro de extracao (pulados)",
                 len(erros),
             )
             for err in erros[:5]:
-                log.warning(
+                logging.warning(
                     "[minc_extracao_anexos_dag.py] Erro: %s — %s",
                     err.get("nome_arquivo"),
                     err.get("erro"),
@@ -293,8 +383,8 @@ def minc_extracao_anexos_dag() -> None:
 
         return contagem
 
-    arquivos = listar_arquivos()
-    resultados = extrair_tabela.map(file_meta=arquivos)
+    arquivos = listar_arquivos_s3()
+    resultados = baixar_e_extrair.map(file_meta=arquivos)
     carregar_no_postgres(resultados)
 
 
