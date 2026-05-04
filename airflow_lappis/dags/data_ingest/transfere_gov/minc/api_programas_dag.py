@@ -82,13 +82,13 @@ def minc_api_programas_dag() -> None:
 
     carga_finalizada = load_programas_to_postgres(fetch_programas())
 
-    trigger_relatorios = TriggerDagRunOperator(
-        task_id="trigger_relatorios_gestao",
-        trigger_dag_id="minc_api_relatorios_gestao_dag",
+    trigger_planos_acao = TriggerDagRunOperator(
+        task_id="trigger_planos_acao",
+        trigger_dag_id="min_api_planos_acao_dag",
         wait_for_completion=False,
     )
 
-    carga_finalizada >> trigger_relatorios
+    carga_finalizada >>  trigger_planos_acao
 
 
 minc_api_programas_dag()
