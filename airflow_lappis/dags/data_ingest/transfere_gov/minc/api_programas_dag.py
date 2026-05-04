@@ -84,7 +84,7 @@ def minc_api_programas_dag() -> None:
 
     trigger_planos_acao = TriggerDagRunOperator(
         task_id="trigger_planos_acao",
-        trigger_dag_id="min_api_planos_acao_dag",
+        trigger_dag_id="minc_api_planos_acao_dag",
         wait_for_completion=False,
     )
 
