@@ -1,3 +1,4 @@
+import io
 import logging
 import re
 from datetime import datetime, timedelta
@@ -26,8 +27,8 @@ _PROGRAMAS = [
         "col_header_idx": 1,
         "col_categoria_idx": 0,
         "min_len_categoria": 6,
-        "bucket": "transferegov-anexos-lpg",
-        "prefix": "anexos/",
+        "bucket": "anexos-lpg",
+        "prefix": "",
         "schema": "transferegov_fundo_a_fundo",
         "table": "raw_tabelas_anexos_lpg",
     },
@@ -39,14 +40,14 @@ _PROGRAMAS = [
         "col_header_idx": 1,
         "col_categoria_idx": 0,
         "min_len_categoria": 6,
-        "bucket": "transferegov-anexos-pnab",
-        "prefix": "anexos/",
+        "bucket": "anexos-pnab",
+        "prefix": "",
         "schema": "transferegov_fundo_a_fundo",
         "table": "raw_tabelas_anexos_pnab",
     },
 ]
 
-_S3_CONN_ID = "aws_default"
+_S3_CONN_ID = "minio_default"
 
 default_args = {
     "owner": "Caio Borges",
@@ -181,8 +182,12 @@ def minc_extracao_anexos_dag() -> None:
 
     @task
     def baixar_e_extrair(file_meta: dict[str, Any]) -> list[dict[str, Any]]:
-        """Baixa um arquivo do MinIO para /tmp, extrai as subtabelas e
-        remove o arquivo temporário.
+        """Baixa um arquivo do MinIO para memória, grava em diretório
+        temporário local, extrai as subtabelas e remove o arquivo.
+
+        O download usa S3Hook.get_key() + io.BytesIO em vez de
+        download_file() para evitar FileNotFoundError quando o hook
+        tenta resolver o path do objeto no MinIO.
 
         Fail-safe: nunca levanta exceção para não quebrar o Dynamic Task
         Mapping. Arquivos com erro retornam lista vazia com flag de erro.
@@ -199,44 +204,43 @@ def minc_extracao_anexos_dag() -> None:
 
         regex_header = re.compile(file_meta["regex_header"], flags)
 
-        hook = S3Hook(aws_conn_id=_S3_CONN_ID)
+        s3_hook = S3Hook(aws_conn_id=_S3_CONN_ID)
+        file_name = Path(key).name
 
-        with TemporaryDirectory(prefix="extracao_") as tmpdir:
-            file_name = Path(key).name
-            local_path = Path(tmpdir) / file_name
+        # --- Download direto para memória via get_key ---
+        logging.info(
+            "[minc_extracao_anexos_dag.py] Baixando s3://%s/%s para memória",
+            bucket,
+            key,
+        )
 
-            logging.info(
-                "[minc_extracao_anexos_dag.py] Baixando s3://%s/%s -> %s",
+        try:
+            obj = s3_hook.get_key(key=key, bucket_name=bucket)
+            file_content = obj.get()["Body"].read()
+        except Exception as exc:
+            logging.error(
+                "[minc_extracao_anexos_dag.py] Erro ao baixar s3://%s/%s: %s",
                 bucket,
                 key,
-                local_path,
+                exc,
             )
+            return [{
+                "nome_programa": nome_programa,
+                "nome_arquivo": file_name,
+                "aba": None,
+                "tipo_edital": None,
+                "dados_json": None,
+                "colunas": None,
+                "n_linhas": 0,
+                "erro": repr(exc),
+                "schema": file_meta["schema"],
+                "table": file_meta["table"],
+            }]
 
-            try:
-                hook.download_file(
-                    key=key,
-                    bucket_name=bucket,
-                    local_path=str(local_path),
-                )
-            except Exception as exc:
-                logging.error(
-                    "[minc_extracao_anexos_dag.py] Erro ao baixar s3://%s/%s: %s",
-                    bucket,
-                    key,
-                    exc,
-                )
-                return [{
-                    "nome_programa": nome_programa,
-                    "nome_arquivo": file_name,
-                    "aba": None,
-                    "tipo_edital": None,
-                    "dados_json": None,
-                    "colunas": None,
-                    "n_linhas": 0,
-                    "erro": repr(exc),
-                    "schema": file_meta["schema"],
-                    "table": file_meta["table"],
-                }]
+        # --- Escreve bytes em arquivo temporário para extrair_tabela_raw ---
+        with TemporaryDirectory(prefix="extracao_") as tmpdir:
+            local_path = Path(tmpdir) / file_name
+            local_path.write_bytes(file_content)
 
             logging.info(
                 "[minc_extracao_anexos_dag.py] Extraindo '%s' (%s, regex=%s)",
@@ -384,7 +388,7 @@ def minc_extracao_anexos_dag() -> None:
         return contagem
 
     arquivos = listar_arquivos_s3()
-    resultados = baixar_e_extrair.map(file_meta=arquivos)
+    resultados = baixar_e_extrair.expand(file_meta=arquivos)
     carregar_no_postgres(resultados)
 
 
