@@ -1,11 +1,13 @@
+import io
 import logging
 import re
+import tempfile
 import unicodedata
+import zipfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import pandas as pd
-
 
 log = logging.getLogger(__name__)
 
@@ -23,12 +25,13 @@ def normalizar_nome(nome: Any) -> str:
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
+
 _ENGINE_MAP = {
-    ".xlsx": "openpyxl",
-    ".xlsm": "openpyxl",
-    ".xls": "xlrd",
-    ".xlsb": "pyxlsb",
-    ".ods": "odf",
+    ".xlsx": "calamine",
+    ".xlsm": "calamine",
+    ".xls": "calamine",
+    ".xlsb": "calamine",
+    ".ods": "calamine",
 }
 
 
@@ -38,91 +41,153 @@ def detectar_engine(file_path: str | Path) -> Optional[str]:
     return _ENGINE_MAP.get(ext)
 
 
-def abrir_excel(file_path: str | Path) -> pd.ExcelFile:
-    """Abre planilha tentando a engine correta, com fallbacks para casos
-    comuns (extensão incorreta, XLSB disfarçado, etc.).
+def _eh_zip_excel(source: str | Path | io.BytesIO) -> bool:
+    """Verifica se o conteúdo é um ZIP (XLSX/XLSM/XLSB usam esse formato).
+
+    Funciona tanto com caminho de arquivo quanto com buffer em memória
+    (``io.BytesIO``).  No caso de buffer, usa ``zipfile.is_zipfile()``
+    que aceita objetos file-like nativamente.
+    """
+    try:
+        if isinstance(source, io.BytesIO):
+            pos = source.tell()
+            source.seek(0)
+            result = zipfile.is_zipfile(source)
+            source.seek(pos)
+            return result
+        # Caminho em disco — abre normalmente
+        with open(source, "rb") as f:
+            return f.read(4) == b"PK\x03\x04"
+    except (OSError, zipfile.BadZipFile):
+        return False
+
+
+def abrir_excel(
+    source: str | Path | io.BytesIO,
+    file_name: str | None = None,
+) -> pd.ExcelFile:
+    """Abre planilha a partir de caminho ou buffer em memória.
+
+    Prioriza a leitura 100% em memória (BytesIO) com o motor ``calamine``,
+    que é memory-safe e transforma corrupções em exceções normais em vez
+    de causar OOM. Motores legados (openpyxl, xlrd, pyxlsb, odf) são
+    tentados como fallback — e estes podem exigir arquivo em disco, que
+    é criado sob demanda apenas nessa situação.
+
+    Parameters
+    ----------
+    source : str | Path | io.BytesIO
+        Caminho do arquivo físico OU buffer em memória com os bytes.
+    file_name : str | None
+        Nome do arquivo (para log e detecção de extensão). Obrigatório
+        quando ``source`` é ``io.BytesIO``.
 
     Levanta RuntimeError se nenhuma tentativa funcionar.
     """
-    file_path = Path(file_path)
-    suffix = file_path.suffix.lower()
-    engine_principal = detectar_engine(file_path)
+    # --- Resolve nome, extensão e buffer ---
+    if isinstance(source, io.BytesIO):
+        if not file_name:
+            raise ValueError("file_name é obrigatório quando source é BytesIO")
+        nome = file_name
+        suffix = Path(nome).suffix.lower()
+        buffer = source
+        buffer.seek(0)
+    else:
+        source = Path(source)
+        nome = source.name
+        suffix = source.suffix.lower()
+        buffer = None
 
-    tentativas: list[tuple[str, str]] = []
-    if engine_principal:
-        tentativas.append((str(file_path), engine_principal))
+    # --- Monta lista de tentativas (engine, precisa_disco) ---
+    tentativas: list[tuple[str, str, bool]] = []
+    # 1a tentativa: calamine em memória
+    tentativas.append(("calamine", nome, False))
 
-    # Fallbacks comuns
+    # Fallbacks por extensão (podem exigir disco)
+    fallback_engine: str | None = None
     if suffix == ".xls":
-        tentativas.append((str(file_path), "xlrd"))
-    if _eh_zip_excel(file_path):
-        tentativas.extend([
-            (str(file_path), "pyxlsb"),
-            (str(file_path), "openpyxl"),
-        ])
+        fallback_engine = "xlrd"
     elif suffix in {".xlsx", ".xlsm"}:
-        tentativas.append((str(file_path), "openpyxl"))
+        fallback_engine = "openpyxl"
     elif suffix == ".xlsb":
-        tentativas.append((str(file_path), "pyxlsb"))
+        fallback_engine = "pyxlsb"
     elif suffix == ".ods":
-        tentativas.append((str(file_path), "odf"))
+        fallback_engine = "odf"
+
+    if fallback_engine:
+        tentativas.append((fallback_engine, nome, True))
+
+    # Fallbacks extras para XLS que na verdade é ZIP disfarçado
+    if suffix == ".xls":
+        if _eh_zip_excel(source):
+            tentativas.append(("openpyxl", nome, True))
+            tentativas.append(("pyxlsb", nome, True))
 
     # Desduplica preservando ordem
-    vistos: set[tuple[str, str]] = set()
-    tentativas_unicas: list[tuple[str, str]] = []
-    for p, e in tentativas:
-        chave = (p, e)
-        if chave not in vistos:
-            tentativas_unicas.append((p, e))
-            vistos.add(chave)
+    vistos: set[str] = set()
+    tentativas_unicas: list[tuple[str, str, bool]] = []
+    for engine, n, disco in tentativas:
+        if engine not in vistos:
+            tentativas_unicas.append((engine, n, disco))
+            vistos.add(engine)
 
+    # --- Tenta cada engine ---
+    tmp_path: str | None = None
     ultimo_erro: Exception | None = None
-    for path_tentativa, engine_tentativa in tentativas_unicas:
+
+    for engine, n, precisa_disco in tentativas_unicas:
         try:
-            xls = pd.ExcelFile(path_tentativa, engine=engine_tentativa)
+            if precisa_disco and buffer is not None:
+                # Motor legado que exige arquivo físico — grava sob demanda
+                if tmp_path is None:
+                    tmp_dir = tempfile.mkdtemp(prefix="extracao_fallback_")
+                    tmp_path = str(Path(tmp_dir) / n)
+                    with open(tmp_path, "wb") as f:
+                        buffer.seek(0)
+                        f.write(buffer.read())
+                    log.debug(
+                        "[extracao_planilhas.py] Fallback gravou buffer em '%s'",
+                        tmp_path,
+                    )
+                read_source = tmp_path
+            elif not precisa_disco and buffer is not None:
+                # calamine com BytesIO — 100% em memória
+                buffer.seek(0)
+                read_source = buffer
+            else:
+                # source é caminho de arquivo (str ou Path)
+                read_source = str(source)
+
+            xls = pd.ExcelFile(read_source, engine=engine)
             if xls.sheet_names:
                 log.info(
                     "[extracao_planilhas.py] Aberto '%s' com engine '%s'",
-                    Path(path_tentativa).name,
-                    engine_tentativa,
+                    n,
+                    engine,
                 )
                 return xls
-            # openpyxl abre mas lista abas vazias (Strict OOXML) — tenta calamine
-            if engine_tentativa == "openpyxl":
-                try:
-                    return pd.ExcelFile(path_tentativa, engine="calamine")
-                except Exception:
-                    pass
         except Exception as exc:
             ultimo_erro = exc
             log.debug(
                 "[extracao_planilhas.py] Falha '%s' com engine '%s': %s",
-                Path(path_tentativa).name,
-                engine_tentativa,
+                n,
+                engine,
                 exc,
             )
 
     raise RuntimeError(
-        f"Não foi possível abrir o arquivo '{file_path.name}'. "
+        f"Não foi possível abrir o arquivo '{nome}'. "
         f"Último erro: {type(ultimo_erro).__name__}: {ultimo_erro}"
     ) from ultimo_erro
 
 
-def _eh_zip_excel(path: Path) -> bool:
-    """XLSX/XLSM/XLSB são ZIPs (assinatura PK\\x03\\x04)."""
-    try:
-        with open(path, "rb") as f:
-            return f.read(4) == b"PK\x03\x04"
-    except OSError:
-        return False
-
-
 def extrair_tabela_raw(
-    file_path: str | Path,
+    file_path: str | Path | io.BytesIO,
     regex_header: re.Pattern,
     col_header_idx: int = 1,
     col_categoria_idx: int = 0,
     min_len_categoria: int = 6,
+    file_name: str | None = None,
 ) -> list[dict]:
     """Extrai tabelas de um arquivo de planilha usando o padrão ELT.
 
@@ -143,8 +208,9 @@ def extrair_tabela_raw(
 
     Parameters
     ----------
-    file_path : str | Path
-        Caminho do arquivo de planilha.
+    file_path : str | Path | io.BytesIO
+        Caminho do arquivo físico OU buffer em memória com os bytes da planilha.
+        Quando ``io.BytesIO``, o parâmetro ``file_name`` deve ser informado.
     regex_header : re.Pattern
         Pattern compilado usado para identificar a linha âncora de cabeçalho.
         Para LPG: ``re.compile(r"edita(?:is|l)", re.IGNORECASE)``
@@ -156,6 +222,9 @@ def extrair_tabela_raw(
     min_len_categoria : int
         Comprimento mínimo de texto na col 0 para considerar uma "linha de
         categoria" (default: 6).
+    file_name : str | None
+        Nome do arquivo (para log e metadados). Obrigatório quando
+        ``file_path`` é ``io.BytesIO``.
 
     Returns
     -------
@@ -167,15 +236,22 @@ def extrair_tabela_raw(
         - ``dados`` (pd.DataFrame): DataFrame com colunas originais do Excel
           + coluna ``tipo_edital``. Todas as colunas são ``str``.
     """
-    file_path = Path(file_path)
+    # Resolve nome do arquivo para logs e metadados
+    if isinstance(file_path, io.BytesIO):
+        nome_arquivo = file_name or "unknown"
+        source = file_path
+    else:
+        source = Path(file_path)
+        nome_arquivo = source.name
+
     resultados: list[dict] = []
 
     try:
-        xls = abrir_excel(file_path)
+        xls = abrir_excel(source, file_name=nome_arquivo)
     except Exception as exc:
         log.error(
             "[extracao_planilhas.py] Falha ao abrir '%s': %s",
-            file_path.name,
+            nome_arquivo,
             exc,
         )
         return resultados
@@ -189,7 +265,7 @@ def extrair_tabela_raw(
                 log.warning(
                     "[extracao_planilhas.py] Erro ao ler aba '%s' de '%s': %s",
                     aba,
-                    file_path.name,
+                    nome_arquivo,
                     exc,
                 )
                 continue
@@ -282,7 +358,7 @@ def extrair_tabela_raw(
                 df_y["tipo_edital"] = tipo
 
                 resultados.append({
-                    "nome_arquivo": file_path.name,
+                    "nome_arquivo": nome_arquivo,
                     "aba": aba,
                     "tipo_edital": tipo,
                     "dados": df_y,

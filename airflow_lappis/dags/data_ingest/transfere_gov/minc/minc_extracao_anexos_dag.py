@@ -1,9 +1,10 @@
+import inspect
 import io
+import inspect
 import logging
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Any
 
 import pandas as pd
@@ -14,9 +15,6 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from cliente_postgres import ClientPostgresDB
 from extracao_planilhas import extrair_tabela_raw
 from postgres_helpers import get_postgres_conn
-
-_REGEX_LPG = re.compile(r"edita(?:is|l)", re.IGNORECASE)
-_REGEX_PNAB = re.compile(r"contemplad|contratad|acompanhament", re.IGNORECASE)
 
 _PROGRAMAS = [
     {
@@ -35,7 +33,7 @@ _PROGRAMAS = [
     {
         "nome_programa": "PNAB",
         "id_programa": [60, 61, 62],
-        "regex_header": r"contemplad|contratad|acompanhament",
+        "regex_header": r"contemplad|contratad|acompanhament|plan|sheet|dados|tabela|resumo|relat[oó]rio",
         "regex_flags": "IGNORECASE",
         "col_header_idx": 1,
         "col_categoria_idx": 0,
@@ -73,10 +71,13 @@ def minc_extracao_anexos_dag() -> None:
     1. ``listar_arquivos_s3`` — descobre todos os arquivos de planilha nos
        buckets do MinIO e enriquece cada entrada com os parâmetros do
        programa (regex, bucket, tabela destino).
-    2. ``baixar_e_extrair`` — para CADA arquivo (via ``.map()``), baixa do
-       MinIO para diretório temporário, extrai as subtabelas com
-       ``extrair_tabela_raw`` e limpa o arquivo temporário.
-    3. ``carregar_no_postgres`` — persiste os registros no PostgreSQL.
+    2. ``baixar_e_extrair`` — para CADA arquivo (via ``.expand()``), baixa
+       do MinIO para memória, extrai as subtabelas com
+       ``extrair_tabela_raw`` e insere diretamente no PostgreSQL.
+       Retorna apenas metadados leves (sem dados_json) para evitar
+       estouro de memória no XCom.
+    3. ``fechar_pipeline`` — task de fechamento que consolida os
+       metadados e encerra a DAG.
     """
 
     @task
@@ -181,20 +182,22 @@ def minc_extracao_anexos_dag() -> None:
         return arquivos_meta
 
     @task
-    def baixar_e_extrair(file_meta: dict[str, Any]) -> list[dict[str, Any]]:
-        """Baixa um arquivo do MinIO para memória, grava em diretório
-        temporário local, extrai as subtabelas e remove o arquivo.
+    def baixar_e_extrair(file_meta: dict[str, Any]) -> dict[str, Any]:
+        """Baixa um arquivo do MinIO para memória, extrai as subtabelas,
+        insere diretamente no PostgreSQL e retorna apenas metadados leves.
 
-        O download usa S3Hook.get_key() + io.BytesIO em vez de
-        download_file() para evitar FileNotFoundError quando o hook
-        tenta resolver o path do objeto no MinIO.
+        O INSERT no banco é feito dentro desta task para evitar o tráfego
+        pesado de dados_json pelo XCom, que causava OOM na task
+        carregar_no_postgres com 2.000+ arquivos mapeados.
 
         Fail-safe: nunca levanta exceção para não quebrar o Dynamic Task
-        Mapping. Arquivos com erro retornam lista vazia com flag de erro.
+        Mapping. Arquivos com erro retornam metadados com flag de erro.
         """
         nome_programa = file_meta["nome_programa"]
         bucket = file_meta["bucket"]
         key = file_meta["key"]
+        schema = file_meta["schema"]
+        table = file_meta["table"]
 
         flags = 0
         for flag_name in file_meta.get("regex_flags", "IGNORECASE").split("|"):
@@ -205,9 +208,9 @@ def minc_extracao_anexos_dag() -> None:
         regex_header = re.compile(file_meta["regex_header"], flags)
 
         s3_hook = S3Hook(aws_conn_id=_S3_CONN_ID)
+        db = ClientPostgresDB(get_postgres_conn())
         file_name = Path(key).name
 
-        # --- Download direto para memória via get_key ---
         logging.info(
             "[minc_extracao_anexos_dag.py] Baixando s3://%s/%s para memória",
             bucket,
@@ -224,172 +227,195 @@ def minc_extracao_anexos_dag() -> None:
                 key,
                 exc,
             )
-            return [{
+            return {
                 "nome_programa": nome_programa,
                 "nome_arquivo": file_name,
-                "aba": None,
-                "tipo_edital": None,
-                "dados_json": None,
-                "colunas": None,
-                "n_linhas": 0,
+                "n_subtabelas": 0,
+                "n_linhas_inseridas": 0,
+                "status": "erro_download",
                 "erro": repr(exc),
-                "schema": file_meta["schema"],
-                "table": file_meta["table"],
-            }]
+            }
 
-        # --- Escreve bytes em arquivo temporário para extrair_tabela_raw ---
-        with TemporaryDirectory(prefix="extracao_") as tmpdir:
-            local_path = Path(tmpdir) / file_name
-            local_path.write_bytes(file_content)
+        buffer = io.BytesIO(file_content)
 
-            logging.info(
-                "[minc_extracao_anexos_dag.py] Extraindo '%s' (%s, regex=%s)",
-                file_name,
-                nome_programa,
-                file_meta["regex_header"],
+        logging.info(
+            "[minc_extracao_anexos_dag.py] Extraindo '%s' (%s, regex=%s)",
+            file_name,
+            nome_programa,
+            file_meta["regex_header"],
+        )
+
+        try:
+            # Detecta se a versão de extrair_tabela_raw aceita file_name
+            # (versão nova com suporte a BytesIO) ou não (versão legada)
+            _fn_params = inspect.signature(extrair_tabela_raw).parameters
+            _extra_kwargs = (
+                {"file_name": file_name} if "file_name" in _fn_params else {}
+            )
+            resultados = extrair_tabela_raw(
+                file_path=buffer,
+                regex_header=regex_header,
+                col_header_idx=file_meta.get("col_header_idx", 1),
+                col_categoria_idx=file_meta.get("col_categoria_idx", 0),
+                min_len_categoria=file_meta.get("min_len_categoria", 6),
+                **_extra_kwargs,
             )
 
-            try:
-                resultados = extrair_tabela_raw(
-                    file_path=local_path,
-                    regex_header=regex_header,
-                    col_header_idx=file_meta.get("col_header_idx", 1),
-                    col_categoria_idx=file_meta.get("col_categoria_idx", 0),
-                    min_len_categoria=file_meta.get("min_len_categoria", 6),
-                )
-            except Exception as exc:
-                logging.error(
-                    "[minc_extracao_anexos_dag.py] Erro ao extrair '%s': %s",
-                    file_name,
-                    exc,
-                )
-                return [{
-                    "nome_programa": nome_programa,
-                    "nome_arquivo": file_name,
-                    "aba": None,
-                    "tipo_edital": None,
-                    "dados_json": None,
-                    "colunas": None,
-                    "n_linhas": 0,
-                    "erro": repr(exc),
-                    "schema": file_meta["schema"],
-                    "table": file_meta["table"],
-                }]
+            logging.info(f"Abas encontradas pelo regex: {len(resultados)}")
 
-            registros: list[dict[str, Any]] = []
+            total_linhas = 0
+            n_subtabelas = len(resultados)
+
             for res in resultados:
                 df = res["dados"]
-                registros.append({
-                    "nome_programa": nome_programa,
-                    "nome_arquivo": res["nome_arquivo"],
-                    "aba": res["aba"],
-                    "tipo_edital": res["tipo_edital"],
-                    "dados_json": df.to_json(orient="records"),
-                    "colunas": list(df.columns),
-                    "n_linhas": len(df),
-                    "erro": None,
-                    "schema": file_meta["schema"],
-                    "table": file_meta["table"],
-                })
+                df = df.loc[:, ~df.columns.duplicated()]
+
+                logging.info(f"Linhas originais da aba {res['aba']}: {len(df)}")
+
+                # --- Data Cleaning: remove lixo estrutural do Excel ---
+                colunas_antes = len(df.columns)
+                linhas_antes = len(df)
+
+                # 1. Colunas 100% vazias
+                df = df.dropna(axis=1, how="all")
+
+                # 2. Linhas 100% vazias
+                df = df.dropna(how="all")
+
+                # 3. Heurística: linhas onde a imensa maioria dos dados
+                #    reais é nula. Colunas de metadado (tipo_edital) sempre
+                #    têm valor, então calculamos thresh apenas sobre as
+                #    colunas originais do Excel.
+                _col_meta = {"tipo_edital"}
+                col_dados = [c for c in df.columns if c not in _col_meta]
+                if col_dados:
+                    # Exige que pelo menos 30% das colunas de dados tenham
+                    # valor não-nulo; isso elimina linhas de espaçamento
+                    # visual e índices numéricos soltos com resto nulo.
+                    thresh_dados = max(1, int(len(col_dados) * 0.3))
+                    df = df.dropna(subset=col_dados, thresh=thresh_dados)
+
+                df = df.reset_index(drop=True)
+
+                logging.info(f"Linhas restantes após limpeza: {len(df)}")
+
+                linhas_removidas = linhas_antes - len(df)
+                colunas_removidas = colunas_antes - len(df.columns)
+                if linhas_removidas or colunas_removidas:
+                    logging.info(
+                        "[minc_extracao_anexos_dag.py] Limpeza '%s' aba '%s': "
+                        "removidas %d/%d linhas, %d/%d colunas",
+                        file_name,
+                        res["aba"],
+                        linhas_removidas,
+                        linhas_antes,
+                        colunas_removidas,
+                        colunas_antes,
+                    )
+
+                if df.empty:
+                    logging.warning(f"Aba {res['aba']} descartada por estar vazia após limpeza.")
+                    continue
+
+                df["nome_arquivo"] = res["nome_arquivo"]
+                df["aba"] = res["aba"]
+                df["tipo_edital"] = res.get("tipo_edital")
+                df["nome_programa"] = nome_programa
+                df["dt_ingest"] = datetime.now().isoformat()
+
+                linhas = df.to_dict(orient="records")
+
+                logging.info(
+                    "Inserindo %d registros do programa %s na tabela %s.%s",
+                    len(df),
+                    nome_programa,
+                    schema,
+                    table,
+                )
+                db.insert_data(
+                    linhas,
+                    table_name=table,
+                    primary_key=None,
+                    conflict_fields=None,
+                    schema=schema,
+                )
+                total_linhas += len(linhas)
 
             logging.info(
-                "[minc_extracao_anexos_dag.py] Extraidos %d subtabelas de '%s'",
-                len(registros),
+                "[minc_extracao_anexos_dag.py] Arquivo '%s': %d subtabelas, "
+                "%d linhas inseridas em %s.%s",
                 file_name,
+                n_subtabelas,
+                total_linhas,
+                schema,
+                table,
             )
 
-            # TemporaryDirectory limpa o dir ao sair do with-block
-            return registros
+            return {
+                "nome_programa": nome_programa,
+                "nome_arquivo": file_name,
+                "n_subtabelas": n_subtabelas,
+                "n_linhas_inseridas": total_linhas,
+                "status": "sucesso",
+                "erro": None,
+            }
+
+        except Exception as exc:
+            logging.warning(
+                f"Arquivo ignorado por corrupção ou erro de leitura: {file_name} | Erro: {exc}"
+            )
+            return {
+                "nome_programa": nome_programa,
+                "nome_arquivo": file_name,
+                "n_subtabelas": 0,
+                "n_linhas_inseridas": 0,
+                "status": "erro_extracao",
+                "erro": repr(exc),
+            }
 
     @task
-    def carregar_no_postgres(
-        resultados_por_arquivo: list[list[dict[str, Any]]],
-    ) -> dict[str, int]:
-        """Consolida resultados e carrega no PostgreSQL, particionando
-        por schema/table de cada programa.
+    def fechar_pipeline(metadados: list[dict[str, Any]]) -> dict[str, int]:
+        """Task de fechamento que consolida os metadados leves das tasks
+        mapeadas e encerra a DAG. Não faz INSERT — os dados já foram
+        persistidos diretamente por cada ``baixar_e_extrair``.
 
         Returns
         -------
         dict[str, int]
-            Contagem de registros inseridos por (schema.table).
+            Contagem de arquivos por status e total de linhas inseridas.
         """
-        db = ClientPostgresDB(get_postgres_conn())
+        contagem: dict[str, int] = {"sucesso": 0, "erro_download": 0, "erro_extracao": 0}
+        total_linhas = 0
 
-        particoes: dict[tuple[str, str], list[dict[str, Any]]] = {}
-        erros: list[dict[str, Any]] = []
-
-        for resultados_arquivo in resultados_por_arquivo:
-            if resultados_arquivo is None:
+        for meta in metadados:
+            if meta is None:
                 continue
-            for reg in resultados_arquivo:
-                if reg.get("erro"):
-                    erros.append(reg)
-                    continue
-                if reg.get("dados_json") is None:
-                    continue
+            status = meta.get("status", "desconhecido")
+            contagem[status] = contagem.get(status, 0) + 1
+            total_linhas += meta.get("n_linhas_inseridas", 0)
 
-                key = (reg["schema"], reg["table"])
-                particoes.setdefault(key, []).append(reg)
+        contagem["total_linhas_inseridas"] = total_linhas
 
-        contagem: dict[str, int] = {}
-
-        for (schema, table), registros in particoes.items():
-            linhas: list[dict[str, Any]] = []
-
-            for reg in registros:
-                df = pd.read_json(reg["dados_json"], orient="records")
-                # Adiciona metadados ELT
-                df["nome_arquivo"] = reg["nome_arquivo"]
-                df["aba"] = reg["aba"]
-                df["tipo_edital"] = reg.get("tipo_edital")
-                df["nome_programa"] = reg["nome_programa"]
-                df["dt_ingest"] = datetime.now().isoformat()
-
-                for record in df.to_dict(orient="records"):
-                    linhas.append(record)
-
-            if linhas:
-                try:
-                    db.insert_data(
-                        linhas,
-                        table_name=table,
-                        primary_key=None,
-                        conflict_fields=None,
-                        schema=schema,
-                    )
-                    contagem[f"{schema}.{table}"] = len(linhas)
-                    logging.info(
-                        "[minc_extracao_anexos_dag.py] Carregados %d registros em %s.%s",
-                        len(linhas),
-                        schema,
-                        table,
-                    )
-                except Exception as exc:
-                    logging.error(
-                        "[minc_extracao_anexos_dag.py] Erro ao carregar em %s.%s: %s",
-                        schema,
-                        table,
-                        exc,
-                    )
-                    contagem[f"{schema}.{table}_erros"] = len(linhas)
-
-        if erros:
+        if contagem.get("erro_download") or contagem.get("erro_extracao"):
             logging.warning(
-                "[minc_extracao_anexos_dag.py] %d arquivos com erro de extracao (pulados)",
-                len(erros),
+                "[minc_extracao_anexos_dag.py] %d arquivos com erro de download, "
+                "%d com erro de extração",
+                contagem.get("erro_download", 0),
+                contagem.get("erro_extracao", 0),
             )
-            for err in erros[:5]:
-                logging.warning(
-                    "[minc_extracao_anexos_dag.py] Erro: %s — %s",
-                    err.get("nome_arquivo"),
-                    err.get("erro"),
-                )
+
+        logging.info(
+            "[minc_extracao_anexos_dag.py] Pipeline finalizado: %d arquivos OK, "
+            "%d linhas inseridas no total",
+            contagem.get("sucesso", 0),
+            total_linhas,
+        )
 
         return contagem
 
     arquivos = listar_arquivos_s3()
     resultados = baixar_e_extrair.expand(file_meta=arquivos)
-    carregar_no_postgres(resultados)
+    fechar_pipeline(resultados)
 
 
 minc_extracao_anexos_dag()
