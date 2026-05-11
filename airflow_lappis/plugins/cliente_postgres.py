@@ -249,6 +249,31 @@ class ClientPostgresDB:
                         f"Failed to insert data into {schema}.{table_name}"
                     ) from err
 
+    def insert_data_por_tabela(
+        self,
+        data: List[Dict[str, Any]],
+        table_name: str,
+        schema: str = "raw",
+    ) -> None:
+        """Insere dados em tabela destino determinada dinamicamente.
+
+        Wrapper de conveniência sobre ``insert_data`` para o fluxo PNAB
+        onde cada sub-tabela pode ir para uma tabela diferente
+        (ex: ``raw_pnab_informacoes``, ``raw_pnab_acoes_gerais``, etc.).
+
+        Args:
+            data: Lista de dicionários a inserir.
+            table_name: Nome da tabela destino (determinado pelo
+                roteamento de abas em ``extrair_pnab``).
+            schema: Schema do banco (default: ``"raw"``).
+        """
+        self.insert_data(
+            data,
+            table_name=table_name,
+            conflict_fields=None,
+            primary_key=None,
+            schema=schema,
+        )
 
     def execute_query(self, query: str) -> List[Tuple[Any, ...]]:
         """Execute a query and return the results.

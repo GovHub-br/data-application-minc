@@ -58,7 +58,8 @@ def download_anexos_dag():
         JOIN transferegov_fundo_a_fundo.raw_planos_acao pa
             ON rg.id_plano_acao = pa.id_plano_acao
         WHERE (ar.nome ILIKE '%.xls' OR ar.nome ILIKE '%.xlsx' OR ar.nome ILIKE '%.ods')
-          AND ar.caminho_minio IS NULL;
+          AND ar.caminho_minio IS NULL
+        LIMIT 3000;
         """
         records = pg_hook.get_records(query)
 

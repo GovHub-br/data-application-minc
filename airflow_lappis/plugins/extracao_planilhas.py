@@ -1,6 +1,9 @@
+import gc
 import io
 import logging
 import re
+import shutil
+import signal
 import tempfile
 import unicodedata
 import zipfile
@@ -10,6 +13,73 @@ from typing import Any, Optional, Union
 import pandas as pd
 
 log = logging.getLogger(__name__)
+
+# ────────────────────────────────────────────────────────────────
+# Timeout de leitura — proteção contra planilhas "bomba" (LPG)
+# ────────────────────────────────────────────────────────────────
+_TIMEOUT_SEGUNDOS = 120  # 2 minutos por arquivo
+
+
+class TimeoutLeituraError(TimeoutError):
+    """Leitura da planilha excedeu o tempo limite — arquivo ignorado."""
+
+
+def _com_timeout(fn, *args, segundos: int = _TIMEOUT_SEGUNDOS, **kwargs):
+    """Executa *fn* com alarme SIGALRM.  Se demorar mais que *segundos*,
+    levanta :class:`TimeoutLeituraError` em vez de travar o Worker.
+
+    Usa ``signal.alarm`` (POSIX) — compatível com o Linux do Airflow.
+    """
+    def _handler(signum, frame):
+        raise TimeoutLeituraError(
+            f"Leitura abortada após {segundos}s — arquivo ignorado por lentidão"
+        )
+
+    old_handler = signal.signal(signal.SIGALRM, _handler)
+    signal.alarm(segundos)
+    try:
+        return fn(*args, **kwargs)
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
+
+# ────────────────────────────────────────────────────────────────
+# Mapeamento de abas PNAB → tabela destino no banco
+# ────────────────────────────────────────────────────────────────
+ABA_PARA_TABELA: dict[str, str] = {
+    "informacoes": "raw_pnab_informacoes",
+    "acoes gerais": "raw_pnab_acoes_gerais",
+    "acoes cultura viva": "raw_pnab_acoes_cultura_viva",
+    "operacionalizacao": "raw_pnab_operacionalizacao",
+    "lista de contemplados geral": "raw_pnab_lista_contemplados_geral",
+    "lista contemplados pncv": "raw_pnab_lista_contemplados_pncv",
+}
+
+
+def _norm_texto(s: str) -> str:
+    """Normaliza texto para comparação tolerante de nomes de abas:
+    lowercase, sem acentos, espaços colapsados."""
+    s = str(s).strip().lower()
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _resolver_tabela_aba(nome_aba: str) -> str | None:
+    """Retorna o nome da tabela destino para uma aba, ou None se não mapeada.
+
+    Usa ``_norm_texto`` para tolerância a acentos/caixa/extra whitespace.
+    """
+    aba_norm = _norm_texto(nome_aba)
+    for chave, tabela in ABA_PARA_TABELA.items():
+        if aba_norm == chave:
+            return tabela
+    # Fallback: substring para abas com sufixos extras (ex: "1. Informações")
+    for chave, tabela in ABA_PARA_TABELA.items():
+        if chave in aba_norm or aba_norm in chave:
+            return tabela
+    return None
 
 
 def normalizar_nome(nome: Any) -> str:
@@ -31,13 +101,28 @@ _ENGINE_MAP = {
     ".xlsm": "calamine",
     ".xls": "calamine",
     ".xlsb": "calamine",
-    ".ods": "calamine",
+    # .ods intencionalmente REMOVIDO — a engine odf (fallback) carrega
+    # o DOM XML inteiro em memória e causa OOM Kills em planilhas grandes.
+    # Calamine pode ler .ods, mas se falhar o fallback é destrutivo.
 }
+
+# Extensões proibidas: causam OOM no Worker do Airflow
+_EXTENSOES_PROIBIDAS = {".ods"}
 
 
 def detectar_engine(file_path: str | Path) -> Optional[str]:
-    """Retorna a engine pandas adequada para a extensão do arquivo."""
+    """Retorna a engine pandas adequada para a extensão do arquivo.
+
+    Retorna ``None`` para extensões proibidas (.ods), emitindo warning.
+    """
     ext = Path(file_path).suffix.lower()
+    if ext in _EXTENSOES_PROIBIDAS:
+        log.warning(
+            "[extracao_planilhas.py] Extensão '%s' proibida (OOM risk) — "
+            "arquivo será pulado",
+            ext,
+        )
+        return None
     return _ENGINE_MAP.get(ext)
 
 
@@ -45,7 +130,7 @@ def _eh_zip_excel(source: str | Path | io.BytesIO) -> bool:
     """Verifica se o conteúdo é um ZIP (XLSX/XLSM/XLSB usam esse formato).
 
     Funciona tanto com caminho de arquivo quanto com buffer em memória
-    (``io.BytesIO``).  No caso de buffer, usa ``zipfile.is_zipfile()``
+    (``io.BytesIO``). No caso de buffer, usa ``zipfile.is_zipfile()``
     que aceita objetos file-like nativamente.
     """
     try:
@@ -70,9 +155,9 @@ def abrir_excel(
 
     Prioriza a leitura 100% em memória (BytesIO) com o motor ``calamine``,
     que é memory-safe e transforma corrupções em exceções normais em vez
-    de causar OOM. Motores legados (openpyxl, xlrd, pyxlsb, odf) são
+    de causar OOM. Motores legados (openpyxl, xlrd, pyxlsb) são
     tentados como fallback — e estes podem exigir arquivo em disco, que
-    é criado sob demanda apenas nessa situação.
+    é criado sob demanda e limpo automaticamente via ``finally``.
 
     Parameters
     ----------
@@ -83,6 +168,7 @@ def abrir_excel(
         quando ``source`` é ``io.BytesIO``.
 
     Levanta RuntimeError se nenhuma tentativa funcionar.
+    Levanta RuntimeError imediatamente para extensões proibidas (.ods).
     """
     # --- Resolve nome, extensão e buffer ---
     if isinstance(source, io.BytesIO):
@@ -98,12 +184,26 @@ def abrir_excel(
         suffix = source.suffix.lower()
         buffer = None
 
+    # --- Proteção contra OOM: pula .ods imediatamente ---
+    if suffix in _EXTENSOES_PROIBIDAS:
+        log.warning(
+            "[extracao_planilhas.py] Arquivo '%s' (.ods) pulado — "
+            "engine odf causa OOM em planilhas grandes",
+            nome,
+        )
+        raise RuntimeError(
+            f"Extensão .ods proibida (OOM risk): '{nome}'. "
+            "Use .xlsx ou .xls como alternativa."
+        )
+
     # --- Monta lista de tentativas (engine, precisa_disco) ---
     tentativas: list[tuple[str, str, bool]] = []
     # 1a tentativa: calamine em memória
     tentativas.append(("calamine", nome, False))
 
     # Fallbacks por extensão (podem exigir disco)
+    # NOTA: .ods NÃO tem fallback — a engine odf carrega o DOM XML
+    # inteiro e causa OOM Kills. O early-return acima já rejeita .ods.
     fallback_engine: str | None = None
     if suffix == ".xls":
         fallback_engine = "xlrd"
@@ -111,8 +211,6 @@ def abrir_excel(
         fallback_engine = "openpyxl"
     elif suffix == ".xlsb":
         fallback_engine = "pyxlsb"
-    elif suffix == ".ods":
-        fallback_engine = "odf"
 
     if fallback_engine:
         tentativas.append((fallback_engine, nome, True))
@@ -135,45 +233,68 @@ def abrir_excel(
     tmp_path: str | None = None
     ultimo_erro: Exception | None = None
 
-    for engine, n, precisa_disco in tentativas_unicas:
-        try:
-            if precisa_disco and buffer is not None:
-                # Motor legado que exige arquivo físico — grava sob demanda
-                if tmp_path is None:
-                    tmp_dir = tempfile.mkdtemp(prefix="extracao_fallback_")
-                    tmp_path = str(Path(tmp_dir) / n)
-                    with open(tmp_path, "wb") as f:
-                        buffer.seek(0)
-                        f.write(buffer.read())
-                    log.debug(
-                        "[extracao_planilhas.py] Fallback gravou buffer em '%s'",
-                        tmp_path,
-                    )
-                read_source = tmp_path
-            elif not precisa_disco and buffer is not None:
-                # calamine com BytesIO — 100% em memória
-                buffer.seek(0)
-                read_source = buffer
-            else:
-                # source é caminho de arquivo (str ou Path)
-                read_source = str(source)
+    try:
+        for engine, n, precisa_disco in tentativas_unicas:
+            try:
+                if precisa_disco and buffer is not None:
+                    # Motor legado que exige arquivo físico — grava sob demanda
+                    if tmp_path is None:
+                        tmp_dir = tempfile.mkdtemp(prefix="extracao_fallback_")
+                        tmp_path = str(Path(tmp_dir) / n)
+                        with open(tmp_path, "wb") as f:
+                            buffer.seek(0)
+                            f.write(buffer.read())
+                        log.debug(
+                            "[extracao_planilhas.py] Fallback gravou buffer em '%s'",
+                            tmp_path,
+                        )
+                    read_source = tmp_path
+                elif not precisa_disco and buffer is not None:
+                    # calamine com BytesIO — 100% em memória
+                    buffer.seek(0)
+                    read_source = buffer
+                else:
+                    # source é caminho de arquivo (str ou Path)
+                    read_source = str(source)
 
-            xls = pd.ExcelFile(read_source, engine=engine)
-            if xls.sheet_names:
-                log.info(
-                    "[extracao_planilhas.py] Aberto '%s' com engine '%s'",
+                xls = _com_timeout(pd.ExcelFile, read_source, engine=engine)
+                if xls.sheet_names:
+                    log.info(
+                        "[extracao_planilhas.py] Aberto '%s' com engine '%s'",
+                        n,
+                        engine,
+                    )
+                    # Limpa tempfile ANTES de retornar — sucesso, não precisa mais
+                    if tmp_path is not None:
+                        tmp_dir = str(Path(tmp_path).parent)
+                        shutil.rmtree(tmp_dir, ignore_errors=True)
+                        log.debug(
+                            "[extracao_planilhas.py] Tempfile '%s' removido (sucesso)",
+                            tmp_dir,
+                        )
+                    return xls
+            except TimeoutLeituraError:
+                raise  # propaga imediatamente — não tenta fallback
+            except Exception as exc:
+                ultimo_erro = exc
+                log.debug(
+                    "[extracao_planilhas.py] Falha '%s' com engine '%s': %s",
                     n,
                     engine,
+                    exc,
                 )
-                return xls
-        except Exception as exc:
-            ultimo_erro = exc
-            log.debug(
-                "[extracao_planilhas.py] Falha '%s' com engine '%s': %s",
-                n,
-                engine,
-                exc,
-            )
+    finally:
+        # --- Limpeza garantida do tempfile de fallback (caminho de falha) ---
+        if tmp_path is not None:
+            tmp_dir = str(Path(tmp_path).parent)
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                log.debug(
+                    "[extracao_planilhas.py] Tempfile '%s' removido (finally)",
+                    tmp_dir,
+                )
+            except Exception:
+                pass
 
     raise RuntimeError(
         f"Não foi possível abrir o arquivo '{nome}'. "
@@ -248,6 +369,8 @@ def extrair_tabela_raw(
 
     try:
         xls = abrir_excel(source, file_name=nome_arquivo)
+    except TimeoutLeituraError:
+        raise
     except Exception as exc:
         log.error(
             "[extracao_planilhas.py] Falha ao abrir '%s': %s",
@@ -260,7 +383,9 @@ def extrair_tabela_raw(
         abas = xls.sheet_names
         for aba in abas:
             try:
-                df = pd.read_excel(xls, sheet_name=aba, dtype=str)
+                df = _com_timeout(pd.read_excel, xls, sheet_name=aba, dtype=str)
+            except TimeoutLeituraError:
+                raise
             except Exception as exc:
                 log.warning(
                     "[extracao_planilhas.py] Erro ao ler aba '%s' de '%s': %s",
@@ -364,6 +489,223 @@ def extrair_tabela_raw(
                     "dados": df_y,
                 })
 
+    # Libera referências cíclicas do ExcelFile e DataFrames intermediários
+    del xls
+    gc.collect()
+
+    return resultados
+
+
+# ────────────────────────────────────────────────────────────────
+# Extração PNAB — roteamento por aba + sub-tabelas
+# ────────────────────────────────────────────────────────────────
+
+_HEADER_MARKERS = [
+    "nome do edital",
+    "nome do(a) contemplado",
+    "cpf",
+    "cnpj",
+    "nome do projeto",
+    "valor pago",
+    "link",
+    "publicacao",
+    "resultado do edital",
+]
+
+
+def _parece_header(row_values) -> bool:
+    """Heurística da PoC: uma linha parece um cabeçalho de sub-tabela
+    se contém ≥2 dos marcadores conhecidos."""
+    joined = " | ".join(_norm_texto(v) for v in row_values if v is not None)
+    hits = sum(1 for m in _HEADER_MARKERS if m in joined)
+    return hits >= 2
+
+
+def _eh_valor_nulo(v) -> bool:
+    """Verifica se um valor de célula é nulo/vazio para fins de delimitação
+    de sub-tabelas. Consolida a checagem espalhada pela PoC em um helper."""
+    if v is None:
+        return True
+    if isinstance(v, float) and pd.isna(v):
+        return True
+    if str(v).strip() == "":
+        return True
+    return False
+
+
+def extrair_pnab(
+    file_buffer: io.BytesIO,
+    file_name: str,
+    id_anexo: str,
+) -> list[dict]:
+    """Extrai tabelas de um arquivo PNAB usando roteamento por aba.
+
+    Lê as abas do arquivo, mapeia cada uma para uma tabela destino via
+    ``ABA_PARA_TABELA`` e, dentro de cada aba, detecta sub-tabelas
+    separadas por linhas de categoria (nome do edital). Cada DataFrame
+    gerado recebe ``id_anexo`` na primeira posição e ``tipo_edital``.
+
+    Parameters
+    ----------
+    file_buffer : io.BytesIO
+        Buffer em memória com os bytes da planilha.
+    file_name : str
+        Nome do arquivo (para log e detecção de extensão).
+    id_anexo : str
+        Identificador do anexo para rastreabilidade. Será a primeira
+        coluna de todo DataFrame gerado.
+
+    Returns
+    -------
+    list[dict]
+        Lista de dicts com ``nome_tabela_destino`` e ``dataframe``.
+        Abas não mapeadas são ignoradas silenciosamente.
+    """
+    resultados: list[dict] = []
+
+    try:
+        xls = abrir_excel(file_buffer, file_name=file_name)
+    except TimeoutLeituraError:
+        raise
+    except Exception as exc:
+        log.error(
+            "[extracao_planilhas.py] Falha ao abrir PNAB '%s': %s",
+            file_name,
+            exc,
+        )
+        return resultados
+
+    with xls:
+        for aba in xls.sheet_names:
+            tabela_destino = _resolver_tabela_aba(aba)
+            if tabela_destino is None:
+                log.debug(
+                    "[extracao_planilhas.py] Aba '%s' não mapeada — pulando",
+                    aba,
+                )
+                continue
+
+            log.info(
+                "[extracao_planilhas.py] Aba '%s' → %s",
+                aba,
+                tabela_destino,
+            )
+
+            try:
+                df = _com_timeout(pd.read_excel, xls, sheet_name=aba, dtype=str)
+            except TimeoutLeituraError:
+                raise
+            except Exception as exc:
+                log.warning(
+                    "[extracao_planilhas.py] Erro ao ler aba '%s' de '%s': %s",
+                    aba,
+                    file_name,
+                    exc,
+                )
+                continue
+
+            if df.empty:
+                continue
+
+            # --- Busca do cabeçalho âncora ---
+            # Heurística 1 (PoC original): col 0 vazia + "nome do edital" na col 1.
+            # Heurística 2 (flexível): qualquer linha com ≥2 HEADER_MARKERS.
+            start_idx: int | None = None
+            categoria_edital: str | None = None
+
+            for i in range(len(df)):
+                row_vals = df.iloc[i].tolist()
+
+                # Heurística 1: col 0 vazia + "nome do edital" na col 1 (padrão PoC)
+                # Usa == para igualdade (fidelidade à PoC), não substring
+                col0_vazia = (
+                    pd.isna(df.iloc[i, 0])
+                    or str(df.iloc[i, 0]).strip() == ""
+                )
+                col1_norm = _norm_texto(df.iloc[i, 1]) if df.shape[1] > 1 else ""
+
+                if col0_vazia and col1_norm == "nome do edital":
+                    col0_slice = df.iloc[:i, 0].dropna()
+                    if col0_slice.any():
+                        categoria_edital = str(col0_slice.iloc[-1]).strip()
+                    start_idx = i
+                    break
+
+                # Heurística 2: qualquer linha que pareça header
+                # (≥2 marcadores) — apenas se Heurística 1 não bateu
+                if _parece_header(row_vals):
+                    col0_slice = df.iloc[:i, 0].dropna()
+                    if col0_slice.any():
+                        categoria_edital = str(col0_slice.iloc[-1]).strip()
+                    start_idx = i
+                    break
+
+            if start_idx is None:
+                # Aba sem âncora: usa a aba inteira como uma tabela
+                # (caso de abas simples como "Informações")
+                df_out = df.copy()
+                df_out.insert(0, "id_anexo", id_anexo)
+                resultados.append({
+                    "nome_tabela_destino": tabela_destino,
+                    "dataframe": df_out,
+                })
+                continue
+
+            # --- Fatia a partir do header ---
+            header = df.iloc[start_idx].tolist()
+            body = df.iloc[start_idx + 1:].copy()
+            body.columns = header
+            body = body.reset_index(drop=True)
+
+            # --- Delimitação de sub-tabelas (lógica PoC) ---
+            # Quebras: linhas onde col 0 tem texto > 6 chars e as
+            # demais colunas são NaN/vazias (separadores de categoria).
+            list_start_idx = [0]
+            lista_categorias = [categoria_edital]
+
+            for idx, row in body.iterrows():
+                valores = row.tolist()
+                try:
+                    texto = str(valores[0]).strip()
+                except (IndexError, TypeError):
+                    continue
+                demais = [v for j, v in enumerate(valores) if j != 0]
+                if len(texto) > 6 and all(_eh_valor_nulo(v) for v in demais):
+                    lista_categorias.append(texto)
+                    list_start_idx.append(idx)
+
+            bounds = list_start_idx + [len(body)]
+            tuplas = list(zip(bounds[:-1], bounds[1:]))
+
+            # --- Extração de cada sub-tabela ---
+            for j, (a, b) in enumerate(tuplas):
+                if j < len(tuplas) - 1:
+                    df_y = body.iloc[a:b].copy()
+                else:
+                    df_y = body.iloc[a:].copy()
+
+                tipo = lista_categorias[j]
+
+                # Para sub-tabelas após a primeira (j > 0), a primeira
+                # linha é o separador de categoria e a segunda é o header
+                if j > 0 and len(df_y) >= 2:
+                    header2 = df_y.iloc[1].tolist()
+                    df_y = df_y.iloc[2:].copy()
+                    df_y.columns = header2
+                    df_y = df_y.reset_index(drop=True)
+
+                df_y["tipo_edital"] = tipo
+                df_y.insert(0, "id_anexo", id_anexo)
+
+                resultados.append({
+                    "nome_tabela_destino": tabela_destino,
+                    "dataframe": df_y,
+                })
+
+    # Libera referências cíclicas do ExcelFile e DataFrames intermediários
+    del xls
+    gc.collect()
+
     return resultados
 
 
@@ -378,7 +720,7 @@ def listar_arquivos_locais(
     base_dir : str | Path
         Diretório raiz da busca.
     extensoes : set[str] | None
-        Extensões válidas (default: {".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"}).
+        Extensões válidas (default: {".xlsx", ".xls", ".xlsm", ".xlsb"}).
 
     Returns
     -------
@@ -386,7 +728,7 @@ def listar_arquivos_locais(
         Caminhos absolutos dos arquivos encontrados.
     """
     if extensoes is None:
-        extensoes = {".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"}
+        extensoes = {".xlsx", ".xls", ".xlsm", ".xlsb"}
 
     base_dir = Path(base_dir)
     if not base_dir.exists():
@@ -414,7 +756,7 @@ def listar_arquivos_s3(
     prefix : str
         Prefixo (pasta) dentro do bucket.
     extensoes : set[str] | None
-        Extensões válidas (default: {".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"}).
+        Extensões válidas (default: {".xlsx", ".xls", ".xlsm", ".xlsb"}).
 
     Returns
     -------
@@ -422,7 +764,7 @@ def listar_arquivos_s3(
         Lista de dicts com ``{"bucket": ..., "key": ...}`` para cada arquivo.
     """
     if extensoes is None:
-        extensoes = {".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"}
+        extensoes = {".xlsx", ".xls", ".xlsm", ".xlsb"}
 
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
