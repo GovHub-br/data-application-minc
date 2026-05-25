@@ -13,7 +13,7 @@ from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from cliente_postgres import ClientPostgresDB
-from extracao_planilhas import extrair_tabela_raw, extrair_pnab, TimeoutLeituraError
+from extracao_planilhas import extrair_tabela_raw, extrair_pnab, extrair_lpg, TimeoutLeituraError
 from postgres_helpers import get_postgres_conn
 
 _PROGRAMAS = [
@@ -28,7 +28,7 @@ _PROGRAMAS = [
         "bucket": "anexos-lpg",
         "prefix": "",
         "schema": "transferegov_fundo_a_fundo",
-        "table": "raw_tabelas_anexos_lpg",
+        "table": None,  # LPG usa roteamento por template — tabela definida dinamicamente
     },
     {
         "nome_programa": "PNAB",
@@ -42,7 +42,6 @@ _PROGRAMAS = [
         "prefix": "",
         "schema": "transferegov_fundo_a_fundo",
         "table": None,  # PNAB usa roteamento por aba — tabela definida dinamicamente
-        "roteamento_aba": True,
     },
 ]
 
@@ -186,7 +185,6 @@ def minc_extracao_anexos_dag() -> None:
                     "min_len_categoria": prog.get("min_len_categoria", 6),
                     "schema": prog["schema"],
                     "table": prog["table"],
-                    "roteamento_aba": prog.get("roteamento_aba", False),
                 })
 
             logging.info(
@@ -227,6 +225,11 @@ def minc_extracao_anexos_dag() -> None:
     ) -> dict[str, Any]:
         """Processa um único arquivo: download S3 → extração → INSERT.
 
+        O roteamento é explícito por programa:
+        - PNAB → extrair_pnab (roteamento por aba)
+        - LPG  → extrair_lpg  (roteamento por template)
+        - else → extrair_tabela_raw (fallback genérico via regex)
+
         Retorna metadados leves (sem dados_json) para o resumo do lote.
         Nunca levanta exceção — erros são capturados e devolvidos no dict.
         """
@@ -235,12 +238,9 @@ def minc_extracao_anexos_dag() -> None:
         key = file_meta["key"]
         schema = file_meta["schema"]
         table = file_meta["table"]
-        roteamento_aba = file_meta.get("roteamento_aba", False)
         file_name = Path(key).name
 
         # ── Checagem de tamanho + download em chamada S3 única ──
-        # Antes: 2x get_key() (1 HEAD para tamanho + 1 GET para download).
-        # Agora: 1 get_key() — reutiliza o objeto para tamanho e download.
         try:
             obj = s3_hook.get_key(key=key, bucket_name=bucket)
             tamanho_bytes = obj.content_length
@@ -314,104 +314,37 @@ def minc_extracao_anexos_dag() -> None:
         del file_content
 
         try:
-            if roteamento_aba:
+            id_anexo = Path(key).stem  # nome do arquivo sem extensão
+
+            # ── Roteamento explícito por programa ──
+            if nome_programa == "PNAB":
                 # ── Fluxo PNAB: roteamento por aba ──
                 logging.info(
                     "[minc_extracao_anexos_dag.py] Extraindo PNAB '%s' "
                     "com roteamento por aba",
                     file_name,
                 )
-                id_anexo = Path(key).stem  # nome do arquivo sem extensão
                 resultados = extrair_pnab(
                     file_buffer=buffer,
                     file_name=file_name,
                     id_anexo=id_anexo,
                 )
-                n_subtabelas = len(resultados)
-                total_linhas = 0
 
-                for res in resultados:
-                    # ── try-except por subtabela: INSERT falho não
-                    #    quebra as demais subtabelas do mesmo arquivo ──
-                    try:
-                        df = res["dataframe"]
-                        tabela_destino = res["nome_tabela_destino"]
-                        df = df.loc[:, ~df.columns.duplicated()]
-
-                        # --- Data Cleaning ---
-                        colunas_antes = len(df.columns)
-                        linhas_antes = len(df)
-
-                        df = df.dropna(axis=1, how="all")
-                        df = df.dropna(how="all")
-
-                        _col_meta = {"id_anexo", "tipo_edital"}
-                        col_dados = [c for c in df.columns if c not in _col_meta]
-                        if col_dados:
-                            thresh_dados = max(1, int(len(col_dados) * 0.3))
-                            df = df.dropna(subset=col_dados, thresh=thresh_dados)
-
-                        df = df.reset_index(drop=True)
-
-                        if df.empty:
-                            logging.warning(
-                                "[minc_extracao_anexos_dag.py] PNAB '%s' → %s: "
-                                "descartada por estar vazia após limpeza",
-                                file_name,
-                                tabela_destino,
-                            )
-                            continue
-
-                        df["nome_arquivo"] = file_name
-                        df["nome_programa"] = nome_programa
-                        df["dt_ingest"] = datetime.now().isoformat()
-
-                        linhas = df.to_dict(orient="records")
-
-                        logging.info(
-                            "[minc_extracao_anexos_dag.py] PNAB '%s' → %s: "
-                            "inserindo %d registros em %s.%s",
-                            file_name,
-                            tabela_destino,
-                            len(df),
-                            schema,
-                            tabela_destino,
-                        )
-                        db.insert_data_por_tabela(
-                            linhas,
-                            table_name=tabela_destino,
-                            schema=schema,
-                        )
-                        total_linhas += len(linhas)
-                    except Exception as exc_sub:
-                        logging.warning(
-                            "[minc_extracao_anexos_dag.py] PNAB '%s' → subtabela "
-                            "'%s' falhou no INSERT: %s — continuando",
-                            file_name,
-                            res.get("nome_tabela_destino", "?"),
-                            exc_sub,
-                        )
-                        continue
-
+            elif nome_programa == "LPG":
+                # ── Fluxo LPG: roteamento por template ──
                 logging.info(
-                    "[minc_extracao_anexos_dag.py] PNAB '%s': %d subtabelas, "
-                    "%d linhas inseridas",
+                    "[minc_extracao_anexos_dag.py] Extraindo LPG '%s' "
+                    "com roteamento por template",
                     file_name,
-                    n_subtabelas,
-                    total_linhas,
+                )
+                resultados = extrair_lpg(
+                    file_buffer=buffer,
+                    file_name=file_name,
+                    id_anexo=id_anexo,
                 )
 
-                return {
-                    "nome_programa": nome_programa,
-                    "nome_arquivo": file_name,
-                    "n_subtabelas": n_subtabelas,
-                    "n_linhas_inseridas": total_linhas,
-                    "status": "sucesso",
-                    "erro": None,
-                }
-
             else:
-                # ── Fluxo LPG: regex âncora + tabela única ──
+                # ── Fallback genérico: regex âncora + tabela única ──
                 flags = 0
                 for flag_name in file_meta.get("regex_flags", "IGNORECASE").split("|"):
                     flag_val = getattr(re, flag_name.strip(), None)
@@ -421,17 +354,18 @@ def minc_extracao_anexos_dag() -> None:
                 regex_header = re.compile(file_meta["regex_header"], flags)
 
                 logging.info(
-                    "[minc_extracao_anexos_dag.py] Extraindo LPG '%s' "
-                    "(regex=%s)",
+                    "[minc_extracao_anexos_dag.py] Extraindo '%s' "
+                    "(fallback regex=%s, tabela=%s)",
                     file_name,
                     file_meta["regex_header"],
+                    table,
                 )
 
                 _fn_params = inspect.signature(extrair_tabela_raw).parameters
                 _extra_kwargs = (
                     {"file_name": file_name} if "file_name" in _fn_params else {}
                 )
-                resultados = extrair_tabela_raw(
+                resultados_fallback = extrair_tabela_raw(
                     file_path=buffer,
                     regex_header=regex_header,
                     col_header_idx=file_meta.get("col_header_idx", 1),
@@ -440,106 +374,161 @@ def minc_extracao_anexos_dag() -> None:
                     **_extra_kwargs,
                 )
 
-                logging.info(f"Abas encontradas pelo regex: {len(resultados)}")
+                # Converte formato do fallback para o formato padrao
+                resultados = []
+                for res_fb in resultados_fallback:
+                    df_fb = res_fb["dados"]
+                    df_fb = df_fb.loc[:, ~df_fb.columns.duplicated()]
 
-                total_linhas = 0
-                n_subtabelas = len(resultados)
+                    # --- Data Cleaning ---
+                    colunas_antes = len(df_fb.columns)
+                    linhas_antes = len(df_fb)
 
-                for res in resultados:
-                    # ── try-except por subtabela: INSERT falho não
-                    #    quebra as demais abas do mesmo arquivo ──
-                    try:
-                        df = res["dados"]
-                        df = df.loc[:, ~df.columns.duplicated()]
+                    df_fb = df_fb.dropna(axis=1, how="all")
+                    df_fb = df_fb.dropna(how="all")
 
-                        logging.info(f"Linhas originais da aba {res['aba']}: {len(df)}")
+                    _col_meta_fb = {"tipo_edital"}
+                    col_dados_fb = [c for c in df_fb.columns if c not in _col_meta_fb]
+                    if col_dados_fb:
+                        thresh_fb = max(1, int(len(col_dados_fb) * 0.3))
+                        df_fb = df_fb.dropna(subset=col_dados_fb, thresh=thresh_fb)
 
-                        # --- Data Cleaning ---
-                        colunas_antes = len(df.columns)
-                        linhas_antes = len(df)
+                    df_fb = df_fb.reset_index(drop=True)
 
-                        df = df.dropna(axis=1, how="all")
-                        df = df.dropna(how="all")
-
-                        _col_meta = {"tipo_edital"}
-                        col_dados = [c for c in df.columns if c not in _col_meta]
-                        if col_dados:
-                            thresh_dados = max(1, int(len(col_dados) * 0.3))
-                            df = df.dropna(subset=col_dados, thresh=thresh_dados)
-
-                        df = df.reset_index(drop=True)
-
-                        logging.info(f"Linhas restantes após limpeza: {len(df)}")
-
-                        linhas_removidas = linhas_antes - len(df)
-                        colunas_removidas = colunas_antes - len(df.columns)
-                        if linhas_removidas or colunas_removidas:
-                            logging.info(
-                                "[minc_extracao_anexos_dag.py] Limpeza '%s' aba '%s': "
-                                "removidas %d/%d linhas, %d/%d colunas",
-                                file_name,
-                                res["aba"],
-                                linhas_removidas,
-                                linhas_antes,
-                                colunas_removidas,
-                                colunas_antes,
-                            )
-
-                        if df.empty:
-                            logging.warning(f"Aba {res['aba']} descartada por estar vazia após limpeza.")
-                            continue
-
-                        df["nome_arquivo"] = res["nome_arquivo"]
-                        df["aba"] = res["aba"]
-                        df["tipo_edital"] = res.get("tipo_edital")
-                        df["nome_programa"] = nome_programa
-                        df["dt_ingest"] = datetime.now().isoformat()
-
-                        linhas = df.to_dict(orient="records")
-
+                    linhas_removidas = linhas_antes - len(df_fb)
+                    colunas_removidas = colunas_antes - len(df_fb.columns)
+                    if linhas_removidas or colunas_removidas:
                         logging.info(
-                            "Inserindo %d registros do programa %s na tabela %s.%s",
-                            len(df),
-                            nome_programa,
-                            schema,
-                            table,
-                        )
-                        db.insert_data(
-                            linhas,
-                            table_name=table,
-                            primary_key=None,
-                            conflict_fields=None,
-                            schema=schema,
-                        )
-                        total_linhas += len(linhas)
-                    except Exception as exc_sub:
-                        logging.warning(
-                            "[minc_extracao_anexos_dag.py] LPG '%s' → aba "
-                            "'%s' falhou no INSERT: %s — continuando",
+                            "[minc_extracao_anexos_dag.py] Limpeza '%s' aba '%s': "
+                            "removidas %d/%d linhas, %d/%d colunas",
                             file_name,
-                            res.get("aba", "?"),
-                            exc_sub,
+                            res_fb["aba"],
+                            linhas_removidas,
+                            linhas_antes,
+                            colunas_removidas,
+                            colunas_antes,
+                        )
+
+                    if df_fb.empty:
+                        logging.warning(
+                            "Aba %s descartada por estar vazia após limpeza.",
+                            res_fb["aba"],
                         )
                         continue
 
-                logging.info(
-                    "[minc_extracao_anexos_dag.py] Arquivo '%s': %d subtabelas, "
-                    "%d linhas inseridas em %s.%s",
-                    file_name,
-                    n_subtabelas,
-                    total_linhas,
-                    schema,
-                    table,
-                )
+                    df_fb["nome_arquivo"] = res_fb["nome_arquivo"]
+                    df_fb["aba"] = res_fb["aba"]
+                    df_fb["tipo_edital"] = res_fb.get("tipo_edital")
+                    df_fb["nome_programa"] = nome_programa
+                    df_fb["dt_ingest"] = datetime.now().isoformat()
 
-                return {
-                    "nome_programa": nome_programa,
-                    "nome_arquivo": file_name,
-                    "n_subtabelas": n_subtabelas,
-                    "n_linhas_inseridas": total_linhas,
-                    "status": "sucesso",
-                    "erro": None,
-                }
+                    resultados.append({
+                        "nome_tabela_destino": table,
+                        "dataframe": df_fb,
+                    })
+
+            # ── Inserção comum para PNAB, LPG e fallback ──
+            n_subtabelas = len(resultados)
+            total_linhas = 0
+
+            for res in resultados:
+                # ── try-except por subtabela: INSERT falho não
+                # quebra as demais subtabelas do mesmo arquivo ──
+                try:
+                    df = res["dataframe"]
+                    tabela_destino = res["nome_tabela_destino"]
+                    df = df.loc[:, ~df.columns.duplicated()]
+
+                    # --- Data Cleaning ---
+                    colunas_antes = len(df.columns)
+                    linhas_antes = len(df)
+
+                    df = df.dropna(axis=1, how="all")
+                    df = df.dropna(how="all")
+
+                    _col_meta = {"id_anexo", "tipo_edital", "categoria_edital", "categoria_contemplado"}
+                    col_dados = [c for c in df.columns if c not in _col_meta]
+                    if col_dados:
+                        thresh_dados = max(1, int(len(col_dados) * 0.3))
+                        df = df.dropna(subset=col_dados, thresh=thresh_dados)
+
+                    df = df.reset_index(drop=True)
+
+                    linhas_removidas = linhas_antes - len(df)
+                    colunas_removidas = colunas_antes - len(df.columns)
+                    if linhas_removidas or colunas_removidas:
+                        logging.info(
+                            "[minc_extracao_anexos_dag.py] Limpeza %s '%s' → %s: "
+                            "removidas %d/%d linhas, %d/%d colunas",
+                            nome_programa,
+                            file_name,
+                            tabela_destino,
+                            linhas_removidas,
+                            linhas_antes,
+                            colunas_removidas,
+                            colunas_antes,
+                        )
+
+                    if df.empty:
+                        logging.warning(
+                            "[minc_extracao_anexos_dag.py] %s '%s' → %s: "
+                            "descartada por estar vazia após limpeza",
+                            nome_programa,
+                            file_name,
+                            tabela_destino,
+                        )
+                        continue
+
+                    df["nome_arquivo"] = file_name
+                    df["nome_programa"] = nome_programa
+                    df["dt_ingest"] = datetime.now().isoformat()
+
+                    linhas = df.to_dict(orient="records")
+
+                    logging.info(
+                        "[minc_extracao_anexos_dag.py] %s '%s' → %s: "
+                        "inserindo %d registros em %s.%s",
+                        nome_programa,
+                        file_name,
+                        tabela_destino,
+                        len(df),
+                        schema,
+                        tabela_destino,
+                    )
+                    db.insert_data_por_tabela(
+                        linhas,
+                        table_name=tabela_destino,
+                        schema=schema,
+                    )
+                    total_linhas += len(linhas)
+                except Exception as exc_sub:
+                    logging.warning(
+                        "[minc_extracao_anexos_dag.py] %s '%s' → subtabela "
+                        "'%s' falhou no INSERT: %s — continuando",
+                        nome_programa,
+                        file_name,
+                        res.get("nome_tabela_destino", "?"),
+                        exc_sub,
+                    )
+                    continue
+
+            logging.info(
+                "[minc_extracao_anexos_dag.py] %s '%s': %d subtabelas, "
+                "%d linhas inseridas",
+                nome_programa,
+                file_name,
+                n_subtabelas,
+                total_linhas,
+            )
+
+            return {
+                "nome_programa": nome_programa,
+                "nome_arquivo": file_name,
+                "n_subtabelas": n_subtabelas,
+                "n_linhas_inseridas": total_linhas,
+                "status": "sucesso",
+                "erro": None,
+            }
 
         except TimeoutLeituraError as exc:
             logging.warning(

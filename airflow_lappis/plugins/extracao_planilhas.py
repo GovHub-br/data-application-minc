@@ -12,11 +12,12 @@ from typing import Any, Optional, Union
 
 import pandas as pd
 
+class TimeoutLeituraError(Exception):
+    """Exceção customizada para planilhas que demoram muito para serem lidas."""
+    pass
+
 log = logging.getLogger(__name__)
 
-# ────────────────────────────────────────────────────────────────
-# Timeout de leitura — proteção contra planilhas "bomba" (LPG)
-# ────────────────────────────────────────────────────────────────
 _TIMEOUT_SEGUNDOS = 120  # 2 minutos por arquivo
 
 
@@ -707,6 +708,427 @@ def extrair_pnab(
     gc.collect()
 
     return resultados
+
+
+def extrair_lpg(
+    file_buffer: io.BytesIO,
+    file_name: str,
+    id_anexo: str,
+) -> list[dict]:
+    """Extrai tabelas de um arquivo LPG usando roteamento por template.
+
+    Inspeciona as abas do arquivo e roteia a extração conforme 3 padrões:
+
+    1. TEMPLATE EDITAIS (Anexo II) — aba ``Lista dos Editais``
+    2. TEMPLATE CONTEMPLADOS (Anexo III) — aba ``Lista dos Contemplados``
+    3. TEMPLATE DADOS BÁSICOS — abas com prefixo numérico
+       (ex: ``1.Instrumentos``, ``2.1.Pessoa Física``)
+
+    Cada DataFrame gerado recebe ``id_anexo`` como primeira coluna e
+    é tipado como ``str`` (padrão Raw ELT).
+
+    Parameters
+    ----------
+    file_buffer : io.BytesIO
+        Buffer em memória com os bytes da planilha.
+    file_name : str
+        Nome do arquivo (para log e detecção de extensão).
+    id_anexo : str
+        Identificador do anexo para rastreabilidade.
+
+    Returns
+    -------
+    list[dict]
+        Lista de dicts com ``nome_tabela_destino`` e ``dataframe``.
+    """
+    resultados: list[dict] = []
+
+    try:
+        xls = abrir_excel(file_buffer, file_name=file_name)
+    except TimeoutLeituraError:
+        raise
+    except Exception as exc:
+        log.error(
+            "[extracao_planilhas.py] Falha ao abrir LPG '%s': %s",
+            file_name,
+            exc,
+        )
+        return resultados
+
+    sheet_names = xls.sheet_names
+    log.info(
+        "[extracao_planilhas.py] LPG '%s' — abas detectadas: %s",
+        file_name,
+        sheet_names,
+    )
+
+    # ── Normaliza nomes de abas para matching tolerante ──
+    abas_norm = {_norm_texto(s): s for s in sheet_names}
+
+    # ── TEMPLATE EDITAIS (Anexo II) ──
+    aba_editais_orig = None
+    for norm, orig in abas_norm.items():
+        if "lista dos editais" in norm:
+            aba_editais_orig = orig
+            break
+
+    if aba_editais_orig is not None:
+        log.info(
+            "[extracao_planilhas.py] LPG '%s' — Template Editais "
+            "detectado (aba '%s')",
+            file_name,
+            aba_editais_orig,
+        )
+        try:
+            df = _com_timeout(
+                pd.read_excel, xls, sheet_name=aba_editais_orig, dtype=str
+            )
+        except TimeoutLeituraError:
+            raise
+        except Exception as exc:
+            log.warning(
+                "[extracao_planilhas.py] Erro ao ler aba '%s' de '%s': %s",
+                aba_editais_orig,
+                file_name,
+                exc,
+            )
+            df = pd.DataFrame()
+
+        if not df.empty:
+            df_editais = _extrair_lpg_editais(df, id_anexo)
+            if df_editais is not None and not df_editais.empty:
+                resultados.append({
+                    "nome_tabela_destino": "lpg_editais",
+                    "dataframe": df_editais,
+                })
+
+        gc.collect()
+
+    # ── TEMPLATE CONTEMPLADOS (Anexo III) ──
+    aba_contemplados_orig = None
+    for norm, orig in abas_norm.items():
+        if "lista dos contemplados" in norm:
+            aba_contemplados_orig = orig
+            break
+
+    if aba_contemplados_orig is not None:
+        log.info(
+            "[extracao_planilhas.py] LPG '%s' — Template Contemplados "
+            "detectado (aba '%s')",
+            file_name,
+            aba_contemplados_orig,
+        )
+        try:
+            df = _com_timeout(
+                pd.read_excel, xls, sheet_name=aba_contemplados_orig, dtype=str
+            )
+        except TimeoutLeituraError:
+            raise
+        except Exception as exc:
+            log.warning(
+                "[extracao_planilhas.py] Erro ao ler aba '%s' de '%s': %s",
+                aba_contemplados_orig,
+                file_name,
+                exc,
+            )
+            df = pd.DataFrame()
+
+        if not df.empty:
+            df_cont = _extrair_lpg_contemplados(df, id_anexo)
+            if df_cont is not None and not df_cont.empty:
+                resultados.append({
+                    "nome_tabela_destino": "lpg_contemplados",
+                    "dataframe": df_cont,
+                })
+
+        gc.collect()
+
+    # ── TEMPLATE DADOS BÁSICOS — abas com prefixo numérico ──
+    abas_dados = []
+    padrao_num = re.compile(r"^\d+[\d.]*\s*\.?")
+    for s in sheet_names:
+        if padrao_num.match(s.strip()):
+            # Exclui abas já tratadas acima
+            s_norm = _norm_texto(s)
+            if "lista dos editais" in s_norm or "lista dos contemplados" in s_norm:
+                continue
+            abas_dados.append(s)
+
+    if abas_dados:
+        log.info(
+            "[extracao_planilhas.py] LPG '%s' — Template Dados Básicos "
+            "detectado (%d abas: %s)",
+            file_name,
+            len(abas_dados),
+            abas_dados,
+        )
+        for aba in abas_dados:
+            try:
+                df = _com_timeout(
+                    pd.read_excel, xls, sheet_name=aba, header=1, dtype=str
+                )
+            except TimeoutLeituraError:
+                raise
+            except Exception as exc:
+                log.warning(
+                    "[extracao_planilhas.py] Erro ao ler aba de dados "
+                    "'%s' de '%s': %s",
+                    aba,
+                    file_name,
+                    exc,
+                )
+                gc.collect()
+                continue
+
+            if df.empty:
+                gc.collect()
+                continue
+
+            # Drop da linha de instruções (primeira linha após header)
+            df = df.iloc[1:].copy()
+            df = df.reset_index(drop=True)
+
+            # Sanitiza nome da aba → nome de tabela
+            nome_tabela = _sanitizar_nome_tabela_lpg(aba)
+            df.insert(0, "id_anexo", id_anexo)
+            df = df.astype(str)
+
+            resultados.append({
+                "nome_tabela_destino": nome_tabela,
+                "dataframe": df,
+            })
+
+            del df
+            gc.collect()
+
+    # Libera referências do ExcelFile
+    del xls
+    gc.collect()
+
+    return resultados
+
+
+# ── Helpers para extração LPG ──
+
+_ANCORA_EDITAIS = ["nome do edital", "breve descricao do edital"]
+_ANCORA_CONTEMPLADOS = ["nome do edital", "nome do(a) contemplado(a)"]
+
+
+def _encontrar_linha_cabecalho(
+    df: pd.DataFrame,
+    ancoras: list[str],
+) -> int | None:
+    """Encontra o índice da linha de cabeçalho ancorada por colunas.
+
+    Percorre as linhas do DataFrame e retorna o índice da primeira linha
+    cujos valores normalizados contêm todas as âncoras fornecidas.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame com dados brutos (sem header definido).
+    ancoras : list[str]
+        Lista de strings de âncora normalizadas (lowercase, sem acentos).
+
+    Returns
+    -------
+    int | None
+        Índice da linha de cabeçalho, ou ``None`` se não encontrada.
+    """
+    for i in range(len(df)):
+        row_vals = [_norm_texto(v) for v in df.iloc[i].tolist()]
+        if all(any(a in v for v in row_vals) for a in ancoras):
+            return i
+    return None
+
+
+def _extrair_subtabelas_ffill(
+    df_body: pd.DataFrame,
+    nome_categoria_col: str,
+    categoria_inicial: str | None,
+) -> pd.DataFrame:
+    """Extrai sub-tabelas com ffill de categoria (lógica comum Editais/Contemplados).
+
+    Identifica linhas separadoras de categoria (col 0 com texto > 6 chars
+    e demais colunas NaN/vazias), atribui a categoria via ffill e remove
+    as linhas separadoras.
+
+    Parameters
+    ----------
+    df_body : pd.DataFrame
+        DataFrame com header já definido (sem a linha de cabeçalho).
+    nome_categoria_col : str
+        Nome da coluna de categoria (ex: ``categoria_edital``).
+    categoria_inicial : str | None
+        Categoria da primeira sub-tabela (extraída antes do header).
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame com a coluna de categoria adicionada.
+    """
+    # Identifica categorias: col 0 com texto > 6 chars, demais NaN
+    is_categoria = df_body.apply(
+        lambda row: (
+            len(str(row.iloc[0]).strip()) > 6
+            and all(_eh_valor_nulo(v) for v in row.iloc[1:])
+        ),
+        axis=1,
+    )
+
+    df_body = df_body.copy()
+    df_body[nome_categoria_col] = None
+
+    if categoria_inicial:
+        df_body.loc[0, nome_categoria_col] = categoria_inicial
+
+    for idx in df_body.index[is_categoria]:
+        df_body.loc[idx, nome_categoria_col] = str(df_body.loc[idx, df_body.columns[0]]).strip()
+
+    # ffill para preencher as linhas abaixo de cada categoria
+    df_body[nome_categoria_col] = df_body[nome_categoria_col].ffill()
+
+    # Remove as linhas separadoras de categoria
+    df_body = df_body[~is_categoria].copy()
+    df_body = df_body.reset_index(drop=True)
+
+    return df_body
+
+
+def _extrair_lpg_editais(
+    df: pd.DataFrame,
+    id_anexo: str,
+) -> pd.DataFrame | None:
+    """Extrai tabela de editais LPG com ffill de categoria.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame bruto lido da aba ``Lista dos Editais``.
+    id_anexo : str
+        Identificador do anexo.
+
+    Returns
+    -------
+    pd.DataFrame | None
+        DataFrame com ``id_anexo`` e ``categoria_edital``, ou ``None``.
+    """
+    ancoras_norm = [_norm_texto(a) for a in _ANCORA_EDITAIS]
+    start_idx = _encontrar_linha_cabecalho(df, ancoras_norm)
+
+    if start_idx is None:
+        log.warning(
+            "[extracao_planilhas.py] LPG Editais: âncora %s não encontrada — "
+            "aba descartada",
+            _ANCORA_EDITAIS,
+        )
+        return None
+
+    # Extrai categoria antes do header (col 0)
+    categoria_inicial = None
+    col0_slice = df.iloc[:start_idx, 0].dropna()
+    if col0_slice.any():
+        categoria_inicial = str(col0_slice.iloc[-1]).strip()
+
+    # Define header e body
+    header = df.iloc[start_idx].tolist()
+    body = df.iloc[start_idx + 1:].copy()
+    body.columns = header
+    body = body.reset_index(drop=True)
+
+    # ffill de sub-tabelas
+    body = _extrair_subtabelas_ffill(body, "categoria_edital", categoria_inicial)
+
+    body.insert(0, "id_anexo", id_anexo)
+    body = body.astype(str)
+
+    return body
+
+
+def _extrair_lpg_contemplados(
+    df: pd.DataFrame,
+    id_anexo: str,
+) -> pd.DataFrame | None:
+    """Extrai tabela de contemplados LPG com ffill de categoria.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame bruto lido da aba ``Lista dos Contemplados``.
+    id_anexo : str
+        Identificador do anexo.
+
+    Returns
+    -------
+    pd.DataFrame | None
+        DataFrame com ``id_anexo`` e ``categoria_contemplado``, ou ``None``.
+    """
+    ancoras_norm = [_norm_texto(a) for a in _ANCORA_CONTEMPLADOS]
+    start_idx = _encontrar_linha_cabecalho(df, ancoras_norm)
+
+    if start_idx is None:
+        log.warning(
+            "[extracao_planilhas.py] LPG Contemplados: âncora %s não "
+            "encontrada — aba descartada",
+            _ANCORA_CONTEMPLADOS,
+        )
+        return None
+
+    # Extrai categoria antes do header (col 0)
+    categoria_inicial = None
+    col0_slice = df.iloc[:start_idx, 0].dropna()
+    if col0_slice.any():
+        categoria_inicial = str(col0_slice.iloc[-1]).strip()
+
+    # Define header e body
+    header = df.iloc[start_idx].tolist()
+    body = df.iloc[start_idx + 1:].copy()
+    body.columns = header
+    body = body.reset_index(drop=True)
+
+    # ffill de sub-tabelas
+    body = _extrair_subtabelas_ffill(
+        body, "categoria_contemplado", categoria_inicial
+    )
+
+    body.insert(0, "id_anexo", id_anexo)
+    body = body.astype(str)
+
+    return body
+
+
+def _sanitizar_nome_tabela_lpg(nome_aba: str) -> str:
+    """Sanitiza nome de aba LPG para nome de tabela PostgreSQL.
+
+    Transforma ``1.Instrumentos`` → ``lpg_dados_instrumentos``,
+    ``2.1.Pessoa Física`` → ``lpg_dados_pessoa_fisica``, etc.
+
+    Regras:
+    1. Remove prefixo numérico (ex: ``1.``, ``2.1.``).
+    2. Substitui caracteres não alfanuméricos por ``_``.
+    3. Colapsa ``_`` consecutivos e remove leading/trailing ``_``.
+    4. Prefixa com ``lpg_dados_``.
+
+    Parameters
+    ----------
+    nome_aba : str
+        Nome original da aba.
+
+    Returns
+    -------
+    str
+        Nome sanitizado de tabela.
+    """
+    # Remove prefixo numérico (ex: "1.", "2.1.", "3.")
+    nome = re.sub(r"^[\d.]+\s*\.?\s*", "", nome_aba)
+    # Normaliza: lowercase, sem acentos
+    nome = _norm_texto(nome)
+    # Substitui não-alfanuméricos por _
+    nome = re.sub(r"[^a-z0-9]+", "_", nome)
+    # Colapsa _ consecutivos e remove bordas
+    nome = re.sub(r"_+", "_", nome).strip("_")
+    # Prefixa
+    return f"lpg_dados_{nome}"
 
 
 def listar_arquivos_locais(
