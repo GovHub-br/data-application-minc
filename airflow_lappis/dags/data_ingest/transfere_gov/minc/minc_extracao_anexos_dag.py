@@ -11,6 +11,7 @@ import pandas as pd
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.trigger_rule import TriggerRule
 
 from cliente_postgres import ClientPostgresDB
 from extracao_planilhas import extrair_tabela_raw, extrair_pnab, extrair_lpg, TimeoutLeituraError
@@ -83,7 +84,8 @@ def minc_extracao_anexos_dag() -> None:
        se uma subtabela falhar no INSERT, as demais continuam. Conexões
        S3 e Postgres são criadas uma vez por lote e reutilizadas.
     3. ``fechar_pipeline`` — task de fechamento que consolida os
-       resumos dos lotes e encerra a DAG.
+       resumos dos lotes e encerra a DAG. Usa trigger_rule=ALL_DONE
+       para executar mesmo que alguns lotes falhem.
     """
 
     @task
@@ -227,7 +229,7 @@ def minc_extracao_anexos_dag() -> None:
 
         O roteamento é explícito por programa:
         - PNAB → extrair_pnab (roteamento por aba)
-        - LPG  → extrair_lpg  (roteamento por template)
+        - LPG → extrair_lpg (roteamento por template)
         - else → extrair_tabela_raw (fallback genérico via regex)
 
         Retorna metadados leves (sem dados_json) para o resumo do lote.
@@ -663,11 +665,14 @@ def minc_extracao_anexos_dag() -> None:
 
         return resumo
 
-    @task
+    @task(trigger_rule=TriggerRule.ALL_DONE)
     def fechar_pipeline(resumos: list[dict[str, Any]]) -> dict[str, int]:
         """Task de fechamento que consolida os resumos dos lotes e encerra
         a DAG. Não faz INSERT — os dados já foram persistidos diretamente
         por cada ``baixar_e_extrair``.
+
+        Usa trigger_rule=ALL_DONE para executar mesmo que alguns lotes
+        falhem, garantindo que a DAG sempre gere o resumo consolidado.
 
         Returns
         -------

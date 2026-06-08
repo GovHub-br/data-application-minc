@@ -1,28 +1,32 @@
-from airflow.decorators import dag, task
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.models import Variable
-from datetime import datetime, timedelta
-import requests
 import base64
 import logging
 
+import requests
+from airflow.decorators import dag, task
+from airflow.models import Variable
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.utils.trigger_rule import TriggerRule
+from datetime import datetime, timedelta
 
-URL_BASE_RG = 'https://fundos.transferegov.sistema.gov.br/maisbrasil-transferencia-backend/api/public/anexos/rg/'
+
+URL_BASE_RG = "https://fundos.transferegov.sistema.gov.br/maisbrasil-transferencia-backend/api/public/anexos/rg/"
 
 default_args = {
-    'owner': 'Wallyson Souza',
-    'retries': 3,
-    'retry_delay': timedelta(minutes=5),
+    "owner": "Wallyson Souza",
+    "retries": 2,
+    "retry_delay": timedelta(minutes=5),
 }
 
+
 @dag(
-    dag_id='ingestao_anexos_transferegov',
+    dag_id="ingestao_anexos_transferegov",
     default_args=default_args,
-    schedule_interval='@daily',
+    schedule_interval=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    tags=['transferegov', 'extracao', 'anexos']
+    tags=["transferegov", "extracao", "anexos"],
 )
 def download_anexos_dag():
 
@@ -33,7 +37,7 @@ def download_anexos_dag():
         que ainda não possuem esse caminho registrado, fazendo JOIN para descobrir
         o programa (PNAB ou LPG) e definindo o bucket correspondente.
         """
-        pg_hook = PostgresHook(postgres_conn_id='postgres_default')
+        pg_hook = PostgresHook(postgres_conn_id="postgres_default")
 
         # 1. Garante que a coluna caminho_minio existe na tabela do banco
         alter_table_query = """
@@ -88,7 +92,7 @@ def download_anexos_dag():
         # Hooks instanciados dentro da task — cada mapped task tem sua própria conexão
         minio_conn_id = Variable.get("minio_conn_id", default_var="minio_default")
         s3_hook = S3Hook(aws_conn_id=minio_conn_id)
-        pg_hook = PostgresHook(postgres_conn_id='postgres_default')
+        pg_hook = PostgresHook(postgres_conn_id="postgres_default")
 
         # Verifica e cria o bucket caso ainda não exista
         try:
@@ -121,7 +125,7 @@ def download_anexos_dag():
             bytes_data=arquivo_bytes,
             key=chave_s3,
             bucket_name=bucket_name,
-            replace=True
+            replace=True,
         )
 
         # Formata o path final do minio (Ex: anexos-pnab/anexo_ID_Nome.xls)
@@ -137,9 +141,19 @@ def download_anexos_dag():
 
         logging.info(f"Anexo {anexo_id} baixado e path ({path_minio}) registrado no BD com sucesso.")
 
+    # ── Task final que dispara a DAG de extração ──
+    # Usa ALL_DONE para que o trigger execute mesmo se alguns downloads falharem
+    trigger_extracao = TriggerDagRunOperator(
+        task_id="trigger_extracao_anexos",
+        trigger_dag_id="minc_extracao_anexos_dag",
+        wait_for_completion=False,
+        trigger_rule=TriggerRule.ALL_DONE,
+    )
+
     # Fluxo da DAG — Dynamic Task Mapping: cada pendente vira uma task individual
     lista_pendentes = buscar_ids_pendentes()
-    baixar_e_salvar_anexos.expand(pendente=lista_pendentes)
+    baixar_e_salvar_anexos.expand(pendente=lista_pendentes) >> trigger_extracao
+
 
 # Instancia a DAG
 dag_instance = download_anexos_dag()
