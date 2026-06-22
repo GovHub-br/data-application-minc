@@ -1485,11 +1485,16 @@
     }
     .vm-entrega-status {
       flex-shrink: 0;
-      font-size: 0.62rem;
+      width: 90px;
+      min-width: 90px;
+      font-size: 0.60rem;
       font-weight: 700;
-      padding: 0.2rem 0.5rem;
+      padding: 0.2rem 0.4rem;
       border-radius: 4px;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: keep-all;
+      text-align: center;
+      line-height: 1.3;
       margin-top: 0.1rem;
     }
     .vm-entrega-status.ok    { background:#d1fae5;color:#065f46; }
@@ -4185,7 +4190,7 @@
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Parcial — fase 2</div>
+            <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">% pago por grupo prioritário</div>
               <div class="vm-entrega-desc">PJ (CNPJ) já é respondível via pnab_organizacoes. PF bloqueado: CPF vem anonimizado no schema atual — resolve na fase 2 com acesso ao dado completo.</div>
@@ -4201,21 +4206,21 @@
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Depende do SALIC</div>
+            <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">% pago a profissionais de grupos prioritários (prestação de contas)</div>
               <div class="vm-entrega-desc">Estrutura mapeada: GComprovPagFisica × GComprovantesPagamento × tbAgenteFisico. Bloqueio: SALIC precisa conter autodeclaração de raça/PCD para prestadores de serviço.</div>
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Depende do SALIC</div>
+            <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">% captado por proponentes autodeclarados</div>
               <div class="vm-entrega-desc">tbApIncentivos × Projetos × tbAgenteFisico. Mesma dependência: campo de autodeclaração de raça e PCD disponível no cadastro de proponentes.</div>
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status pendente">⏳ Pendente normativa</div>
+            <div class="vm-entrega-status pendente">⏳ Pendente</div>
             <div>
               <div class="vm-entrega-titulo">Percentuais mínimos da Rouanet ainda não definidos</div>
               <div class="vm-entrega-desc">Os limiares 25%/10%/5% não estão fixados nos normativos da Rouanet — Decreto delega a atos ministeriais. Sem meta numérica não é possível calcular cumprimento.</div>
@@ -4255,14 +4260,14 @@
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Viável</div>
+            <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">% executado fora das capitais</div>
               <div class="vm-entrega-desc">tbAplComprovacoes traz sgUF + nmMunicipio por comprovação. LEFT JOIN com lista #capitais identifica interior vs. capital. Requer normalização de nomes de municípios.</div>
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Viável via IBGE</div>
+            <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">% por região geográfica</div>
               <div class="vm-entrega-desc">Atalho: tbAplComprovacoes.dsRegiao. Caminho robusto: Abrangencia → Municipios → UF → Regiao (cadeia IBGE). Norte, Nordeste e Centro-Oeste são as regiões prioritárias nos normativos.</div>
@@ -4316,7 +4321,7 @@
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status pendente">⏳ Menor prioridade</div>
+            <div class="vm-entrega-status pendente">⏳ Pendente</div>
             <div>
               <div class="vm-entrega-titulo">% sem histórico em outros mecanismos federais</div>
               <div class="vm-entrega-desc">Requer cruzamento entre SALIC, CultBR/PNAB e FSA por CPF/CNPJ. Definição de "primeiro acesso federal" ainda em aberto — escopo aprovado pela equipe antes de iniciar.</div>
@@ -4332,14 +4337,14 @@
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Viável — definição pendente</div>
+            <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">% de proponentes sem histórico no Pronac</div>
               <div class="vm-entrega-desc">Estrutura: Projetos × Agentes (AnoProjeto) — ausência em anos anteriores = primeiro acesso. Complicador: a Rouanet opera por fluxo contínuo (sem editais), então "ciclo" não é óbvio. IN MinC 29/2026 define série histórica como últimos 3 exercícios.</div>
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status pendente">⏳ Menor prioridade</div>
+            <div class="vm-entrega-status pendente">⏳ Pendente</div>
             <div>
               <div class="vm-entrega-titulo">% sem histórico em LPG, PNAB ou FSA</div>
               <div class="vm-entrega-desc">Cruzamento SALIC × transferegov_fundo_a_fundo × FSA por CPF/CNPJ. Depende da definição de escopo temporal (3 exercícios vs. histórico completo).</div>
