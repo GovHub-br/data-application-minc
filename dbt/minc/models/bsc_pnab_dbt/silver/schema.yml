@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: bbagil_extrato_filtrado
+    description: >
+      Camada Silver — extrato do BB Gestao Agil apos os 8 filtros de negocio
+      (corte temporal, beneficiario valido, remocao de BB/FNC/ruido interno,
+      pares credito-debito, so debitos, sem repasse entre entes publicos).
+      Traducao SQL de pipeline_filtro_extrato
+      (plugins/regras_negocio_bbagil.py).
+    config:
+      meta:
+        tags:
+          - silver
+          - bsc_pnab
+          - bbagil
+    columns:
+      - name: ente
+        tests:
+          - not_null
+      - name: beneficiarydocumentid
+        description: CPF/CNPJ do beneficiario final do pagamento.
+      - name: valor_pago
+        description: Valor da transacao ja filtrada (sempre debito/pagamento).
+
+  - name: bbagil_subtransacoes_filtrado
+    description: >
+      Camada Silver — sub-lancamentos do BB Gestao Agil apos os 5 filtros de
+      negocio (beneficiario valido, status "Pago", valor absoluto, corte
+      temporal, sem repasse entre entes publicos). Traducao SQL de
+      pipeline_filtro_subtransacoes (plugins/regras_negocio_bbagil.py).
+    config:
+      meta:
+        tags:
+          - silver
+          - bsc_pnab
+          - bbagil
+    columns:
+      - name: ente
+        tests:
+          - not_null
+      - name: beneficiarydocumentid
+        description: CPF/CNPJ do beneficiario final do pagamento.
+      - name: valor_pago
+        description: Valor absoluto do sub-lancamento ja filtrado.

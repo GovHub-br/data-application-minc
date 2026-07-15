@@ -9,7 +9,8 @@ from airflow.sdk import dag, task
 
 import config_bsc_pnab as settings
 from cliente_bsc import AsyncBscClient
-from execucao_assincrona_bsc import executar_lote
+from execucao_assincrona_bsc import ResultadoItem, executar_lote
+from file_io_local import save_json_checkpoint
 from schedule_loader import get_dynamic_schedule
 
 default_args = {
@@ -46,6 +47,22 @@ def _cnpjs_unicos_do_fato_bbagil() -> list[str]:
     return cnpjs
 
 
+def _persistir_resultados_em_arquivo(
+    resultados: list[ResultadoItem], caminho_saida: Any
+) -> dict[str, int]:
+    """Salva o checkpoint em disco de cada resultado ``ok`` (padrao de
+    ``executar_lote`` mudou para devolver os resultados em memoria, ja que
+    ``extracao_bbagil_dag`` passou a persistir no Postgres em vez de
+    arquivo -- essa DAG continua com checkpoint em arquivo, sem migrar
+    junto)."""
+    contagem: dict[str, int] = {"ok": 0, "sem_dados": 0, "erro": 0}
+    for resultado in resultados:
+        if resultado.status == "ok":
+            save_json_checkpoint(resultado.dados, caminho_saida(resultado.item))
+        contagem[resultado.status] = contagem.get(resultado.status, 0) + 1
+    return contagem
+
+
 def _extrair_por_documento(
     documentos: list[str],
     caminho_saida: Any,
@@ -55,9 +72,8 @@ def _extrair_por_documento(
     Relacao Trabalhista, CNPJ): filtra o que ja tem checkpoint em disco e
     delega o restante ao ``AsyncBscClient``."""
     pendentes = [doc for doc in documentos if not caminho_saida(doc).exists()]
-    return executar_lote(
-        itens_pendentes=pendentes, chamar_api=chamar_api, caminho_saida=caminho_saida
-    )
+    resultados = executar_lote(itens_pendentes=pendentes, chamar_api=chamar_api)
+    return _persistir_resultados_em_arquivo(resultados, caminho_saida)
 
 
 def _extrair_cpf_list() -> dict[str, int]:
@@ -75,9 +91,8 @@ def _extrair_cpf_list() -> dict[str, int]:
         return await client.cpf_list(lote)
 
     pendentes = [item for item in lotes if not _caminho(item).exists()]
-    return executar_lote(
-        itens_pendentes=pendentes, chamar_api=_chamar, caminho_saida=_caminho
-    )
+    resultados = executar_lote(itens_pendentes=pendentes, chamar_api=_chamar)
+    return _persistir_resultados_em_arquivo(resultados, _caminho)
 
 
 def _extrair_cnpj_detalhe() -> dict[str, int]:

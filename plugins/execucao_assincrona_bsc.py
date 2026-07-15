@@ -9,32 +9,38 @@ XCom. Este modulo concentra esse padrao para nao repeti-lo em cada DAG.
 
 import asyncio
 import logging
-from pathlib import Path
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, NamedTuple, Optional
 
 import aiohttp
 
 from cliente_bsc import AsyncBscClient, BscRequestError, build_async_client
-from file_io_local import save_json_checkpoint
 
 logger = logging.getLogger(__name__)
+
+
+class ResultadoItem(NamedTuple):
+    """Resultado de uma chamada individual, mantido em memoria (nunca via
+    XCom) para quem chama ``executar_lote`` persistir raw + controle em
+    lote no Postgres depois que o loop assincrono termina."""
+
+    item: Any
+    status: str  # "ok" | "sem_dados" | "erro"
+    dados: Optional[dict[str, Any]]
+    mensagem_erro: Optional[str]
 
 
 async def _extrair_lote_async(
     session: aiohttp.ClientSession,
     itens_pendentes: list[Any],
     chamar_api: Callable[[AsyncBscClient, Any], Awaitable[Any]],
-    caminho_saida: Callable[[Any], Path],
     tratar_resposta_vazia: Optional[Callable[[BscRequestError], Optional[dict]]],
-) -> dict[str, int]:
+) -> list[ResultadoItem]:
     client = build_async_client(session)
 
-    async def _extrair_um(item: Any) -> str:
-        caminho = caminho_saida(item)
+    async def _extrair_um(item: Any) -> ResultadoItem:
         try:
             dados = await chamar_api(client, item)
-            save_json_checkpoint(dados, caminho)
-            return "ok"
+            return ResultadoItem(item, "ok", dados, None)
         except BscRequestError as exc:
             if exc.status_code in (401, 403, 429):
                 # Credencial invalida ou rate limit: aborta a execucao
@@ -44,48 +50,48 @@ async def _extrair_lote_async(
             if tratar_resposta_vazia is not None:
                 marcador = tratar_resposta_vazia(exc)
                 if marcador is not None:
-                    save_json_checkpoint(marcador, caminho)
-                    return "sem_dados"
+                    return ResultadoItem(item, "sem_dados", None, marcador.get("erro"))
 
             logger.error(
                 "[execucao_assincrona_bsc] Erro nao retriavel | item=%s | status=%s",
                 item,
                 exc.status_code,
             )
-            return "erro"
-        except Exception:
+            return ResultadoItem(item, "erro", None, str(exc))
+        except Exception as exc:
             logger.exception("[execucao_assincrona_bsc] Falha inesperada | item=%s", item)
-            return "erro"
+            return ResultadoItem(item, "erro", None, str(exc))
 
-    resultados = await asyncio.gather(*[_extrair_um(item) for item in itens_pendentes])
-
-    contagem = {"ok": 0, "sem_dados": 0, "erro": 0}
-    for resultado in resultados:
-        contagem[resultado] = contagem.get(resultado, 0) + 1
-    return contagem
+    return await asyncio.gather(*[_extrair_um(item) for item in itens_pendentes])
 
 
 def executar_lote(
     itens_pendentes: list[Any],
     chamar_api: Callable[[AsyncBscClient, Any], Awaitable[Any]],
-    caminho_saida: Callable[[Any], Path],
     tratar_resposta_vazia: Optional[Callable[[BscRequestError], Optional[dict]]] = None,
-) -> dict[str, int]:
+) -> list[ResultadoItem]:
     """Roda ``chamar_api`` para cada item pendente (concorrencia/retry
-    controlados pelo ``AsyncBscClient``) e salva cada resposta via
-    checkpoint. Retorna a contagem de resultados (ok/sem_dados/erro) --
-    nunca os dados brutos, para manter o XCom pequeno."""
+    controlados pelo ``AsyncBscClient``) e devolve o resultado de cada um,
+    acumulado em memoria. Quem chama insere no Postgres em lote (raw +
+    controle) depois que ``asyncio.run`` retorna -- psycopg2 e sincrono, uma
+    escrita por resposta dentro do ``asyncio.gather`` serializaria a
+    concorrencia controlada pelo Semaphore/throttle do ``AsyncBscClient``."""
 
     if not itens_pendentes:
         logger.info("[execucao_assincrona_bsc] Nada pendente, nenhuma chamada necessaria")
-        return {"ok": 0, "sem_dados": 0, "erro": 0}
+        return []
 
-    async def _main() -> dict[str, int]:
+    async def _main() -> list[ResultadoItem]:
         async with aiohttp.ClientSession() as session:
             return await _extrair_lote_async(
-                session, itens_pendentes, chamar_api, caminho_saida, tratar_resposta_vazia
+                session, itens_pendentes, chamar_api, tratar_resposta_vazia
             )
 
-    contagem = asyncio.run(_main())
+    resultados = asyncio.run(_main())
+
+    contagem: dict[str, int] = {"ok": 0, "sem_dados": 0, "erro": 0}
+    for resultado in resultados:
+        contagem[resultado.status] = contagem.get(resultado.status, 0) + 1
     logger.info("[execucao_assincrona_bsc] Resultado do lote: %s", contagem)
-    return contagem
+
+    return resultados
