@@ -18,6 +18,12 @@ from schedule_loader import get_dynamic_schedule
 _SCHEMA_TRANSFEREGOV = "transferegov_fundo_a_fundo"
 _SCHEMA_BSC_PNAB = "bsc_pnab"
 
+# Persiste no Postgres a cada N itens processados, em vez de acumular tudo
+# em memoria e gravar so no final -- em listas de centenas de milhares de
+# itens (horas de execucao), sem isso qualquer interrupcao no meio perde o
+# trabalho inteiro e nao ha visibilidade de progresso ate o fim.
+TAMANHO_LOTE_PERSISTENCIA = 2000
+
 default_args = {
     "owner": "Caio Borges",
     "retries": 3,
@@ -217,12 +223,20 @@ def _extrair_extrato(agencias_periodos: dict[str, Any]) -> dict[str, int]:
         len(entes) * len(periodos),
     )
 
-    resultados = executar_lote(
+    contagem_total = {"ok": 0, "sem_dados": 0, "erro": 0}
+
+    def _persistir_lote(resultados_lote: list[ResultadoItem]) -> None:
+        for status, qtd in _persistir_resultados_extrato(db, resultados_lote).items():
+            contagem_total[status] = contagem_total.get(status, 0) + qtd
+
+    executar_lote(
         itens_pendentes=pendentes,
         chamar_api=_chamar_extrato,
         tratar_resposta_vazia=_marcar_extrato_sem_dados,
+        tamanho_lote=TAMANHO_LOTE_PERSISTENCIA,
+        ao_concluir_lote=_persistir_lote,
     )
-    return _persistir_resultados_extrato(db, resultados)
+    return contagem_total
 
 
 def _subtransacoes_pendentes(db: ClientPostgresDB) -> list[dict[str, Any]]:
@@ -312,8 +326,20 @@ def _extrair_subtransacoes(_resumo_extrato: dict[str, int]) -> dict[str, int]:
         "[extracao_bbagil_dag] Subtransacoes BB Agil: %d pendentes", len(pendentes)
     )
 
-    resultados = executar_lote(itens_pendentes=pendentes, chamar_api=_chamar_subtransacao)
-    return _persistir_resultados_subtransacao(db, resultados)
+    contagem_total = {"ok": 0, "sem_dados": 0, "erro": 0}
+
+    def _persistir_lote(resultados_lote: list[ResultadoItem]) -> None:
+        contagem_lote = _persistir_resultados_subtransacao(db, resultados_lote)
+        for status, qtd in contagem_lote.items():
+            contagem_total[status] = contagem_total.get(status, 0) + qtd
+
+    executar_lote(
+        itens_pendentes=pendentes,
+        chamar_api=_chamar_subtransacao,
+        tamanho_lote=TAMANHO_LOTE_PERSISTENCIA,
+        ao_concluir_lote=_persistir_lote,
+    )
+    return contagem_total
 
 
 @dag(
@@ -344,7 +370,11 @@ def extracao_bbagil_dag() -> None:
        transacao retornada e persistida, uma linha por transacao, em
        ``bsc_pnab.raw_bbagil_extrato_transacoes`` (upsert por ``ente``+``id``);
        toda combinacao tentada (ok/sem_dados/erro) vira uma linha em
-       ``bsc_pnab.controle_extracao_bbagil_extrato`` -- e essa tabela de
+       ``bsc_pnab.controle_extracao_bbagil_extrato``. A persistencia e feita
+       a cada ``TAMANHO_LOTE_PERSISTENCIA`` itens (nao tudo no final): em
+       listas de centenas de milhares de combinacoes/horas de execucao,
+       gravar so no fim faria qualquer interrupcao perder o trabalho
+       inteiro, sem visibilidade de progresso ate la. E essa tabela de
        controle, nao um arquivo em disco, que decide o que ja foi extraido
        (permite retomar sem reprocessar, e sem depender do filesystem de
        quem roda a DAG).
