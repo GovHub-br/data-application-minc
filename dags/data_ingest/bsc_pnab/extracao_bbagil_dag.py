@@ -87,28 +87,66 @@ async def _chamar_subtransacao(client: AsyncBscClient, item: dict[str, Any]) -> 
 
 
 def _carregar_entes_transferegov() -> list[dict[str, Any]]:
+    """Descobre agencia/conta de cada plano de acao, buscando na API do
+    Transferegov so o que ainda nao esta em
+    ``raw_planos_acao_dado_bancario`` -- essa tabela e uma linha por
+    ``id_plano_acao`` ja resolvido em execucoes anteriores, entao ela
+    funciona como cache: sem isso, toda execucao re-buscaria agencia/conta
+    de TODOS os planos de acao (uma chamada HTTP por plano, caro em volumes
+    grandes como o atual, ~18 mil planos)."""
     codigos_programas = Variable.get("transferegov_programas_ids", deserialize_json=True)
+    db = ClientPostgresDB(get_postgres_conn())
+
+    linhas_conhecidas = db.execute_query(
+        "SELECT id_plano_acao, agencia, conta, situacao_conta, id_programa, "
+        "codigo_programa, nome_programa FROM "
+        f"{_SCHEMA_TRANSFEREGOV}.raw_planos_acao_dado_bancario"
+    )
+    entes_conhecidos = [
+        {
+            "id_plano_acao": id_plano_acao,
+            "agencia": agencia,
+            "conta": conta,
+            "situacao_conta": situacao_conta,
+            "id_programa": id_programa,
+            "codigo_programa": codigo_programa,
+            "nome_programa": nome_programa,
+        }
+        for (
+            id_plano_acao,
+            agencia,
+            conta,
+            situacao_conta,
+            id_programa,
+            codigo_programa,
+            nome_programa,
+        ) in linhas_conhecidas
+    ]
+    ids_conhecidos = {str(ente["id_plano_acao"]) for ente in entes_conhecidos}
 
     logger = agencias_transferegov.configure_logger(
         log_dir=settings.TRANSFEREGOV_LOG_DIR, log_to_file=True
     )
-    contas = agencias_transferegov.get_contas_agencias_programas(
+    novos_brutos = agencias_transferegov.get_contas_agencias_programas(
         codigos_programas=codigos_programas,
         logger=logger,
+        ids_plano_acao_conhecidos=ids_conhecidos,
     )
-
-    registros = [
+    novos_validos = [
         registro
-        for registro in contas
+        for registro in novos_brutos
         if registro.get("agencia") is not None and registro.get("conta") is not None
     ]
-    entes = _json_nativo(registros)
+
+    entes = _json_nativo(entes_conhecidos + novos_validos)
 
     logging.info(
-        "[extracao_bbagil_dag] %d planos de acao com agencia/conta via "
-        "Transferegov (de %d totais retornados pela API)",
+        "[extracao_bbagil_dag] %d entes com agencia/conta (%d ja conhecidos no "
+        "Postgres + %d novos validos de %d planos novos retornados pela API)",
         len(entes),
-        len(contas),
+        len(entes_conhecidos),
+        len(novos_validos),
+        len(novos_brutos),
     )
     return entes
 
