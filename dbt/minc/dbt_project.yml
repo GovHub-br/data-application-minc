@@ -16,15 +16,6 @@ clean-targets:
   - "dbt_packages"
   - "logs"
 
-vars:
-  # Espelham as Airflow Variables homonimas usadas por extracao_bbagil_dag
-  # (bsc_pnab_data_corte, bsc_pnab_limiar_valor_bbagil) -- ate os dois lados
-  # (extracao e dbt) serem unificados numa unica fonte de configuracao.
-  bsc_pnab_data_corte: "2025-12-31"
-  bsc_pnab_limiar_valor_bbagil: 375
-  bsc_pnab_bb_documento: "191"
-  bsc_pnab_fnc_cnpj: "3793086100189"
-
 models:
   minc:
     metadata:
@@ -37,8 +28,3 @@ models:
         +materialized: incremental
       views:
         +materialized: view
-    bsc_pnab_dbt:
-      +materialized: table
-      +schema: bsc_pnab
-      bronze:
-        +materialized: incremental

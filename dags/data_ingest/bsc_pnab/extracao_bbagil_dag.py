@@ -358,12 +358,13 @@ def extracao_bbagil_dag() -> None:
        sequencial por transacao-mae, nao um identificador global) e
        controle em ``bsc_pnab.controle_extracao_bbagil_subtransacoes``.
 
-    Os filtros de negocio (o que entra no ``fato_bbagil``) e a agregacao
-    final deixaram de rodar aqui em pandas -- viram modelos dbt
-    (``dbt/minc/models/bsc_pnab_dbt/{bronze,silver,gold}``) em cima das
-    tabelas raw acima, agendados pelo ``minc_cosmos_dag``. Esta DAG so
-    extrai e deposita o dado bruto no Postgres; nao gera mais
-    ``fato_bbagil`` nem nenhum arquivo local.
+    Esta DAG so extrai e deposita o dado bruto no Postgres; nao gera mais
+    ``fato_bbagil`` nem nenhum arquivo local. Os filtros de negocio (o que
+    entrava no ``fato_bbagil``) e a agregacao final, que rodavam aqui em
+    pandas, foram removidos daqui -- a prioridade agora e completar a
+    extracao (as tabelas raw acima). A camada de transformacao (dbt ou
+    outra) sobre essas tabelas raw fica para depois, ainda nao
+    implementada.
 
     Toda a complexidade de HTTP/concorrencia/retry fica em ``cliente_bsc``
     e ``execucao_assincrona_bsc``; a logica de cada passo fica nas funcoes
