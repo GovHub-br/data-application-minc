@@ -26,8 +26,15 @@ TAMANHO_LOTE_PERSISTENCIA = 2000
 
 default_args = {
     "owner": "Caio Borges",
-    "retries": 3,
-    "retry_delay": timedelta(minutes=5),
+    # Alto de proposito: o BSC aplica um bloqueio temporario apos uso
+    # sustentado (~20-40min de chamadas continuas, independente do
+    # throttle), que leva alguns minutos pra esfriar. Com checkpoint em
+    # lote (TAMANHO_LOTE_PERSISTENCIA) cada retry e barato -- so refaz o
+    # que nao foi persistido desde o ultimo lote -- entao e seguro deixar
+    # tentar de novo por muitas horas sem supervisao, em vez de desistir
+    # depois de poucas tentativas.
+    "retries": 100,
+    "retry_delay": timedelta(minutes=10),
 }
 
 
