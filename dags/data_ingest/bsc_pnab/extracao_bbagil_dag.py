@@ -392,6 +392,12 @@ def _extrair_subtransacoes(_resumo_extrato: dict[str, int]) -> dict[str, int]:
     schedule=get_dynamic_schedule("extracao_bbagil_dag"),
     start_date=datetime(2026, 1, 1),
     catchup=False,
+    # DagRuns concorrentes desse DAG autenticam independentemente no SCA
+    # com o mesmo client_id/secret -- o SCA invalida o token anterior
+    # quando emite um novo pro mesmo client, entao 2+ runs em paralelo
+    # derrubam o token uma da outra e tomam 401/403 sem relacao com o
+    # throttle de requisicoes. So faz sentido 1 run ativa por vez.
+    max_active_runs=1,
     default_args=default_args,
     tags=["minc", "pnab", "bsc", "bbagil", "raw"],
 )
