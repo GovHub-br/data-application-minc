@@ -70,7 +70,7 @@ async def _chamar_extrato(client: AsyncBscClient, item: Any) -> Any:
         periodo_inicial=periodo_inicial,
         periodo_final=periodo_final,
     )
-    resposta["ente"] = ente["id_plano_acao"]
+    resposta["id_plano_acao"] = ente["id_plano_acao"]
     resposta["id_programa"] = ente.get("id_programa")
     resposta["codigo_programa"] = ente.get("codigo_programa")
     resposta["nome_programa"] = ente.get("nome_programa")
@@ -85,10 +85,11 @@ async def _chamar_subtransacao(client: AsyncBscClient, item: dict[str, Any]) -> 
         numero_conta=str(item["conta"]),
         id_transaction=str(item["id"]),
     )
-    # Mesma injecao do extrato: a resposta nao identifica o ente/transacao-mae
-    # de origem, necessarios para o checkpoint e para a chave da tabela raw
-    # (o "id" da subtransacao e sequencial por transacao-mae, nao global).
-    resposta["ente"] = item["ente"]
+    # Mesma injecao do extrato: a resposta nao identifica o plano de acao/
+    # transacao-mae de origem, necessarios para o checkpoint e para a chave
+    # da tabela raw (o "id" da subtransacao e sequencial por transacao-mae,
+    # nao global).
+    resposta["id_plano_acao"] = item["id_plano_acao"]
     resposta["id_transacao_pai"] = item["id"]
     return resposta
 
@@ -186,12 +187,12 @@ def _combinacoes_extrato_pendentes(
     db: ClientPostgresDB, entes: list[dict[str, Any]], periodos: list[tuple[str, str]]
 ) -> list[Any]:
     feitas = db.execute_query(
-        f"SELECT ente, periodo_inicial, periodo_final FROM {_SCHEMA_BSC_PNAB}"
+        f"SELECT id_plano_acao, periodo_inicial, periodo_final FROM {_SCHEMA_BSC_PNAB}"
         ".controle_extracao_bbagil_extrato WHERE status IN ('ok', 'sem_dados')"
     )
     feitas_set = {
-        (str(ente), periodo_inicial, periodo_final)
-        for ente, periodo_inicial, periodo_final in feitas
+        (str(id_plano_acao), periodo_inicial, periodo_final)
+        for id_plano_acao, periodo_inicial, periodo_final in feitas
     }
 
     combinacoes = [(ente, periodo) for ente in entes for periodo in periodos]
@@ -213,7 +214,7 @@ def _persistir_resultados_extrato(
         contagem[resultado.status] = contagem.get(resultado.status, 0) + 1
         ente, (periodo_inicial, periodo_final) = resultado.item
         linha_controle = {
-            "ente": ente["id_plano_acao"],
+            "id_plano_acao": ente["id_plano_acao"],
             "periodo_inicial": periodo_inicial,
             "periodo_final": periodo_final,
             "status": resultado.status,
@@ -234,16 +235,16 @@ def _persistir_resultados_extrato(
         db.insert_data(
             linhas_raw,
             table_name="raw_bbagil_extrato_transacoes",
-            primary_key=["ente", "id"],
-            conflict_fields=["ente", "id"],
+            primary_key=["id_plano_acao", "id"],
+            conflict_fields=["id_plano_acao", "id"],
             schema=_SCHEMA_BSC_PNAB,
         )
     if linhas_controle:
         db.insert_data(
             linhas_controle,
             table_name="controle_extracao_bbagil_extrato",
-            primary_key=["ente", "periodo_inicial", "periodo_final"],
-            conflict_fields=["ente", "periodo_inicial", "periodo_final"],
+            primary_key=["id_plano_acao", "periodo_inicial", "periodo_final"],
+            conflict_fields=["id_plano_acao", "periodo_inicial", "periodo_final"],
             schema=_SCHEMA_BSC_PNAB,
         )
 
@@ -290,22 +291,22 @@ def _subtransacoes_pendentes(db: ClientPostgresDB) -> list[dict[str, Any]]:
     # a descoberta Transferegov (a resposta de subtransacao nao devolve
     # agencia/conta no corpo).
     candidatos = db.execute_query(
-        f"SELECT r.ente, r.id, p.agencia, p.conta "
+        f"SELECT r.id_plano_acao, r.id, p.agencia, p.conta "
         f"FROM {_SCHEMA_BSC_PNAB}.raw_bbagil_extrato_transacoes r "
         f"JOIN {_SCHEMA_TRANSFEREGOV}.raw_planos_acao_dado_bancario p "
-        f"  ON r.ente = p.id_plano_acao "
+        f"  ON r.id_plano_acao = p.id_plano_acao "
         f"WHERE r.subtransactionquantity::int > 0"
     )
     feitas = db.execute_query(
-        f"SELECT ente, id_transacao_pai FROM {_SCHEMA_BSC_PNAB}"
+        f"SELECT id_plano_acao, id_transacao_pai FROM {_SCHEMA_BSC_PNAB}"
         ".controle_extracao_bbagil_subtransacoes WHERE status IN ('ok', 'sem_dados')"
     )
-    feitas_set = {(str(ente), str(id_pai)) for ente, id_pai in feitas}
+    feitas_set = {(str(id_plano_acao), str(id_pai)) for id_plano_acao, id_pai in feitas}
 
     return [
-        {"ente": ente, "id": id_transacao, "agencia": agencia, "conta": conta}
-        for ente, id_transacao, agencia, conta in candidatos
-        if (str(ente), str(id_transacao)) not in feitas_set
+        {"id_plano_acao": id_plano_acao, "id": id_transacao, "agencia": agencia, "conta": conta}
+        for id_plano_acao, id_transacao, agencia, conta in candidatos
+        if (str(id_plano_acao), str(id_transacao)) not in feitas_set
     ]
 
 
@@ -320,7 +321,7 @@ def _persistir_resultados_subtransacao(
         contagem[resultado.status] = contagem.get(resultado.status, 0) + 1
         item = resultado.item
         linha_controle = {
-            "ente": item["ente"],
+            "id_plano_acao": item["id_plano_acao"],
             "id_transacao_pai": item["id"],
             "status": resultado.status,
             "qtd_subtransacoes": 0,
@@ -341,16 +342,16 @@ def _persistir_resultados_subtransacao(
         db.insert_data(
             linhas_raw,
             table_name="raw_bbagil_subtransacoes",
-            primary_key=["ente", "id_transacao_pai", "id"],
-            conflict_fields=["ente", "id_transacao_pai", "id"],
+            primary_key=["id_plano_acao", "id_transacao_pai", "id"],
+            conflict_fields=["id_plano_acao", "id_transacao_pai", "id"],
             schema=_SCHEMA_BSC_PNAB,
         )
     if linhas_controle:
         db.insert_data(
             linhas_controle,
             table_name="controle_extracao_bbagil_subtransacoes",
-            primary_key=["ente", "id_transacao_pai"],
-            conflict_fields=["ente", "id_transacao_pai"],
+            primary_key=["id_plano_acao", "id_transacao_pai"],
+            conflict_fields=["id_plano_acao", "id_transacao_pai"],
             schema=_SCHEMA_BSC_PNAB,
         )
 
@@ -419,7 +420,8 @@ def extracao_bbagil_dag() -> None:
        pendente, chama o extrato via ``AsyncBscClient``. HTTP 400 "sem
        lancamentos" e registrado como dado de negocio, nao erro. Toda
        transacao retornada e persistida, uma linha por transacao, em
-       ``bsc_pnab.raw_bbagil_extrato_transacoes`` (upsert por ``ente``+``id``);
+       ``bsc_pnab.raw_bbagil_extrato_transacoes`` (upsert por
+       ``id_plano_acao``+``id``);
        toda combinacao tentada (ok/sem_dados/erro) vira uma linha em
        ``bsc_pnab.controle_extracao_bbagil_extrato``. A persistencia e feita
        a cada ``TAMANHO_LOTE_PERSISTENCIA`` itens (nao tudo no final): em
@@ -434,7 +436,7 @@ def extracao_bbagil_dag() -> None:
        ``raw_planos_acao_dado_bancario`` para agencia/conta), os
        sublancamentos das transacoes com ``subtransactionquantity`` > 0.
        Mesma logica de persistencia: raw em
-       ``bsc_pnab.raw_bbagil_subtransacoes`` (upsert por ``ente`` +
+       ``bsc_pnab.raw_bbagil_subtransacoes`` (upsert por ``id_plano_acao`` +
        ``id_transacao_pai`` + ``id`` -- o ``id`` da subtransacao e
        sequencial por transacao-mae, nao um identificador global) e
        controle em ``bsc_pnab.controle_extracao_bbagil_subtransacoes``.
