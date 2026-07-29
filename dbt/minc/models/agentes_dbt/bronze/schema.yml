@@ -5,9 +5,12 @@ models:
     description: >
       Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo).
       Mapeia o CPF como identificador único e traz a coluna bruta de histórico
-      de acesso a recursos públicos de fomento à cultura.
+      de acesso a recursos públicos de fomento à cultura. Carga incremental
+      (materialized='incremental'), deduplicada por identificador_unico;
+      descarta CPF nulo, vazio ou 'nan'/'none'.
     config:
       meta:
+        status: Active
         tags:
           - bronze
           - agentes
@@ -27,9 +30,11 @@ models:
     description: >
       Camada Bronze — dados brutos de pessoas jurídicas da LPG.
       Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
-      de acesso a recursos públicos de fomento à cultura.
+      de acesso a recursos públicos de fomento à cultura. Carga incremental,
+      deduplicada por identificador_unico; descarta CNPJ nulo, vazio ou 'nan'/'none'.
     config:
       meta:
+        status: Active
         tags:
           - bronze
           - agentes
@@ -50,8 +55,10 @@ models:
       Camada Bronze — dados brutos de proponentes coletivos da LPG.
       Mapeia o CPF do representante do grupo/coletivo como identificador único
       e traz a coluna bruta de histórico de acesso a recursos públicos de fomento.
+      Carga incremental, deduplicada por identificador_unico.
     config:
       meta:
+        status: Active
         tags:
           - bronze
           - agentes
@@ -72,8 +79,11 @@ models:
       Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc).
       Mapeia o CPF como identificador único e traz a coluna bruta de histórico
       de acesso a recursos públicos de fomento à cultura nos últimos 5 anos.
+      Carga incremental, deduplicada por identificador_unico; descarta CPF nulo,
+      vazio ou 'nan'/'none'.
     config:
       meta:
+        status: Active
         tags:
           - bronze
           - agentes
@@ -94,8 +104,10 @@ models:
       Camada Bronze — dados brutos de organizações da PNAB.
       Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
       de acesso a recursos públicos de fomento à cultura anteriormente.
+      Carga incremental, deduplicada por identificador_unico.
     config:
       meta:
+        status: Active
         tags:
           - bronze
           - agentes
