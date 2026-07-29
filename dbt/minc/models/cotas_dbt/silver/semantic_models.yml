@@ -1,0 +1,57 @@
+semantic_models:
+  # ---------------------------------------------------------------------------
+  # DIMENSÃO de agente do domínio de cotas. Grão: 1 linha por documento.
+  #
+  # Vive na silver (e não na gold) porque é a camada onde o perfil unificado
+  # LPG+PNAB existe com 1 linha por documento — não há equivalente gold. É a
+  # exceção prevista na convenção ("se não existir gold para o modelo, usar
+  # silver"); bronze continua vetado como base semântica.
+  #
+  # Sem `measures`: é tabela de dimensão. Além disso, não há nenhuma coluna
+  # temporal aqui — e toda measure do MetricFlow exige uma dimensão de tempo
+  # associada (agg_time_dimension).
+  # ---------------------------------------------------------------------------
+  - name: perfil_agentes_normalizado
+    model: ref('perfil_agentes_normalizado')
+    description: >
+      Perfil demográfico unificado dos agentes culturais (LPG + PNAB), com 1
+      linha por documento e raça/PCD normalizados. É a dimensão que qualifica os
+      pagamentos do fato fct_pagamentos_elegiveis para o cálculo das cotas de
+      ações afirmativas.
+    entities:
+      # `primary`: 1 linha por documento (garantido por teste `unique`+`not_null`
+      # em schema.yml). É o alvo da entidade `foreign` de mesmo nome no fato.
+      - name: agente_documento
+        type: primary
+        expr: identificador_unico
+    dimensions:
+      - name: raca_normalizada
+        type: categorical
+        description: >
+          Raça/cor do agente normalizada em 5 categorias — 'negra' (preta ou
+          parda), 'indigena', 'branca', 'amarela' ou 'nao_declarada'. Derivada
+          por regex sobre o texto autodeclarado sem acento.
+      - name: tipo_proponente
+        type: categorical
+        description: "Natureza do proponente — 'pf', 'pj' ou 'coletivo'."
+      - name: origem_cadastro
+        type: categorical
+        expr: origem
+        description: >
+          Programa de onde veio o cadastro do perfil — 'lpg' ou 'pnab'. Quando o
+          mesmo documento existe nos dois, a deduplicação prioriza o registro que
+          já traz raça preenchida.
+      - name: agente_uf
+        type: categorical
+        expr: uf
+        description: >
+          UF do agente. Só existe para agentes LPG — as fontes PNAB não trazem
+          localização do agente, logo fica NULL e o agente não é classificável
+          pela cota territorial.
+      - name: agente_cidade
+        type: categorical
+        expr: cidade
+        description: >
+          Município do agente (texto livre, sem código IBGE). Só existe para
+          agentes LPG. É a base do casamento por nome com o crosswalk
+          territorial, que hoje cobre ~47,5% dos agentes com perfil.

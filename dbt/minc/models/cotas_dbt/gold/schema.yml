@@ -20,7 +20,26 @@ models:
     columns:
       - name: origem_ano
         tests:
-          - accepted_values: {values: ['nome_edital', 'anexo_edital', 'nome_arquivo', 'sem_ano']}
+          - accepted_values:
+              arguments:
+                values: ['nome_edital', 'anexo_edital', 'nome_arquivo', 'sem_ano']
+      - name: identificador_unico
+        description: >
+          Documento normalizado do agente (só dígitos). É a entidade `foreign`
+          agente_documento do semantic model; NULL quando o documento veio
+          mascarado na origem.
+        tests:
+          # Integridade da entidade de junção do MetricFlow: todo pagamento que
+          # se declara casado com perfil (tem_perfil) precisa mesmo existir na
+          # dimensão. O `where` é obrigatório — o fato preserva órfãos de
+          # propósito (payment-first), então o teste sem filtro falharia por
+          # design, não por defeito.
+          - relationships:
+              arguments:
+                to: ref('perfil_agentes_normalizado')
+                field: identificador_unico
+              config:
+                where: "tem_perfil"
   # fct_pagamentos_bbagil e comparativo_recebido_vs_pago estão enabled=false
   # (aguardam a extração bbágil gerar bsc_pnab.fato_bbagil) — já documentados
   # abaixo com status: Disabled; reativar (enabled=true nos .sql) depois.
@@ -55,10 +74,14 @@ models:
     columns:
       - name: grupo
         tests:
-          - accepted_values: {values: ['negra', 'indigena', 'pcd', 'territorio_vulneravel']}
+          - accepted_values:
+              arguments:
+                values: ['negra', 'indigena', 'pcd', 'territorio_vulneravel']
       - name: status_sobre_com_perfil
         tests:
-          - accepted_values: {values: ['alcancada', 'descumprida']}
+          - accepted_values:
+              arguments:
+                values: ['alcancada', 'descumprida']
   - name: distribuicao_cotas_pnab
     description: >
       Cotas SOMENTE PNAB, via macro compartilhada distribuicao_cotas. 3 grupos
@@ -75,10 +98,14 @@ models:
     columns:
       - name: grupo
         tests:
-          - accepted_values: {values: ['negra', 'indigena', 'pcd']}
+          - accepted_values:
+              arguments:
+                values: ['negra', 'indigena', 'pcd']
       - name: status_sobre_com_perfil
         tests:
-          - accepted_values: {values: ['alcancada', 'descumprida']}
+          - accepted_values:
+              arguments:
+                values: ['alcancada', 'descumprida']
   - name: fct_pagamentos_bbagil
     description: >
       [MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com
