@@ -1,13 +1,154 @@
 models:
-  - name: agentes_pf
-    description: Dados brutos de proponentes pessoa física da LPG
-  - name: agentes_pj
-    description: Dados brutos de proponentes pessoa jurídica da LPG
-  - name: agentes_coletivos
-    description: Dados brutos de proponentes coletivos da LPG
-  - name: identificadores_agentes
-    description: Consolidação dos identificadores de todos os tipos de proponentes
-  - name: perfil_agentes_historico
-    description: Perfil dos agentes com higienização do histórico de acesso a recursos de fomento
-  - name: primeiro_acesso_resumo
-    description: Resumo agregado do indicador de primeiro acesso a recursos de fomento (Meta 5)
+  agentes_dbt:
+    bronze: 
+      - name: lpg_agentes_pf
+        description: > 
+          Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo).
+          Mapeia o CPF como identificador único e traz a coluna bruta de histórico
+          de acesso a recursos públicos de fomento à cultura.
+      - name: lpg_agentes_pj
+        description: > 
+          Camada Bronze — dados brutos de pessoas jurídicas da LPG.
+          Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
+          de acesso a recursos públicos de fomento à cultura.
+      - name: lpg_agentes_coletivos
+        description: >
+          Camada Bronze — dados brutos de proponentes coletivos da LPG.
+          Mapeia o CPF do representante do grupo/coletivo como identificador único
+          e traz a coluna bruta de histórico de acesso a recursos públicos de fomento.
+      - name: pnab_agentes_pf
+        description: >
+          Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc).
+          Mapeia o CPF como identificador único e traz a coluna bruta de histórico
+          de acesso a recursos públicos de fomento à cultura nos últimos 5 anos.
+      - name: pnab_agentes_pj
+        description: >
+          Camada Bronze — dados brutos de organizações da PNAB.
+          Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
+          de acesso a recursos públicos de fomento à cultura anteriormente.
+    silver:
+      - name: perfil_agentes_historico
+        description: >
+          Camada Silver — perfil dos agentes com higienização da coluna de histórico
+          de acesso a recursos públicos. Remove valores nulos, 'nan' e caracteres
+          inválidos (ponto, ponto-e-vírgula). Classifica as respostas em três
+          categorias padronizadas: 'Sim', 'Não' e 'Não sabe/Não informou'.
+          Propaga a coluna programa_fomento para rastreabilidade por programa.
+    gold:
+      - name: perfil_acesso_fomento
+        description: >
+          Camada Gold — Meta 5 (Mapeamento de agentes culturais acessando fomento
+          pela primeira vez). Classifica cada proponente por programa com a coluna
+          perfil_acesso_fomento. Respostas confirmadas ('Sim'/'Não') são mantidas;
+          respostas nulas ou omitidas recebem inferência cronológica via ROW_NUMBER()
+          particionado por CPF/CNPJ e ordenado por programa_fomento (proxy temporal:
+          LPG precede PNAB). Um proponente com sequencia_fomento > 1 acessou mais
+          de um programa, evidenciando veterania.
+      - name: perfil_agentes_completo
+        description: >
+          Camada Gold — Master Data de proponentes (Meta 5).
+          Grain: 1 linha por identificador_unico (CPF/CNPJ). Consolida perfil_acesso_fomento
+          eliminando duplicatas entre programas: proponentes presentes em mais de um programa
+          têm veterania confirmada por presença multi-programa, sobrepondo a resposta declarada.
+          Serve como base para dois consumos:
+            - Relatório consolidado (sem inferência): filtrar WHERE status_origem = 'Confirmado'
+            - Visão analítica (com inferência): consumir todos os registros
+      - name: primeiro_acesso_contemplados
+        description: >
+          Camada Gold — Meta 5 com flag de contemplação. Mesma estrutura de
+          primeiro_acesso_resumo com duas dimensões adicionais: se o proponente
+          foi contemplado em edital e a discriminação entre dados confirmados
+          (resposta declarada no formulário) vs. inferidos (derivados por sequência
+          ou presença multi-programa). Grain: 1 linha por
+          (programa_fomento × categoria_primeiro_acesso × contemplado).
+
+          Cobertura de contemplados:
+            - LPG: CPF e CNPJ completos via lpg_contemplados — cobertura total.
+            - PNAB PNCV: CPF real via raw_pnab_lista_contemplados_pncv — cobertura PF.
+            - PNAB Geral: apenas CNPJ via raw_pnab_lista_contemplados_geral — CPF
+              anonimizado (***XXXXXX**), PF da lista geral fora do PNCV não é rastreável.
+      - name: primeiro_acesso_resumo
+        description: >
+          Resumo agregado do indicador de primeiro acesso a recursos de fomento (Meta 5)
+          Camada Gold — resumo agregado da Meta 5 (Indicador de Primeiro Acesso).
+          Conta proponentes distintos por programa de fomento e categoria de acesso
+          anterior a recursos públicos. Calcula o percentual de cada categoria
+          sobre o total do respectivo programa (cada programa soma 100%).
+  cotas_dbt:
+    bronze:
+      - name: stg_agentes_coletivos
+        description: >
+          Perfil LPG Coletivos/Grupos (maioria do grupo).
+      - name: stg_agentes_pf
+        description: >
+          Perfil LPG Pessoa Física (base + audiovisual + multicultural), lixo filtrado.
+      - name: stg_agentes_pj
+        description: >
+          Perfil LPG Pessoa Jurídica (corpo diretivo).
+      - name: stg_agentes_pnab_pf
+        description: >
+          Perfil PNAB Pessoa Física (pnab_pessoas) — CPF real + raça/PCD/indígena/quilombola.
+      - name: stg_agentes_pnab_pj
+        description: >
+          Perfil PNAB Organizações (pnab_organizacoes) — CNPJ real + raça/PCD do representante.
+      - name: stg_bbagil
+        description: >
+          Base bruta de pagamentos BBÁGIL (fato_bbagil) — 1 linha por pagamento, com
+          CNPJ/CPF do agente e ano do edital.
+      - name: stg_contemplados_lpg
+        description: >
+          Contemplados LPG (valor pago), colunas duplicadas coalescidas.
+      - name: stg_contemplados_pnab
+        description: >
+          Contemplados PNAB (geral + pncv). CNPJ casável; CPF anonimizado flagado.
+      - name: stg_editais
+        description: >
+          Editais LPG (lpg_editais + instrumentos) — nome, número, valor total.
+    silver:
+      - name: bbagil_ente_ano
+        description: >
+          Base agregada de pagamentos BBÁGIL (fato_bbagil) — 1 linha por ente+ano, com
+          soma de valores pagos e contagem de pagamentos distintos.
+      - name: contemplados_unif
+        description: >
+          Contemplados unificados LPG+PNAB (núcleo do valor) + ano_final/origem_ano.
+      - name: diag_valores_cortados
+        description: >
+          Diagnóstico de valores cortados (LPG+PNAB) — flag de corte por edital.
+      - name: editais_unif
+        description: >
+          Editais unificados com ano derivado (número/nome), validado ≤2026.
+      - name: editais_ano_por_anexo
+        description: >
+          Ano do edital por anexo PNAB (abas de definição); só anexos ano-único.
+      - name: edital_ano_por_arquivo
+        description: >
+          Ano do edital por anexo via nome do arquivo (fallback 3); só anexos ano-único.
+      - name: identificadores_agentes_cotas
+        description: >
+          Chaves distintas de agentes (para contagem secundária e unicidade).
+      - name: perfil_agentes_normalizado
+        description: >
+          Perfil unificado LPG+PNAB, 1 linha por documento, raça/PCD normalizados.
+      - name: territorio_municipio
+        description: >
+          Crosswalk IBGE CD2022 a nível de município (setor->FCU colapsado): flag em_concentracao_urbana + chave nome+uf p/ 4ª cota territorial LPG.
+    gold:
+      - name: cobertura_pagamentos
+        description: >
+          Cobertura por ano — teto de confiabilidade das cotas (valor casado + temporal).
+      - name: comparativo_recebido_vs_pago
+        description: >
+          Comparativo de valores recebidos vs pagos (LPG+PNAB) — flag de corte por edital.
+      - name: distribuicao_cotas_lpg
+        description: >
+          Cotas SOMENTE LPG (valor ponderado): negra 25%, indígena 10%, PCD 5%, território vulnerabilizado 20%; veredito vs meta.
+      - name: distribuicao_cotas_pnab
+        description: >
+          Cotas SOMENTE PNAB (valor ponderado): negra 25%, indígena 10%, PCD 5% (sem território); veredito vs meta.
+      - name: fct_pagamentos_bbagil
+        description: >
+          1 linha por pagamento (payment-first). Flags de cota + tem_perfil + ano_final + anexo_id.
+      - name: fct_pagamentos_elegiveis
+        description: >
+          1 linha por pagamento (payment-first). Flags de cota + tem_perfil + ano_final + anexo_id.
