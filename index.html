@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapeamentos LPG/PNAB — Meta 3 · Meta 5</title>
+  <title>Mapeamento de Dados — SNC/PNC · LPG · PNAB · Rouanet</title>
 
   <style>
     /* ── GovHub palette ──────────────────────────────────────────
@@ -1513,6 +1513,225 @@
       line-height: 1.5;
     }
     .vm-entrega-desc strong { color: #202020; }
+
+    /* ══════════════════════════════
+       HISTÓRICO — timeline de evolução
+    ══════════════════════════════ */
+    .hist-timeline {
+      position: relative;
+      padding-left: 1.75rem;
+      margin-bottom: 2.5rem;
+    }
+    .hist-timeline::before {
+      content: '';
+      position: absolute;
+      left: 0.42rem;
+      top: 0.4rem;
+      bottom: 0.4rem;
+      width: 2px;
+      background: linear-gradient(180deg, #ddd6fe 0%, #7A34F3 50%, #ddd6fe 100%);
+    }
+    .hist-entry {
+      position: relative;
+      background: #fff;
+      border: 1px solid #e2e5ea;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .hist-entry::before {
+      content: '';
+      position: absolute;
+      left: -1.52rem;
+      top: 1.15rem;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #7A34F3;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 2px #ddd6fe;
+    }
+    .hist-entry--doc::before  { background: #10b981; box-shadow: 0 0 0 2px #a7f3d0; }
+    .hist-entry--infra::before { background: #64748b; box-shadow: 0 0 0 2px #cbd5e1; }
+    .hist-head {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+    .hist-data {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #5b21b6;
+      background: #f3eeff;
+      border-radius: 5px;
+      padding: 0.2rem 0.5rem;
+      white-space: nowrap;
+    }
+    .hist-pr {
+      font-size: 0.68rem;
+      font-family: monospace;
+      font-weight: 700;
+      color: #444;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 0.18rem 0.45rem;
+    }
+    .hist-autor {
+      font-size: 0.68rem;
+      color: #888;
+    }
+    .hist-titulo {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #202020;
+      margin-bottom: 0.45rem;
+      line-height: 1.3;
+    }
+    .hist-desc {
+      font-size: 0.78rem;
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 0.6rem;
+    }
+    .hist-desc strong { color: #202020; }
+    .hist-desc code, .hist-meta-tag code {
+      font-family: monospace;
+      font-size: 0.72rem;
+      background: #f3eeff;
+      color: #5b21b6;
+      border-radius: 4px;
+      padding: 0.05rem 0.28rem;
+    }
+    .hist-bullets {
+      list-style: none;
+      margin: 0 0 0.7rem;
+      padding: 0;
+    }
+    .hist-bullets li {
+      font-size: 0.76rem;
+      color: #555;
+      line-height: 1.55;
+      padding-left: 1rem;
+      position: relative;
+      margin-bottom: 0.28rem;
+    }
+    .hist-bullets li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: #a78bfa;
+      font-weight: 700;
+    }
+    .hist-bullets li code {
+      font-family: monospace;
+      font-size: 0.71rem;
+      background: #f5f3ff;
+      color: #5b21b6;
+      border-radius: 4px;
+      padding: 0.05rem 0.26rem;
+    }
+    .hist-metas {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      padding-top: 0.6rem;
+      border-top: 1px dashed #e8e8ee;
+    }
+    .hist-meta-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      border-radius: 5px;
+      padding: 0.22rem 0.55rem;
+      line-height: 1.35;
+    }
+    .hist-meta-tag--avanca  { background:#d1fae5; color:#065f46; }
+    .hist-meta-tag--parcial { background:#dbeafe; color:#1e40af; }
+    .hist-meta-tag--neutro  { background:#f1f5f9; color:#475569; }
+    .hist-meta-tag--bloqueio{ background:#fef3c7; color:#92400e; }
+
+    /* placar de metas */
+    .hist-placar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px,100%), 1fr));
+      gap: 0.85rem;
+      margin-bottom: 2rem;
+    }
+    .hist-placar-card {
+      background: #fff;
+      border: 1px solid #e2e5ea;
+      border-radius: 10px;
+      padding: 0.9rem 1.1rem;
+      border-top: 3px solid #cbd5e1;
+    }
+    .hist-placar-card--ok      { border-top-color: #10b981; }
+    .hist-placar-card--parcial { border-top-color: #3b82f6; }
+    .hist-placar-card--zero    { border-top-color: #f59e0b; }
+    .hist-placar-meta {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      font-weight: 700;
+      color: #7A34F3;
+      margin-bottom: 0.2rem;
+    }
+    .hist-placar-titulo {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #202020;
+      margin-bottom: 0.5rem;
+      line-height: 1.25;
+    }
+    .hist-placar-num {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #202020;
+      line-height: 1;
+      margin-bottom: 0.15rem;
+    }
+    .hist-placar-num span { font-size: 0.72rem; font-weight: 600; color: #888; }
+    .hist-placar-obs {
+      font-size: 0.71rem;
+      color: #666;
+      line-height: 1.5;
+      margin-top: 0.4rem;
+    }
+    /* tabela de bloqueios */
+    .hist-tabela {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+    }
+    .hist-tabela th {
+      background: #f3eeff;
+      color: #5b21b6;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 700;
+      text-align: left;
+      padding: 0.6rem 0.85rem;
+      white-space: nowrap;
+    }
+    .hist-tabela td {
+      padding: 0.65rem 0.85rem;
+      border-top: 1px solid #eef0f4;
+      color: #555;
+      line-height: 1.5;
+      vertical-align: top;
+    }
+    .hist-tabela td strong { color: #202020; }
+    .hist-tabela td code {
+      font-family: monospace;
+      font-size: 0.71rem;
+      background: #f5f3ff;
+      color: #5b21b6;
+      border-radius: 4px;
+      padding: 0.05rem 0.26rem;
+    }
+    .hist-scroll { overflow-x: auto; background:#fff; border:1px solid #e2e5ea; border-radius:10px; }
   </style>
 </head>
 <body>
@@ -1606,6 +1825,14 @@
       </div>
     </div>
 
+    <div class="nav-divider"></div>
+
+    <button class="nav-item nav-item--top" onclick="showTab('historico', this)">
+      <span class="nav-icon">🕓</span>
+      <span class="nav-label">Histórico</span>
+      <span class="nav-meta">Evolução do projeto</span>
+    </button>
+
   </nav>
 
   <!-- ── CONTENT ── -->
@@ -1628,6 +1855,21 @@
       <span style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:0.3rem 0.75rem;font-size:0.72rem;font-weight:600">transferegov_fundo_a_fundo</span>
       <span style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:0.3rem 0.75rem;font-size:0.72rem;font-weight:600">SALIC</span>
     </div>
+  </div>
+
+  <!-- Novidades -->
+  <div class="intro-box" style="border-left-color:#10b981;margin-bottom:2rem">
+    <h3>Atualizado em 30/07/2026 — o que mudou desde a publicação</h3>
+    <p>Este painel foi publicado em <strong>22/06/2026</strong> como diagnóstico de viabilidade, propondo nominalmente os pipelines que ainda não existiam. De lá para cá, <strong>duas PRs implementaram parte do que estava proposto</strong> — e os nomes reais divergiram da previsão. Esta revisão alinha o painel ao código que está na <code>main</code>:</p>
+    <ul style="margin:0.6rem 0 0.6rem 1.1rem;font-size:0.8rem;color:#555;line-height:1.7">
+      <li><strong>Meta 3 implementada</strong> (PR #16, 18/07): domínio <code>cotas_dbt</code> com 21 models. O que o painel chamava de <code>agg_cotas_anuais</code> virou <code>distribuicao_cotas_lpg</code> e <code>distribuicao_cotas_pnab</code>.</li>
+      <li><strong>Meta 5 implementada</strong> (PR #15, 15/07): domínio <code>agentes_dbt</code> com <code>primeiro_acesso_contemplados</code> e <code>primeiro_acesso_resumo</code>.</li>
+      <li><strong>Veredito de cota é binário</strong>, não ternário: <code>'alcancada'</code> / <code>'descumprida'</code> em <code>status_sobre_com_perfil</code>. A categoria "superada" não foi implementada.</li>
+      <li><strong>Saída em formato longo</strong>: 1 linha por (ano, grupo), não uma coluna por cota. Nomes de coluna corrigidos ao longo das abas.</li>
+      <li><strong>bbágil bloqueado</strong>: 4 models escritos mas desabilitados — a API do BSC só resolve via VPN do governo.</li>
+      <li><strong>Meta 2 e Meta 4 seguem sem models dbt.</strong> A Meta 4 é exclusivamente Rouanet, e o SALIC ainda não tem ingestão.</li>
+    </ul>
+    <div class="intro-goal">Veja a aba <strong>🕓 Histórico</strong> para a linha do tempo completa, o placar por meta e a lista de bloqueios abertos.</div>
   </div>
 
   <!-- Políticas -->
@@ -1842,7 +2084,7 @@
         <div style="background:#f3eeff;border-radius:6px;padding:0.55rem 0.75rem;">
           <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#5b21b6;margin-bottom:0.2rem"><code>raw_programas</code></div>
           <div style="font-size:0.68rem;color:#555;margin-bottom:0.15rem"><span style="color:#7A34F3;font-weight:600">Chave:</span> <code>id_programa</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">Cadastro dos 3 programas PNAB: 60 (Estados), 61 (Municípios ≥R$360k), 62 (Municípios <R$360k). <em>Não usar <code>codigo_programa</code> para filtro.</em></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">Cadastro dos 3 programas PNAB: 60 (Estados), 61 (Municípios ≥R$360k), 62 (Municípios &lt;R$360k). <em>Não usar <code>codigo_programa</code> para filtro.</em></div>
         </div>
         <div style="background:#f3eeff;border-radius:6px;padding:0.55rem 0.75rem;">
           <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#5b21b6;margin-bottom:0.2rem"><code>dim_programa_pnab</code> ✦</div>
@@ -2474,7 +2716,8 @@
         <div class="resp-policy-label">LPG</div>
         <div class="resp-status ok">✓ Respondido</div>
         <p class="resp-pergunta">As cotas mínimas (25% negras, 10% indígenas, 5% PCD, 20% territórios) estão sendo alcançadas, superadas ou descumpridas por ano?</p>
-        <p class="resp-fonte">agg_cotas_anuais ← fct_pagamentos_elegiveis<br/>status_cota_* por ano e política</p>
+        <p class="resp-fonte">distribuicao_cotas_lpg ← fct_pagamentos_elegiveis<br/>status_sobre_com_perfil por (ano, grupo)</p>
+        <p class="resp-obs">Veredito binário: <code>'alcancada'</code> / <code>'descumprida'</code> — o painel previa uma terceira categoria "superada", que não foi implementada.</p>
       </div>
 
       <div class="resp-card">
@@ -2524,7 +2767,7 @@
       <div style="padding:0.5rem 0.85rem 0.6rem;display:flex;flex-direction:column;gap:0.6rem;">
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
           <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem">CPF / CNPJ</div>
-          <div style="font-size:0.68rem;color:#555;margin-bottom:0.15rem"><span style="color:#7A34F3;font-weight:600">Chave:</span> <span class="tag-pill pill-chave">chave_doc</span></div>
+          <div style="font-size:0.68rem;color:#555;margin-bottom:0.15rem"><span style="color:#7A34F3;font-weight:600">Chave:</span> <span class="tag-pill pill-chave">identificador_unico</span></div>
           <div style="font-size:0.72rem;color:#333;line-height:1.45">É o elo que liga <em>"quem se inscreveu"</em> a <em>"quem foi pago"</em></div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
@@ -2554,7 +2797,7 @@
       <div style="padding:0.5rem 0.85rem 0.6rem;display:flex;flex-direction:column;gap:0.6rem;">
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
           <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem">CPF / CNPJ</div>
-          <div style="font-size:0.68rem;color:#555;margin-bottom:0.15rem"><span style="color:#7A34F3;font-weight:600">Chave:</span> <span class="tag-pill pill-chave">chave_doc</span></div>
+          <div style="font-size:0.68rem;color:#555;margin-bottom:0.15rem"><span style="color:#7A34F3;font-weight:600">Chave:</span> <span class="tag-pill pill-chave">identificador_unico</span></div>
           <div style="font-size:0.72rem;color:#333;line-height:1.45">Liga o pagamento de volta ao perfil demográfico do beneficiário</div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
@@ -2634,7 +2877,7 @@
       <tbody>
         <tr>
           <td><strong>Contemplados ↔ Perfil</strong></td>
-          <td><span class="tag-pill pill-chave">chave_doc</span> (CPF/CNPJ normalizado)</td>
+          <td><span class="tag-pill pill-chave">identificador_unico</span> (CPF/CNPJ normalizado)</td>
           <td>Trazer raça, PCD e localização de quem foi pago. Sem isso, não temos como saber se o pagamento conta para uma cota.</td>
           <td style="color:#b45309">⚠ CPF PNAB anonimizado — PF da PNAB fica sem perfil (fase 2)</td>
         </tr>
@@ -2679,7 +2922,7 @@
           <div style="font-size:0.72rem;color:#333;line-height:1.45">Separa quem optou por não declarar — impacta denominador da cota de raça</div>
         </div>
       </div>
-      <div class="bloco-note">Dedup por <code>chave_doc</code>: quando o mesmo CPF/CNPJ aparece em mais de uma tabela de perfil, mantém o registro com menos NULLs.</div>
+      <div class="bloco-note">Dedup por <code>identificador_unico</code>: quando o mesmo CPF/CNPJ aparece em mais de uma tabela de perfil, mantém o registro com menos NULLs.</div>
     </div>
 
     <div class="bloco bloco--compact">
@@ -2709,7 +2952,7 @@
 
     <div class="bloco bloco--compact">
       <div class="bloco-header" style="border-left:3px solid #94a3b8">
-        <h4>territorios_vulnerabilizados</h4>
+        <h4>territorio_municipio</h4>
       </div>
       <div class="bloco-tables">perfil_agentes_normalizado × fcu_setores_2022</div>
       <div style="padding:0.5rem 0.85rem 0.6rem;display:flex;flex-direction:column;gap:0.6rem;">
@@ -2740,15 +2983,15 @@
       <div class="bloco-header" style="border-left:3px solid #fbbf24">
         <h4>fct_pagamentos_elegiveis</h4>
       </div>
-      <div class="bloco-tables">contemplados_unif × perfil_agentes_normalizado × territorios_vulnerabilizados</div>
+      <div class="bloco-tables">contemplados_unif × perfil_agentes_normalizado × territorio_municipio</div>
       <div style="padding:0.5rem 0.85rem 0.6rem;display:flex;flex-direction:column;gap:0.6rem;">
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>chave_doc · valor_pago_num · ano_final</code></div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>identificador_unico · valor_pago_num · ano_final</code></div>
           <div style="font-size:0.72rem;color:#333;line-height:1.45">Grão: 1 linha por pagamento</div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
           <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>flag_negra · flag_indigena · flag_pcd</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">Vem do perfil via JOIN por <code>chave_doc</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">Vem do perfil via JOIN por <code>identificador_unico</code></div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
           <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>flag_territorio_vulneravel</code></div>
@@ -2766,52 +3009,56 @@
       <div class="bloco-header" style="border-left:3px solid #fbbf24">
         <h4>cobertura_pagamentos</h4>
       </div>
-      <div class="bloco-tables">fct_pagamentos_elegiveis agrupado</div>
+      <div class="bloco-tables">fct_pagamentos_elegiveis agrupado por ano_final</div>
       <div style="padding:0.5rem 0.85rem 0.6rem;display:flex;flex-direction:column;gap:0.6rem;">
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>pct_com_perfil</code></div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>cobertura_valor_pct</code></div>
           <div style="font-size:0.72rem;color:#333;line-height:1.45">% do valor total que tem perfil linkado — mede qualidade dos dados antes das cotas</div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>pct_cpf_anonimizado</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">% que não pode ser ligado a raça/etnia — tamanho do gap da PNAB</div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>cobertura_pessoas_pct</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">% de pessoas (documentos distintos) com perfil — CPF mascarado já entra como NULL, então mede o gap da PNAB</div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>pct_sem_ano</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">% de pagamentos sem ano identificado — lido antes de tirar conclusões por ciclo</div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>cobertura_temporal_pct</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">% do valor com ano identificado — lido antes de tirar conclusões por ciclo. <strong>61,6%</strong> na última execução</div>
+        </div>
+        <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>qtd_pagamentos</code> · <code>qtd_pessoas</code> · <code>valor_total</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">Volumetria bruta por ano. Ano nulo é rotulado <code>'sem_ano'</code> para leitura direta.</div>
         </div>
       </div>
-      <div class="bloco-note">Leitura obrigatória antes do painel de cotas: se <code>pct_com_perfil</code> for baixo, os percentuais de cota não são confiáveis.</div>
+      <div class="bloco-note">Leitura obrigatória antes do painel de cotas: se <code>cobertura_valor_pct</code> for baixo, os percentuais de cota não são confiáveis.</div>
     </div>
 
     <div class="bloco bloco--compact">
       <div class="bloco-header" style="border-left:3px solid #fbbf24">
-        <h4>agg_cotas_anuais</h4>
+        <h4>distribuicao_cotas_lpg · distribuicao_cotas_pnab</h4>
       </div>
-      <div class="bloco-tables">fct_pagamentos_elegiveis agrupado por ano + política</div>
+      <div class="bloco-tables">fct_pagamentos_elegiveis agrupado por ano_final · um model por política</div>
       <div style="padding:0.5rem 0.85rem 0.6rem;display:flex;flex-direction:column;gap:0.6rem;">
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>pct_negras</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">% do valor pago para pessoas negras · meta ≥ 25%</div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>grupo</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">Grupo prioritário da linha: negra · indígena · PCD · território. Saída em <strong>formato longo</strong> — 1 linha por (ano, grupo), não uma coluna por cota</div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>pct_indigenas</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">% do valor pago para indígenas · meta ≥ 10%</div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>meta_minima_pct</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">Piso legal do grupo: 25% negra · 10% indígena · 5% PCD · 20% território</div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>pct_pcd</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">% do valor pago para PCD · meta ≥ 5%</div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>pct_sobre_total</code> · <code>pct_sobre_com_perfil</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">Dois denominadores: sobre todo o valor pago, e sobre a fatia com perfil conhecido. O veredito usa o segundo</div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>pct_territorio_vulneravel</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">% do valor pago em territórios vulnerabilizados · meta ≥ 20%</div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>status_sobre_com_perfil</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45"><code>'alcancada'</code> ou <code>'descumprida'</code> — veredito <strong>binário</strong>. Não há categoria "superada"</div>
         </div>
         <div style="background:#f9fafb;border-radius:6px;padding:0.55rem 0.75rem;">
-          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>status_cota_*</code></div>
-          <div style="font-size:0.72rem;color:#333;line-height:1.45">'superada' / 'atingida' / 'descumprida' por cota e por ano</div>
+          <div style="font-size:0.68rem;font-family:monospace;font-weight:700;color:#374151;margin-bottom:0.2rem"><code>valor_grupo</code> · <code>valor_total_ano</code> · <code>qtd_agentes_grupo</code></div>
+          <div style="font-size:0.72rem;color:#333;line-height:1.45">Numerador, denominador e headcount — para auditar o percentual sem recalcular</div>
         </div>
       </div>
-      <div class="bloco-note">Grão: 1 linha por (ano, política). Este é o indicador final da Meta 3.</div>
+      <div class="bloco-note">Grão: 1 linha por (ano, grupo). As políticas <strong>não se misturam</strong>: LPG tem 4 cotas (com território), PNAB tem 3. Ambos saem da macro <code>distribuicao_cotas(programa, incluir_territorio)</code>. Este é o indicador final da Meta 3.</div>
     </div>
 
   </div><!-- /bloco-grid gold -->
@@ -2834,23 +3081,23 @@
         <div class="resp-status ok">✓ Staging</div>
         <p class="resp-pergunta">Quem foi pago, quanto, e em qual edital?</p>
         <p class="resp-fonte">stg_contemplados_lpg · stg_contemplados_pnab<br/>stg_editais (para extrair o ano)</p>
-        <p class="resp-obs">Normaliza formatos de valor mistos (BR/US/fórmula). Chave de junção com perfil: chave_doc (CPF/CNPJ).</p>
+        <p class="resp-obs">Normaliza formatos de valor mistos (BR/US/fórmula). Chave de junção com perfil: identificador_unico (CPF/CNPJ).</p>
       </div>
 
       <div class="resp-card">
         <div class="resp-policy-label">Silver</div>
         <div class="resp-status ok">✓ Junções de negócio</div>
         <p class="resp-pergunta">Qual é o perfil demográfico de quem foi pago? O endereço é território vulnerável?</p>
-        <p class="resp-fonte">perfil_agentes_normalizado (flags booleanas)<br/>contemplados_unif (valor + ano)<br/>territorios_vulnerabilizados (IBGE)</p>
-        <p class="resp-obs">3 junções: Contemplados ↔ Perfil (chave_doc), Contemplados ↔ Editais (nome_edital), Perfil ↔ IBGE (cidade+uf).</p>
+        <p class="resp-fonte">perfil_agentes_normalizado (flags booleanas)<br/>contemplados_unif (valor + ano)<br/>territorio_municipio (crosswalk IBGE)</p>
+        <p class="resp-obs">3 junções: Contemplados ↔ Perfil (identificador_unico), Contemplados ↔ Editais (nome_edital), Perfil ↔ IBGE (chave_municipio_uf). O crosswalk vem de territorio_fcu_setores (33.273 setores do Censo 2022) colapsado a município.</p>
       </div>
 
       <div class="resp-card">
         <div class="resp-policy-label">Gold</div>
         <div class="resp-status ok">✓ Indicadores finais</div>
         <p class="resp-pergunta">A cota foi cumprida? Qual a qualidade dos dados para afirmar isso?</p>
-        <p class="resp-fonte">fct_pagamentos_elegiveis → cobertura_pagamentos → agg_cotas_anuais<br/>status_cota_* por (ano, política)</p>
-        <p class="resp-obs">cobertura_pagamentos deve ser lida primeiro: se pct_com_perfil for baixo, os percentuais de cota não são confiáveis.</p>
+        <p class="resp-fonte">fct_pagamentos_elegiveis → cobertura_pagamentos → distribuicao_cotas_lpg / _pnab<br/>status_sobre_com_perfil por (ano, grupo)</p>
+        <p class="resp-obs">cobertura_pagamentos deve ser lida primeiro: se cobertura_valor_pct for baixo, os percentuais de cota não são confiáveis.</p>
       </div>
 
     </div>
@@ -3011,12 +3258,21 @@
 
       <div class="resp-card">
         <div class="resp-policy-label">LPG + outros</div>
-        <div class="resp-status pendente">⏳ Menor prioridade</div>
+        <div class="resp-status parcial">◑ Parcial — 1 de 3 mecanismos</div>
         <p class="resp-pergunta">Qual o percentual daqueles que nunca acessaram fomento federal em outros mecanismos (Rouanet, PNAB, FSA)?</p>
-        <p class="resp-fonte">SALIC/Rouanet · CultBR/PNAB · FSA<br/>Cruzamento entre bases por CPF/CNPJ</p>
-        <p class="resp-obs">Requer acesso e cruzamento com bases externas. Definição de "primeiro acesso" ainda em aberto: considera apenas LPG ou todo o histórico federal?</p>
+        <p class="resp-fonte">perfil_acesso_fomento.sequencia_fomento<br/>← identificadores_agentes (UNION de LPG + PNAB por CPF/CNPJ normalizado)</p>
+        <p class="resp-obs"><strong>A perna PNAB já está implementada.</strong> <code>identificadores_agentes</code> unifica as 5 fontes de perfil (3 LPG + 2 PNAB) na mesma chave <code>identificador_unico</code>, e <code>perfil_acesso_fomento</code> aplica <code>ROW_NUMBER() OVER (PARTITION BY identificador_unico)</code> — então <code>sequencia_fomento &gt; 1</code> já identifica quem aparece nos dois programas. <strong>Rouanet e FSA seguem impossíveis:</strong> nenhuma ingestão implementada (o SALIC não tem model nem DAG; o FSA não está em <code>sources.yml</code>).</p>
       </div>
 
+    </div>
+
+    <div class="bloco-note" style="margin-top:1rem;background:#fffbeb;border-left:3px solid #f59e0b;padding:0.8rem 1rem;border-radius:8px;font-size:0.78rem;line-height:1.6;color:#555">
+      <strong style="color:#92400e">Três ressalvas antes de usar <code>sequencia_fomento</code> como resposta:</strong>
+      <ol style="margin:0.5rem 0 0 1.1rem;padding:0">
+        <li style="margin-bottom:0.35rem"><strong>A ordenação é alfabética, não cronológica.</strong> O <code>ORDER BY programa_fomento ASC</code> coloca <code>'LPG'</code> antes de <code>'PNAB'</code>, então quem está nos dois programas <em>sempre</em> recebe <code>sequencia_fomento = 1</code> na linha LPG. A coluna mede <strong>co-presença</strong> nos dois cadastros, não qual veio primeiro. Para ordem temporal seria preciso datar a inscrição.</li>
+        <li style="margin-bottom:0.35rem"><strong>A base são fichas de cadastro, não contemplação.</strong> Os models partem de <code>lpg_dados_pessoa_fisica</code> e <code>pnab_pessoas</code> — quem <em>se inscreveu</em>. Estar cadastrado não é o mesmo que ter acessado fomento (recebido recurso). Para a pergunta no sentido estrito, falta juntar com os contemplados.</li>
+        <li><strong>CPF anonimizado na PNAB PF</strong> não casa com o cadastro LPG, então parte dos cruzamentos é invisível — o mesmo teto de dado que limita a Meta 3.</li>
+      </ol>
     </div>
   </div>
 
@@ -3484,13 +3740,14 @@
         <div class="resp-policy-label">Rouanet · Síntese</div>
         <div class="resp-status pendente">⏳ Pendente — definição normativa</div>
         <p class="resp-pergunta">As cotas mínimas (25% negras, 10% indígenas, 5% PCD, x% territórios) estão sendo alcançadas?</p>
-        <p class="resp-fonte">agg_cotas_rouanet ← fct_captacao_elegiveis</p>
+        <p class="resp-fonte">agg_cotas_rouanet ✦ ← fct_captacao_elegiveis ✦</p>
         <p class="resp-obs">Os percentuais de 25%/10%/5% não estão fixados nos normativos da Rouanet — o Decreto delega a atos ministeriais específicos. "x%" de territórios também indefinido.</p>
       </div>
 
     </div>
   </div>
 
+  <p style="font-size:0.72rem; color:#999; margin-top:0.5rem;">✦ model proposto nesta análise — não existe no projeto dbt. O domínio Rouanet/SALIC ainda não tem nenhum model nem DAG de ingestão implementada.</p>
   <footer>Meta 3 · Rouanet · SALIC — Diversidade de proponentes e profissionais contratados</footer>
 </div>
 
@@ -3949,7 +4206,7 @@
     </div>
     <div class="checklist-item">
       <div class="check-icon warn">P2</div>
-      <p><strong>Menor prioridade:</strong> Qual o percentual daqueles que nunca acessaram fomento federal em outros mecanismos (LPG, PNAB, FSA)?</p>
+      <p><strong>Depende de ingestão:</strong> Qual o percentual daqueles que nunca acessaram fomento federal em outros mecanismos (LPG, PNAB, FSA)? <em>O lado Transferegov deste cruzamento já existe (<code>identificadores_agentes</code>, LPG + PNAB unificados por CPF/CNPJ). Falta o lado SALIC.</em></p>
     </div>
   </div>
 
@@ -4051,10 +4308,10 @@
 
       <div class="resp-card">
         <div class="resp-policy-label">Rouanet + outros · P2</div>
-        <div class="resp-status pendente">⏳ Menor prioridade</div>
+        <div class="resp-status pendente">⏳ Bloqueado — falta ingestão do SALIC</div>
         <p class="resp-pergunta">Qual % nunca acessou fomento federal em LPG, PNAB ou FSA?</p>
-        <p class="resp-fonte">SALIC × transferegov_fundo_a_fundo × CultBR × FSA<br/>Cruzamento: CPF/CNPJ (Agentes) entre bases</p>
-        <p class="resp-obs">Requer acesso e cruzamento entre múltiplas bases federais. IN MinC nº 29/2026 define "série histórica" como últimos 3 exercícios — esclarecer escopo temporal.</p>
+        <p class="resp-fonte">SALIC (ausente) × identificadores_agentes (pronto)<br/>Cruzamento: CPF/CNPJ (Agentes) entre bases</p>
+        <p class="resp-obs"><strong>Metade do cruzamento já está construída.</strong> <code>identificadores_agentes</code> unifica LPG + PNAB na chave <code>identificador_unico</code> (CPF/CNPJ normalizado) — é exatamente a contraparte que este indicador precisa. O que falta é o lado Rouanet: <strong>o repositório não tem nenhuma referência a SALIC, PRONAC ou FSA</strong> — zero models, zero DAGs, e <code>sources.yml</code> declara apenas dois schemas (<code>transferegov_fundo_a_fundo</code> e <code>bsc_pnab</code>). Não é uma questão de prioridade: sem ingestão, o indicador é inexequível. Definição pendente em paralelo: a IN MinC nº 29/2026 fixa "série histórica" em 3 exercícios — precisa decidir se o escopo temporal segue isso ou o histórico completo.</p>
       </div>
 
     </div>
@@ -4116,7 +4373,14 @@
             <div class="vm-entrega-status ok">✓ Respondido</div>
             <div>
               <div class="vm-entrega-titulo">Distribuição por território e nível federativo</div>
-              <div class="vm-entrega-desc">Execução por UF, região e município mapeada por ciclo. Cruzamento raw_planos_acao × raw_gestao_financeira_lancamentos validado contra duas fontes independentes (plano de ação + caixa real BB Gestão Ágil).</div>
+              <div class="vm-entrega-desc">Execução por UF, região e município mapeada por ciclo. <strong>Ingestão implementada</strong> (PRs #1 e #9): DAGs encadeadas <code>programas → planos_acao → relatorios_gestao → anexos → download → extração</code>, alimentando <code>raw_planos_acao</code> e <code>raw_gestao_financeira_lancamentos</code>.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status pendente">⏳ Pendente</div>
+            <div>
+              <div class="vm-entrega-titulo">Nenhum model dbt de Meta 2 construído ainda</div>
+              <div class="vm-entrega-desc">A camada bruta existe, mas a Meta 2 não tem domínio dbt próprio — só <code>cotas_dbt</code> (Meta 3) e <code>agentes_dbt</code> (Meta 5) foram implementados. A validação contra o caixa real do BB Gestão Ágil segue pendente porque o bbágil está bloqueado por VPN.</div>
             </div>
           </div>
           <div class="vm-entrega">
@@ -4170,14 +4434,14 @@
             <div class="vm-entrega-status ok">✓ Respondido</div>
             <div>
               <div class="vm-entrega-titulo">% pago por grupo prioritário</div>
-              <div class="vm-entrega-desc">Perfil (raça, PCD, território) cruzado com pagamentos via CPF/CNPJ. Pipeline completo: stg_agentes → fct_pagamentos_elegiveis → agg_cotas_anuais.</div>
+              <div class="vm-entrega-desc">Perfil (raça, PCD, território) cruzado com pagamentos via CPF/CNPJ. Pipeline completo e implementado (PR #16): 5 <code>stg_agentes_*</code> → <code>perfil_agentes_normalizado</code> → <code>fct_pagamentos_elegiveis</code> → <code>distribuicao_cotas_lpg</code>.</div>
             </div>
           </div>
           <div class="vm-entrega">
             <div class="vm-entrega-status ok">✓ Respondido</div>
             <div>
               <div class="vm-entrega-titulo">Status de cumprimento das cotas por ano</div>
-              <div class="vm-entrega-desc">agg_cotas_anuais entrega status_cota_* (cumprida / superada / descumprida) por (ano, política). Cobertura do perfil monitorada em cobertura_pagamentos antes de calcular.</div>
+              <div class="vm-entrega-desc"><code>distribuicao_cotas_lpg</code> e <code>distribuicao_cotas_pnab</code> entregam <code>status_sobre_com_perfil</code> (<code>'alcancada'</code> / <code>'descumprida'</code>) por (ano, grupo). Cobertura monitorada em <code>cobertura_pagamentos</code> antes de calcular — <strong>61,6%</strong> de cobertura temporal hoje.</div>
             </div>
           </div>
         </div>
@@ -4193,7 +4457,21 @@
             <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">% pago por grupo prioritário</div>
-              <div class="vm-entrega-desc">PJ (CNPJ) já é respondível via pnab_organizacoes. PF bloqueado: CPF vem anonimizado no schema atual — resolve na fase 2 com acesso ao dado completo.</div>
+              <div class="vm-entrega-desc">3 cotas (negra, indígena, PCD) implementadas em <code>distribuicao_cotas_pnab</code> — sem território, que é só LPG. PJ (CNPJ) casa via <code>pnab_organizacoes</code>. PF segue bloqueado: CPF vem anonimizado e entra como NULL, virando "órfão" no denominador.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status pendente">⏳ Pendente</div>
+            <div>
+              <div class="vm-entrega-titulo">Denominador correto: valor pago, não valor repassado</div>
+              <div class="vm-entrega-desc">Hoje a PNAB usa as listas de contemplados (~R$2,7bi), que medem <strong>repasse a entes federados</strong> — não pagamento a pessoas. O correto para cota é o valor pago (bbágil, ~R$447mi). Trocar o denominador depende de liberar o bbágil.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status pendente">⏳ Pendente</div>
+            <div>
+              <div class="vm-entrega-titulo">bbágil (valor pago real) — 4 models prontos e desabilitados</div>
+              <div class="vm-entrega-desc"><code>stg_bbagil</code>, <code>bbagil_ente_ano</code>, <code>fct_pagamentos_bbagil</code> e <code>comparativo_recebido_vs_pago</code> estão escritos com <code>enabled=false</code>, aguardando <code>bsc_pnab.fato_bbagil</code>. Bloqueio: a API do BSC (<code>bsc.cultura.gov.br</code>) só resolve via VPN do governo.</div>
             </div>
           </div>
         </div>
@@ -4317,14 +4595,14 @@
             <div class="vm-entrega-status ok">✓ Respondido</div>
             <div>
               <div class="vm-entrega-titulo">% de contemplados sem histórico anterior na LPG</div>
-              <div class="vm-entrega-desc">Resultado apurado: <strong>39,11% de novos entrantes</strong> (3.730 proponentes únicos sem contemplação prévia). Medido por CPF/CNPJ únicos entre ciclos via lpg_contemplados.</div>
+              <div class="vm-entrega-desc">Resultado apurado: <strong>39,11% de novos entrantes</strong> (3.730 proponentes únicos sem contemplação prévia). Medido por CPF/CNPJ únicos entre ciclos via lpg_contemplados. <strong>Pipeline implementado</strong> no domínio <code>agentes_dbt</code>: <code>perfil_agentes_historico</code> → <code>primeiro_acesso_contemplados</code> / <code>primeiro_acesso_resumo</code>, com <code>categoria_primeiro_acesso</code> em 3 valores (Sim · Não · Não sabe/Não informou).</div>
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status pendente">⏳ Pendente</div>
+            <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">% sem histórico em outros mecanismos federais</div>
-              <div class="vm-entrega-desc">Requer cruzamento entre SALIC, CultBR/PNAB e FSA por CPF/CNPJ. Definição de "primeiro acesso federal" ainda em aberto — escopo aprovado pela equipe antes de iniciar.</div>
+              <div class="vm-entrega-desc">A perna <strong>LPG × PNAB já está implementada</strong>: <code>identificadores_agentes</code> unifica os 5 cadastros na chave <code>identificador_unico</code> e <code>perfil_acesso_fomento.sequencia_fomento</code> marca quem aparece nos dois programas. Ressalva: a ordenação é alfabética (não cronológica) e a base são fichas de inscrição, não contemplação. <strong>Rouanet e FSA seguem impossíveis</strong> — sem nenhuma ingestão implementada.</div>
             </div>
           </div>
         </div>
@@ -4347,7 +4625,7 @@
             <div class="vm-entrega-status pendente">⏳ Pendente</div>
             <div>
               <div class="vm-entrega-titulo">% sem histórico em LPG, PNAB ou FSA</div>
-              <div class="vm-entrega-desc">Cruzamento SALIC × transferegov_fundo_a_fundo × FSA por CPF/CNPJ. Depende da definição de escopo temporal (3 exercícios vs. histórico completo).</div>
+              <div class="vm-entrega-desc">A contraparte Transferegov <strong>já existe</strong>: <code>identificadores_agentes</code> unifica LPG + PNAB por CPF/CNPJ normalizado. Falta o lado SALIC — <strong>o repositório não tem nenhum model, DAG ou source de SALIC/PRONAC/FSA</strong>. Não é despriorização: sem ingestão, é inexequível. Em paralelo, definir escopo temporal (IN MinC 29/2026 fixa 3 exercícios <em>vs.</em> histórico completo).</div>
             </div>
           </div>
         </div>
@@ -4357,6 +4635,266 @@
   </div>
 
   <footer>Visão das Metas · Síntese comparativa · PNC 2030 — LPG · PNAB · Lei Rouanet</footer>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB — HISTÓRICO
+══════════════════════════════════════════ -->
+<div id="tab-historico" class="tab-panel">
+
+  <div class="page-title">
+    <h2>Histórico</h2>
+    <span class="schema-badge" style="background:#f3eeff;color:#5b21b6">Abr–Jul 2026 · 5 PRs</span>
+  </div>
+  <p class="panel-subtitle">O que foi construído, em que ordem, e quanto cada entrega avançou nas metas do PNC.</p>
+
+  <div class="intro-box" style="margin-bottom:2rem">
+    <h3>Como ler esta tela</h3>
+    <p>Cada entrada é um Pull Request efetivamente mergeado na <code>main</code>, descrito a partir do próprio corpo do PR e dos commits. As etiquetas ao pé de cada entrada dizem <strong>qual meta do PNC aquilo destravou</strong> — e o que continuou parado. O repositório foi criado a partir de uma base GovHub em abril de 2026; o histórico anterior a isso pertence a outro projeto (emendas parlamentares) e não é contado aqui.</p>
+    <div class="intro-goal">
+      <span style="color:#059669;font-weight:700">■ Avança</span> — entrega direta na meta &nbsp;·&nbsp;
+      <span style="color:#1d4ed8;font-weight:700">■ Viabiliza</span> — cria a base para a meta &nbsp;·&nbsp;
+      <span style="color:#475569;font-weight:700">■ Infra</span> — não mexe em meta &nbsp;·&nbsp;
+      <span style="color:#92400e;font-weight:700">■ Bloqueio</span> — abre ou mantém impedimento
+    </div>
+  </div>
+
+  <!-- ══════ PLACAR ══════ -->
+  <p class="section-title">Onde cada meta está hoje</p>
+  <div class="hist-placar">
+
+    <div class="hist-placar-card hist-placar-card--zero">
+      <div class="hist-placar-meta">Meta 2</div>
+      <div class="hist-placar-titulo">Execução Financeira</div>
+      <div class="hist-placar-num">0 <span>models dbt</span></div>
+      <div class="hist-placar-obs">Ingestão pronta (<code>raw_planos_acao</code>, <code>raw_gestao_financeira_lancamentos</code>), mas nenhum domínio dbt construído. A validação contra caixa real depende do bbágil.</div>
+    </div>
+
+    <div class="hist-placar-card hist-placar-card--ok">
+      <div class="hist-placar-meta">Meta 3</div>
+      <div class="hist-placar-titulo">Ações Afirmativas</div>
+      <div class="hist-placar-num">21 <span>models · 6 macros</span></div>
+      <div class="hist-placar-obs">Domínio <code>cotas_dbt</code> completo para LPG (4 cotas) e PNAB (3 cotas). Cobertura temporal <strong>61,6%</strong>. Único domínio com veredito de cota funcionando.</div>
+    </div>
+
+    <div class="hist-placar-card hist-placar-card--parcial">
+      <div class="hist-placar-meta">Meta 5</div>
+      <div class="hist-placar-titulo">Primeiro Acesso</div>
+      <div class="hist-placar-num">4 <span>golds</span></div>
+      <div class="hist-placar-obs">Domínio <code>agentes_dbt</code> entrega <code>primeiro_acesso_resumo</code> por programa. Restringe-se a LPG/PNAB — cruzamento federal (SALIC, FSA) não iniciado.</div>
+    </div>
+
+    <div class="hist-placar-card hist-placar-card--zero">
+      <div class="hist-placar-meta">Meta 4</div>
+      <div class="hist-placar-titulo">Desconcentração Territorial</div>
+      <div class="hist-placar-num">0 <span>models · 0 DAGs</span></div>
+      <div class="hist-placar-obs">Meta exclusivamente Rouanet. O SALIC não tem nenhuma ingestão implementada — o mapeamento das abas Rouanet segue como diagnóstico em papel.</div>
+    </div>
+
+  </div>
+
+  <!-- ══════ TIMELINE ══════ -->
+  <p class="section-title">Linha do tempo</p>
+  <div class="hist-timeline">
+
+    <!-- PR #1 -->
+    <div class="hist-entry">
+      <div class="hist-head">
+        <span class="hist-data">15/04/2026</span>
+        <span class="hist-pr">PR #1</span>
+        <span class="hist-autor">CaioMelo25</span>
+      </div>
+      <div class="hist-titulo">Pipeline de ingestão fundo a fundo (Transferegov)</div>
+      <div class="hist-desc">Estabelece o pipeline completo de rastreabilidade do MinC. Quatro DAGs encadeadas extraem da API do Transferegov e pousam na camada bruta.</div>
+      <ul class="hist-bullets">
+        <li><code>minc_api_programas_dag</code> → <code>raw_programas</code>: programas-alvo (PNAB 46/47 · LPG 60/61/62)</li>
+        <li><code>minc_api_planos_acao_dag</code> → <code>raw_planos_acao</code>: itera sobre os IDs dos programas</li>
+        <li><code>minc_api_relatorios_gestao_dag</code> → <code>relatorios_gestao</code>: filtra apenas <code>tipo_relatorio_gestao == "FINAL"</code></li>
+        <li><code>minc_api_anexos_relatorios_dag</code> → <code>anexos_relatorios</code>: metadata dos PDFs, preservando a FK <code>id_relatorio_gestao</code></li>
+        <li><strong>Fail-fast:</strong> cada DAG valida no banco se a dependência upstream existe antes de rodar, evitando queries vazias</li>
+        <li><strong>Arquitetura event-driven:</strong> cron substituído por <code>TriggerDagRunOperator</code> em cascata — elimina race conditions com a API do governo</li>
+      </ul>
+      <div class="hist-metas">
+        <span class="hist-meta-tag hist-meta-tag--parcial">Meta 2 · viabiliza — cria a base bruta da execução financeira</span>
+        <span class="hist-meta-tag hist-meta-tag--neutro">Metas 3/4/5 · sem efeito ainda</span>
+      </div>
+    </div>
+
+    <!-- PR #9 -->
+    <div class="hist-entry">
+      <div class="hist-head">
+        <span class="hist-data">09/06/2026</span>
+        <span class="hist-pr">PR #9</span>
+        <span class="hist-autor">CaioMelo25</span>
+      </div>
+      <div class="hist-titulo">Resiliência do pipeline e extração de planilhas</div>
+      <div class="hist-desc">Refatora as DAGs para que falhas em arquivos individuais não travem o pipeline inteiro. É o PR que efetivamente destrava os dados de contemplados — sem ele, nem Meta 3 nem Meta 5 teriam insumo.</div>
+      <ul class="hist-bullets">
+        <li><strong>Fluxo contínuo:</strong> API → Download → Extração, encadeado com <code>TriggerRule.ALL_DONE</code> — a etapa seguinte roda mesmo se a anterior falhar parcialmente</li>
+        <li><strong>Isolamento por arquivo:</strong> Dynamic Task Mapping com <code>max_active_tis_per_dag=3</code> (evita HTTP 429), lotes de 50 arquivos e <code>try-except</code> individual — um anexo corrompido não mata a task</li>
+        <li><code>extracao_planilhas.py</code>: extrator unificado PNAB (roteamento aba → tabela) e LPG (3 templates: Editais, Contemplados, Dados Básicos)</li>
+        <li><strong>Proteção contra OOM:</strong> rejeição de <code>.ods</code>, engine calamine prioritária e timeout <code>SIGALRM</code> de 120s por arquivo — elimina as causas de OOM Kill nos workers</li>
+        <li><strong>Schema evolution:</strong> <code>_evolve_schema()</code> adiciona colunas novas via <code>ALTER TABLE</code>; chaves em lowercase resolvem <code>UndefinedColumn</code> por case-folding do Postgres</li>
+      </ul>
+      <div class="hist-metas">
+        <span class="hist-meta-tag hist-meta-tag--parcial">Meta 3 · viabiliza — as listas de contemplados passam a chegar ao banco</span>
+        <span class="hist-meta-tag hist-meta-tag--parcial">Meta 5 · viabiliza — histórico de contemplação por CPF/CNPJ</span>
+      </div>
+    </div>
+
+    <!-- PR #13 -->
+    <div class="hist-entry hist-entry--infra">
+      <div class="hist-head">
+        <span class="hist-data">18/06/2026</span>
+        <span class="hist-pr">PR #13</span>
+        <span class="hist-autor">Arthrok</span>
+      </div>
+      <div class="hist-titulo">Refatoração de arquitetura e bump do Airflow</div>
+      <div class="hist-desc">PR sem descrição — o conteúdo foi reconstruído a partir dos commits.</div>
+      <ul class="hist-bullets">
+        <li><code>640270a</code> altera a estrutura de pastas do projeto</li>
+        <li><code>9e4fed2</code> adapta as DAGs para o bump do Airflow <strong>2.8.1 → 3.2.2</strong></li>
+        <li><code>d8cdcc6</code> atualiza o CI/CD para a nova estrutura</li>
+      </ul>
+      <div class="hist-metas">
+        <span class="hist-meta-tag hist-meta-tag--neutro">Infra · nenhuma meta afetada diretamente</span>
+      </div>
+    </div>
+
+    <!-- Painel -->
+    <div class="hist-entry hist-entry--doc">
+      <div class="hist-head">
+        <span class="hist-data">22/06/2026</span>
+        <span class="hist-pr">f7898ea</span>
+        <span class="hist-autor">LuizaMaluf</span>
+      </div>
+      <div class="hist-titulo">Publicação deste painel de mapeamento</div>
+      <div class="hist-desc">Diagnóstico de viabilidade analítica das três políticas, publicado como GitHub Pages na branch órfã <code>gh-pages</code>. Seis commits em ~48 minutos, incluindo o redesenho da Visão das Metas com objetivo normativo e comparativo por política.</div>
+      <ul class="hist-bullets">
+        <li>Mapeamento por meta e por política: o que existe, onde está, como se conecta</li>
+        <li>Propôs nominalmente o pipeline dbt da Meta 3 — <strong>antes</strong> de ele existir no repositório</li>
+        <li>Marcou com <code>✦</code> as tabelas propostas que não existiam no schema original</li>
+      </ul>
+      <div class="hist-metas">
+        <span class="hist-meta-tag hist-meta-tag--neutro">Documentação · define o alvo das Metas 2, 3, 4 e 5</span>
+      </div>
+    </div>
+
+    <!-- PR #15 -->
+    <div class="hist-entry">
+      <div class="hist-head">
+        <span class="hist-data">15/07/2026</span>
+        <span class="hist-pr">PR #15</span>
+        <span class="hist-autor">devwallyson · Caio Melo Borges</span>
+      </div>
+      <div class="hist-titulo">Reestruturação dbt, domínio <code>agentes_dbt</code> e extração bancária</div>
+      <div class="hist-desc">PR maior do que o corpo indica: além da reestruturação de diretórios e do data quality, traz o primeiro domínio dbt de negócio do projeto e a extração dos dados bancários.</div>
+      <ul class="hist-bullets">
+        <li><code>a77d1d0</code> (01/07) cria o domínio <strong><code>agentes_dbt</code></strong> — 4 golds: <code>perfil_agentes_completo</code>, <code>perfil_acesso_fomento</code>, <code>primeiro_acesso_contemplados</code>, <code>primeiro_acesso_resumo</code></li>
+        <li><code>2112b07</code> (08/07) implementa a extração de dados bancários do Transferegov</li>
+        <li><code>3df7716</code> (09/07) corrige autenticação <strong>SCA</strong>, rotas do BB Ágil e bugs de consolidação do <code>fato_bbagil</code></li>
+        <li>Macros de data quality: <code>row_count_match</code>, <code>verificacao_tipagem</code></li>
+        <li><strong>Efeito colateral:</strong> deixou <code>sources.yml</code> na <code>main</code> com marcadores de conflito não resolvidos (<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> / <code>=======</code> / <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>) — corrigido depois pela PR #16</li>
+      </ul>
+      <div class="hist-metas">
+        <span class="hist-meta-tag hist-meta-tag--avanca">Meta 5 · avança — primeiro acesso passa a ser calculável (LPG/PNAB)</span>
+        <span class="hist-meta-tag hist-meta-tag--parcial">Meta 2/3 · viabiliza — abre caminho para o valor pago real</span>
+        <span class="hist-meta-tag hist-meta-tag--bloqueio">Bloqueio · API do BSC só resolve via VPN do governo</span>
+      </div>
+    </div>
+
+    <!-- PR #16 -->
+    <div class="hist-entry">
+      <div class="hist-head">
+        <span class="hist-data">18/07/2026</span>
+        <span class="hist-pr">PR #16</span>
+        <span class="hist-autor">ananunesv</span>
+      </div>
+      <div class="hist-titulo">Domínio <code>cotas_dbt</code> — auditoria das cotas de ações afirmativas</div>
+      <div class="hist-desc">A entrega mais substantiva do período: <strong>21 models e 6 macros</strong> em arquitetura medalhão, no schema <code>cotas</code>. É o primeiro domínio que produz um veredito de meta do PNC.</div>
+      <ul class="hist-bullets">
+        <li><strong>Grão payment-first:</strong> <code>fct_pagamentos_elegiveis</code> tem 1 linha por pagamento — todo pagamento é preservado, mesmo sem perfil ou sem ano, para o denominador da cota ser fiel e os órfãos ficarem visíveis</li>
+        <li><strong>Cotas LPG completas:</strong> negra 25% · indígena 10% · PCD 5% · <strong>território vulnerabilizado 20%</strong>, em <code>distribuicao_cotas_lpg</code></li>
+        <li><strong>Cotas PNAB:</strong> 3 grupos em <code>distribuicao_cotas_pnab</code>. Golds separadas por programa — LPG e PNAB não se misturam, via a macro <code>distribuicao_cotas(programa, incluir_territorio)</code></li>
+        <li><strong>Cobertura de ano: 56,2% → 61,6%</strong> com a 3ª camada de datação por nome de arquivo (<code>edital_ano_por_arquivo</code>) — <strong>+28.950 pagamentos datados</strong></li>
+        <li><strong>Território:</strong> crosswalk IBGE de setores periféricos ingerido (<code>territorio_fcu_setores</code>, 33.273 setores), colapsado a município em <code>territorio_municipio</code></li>
+        <li><strong>Limpeza:</strong> subtotais ("TOTAL DE RECURSOS") e instruções de template filtrados em <code>contemplados_unif</code> para não vazarem ao fato</li>
+        <li>Corrigiu incidentalmente o <code>sources.yml</code> quebrado pela PR #15</li>
+      </ul>
+      <div class="hist-metas">
+        <span class="hist-meta-tag hist-meta-tag--avanca">Meta 3 · avança — veredito de cota funcionando por (ano, grupo)</span>
+        <span class="hist-meta-tag hist-meta-tag--bloqueio">Bloqueio · 4 models bbágil entram desabilitados (<code>enabled=false</code>)</span>
+        <span class="hist-meta-tag hist-meta-tag--bloqueio">Bloqueio · denominador PNAB mede repasse, não pagamento</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════ BLOQUEIOS ══════ -->
+  <p class="section-title">Bloqueios abertos</p>
+  <div class="hist-scroll" style="margin-bottom:2rem">
+    <table class="hist-tabela">
+      <thead>
+        <tr>
+          <th>Bloqueio</th>
+          <th>Metas afetadas</th>
+          <th>Natureza</th>
+          <th>O que destrava</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>bbágil indisponível</strong><br/>4 models escritos e <code>enabled=false</code>: <code>stg_bbagil</code>, <code>bbagil_ente_ano</code>, <code>fct_pagamentos_bbagil</code>, <code>comparativo_recebido_vs_pago</code></td>
+          <td>Meta 2 · Meta 3</td>
+          <td>Acesso — a API do BSC (<code>bsc.cultura.gov.br</code>) só resolve via VPN do governo</td>
+          <td>Rodar a extração em ambiente autorizado (ou obter dump) para gerar <code>bsc_pnab.fato_bbagil</code>, depois virar <code>enabled=true</code> nos 4 models e reativar no <code>gold/schema.yml</code></td>
+        </tr>
+        <tr>
+          <td><strong>Denominador PNAB incorreto</strong><br/>as cotas usam listas de contemplados (~R$2,7bi)</td>
+          <td>Meta 3</td>
+          <td>Semântica de dado — as listas medem <strong>repasse a entes federados</strong>, não pagamento a pessoas. Para cota, o correto é o pago (~R$447mi)</td>
+          <td>Depende do bbágil. Trocar a base do fato PNAB de valor-recebido para valor-pago</td>
+        </tr>
+        <tr>
+          <td><strong>Rouanet / SALIC sem ingestão</strong><br/>nenhum model, nenhuma DAG</td>
+          <td>Meta 3 · <strong>Meta 4</strong> · Meta 5</td>
+          <td>Escopo — o domínio existe apenas como diagnóstico neste painel</td>
+          <td>Implementar a ingestão do SALIC. A Meta 4 é exclusivamente Rouanet, então hoje está integralmente parada</td>
+        </tr>
+        <tr>
+          <td><strong>Cobertura de perfil</strong><br/>nem todo contemplado preencheu ficha de raça/PCD</td>
+          <td>Meta 3</td>
+          <td>Teto de dado — não é bug, é ausência na origem</td>
+          <td>Backfill de fichas PNAB. Ler <code>cobertura_pagamentos</code> antes de qualquer conclusão de cota</td>
+        </tr>
+        <tr>
+          <td><strong>Casamento territorial por nome</strong><br/>~47,5% dos com-perfil casam hoje</td>
+          <td>Meta 3 (cota de 20%)</td>
+          <td>Qualidade — grafias divergentes de município subestimam a cota</td>
+          <td>Refinar o casamento; o IBGE do município viria do bbágil (<code>ente_bbagil = id_plano_acao</code> → <code>raw_planos_acao.codigo_ibge</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>Cobertura temporal em 61,6%</strong><br/>38,4% do valor sem ano identificado</td>
+          <td>Meta 3</td>
+          <td>Derivação — ano vem de 3 camadas (nome do edital, anexo, nome do arquivo)</td>
+          <td>Datação via Querido Diário (ano + IBGE por diário oficial) — planejada e documentada</td>
+        </tr>
+        <tr>
+          <td><strong>CPF anonimizado na PNAB PF</strong></td>
+          <td>Meta 3</td>
+          <td>Acesso — CPF mascarado entra como NULL e vira órfão no denominador</td>
+          <td>Acesso ao dado completo. PJ (CNPJ) já casa normalmente</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="intro-box" style="border-left-color:#f59e0b">
+    <h3>Uma ressalva sobre os vereditos "✓ Respondido"</h3>
+    <p>O veredito de cota (<code>status_sobre_com_perfil</code>) é <strong>binário</strong> — <code>'alcancada'</code> ou <code>'descumprida'</code> — e é calculado sobre <code>pct_sobre_com_perfil</code>, ou seja, sobre a fatia de pagamentos cujo perfil é conhecido. Isso é coerente com o desenho do pipeline, que expõe a cobertura antes das cotas. Mas <strong>não é a mesma coisa</strong> que o indicador normativo do PNC, que fala do percentual sobre o valor total pago. Com cobertura de perfil abaixo de 100%, os dois números divergem — e a diferença é maior quanto menor a cobertura.</p>
+  </div>
+
+  <footer>Histórico · Abr–Jul 2026 · reconstruído a partir de commits e PRs do repositório data-application-minc</footer>
 </div>
 
   </main>
