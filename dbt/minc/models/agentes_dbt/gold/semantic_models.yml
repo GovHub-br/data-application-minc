@@ -40,3 +40,44 @@ semantic_models:
           'Veterano', 'Veterano (Multi-Programa)', 'Provável Primeira Vez',
           'Provável Veterano' ou 'Indeterminado'. As variantes 'Provável' e
           'Multi-Programa' são inferidas, não declaradas.
+
+  - name: perfil_acesso_fomento
+    model: ref('perfil_acesso_fomento')
+    primary_entity: registro_acesso_fomento
+    description: >
+      Classificação de primeiro acesso a fomento por proponente E por programa
+      (Meta 5), antes da consolidação. Preserva o caso de um mesmo proponente ter
+      participado de LPG e PNAB com situações distintas — informação que o
+      perfil_agentes_completo, por ter 1 linha por documento, necessariamente
+      perde.
+    entities:
+      - name: proponente
+        type: foreign
+        expr: identificador_unico
+        description: >
+          CPF/CNPJ do proponente (mesma normalização do perfil_agentes_completo,
+          podendo vir mascarado). Vários registros por proponente — um por
+          programa em que ele aparece.
+    dimensions:
+      - name: programa_avaliado
+        type: categorical
+        expr: programa_fomento
+        description: >
+          Programa a que ESTE registro se refere — 'LPG' ou 'PNAB'. Não confundir
+          com programa_fomento do perfil_agentes_completo, que indica apenas o
+          programa de ingresso do proponente.
+      - name: classificacao_acesso_fomento
+        type: categorical
+        expr: perfil_acesso_fomento
+        description: >
+          Classificação do acesso neste programa — 'Confirmado - Primeira Vez',
+          'Confirmado - Veterano', 'Inferido - Primeira Vez (Estreante na base)',
+          'Inferido - Veterano (Possui histórico)' ou 'Não sabe/Não informou'.
+          O prefixo distingue resposta declarada de inferência.
+      - name: sequencia_fomento
+        type: categorical
+        description: >
+          Ordem do registro no histórico do proponente (1 = primeiro programa em
+          que aparece). Valor maior que 1 evidencia participação em mais de um
+          programa. A ordenação usa a precedência alfabética entre LPG e PNAB
+          como proxy temporal — não é uma data real.

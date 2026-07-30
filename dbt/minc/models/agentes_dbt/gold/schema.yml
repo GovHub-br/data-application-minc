@@ -11,11 +11,11 @@ models:
         - Relatório consolidado (sem inferência): filtrar WHERE status_origem = 'Confirmado'
         - Visão analítica (com inferência): consumir todos os registros
     config:
+      tags: [gold, agentes, master_data, meta5, deduplicado]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — Master Data de Proponentes'
         origem_dados: 'perfil_acesso_fomento e identificadores_agentes'
-        tags: [gold, agentes, master_data, meta5, deduplicado]
     columns:
       - name: identificador_unico
         description: CPF ou CNPJ do proponente (normalizado). Chave única do modelo.
@@ -80,11 +80,11 @@ models:
       reflete a ordem real de ingresso na base). Um proponente com
       sequencia_fomento > 1 acessou mais de um programa, evidenciando veterania.
     config:
+      tags: [gold, agentes, primeiro_acesso, meta5, inferencia]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — Inferência de Primeiro Acesso'
         origem_dados: 'LPG e PNAB (via identificadores_agentes)'
-        tags: [gold, agentes, primeiro_acesso, meta5, inferencia]
     columns:
       - name: identificador_unico
         description: CPF ou CNPJ do proponente (já normalizado em minúsculas e sem espaços).
@@ -159,11 +159,11 @@ models:
           dinamicamente via information_schema (qualquer coluna cujo nome contenha
           "cpf" e "cnpj"), e não por um nome fixo.
     config:
+      tags: [gold, agentes, meta5, contemplados, primeiro_acesso]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — Primeiro Acesso com Contemplação'
         origem_dados: 'perfil_acesso_fomento + lpg_contemplados + pnab_contemplados'
-        tags: [gold, agentes, meta5, contemplados, primeiro_acesso]
     columns:
       - name: programa_fomento
         description: Programa de fomento — 'LPG' ou 'PNAB'.
@@ -223,11 +223,11 @@ models:
       Calcula o percentual de cada categoria sobre o total do respectivo programa
       (cada programa soma 100%).
     config:
+      tags: [gold, agentes, primeiro_acesso, meta5]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — Indicador de Primeiro Acesso'
         origem_dados: 'LPG e PNAB'
-        tags: [gold, agentes, primeiro_acesso, meta5]
     columns:
       - name: programa_fomento
         description: Programa de fomento — 'LPG' ou 'PNAB'.

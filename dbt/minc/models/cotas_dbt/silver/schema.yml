@@ -18,6 +18,7 @@ models:
       quando não há localização — nesse caso o agente não é classificável pela
       cota territorial.
     config:
+      tags: [silver, cotas]
       meta:
         status: Active
     columns:
@@ -36,6 +37,7 @@ models:
       origem) extraídas de perfil_agentes_normalizado — usada para teste de
       unicidade e para contagem secundária de proponentes.
     config:
+      tags: [silver, cotas]
       meta:
         status: Active
     columns:
@@ -51,6 +53,7 @@ models:
       efetivamente usado pelas cotas (esse é o de contemplados_unif, via
       edital_ano_por_anexo/edital_ano_por_arquivo).
     config:
+      tags: [silver, cotas]
       meta:
         status: Active
   - name: edital_ano_por_anexo
@@ -62,6 +65,7 @@ models:
       anexos com ano ÚNICO e consistente entre linhas — descarta anexo
       multi-ano por ambiguidade.
     config:
+      tags: [silver, cotas]
       meta:
         status: Active
     columns:
@@ -82,6 +86,7 @@ models:
       arquivo pode refletir a data de publicação, defasada em até ~1 ano em
       relação ao edital em si.
     config:
+      tags: [silver, cotas]
       meta:
         status: Active
     columns:
@@ -102,6 +107,7 @@ models:
       já que o crosswalk traz a UF por extenso ("Rondônia") enquanto os
       agentes LPG normalmente registram a sigla ("RO").
     config:
+      tags: [silver, cotas]
       meta:
         status: Active
     columns:
@@ -109,6 +115,15 @@ models:
         tests:
           - unique
           - not_null
+      - name: chave_municipio_uf
+        description: >
+          Chave de junção por nome (município+UF normalizados) com
+          perfil_agentes_normalizado. É a entidade `primary` do semantic model:
+          duplicata aqui multiplicaria o valor pago no cálculo da cota
+          territorial. NULL quando a sigla da UF não resolve — o teste `unique`
+          ignora nulos.
+        tests:
+          - unique
   - name: contemplados_unif
     description: >
       Contemplados unificados LPG + PNAB — núcleo do lado-valor das cotas.
@@ -130,6 +145,7 @@ models:
       ponto. IMPORTANTE: nome_edital = 'nan' NÃO é cortado — é pagamento real
       sem edital identificado (vira 'sem_ano' no denominador), não lixo.
     config:
+      tags: [silver, cotas]
       meta:
         status: Active
     columns:
@@ -151,6 +167,7 @@ models:
       stg_contemplados_lpg/pnab em faixas (sem valor; até R$10M/ok; R$10M–100M
       cortado; R$100M–1tri cortado; acima de 1tri cortado) e conta por origem.
     config:
+      tags: [silver, cotas]
       meta:
         status: Active
   - name: bbagil_ente_ano
@@ -167,5 +184,6 @@ models:
       o cruzamento com município (e uma futura ponte com o Querido Diário, que
       busca por território via código IBGE).
     config:
+      tags: [silver, cotas]
       meta:
         status: Disabled
