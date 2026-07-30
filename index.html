@@ -177,7 +177,7 @@
     /* veredicto */
     .veredicto {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
@@ -562,7 +562,7 @@
     /* bloco grid */
     .bloco-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
       gap: 0.75rem;
       margin-bottom: 1.5rem;
     }
@@ -590,7 +590,7 @@
     /* col-grid */
     .col-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 0.7rem;
       margin-bottom: 1.5rem;
     }
@@ -760,7 +760,7 @@
     }
     .resp-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 0.75rem;
     }
     .resp-card {
@@ -920,13 +920,13 @@
       }
 
       /* Inline grids from Início tab */
-      [style*="grid-template-columns:repeat(auto-fill,minmax(300px"] {
+      [style*="grid-template-columns:repeat(auto-fit,minmax(300px"] {
         grid-template-columns: 1fr !important;
       }
-      [style*="grid-template-columns:repeat(auto-fill,minmax(260px"] {
+      [style*="grid-template-columns:repeat(auto-fit,minmax(260px"] {
         grid-template-columns: 1fr !important;
       }
-      [style*="grid-template-columns:repeat(auto-fill,minmax(200px"] {
+      [style*="grid-template-columns:repeat(auto-fit,minmax(200px"] {
         grid-template-columns: 1fr !important;
       }
 
@@ -1446,12 +1446,25 @@
     }
     .vm-politicas {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+      /* mesmo eixo da matriz: LPG | PNAB | Rouanet */
+      grid-template-columns: repeat(3, 1fr);
       gap: 0;
       border-top: 1px solid #e2e5ea;
     }
     .vm-politica {
       border-right: 1px solid #e2e5ea;
+      display: flex;
+      flex-direction: column;
+    }
+    /* ultima coluna nao precisa de borda: ja tem a do card */
+    .vm-politica:last-child { border-right: none; }
+    /* blocos que avaliam PNAB e LPG juntos ocupam as duas colunas */
+    .vm-politica--wide { grid-column: span 2; }
+    @media (max-width: 880px) {
+      .vm-politicas { grid-template-columns: 1fr; }
+      .vm-politica--wide { grid-column: span 1; }
+      .vm-politica { border-right: none; border-bottom: 1px solid #e2e5ea; }
+      .vm-politica:last-child { border-bottom: none; }
     }
     .vm-politica:last-child { border-right: none; }
     .vm-pol-header {
@@ -1480,22 +1493,20 @@
     }
     .vm-entrega {
       display: flex;
-      gap: 0.6rem;
-      align-items: flex-start;
+      flex-direction: column;
+      gap: 0.35rem;
     }
     .vm-entrega-status {
-      flex-shrink: 0;
-      width: 90px;
-      min-width: 90px;
-      font-size: 0.60rem;
+      align-self: flex-start;
+      font-size: 0.61rem;
       font-weight: 700;
-      padding: 0.2rem 0.4rem;
-      border-radius: 4px;
+      padding: 0.22rem 0.55rem;
+      border-radius: 5px;
       white-space: normal;
-      word-break: keep-all;
-      text-align: center;
+      text-align: left;
       line-height: 1.3;
-      margin-top: 0.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .vm-entrega-status.ok    { background:#d1fae5;color:#065f46; }
     .vm-entrega-status.parcial { background:#dbeafe;color:#1e40af; }
@@ -1513,6 +1524,93 @@
       line-height: 1.5;
     }
     .vm-entrega-desc strong { color: #202020; }
+
+    /* ══════════════════════════════
+       MATRIZ Meta × Política
+    ══════════════════════════════ */
+    .vmx-wrap { overflow-x: auto; margin-bottom: 1rem; }
+    .vmx {
+      display: grid;
+      grid-template-columns: minmax(120px, 0.9fr) repeat(3, minmax(150px, 1fr));
+      gap: 6px;
+      min-width: 620px;
+    }
+    .vmx-corner { background: transparent; }
+    .vmx-colhead {
+      background: #f3eeff;
+      border-radius: 8px 8px 0 0;
+      padding: 0.55rem 0.7rem;
+      text-align: center;
+      border-bottom: 3px solid #7A34F3;
+    }
+    .vmx-colhead--rouanet { background: #fffbeb; border-bottom-color: #f59e0b; }
+    .vmx-colhead-nome {
+      font-size: 0.78rem; font-weight: 800; color: #202020; line-height: 1.2;
+    }
+    .vmx-colhead-fonte {
+      font-size: 0.62rem; color: #777; margin-top: 0.15rem;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .vmx-rowhead {
+      background: #fff;
+      border: 1px solid #e2e5ea;
+      border-left: 3px solid #7A34F3;
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .vmx-rowhead-num {
+      font-size: 0.82rem; font-weight: 800; color: #5b21b6; line-height: 1;
+    }
+    .vmx-rowhead-tit {
+      font-size: 0.68rem; color: #555; line-height: 1.35; margin-top: 0.2rem;
+    }
+    .vmx-cell {
+      border: 1px solid #e2e5ea;
+      border-radius: 8px;
+      padding: 0.6rem 0.7rem;
+      background: #fff;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      display: flex; flex-direction: column; gap: 0.3rem;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .vmx-cell:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(122,52,243,0.14);
+      border-color: #c4b5fd;
+    }
+    .vmx-cell--ok      { background: #f0fdf7; border-left: 3px solid #10b981; }
+    .vmx-cell--parcial { background: #f5f8ff; border-left: 3px solid #3b82f6; }
+    .vmx-cell--parado  { background: #fffdf5; border-left: 3px solid #f59e0b; }
+    .vmx-cell--vazio   { background: #fafafa; border-left: 3px solid #d4d4d8; cursor: default; }
+    .vmx-cell--vazio:hover { transform: none; box-shadow: none; border-color: #e2e5ea; }
+    .vmx-glyphs {
+      font-size: 0.9rem; letter-spacing: 0.12em; line-height: 1;
+    }
+    .vmx-label {
+      font-size: 0.7rem; font-weight: 700; color: #202020; line-height: 1.3;
+    }
+    .vmx-sub {
+      font-size: 0.65rem; color: #666; line-height: 1.4;
+    }
+    .vmx-count {
+      font-size: 0.6rem; color: #999; margin-top: auto;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .vmx-legenda {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+      font-size: 0.7rem; color: #555;
+      padding: 0.6rem 0.2rem 0;
+    }
+    .vmx-legenda b { color: #202020; }
+    /* flash ao chegar pelo clique na matriz */
+    @keyframes vmx-flash {
+      0%   { box-shadow: 0 0 0 3px rgba(122,52,243,0.55); }
+      100% { box-shadow: 0 0 0 3px rgba(122,52,243,0); }
+    }
+    .vmx-target { animation: vmx-flash 1.6s ease-out; border-radius: 10px; }
 
     /* ══════════════════════════════
        HISTÓRICO — timeline de evolução
@@ -3299,6 +3397,18 @@
     document.getElementById('tab-' + id).classList.add('active');
     btn.classList.add('active');
   }
+
+  // Matriz da Visão das Metas: rola até o bloco de detalhe e pisca
+  function vmxIr(alvoId) {
+    const alvo = document.getElementById(alvoId);
+    if (!alvo) return;
+    alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.querySelectorAll('.vmx-target').forEach(e => e.classList.remove('vmx-target'));
+    // reinicia a animação mesmo em cliques repetidos na mesma célula
+    void alvo.offsetWidth;
+    alvo.classList.add('vmx-target');
+    setTimeout(() => alvo.classList.remove('vmx-target'), 1700);
+  }
 </script>
 
 
@@ -4334,12 +4444,144 @@
 
   <div class="intro-box" style="border-left-color:#10b981;margin-bottom:2rem">
     <h3>Como ler esta tela</h3>
-    <p>Cada meta tem um <strong>objetivo normativo</strong> (o que o PNC exige até 2030) e um <strong>indicador de acompanhamento</strong> (como medimos o avanço). Abaixo do objetivo, cada política é avaliada: o que já conseguimos responder com os dados disponíveis e o que ainda está bloqueado.</p>
-    <div class="intro-goal">
-      <span style="color:#059669;font-weight:700">✓ Respondido</span> — pipeline validado, dado disponível &nbsp;·&nbsp;
-      <span style="color:#1d4ed8;font-weight:700">◑ Parcial</span> — possível com restrições técnicas ou de acesso &nbsp;·&nbsp;
-      <span style="color:#92400e;font-weight:700">⏳ Pendente</span> — bloqueio de dado, normativa ou definição de negócio
+    <p>Cada meta tem um <strong>objetivo normativo</strong> (o que o PNC exige até 2030) e um <strong>indicador de acompanhamento</strong> (como medimos o avanço). Abaixo do objetivo, cada política é avaliada contra <strong>o que está de fato no código</strong> da <code>main</code> — não contra o que foi planejado.</p>
+    <div class="intro-goal" style="line-height:1.9">
+      <span style="color:#059669;font-weight:700">✓ Pipeline implementado</span> — existe model dbt rodando &nbsp;·&nbsp;
+      <span style="color:#1d4ed8;font-weight:700">◑ Mapeado</span> — tabelas levantadas, nada construído &nbsp;·&nbsp;
+      <span style="color:#1d4ed8;font-weight:700">◑ Ressalva</span> — implementado, mas com limitação que afeta o número &nbsp;·&nbsp;
+      <span style="color:#92400e;font-weight:700">⏳ Pendente / Bloqueio</span> — impedimento de dado, acesso, normativa ou escopo
     </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       MATRIZ Meta × Política
+  ══════════════════════════════ -->
+  <p class="section-title">Onde cada meta está, por política</p>
+  <div class="vmx-wrap">
+    <div class="vmx">
+
+      <div class="vmx-corner"></div>
+      <div class="vmx-colhead">
+        <div class="vmx-colhead-nome">LPG</div>
+        <div class="vmx-colhead-fonte">Transferegov</div>
+      </div>
+      <div class="vmx-colhead">
+        <div class="vmx-colhead-nome">PNAB</div>
+        <div class="vmx-colhead-fonte">Transferegov</div>
+      </div>
+      <div class="vmx-colhead vmx-colhead--rouanet">
+        <div class="vmx-colhead-nome">Lei Rouanet</div>
+        <div class="vmx-colhead-fonte">SALIC · sem ingestão</div>
+      </div>
+
+      <!-- META 2 -->
+      <div class="vmx-rowhead">
+        <div class="vmx-rowhead-num">Meta 2</div>
+        <div class="vmx-rowhead-tit">Execução Financeira</div>
+      </div>
+      <button class="vmx-cell vmx-cell--parcial" onclick="vmxIr('vmx-m2-pnablpg')">
+        <div class="vmx-glyphs">◑◑⏳⏳</div>
+        <div class="vmx-label">Dado bruto sim, indicador não</div>
+        <div class="vmx-sub">Ingestão pronta (PRs #1 e #9), zero models dbt</div>
+        <div class="vmx-count">4 itens · avaliado junto com PNAB</div>
+      </button>
+      <button class="vmx-cell vmx-cell--parcial" onclick="vmxIr('vmx-m2-pnablpg')">
+        <div class="vmx-glyphs">◑◑⏳⏳</div>
+        <div class="vmx-label">Dado bruto sim, indicador não</div>
+        <div class="vmx-sub">Validação vs. caixa real bloqueada (bbágil/VPN)</div>
+        <div class="vmx-count">mesmo bloco da LPG</div>
+      </button>
+      <button class="vmx-cell vmx-cell--parado" onclick="vmxIr('vmx-m2-rouanet')">
+        <div class="vmx-glyphs">⏳</div>
+        <div class="vmx-label">Fora do escopo mapeado</div>
+        <div class="vmx-sub">Renúncia fiscal não foi avaliada nesta meta</div>
+        <div class="vmx-count">1 item</div>
+      </button>
+
+      <!-- META 3 -->
+      <div class="vmx-rowhead">
+        <div class="vmx-rowhead-num">Meta 3</div>
+        <div class="vmx-rowhead-tit">Ações Afirmativas</div>
+      </div>
+      <button class="vmx-cell vmx-cell--ok" onclick="vmxIr('vmx-m3-lpg')">
+        <div class="vmx-glyphs">✓✓◑◑</div>
+        <div class="vmx-label">4 cotas implementadas</div>
+        <div class="vmx-sub">Território subestimado (~47,5% casa) · denominador não é o do PNC</div>
+        <div class="vmx-count">4 itens · 21 models</div>
+      </button>
+      <button class="vmx-cell vmx-cell--parcial" onclick="vmxIr('vmx-m3-pnab')">
+        <div class="vmx-glyphs">◑⏳⏳</div>
+        <div class="vmx-label">3 cotas, sem território</div>
+        <div class="vmx-sub">CPF PF anonimizado · denominador mede repasse, não pagamento</div>
+        <div class="vmx-count">3 itens</div>
+      </button>
+      <button class="vmx-cell vmx-cell--parado" onclick="vmxIr('vmx-m3-rouanet')">
+        <div class="vmx-glyphs">⏳◑◑⏳</div>
+        <div class="vmx-label">Só mapeado no papel</div>
+        <div class="vmx-sub">Sem ingestão · percentuais mínimos não fixados em norma</div>
+        <div class="vmx-count">4 itens · 0 models</div>
+      </button>
+
+      <!-- META 4 -->
+      <div class="vmx-rowhead">
+        <div class="vmx-rowhead-num">Meta 4</div>
+        <div class="vmx-rowhead-tit">Desconcentração Territorial</div>
+      </div>
+      <button class="vmx-cell vmx-cell--parado" onclick="vmxIr('vmx-m4-pnablpg')">
+        <div class="vmx-glyphs">⏳</div>
+        <div class="vmx-label">Lacuna de escopo</div>
+        <div class="vmx-sub">Dado territorial existe e é usado na Meta 3 — indicador não foi construído</div>
+        <div class="vmx-count">1 item</div>
+      </button>
+      <button class="vmx-cell vmx-cell--parado" onclick="vmxIr('vmx-m4-pnablpg')">
+        <div class="vmx-glyphs">⏳</div>
+        <div class="vmx-label">Lacuna de escopo</div>
+        <div class="vmx-sub">Decidir se mede o ente que recebeu ou o agente que foi pago</div>
+        <div class="vmx-count">mesmo bloco da LPG</div>
+      </button>
+      <button class="vmx-cell vmx-cell--parado" onclick="vmxIr('vmx-m4-rouanet')">
+        <div class="vmx-glyphs">⏳◑◑⏳</div>
+        <div class="vmx-label">Integralmente parada</div>
+        <div class="vmx-sub">Única meta avaliada só pela Rouanet — e a Rouanet não tem ingestão</div>
+        <div class="vmx-count">4 itens · 0 models</div>
+      </button>
+
+      <!-- META 5 -->
+      <div class="vmx-rowhead">
+        <div class="vmx-rowhead-num">Meta 5</div>
+        <div class="vmx-rowhead-tit">Primeiro Acesso</div>
+      </div>
+      <button class="vmx-cell vmx-cell--ok" onclick="vmxIr('vmx-m5-lpg')">
+        <div class="vmx-glyphs">✓⏳◑◑◑</div>
+        <div class="vmx-label">Pipeline implementado</div>
+        <div class="vmx-sub">Os 39,11% do painel não saem de nenhum model · match de CPF por 6 dígitos pode colidir</div>
+        <div class="vmx-count">5 itens · 4 golds</div>
+      </button>
+      <button class="vmx-cell vmx-cell--parcial" onclick="vmxIr('vmx-m5-lpg')">
+        <div class="vmx-glyphs">◑</div>
+        <div class="vmx-label">Coberta pelo mesmo domínio</div>
+        <div class="vmx-sub"><code>agentes_dbt</code> unifica LPG + PNAB em <code>identificadores_agentes</code> — não há bloco PNAB separado</div>
+        <div class="vmx-count">ver bloco da LPG</div>
+      </button>
+      <button class="vmx-cell vmx-cell--parado" onclick="vmxIr('vmx-m5-rouanet')">
+        <div class="vmx-glyphs">⏳◑⏳</div>
+        <div class="vmx-label">Só mapeado no papel</div>
+        <div class="vmx-sub">Metade do cruzamento pronta do lado Transferegov · falta o SALIC</div>
+        <div class="vmx-count">3 itens · 0 models</div>
+      </button>
+
+    </div>
+  </div>
+
+  <div class="vmx-legenda">
+    <span><b>✓</b> pipeline implementado</span>
+    <span><b>◑</b> implementado com ressalva, ou apenas mapeado</span>
+    <span><b>⏳</b> parado — dado, acesso, norma ou escopo</span>
+    <span style="color:#7A34F3;font-weight:600">▸ clique numa célula para ir ao detalhe</span>
+  </div>
+
+  <div class="intro-goal" style="margin:0.9rem 0 2rem;background:#fffbeb;border-color:#fcd34d">
+    <strong>Leia a coluna Rouanet com cuidado:</strong> ela é uniformemente amarela porque <em>todas</em> as suas células compartilham um único bloqueio — o SALIC não tem nenhuma ingestão no projeto (zero models, zero DAGs). Um "◑" na PNAB/LPG significa <em>implementado com limitação</em>; na Rouanet significa <em>apenas mapeado no papel</em>. Não são o mesmo grau de avanço.
   </div>
 
   <!-- ══════════════════════════════
@@ -4363,38 +4605,54 @@
 
     <div class="vm-politicas">
 
-      <div class="vm-politica">
+      <div class="vm-politica vm-politica--wide" id="vmx-m2-pnablpg">
         <div class="vm-pol-header" style="border-left:3px solid #7A34F3;background:#f5f3ff">
           <span class="vm-pol-nome">PNAB / LPG</span>
           <span class="vm-pol-fonte">Transferegov</span>
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status ok">✓ Respondido</div>
+            <div class="vm-entrega-status parcial">◑ Parcial — dado bruto sim, indicador não</div>
             <div>
               <div class="vm-entrega-titulo">Distribuição por território e nível federativo</div>
-              <div class="vm-entrega-desc">Execução por UF, região e município mapeada por ciclo. <strong>Ingestão implementada</strong> (PRs #1 e #9): DAGs encadeadas <code>programas → planos_acao → relatorios_gestao → anexos → download → extração</code>, alimentando <code>raw_planos_acao</code> e <code>raw_gestao_financeira_lancamentos</code>.</div>
-            </div>
-          </div>
-          <div class="vm-entrega">
-            <div class="vm-entrega-status pendente">⏳ Pendente</div>
-            <div>
-              <div class="vm-entrega-titulo">Nenhum model dbt de Meta 2 construído ainda</div>
-              <div class="vm-entrega-desc">A camada bruta existe, mas a Meta 2 não tem domínio dbt próprio — só <code>cotas_dbt</code> (Meta 3) e <code>agentes_dbt</code> (Meta 5) foram implementados. A validação contra o caixa real do BB Gestão Ágil segue pendente porque o bbágil está bloqueado por VPN.</div>
+              <div class="vm-entrega-desc"><strong>Ingestão implementada</strong> (PRs #1 e #9): DAGs encadeadas <code>programas → planos_acao → relatorios_gestao → anexos → download → extração</code> alimentam <code>raw_planos_acao</code> e <code>raw_gestao_financeira_lancamentos</code>. <strong>Mas nenhum model dbt calcula a distribuição.</strong> A Meta 2 não tem domínio próprio — só <code>cotas_dbt</code> (Meta 3) e <code>agentes_dbt</code> (Meta 5) existem. O dado está no banco; o indicador precisa ser construído.</div>
             </div>
           </div>
           <div class="vm-entrega">
             <div class="vm-entrega-status parcial">◑ Parcial</div>
             <div>
               <div class="vm-entrega-titulo">Volume total União + aporte dos entes</div>
-              <div class="vm-entrega-desc">Lado União respondido (repasse ~R$2,9bi em 2023). Aporte próprio dos entes depende do SICONFI, fora do escopo atual.</div>
+              <div class="vm-entrega-desc">Lado União: ~R$2,9bi de repasse em 2023 — <em>número do diagnóstico de junho, não reproduzido por nenhum model</em> (não aparece em nenhum SQL, teste ou doc do projeto). Aporte próprio dos entes depende do SICONFI, fora do escopo atual.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status pendente">⏳ Pendente</div>
+            <div>
+              <div class="vm-entrega-titulo">Validação contra o caixa real (BB Gestão Ágil)</div>
+              <div class="vm-entrega-desc">O cruzamento contra duas fontes independentes — plano de ação <em>vs.</em> extrato bancário — depende do bbágil, que está bloqueado: a API do BSC (<code>bsc.cultura.gov.br</code>) só resolve via VPN do governo. Sem isso, a execução declarada não tem contraprova.</div>
             </div>
           </div>
           <div class="vm-entrega">
             <div class="vm-entrega-status pendente">⏳ Pendente</div>
             <div>
               <div class="vm-entrega-titulo">% destinado a programas estruturantes do SNC</div>
-              <div class="vm-entrega-desc">Estrutura de dados pronta. Bloqueado por definição de negócio: MinC precisa validar quais categorias do BB Gestão Ágil contam como "estruturantes do SNC".</div>
+              <div class="vm-entrega-desc">Duplamente bloqueado: pelo bbágil (é de onde vêm as categorias) e por definição de negócio — o MinC precisa validar quais categorias contam como "estruturantes do SNC".</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vm-politica" id="vmx-m2-rouanet">
+        <div class="vm-pol-header" style="border-left:3px solid #f59e0b;background:#fffbeb">
+          <span class="vm-pol-nome">Lei Rouanet</span>
+          <span class="vm-pol-fonte">SALIC · não avaliado</span>
+        </div>
+        <div class="vm-pol-body">
+          <div class="vm-entrega">
+            <div class="vm-entrega-status pendente">⏳ Fora do escopo mapeado</div>
+            <div>
+              <div class="vm-entrega-titulo">Renúncia fiscal não entra no volume de recursos aplicados</div>
+              <div class="vm-entrega-desc">O objetivo da Meta 2 fala de "recursos financeiros aplicados na cultura", e a Rouanet move volume relevante por renúncia fiscal — mas <strong>este painel não mapeou a Meta 2 pelo lado Rouanet</strong>: não há aba correspondente nem tabelas do SALIC levantadas para execução financeira. Some-se a isso que o SALIC não tem nenhuma ingestão no projeto. Decisão de escopo a tomar: a captação via renúncia conta para a linha de base de 2023 da Meta 2?</div>
             </div>
           </div>
         </div>
@@ -4424,30 +4682,44 @@
 
     <div class="vm-politicas">
 
-      <div class="vm-politica">
+      <div class="vm-politica" id="vmx-m3-lpg">
         <div class="vm-pol-header" style="border-left:3px solid #7A34F3;background:#f5f3ff">
           <span class="vm-pol-nome">LPG</span>
           <span class="vm-pol-fonte">Transferegov</span>
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status ok">✓ Respondido</div>
+            <div class="vm-entrega-status ok">✓ Pipeline implementado</div>
             <div>
-              <div class="vm-entrega-titulo">% pago por grupo prioritário</div>
-              <div class="vm-entrega-desc">Perfil (raça, PCD, território) cruzado com pagamentos via CPF/CNPJ. Pipeline completo e implementado (PR #16): 5 <code>stg_agentes_*</code> → <code>perfil_agentes_normalizado</code> → <code>fct_pagamentos_elegiveis</code> → <code>distribuicao_cotas_lpg</code>.</div>
+              <div class="vm-entrega-titulo">% pago por grupo prioritário — cotas de raça, etnia e PCD</div>
+              <div class="vm-entrega-desc">Perfil cruzado com pagamentos via CPF/CNPJ. Pipeline completo e implementado (PR #16): 5 <code>stg_agentes_*</code> → <code>perfil_agentes_normalizado</code> → <code>fct_pagamentos_elegiveis</code> → <code>distribuicao_cotas_lpg</code>. Vale para as cotas <strong>negra (25%), indígena (10%) e PCD (5%)</strong>.</div>
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status ok">✓ Respondido</div>
+            <div class="vm-entrega-status parcial">◑ Parcial</div>
+            <div>
+              <div class="vm-entrega-titulo">Cota de território vulnerabilizado (20%) — subestimada</div>
+              <div class="vm-entrega-desc">A 4ª cota está implementada, mas o casamento é <strong>por nome de município + UF</strong> (<code>chave_municipio_uf</code>), e só <strong>~47,5%</strong> dos pagamentos com perfil casam hoje. Grafias divergentes de município derrubam o numerador, então o percentual apurado é um <em>piso</em>, não a medida real. O crosswalk vem de <code>territorio_fcu_setores</code> (33.273 setores do Censo 2022) colapsado em <code>territorio_municipio</code>.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status ok">✓ Pipeline implementado</div>
             <div>
               <div class="vm-entrega-titulo">Status de cumprimento das cotas por ano</div>
-              <div class="vm-entrega-desc"><code>distribuicao_cotas_lpg</code> e <code>distribuicao_cotas_pnab</code> entregam <code>status_sobre_com_perfil</code> (<code>'alcancada'</code> / <code>'descumprida'</code>) por (ano, grupo). Cobertura monitorada em <code>cobertura_pagamentos</code> antes de calcular — <strong>61,6%</strong> de cobertura temporal hoje.</div>
+              <div class="vm-entrega-desc"><code>distribuicao_cotas_lpg</code> e <code>distribuicao_cotas_pnab</code> entregam <code>status_sobre_com_perfil</code> (<code>'alcancada'</code> / <code>'descumprida'</code>) por (ano, grupo) — veredito <strong>binário</strong>, sem categoria "superada".</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status parcial">◑ Ressalva metodológica</div>
+            <div>
+              <div class="vm-entrega-titulo">O veredito não usa o denominador que o PNC exige</div>
+              <div class="vm-entrega-desc">O indicador normativo é o % sobre o <strong>valor total pago</strong>. O veredito implementado usa <code>pct_sobre_com_perfil</code> — só a fatia cujo perfil é conhecido. Os dois números divergem, e a diferença cresce quanto menor a cobertura. Hoje: <strong>cobertura temporal de 61,6%</strong> (38,4% do valor sem ano identificado, então não entra em nenhum ciclo) e cobertura de perfil limitada por teto de dado — nem todo contemplado preencheu ficha de raça/PCD. <code>cobertura_pagamentos</code> deve ser lida antes de qualquer conclusão.</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="vm-politica">
+      <div class="vm-politica" id="vmx-m3-pnab">
         <div class="vm-pol-header" style="border-left:3px solid #a78bfa;background:#f5f3ff">
           <span class="vm-pol-nome">PNAB</span>
           <span class="vm-pol-fonte">Transferegov</span>
@@ -4477,21 +4749,28 @@
         </div>
       </div>
 
-      <div class="vm-politica">
+      <div class="vm-politica" id="vmx-m3-rouanet">
         <div class="vm-pol-header" style="border-left:3px solid #f59e0b;background:#fffbeb">
           <span class="vm-pol-nome">Lei Rouanet</span>
-          <span class="vm-pol-fonte">SALIC</span>
+          <span class="vm-pol-fonte">SALIC · sem ingestão</span>
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Parcial</div>
+            <div class="vm-entrega-status pendente">⏳ Bloqueio comum a toda a Rouanet</div>
             <div>
-              <div class="vm-entrega-titulo">% pago a profissionais de grupos prioritários (prestação de contas)</div>
-              <div class="vm-entrega-desc">Estrutura mapeada: GComprovPagFisica × GComprovantesPagamento × tbAgenteFisico. Bloqueio: SALIC precisa conter autodeclaração de raça/PCD para prestadores de serviço.</div>
+              <div class="vm-entrega-titulo">Nenhuma ingestão do SALIC implementada</div>
+              <div class="vm-entrega-desc">Os itens abaixo estão marcados como "parcial" no sentido de <strong>mapeados e viáveis em princípio</strong> — as tabelas do SALIC foram levantadas neste painel. Mas <code>sources.yml</code> declara apenas <code>transferegov_fundo_a_fundo</code> e <code>bsc_pnab</code>, e o repositório <strong>não tem uma única referência a SALIC, PRONAC ou FSA</strong>: zero models, zero DAGs. Todos os itens Rouanet compartilham este mesmo bloqueio único — não são frentes independentes de progresso.</div>
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Parcial</div>
+            <div class="vm-entrega-status parcial">◑ Mapeado</div>
+            <div>
+              <div class="vm-entrega-titulo">% pago a profissionais de grupos prioritários (prestação de contas)</div>
+              <div class="vm-entrega-desc">Estrutura mapeada: GComprovPagFisica × GComprovantesPagamento × tbAgenteFisico. Dependência adicional, além da ingestão: o SALIC precisa conter autodeclaração de raça/PCD para prestadores de serviço.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status parcial">◑ Mapeado</div>
             <div>
               <div class="vm-entrega-titulo">% captado por proponentes autodeclarados</div>
               <div class="vm-entrega-desc">tbApIncentivos × Projetos × tbAgenteFisico. Mesma dependência: campo de autodeclaração de raça e PCD disponível no cadastro de proponentes.</div>
@@ -4531,21 +4810,44 @@
 
     <div class="vm-politicas">
 
-      <div class="vm-politica">
-        <div class="vm-pol-header" style="border-left:3px solid #f59e0b;background:#fffbeb">
-          <span class="vm-pol-nome">Lei Rouanet</span>
-          <span class="vm-pol-fonte">SALIC</span>
+      <div class="vm-politica vm-politica--wide" id="vmx-m4-pnablpg">
+        <div class="vm-pol-header" style="border-left:3px solid #7A34F3;background:#f5f3ff">
+          <span class="vm-pol-nome">PNAB / LPG</span>
+          <span class="vm-pol-fonte">Transferegov · não mapeado</span>
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Parcial</div>
+            <div class="vm-entrega-status pendente">⏳ Lacuna de escopo</div>
             <div>
-              <div class="vm-entrega-titulo">% executado fora das capitais</div>
-              <div class="vm-entrega-desc">tbAplComprovacoes traz sgUF + nmMunicipio por comprovação. LEFT JOIN com lista #capitais identifica interior vs. capital. Requer normalização de nomes de municípios.</div>
+              <div class="vm-entrega-titulo">A meta vale para todas as políticas, mas só a Rouanet foi mapeada</div>
+              <div class="vm-entrega-desc">O objetivo fala de "recursos das políticas públicas de cultura" — inclui PNAB e LPG. Este painel, porém, só abriu aba de Meta 4 para a Rouanet, e a Visão das Metas herdou essa lacuna. <strong>Não é falta de dado:</strong> a infraestrutura territorial existe e está em uso na Meta 3 — <code>territorio_municipio</code> (crosswalk IBGE), <code>chave_municipio_uf</code> no perfil do agente, e <code>raw_planos_acao</code> com o ente federado e seu <code>codigo_ibge</code>. Falta construir o indicador de não-capitais e de região para PNAB/LPG, e decidir se ele mede o <em>ente que recebeu</em> ou o <em>agente que foi pago</em> — que dão respostas diferentes.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vm-politica" id="vmx-m4-rouanet">
+        <div class="vm-pol-header" style="border-left:3px solid #f59e0b;background:#fffbeb">
+          <span class="vm-pol-nome">Lei Rouanet</span>
+          <span class="vm-pol-fonte">SALIC · sem ingestão</span>
+        </div>
+        <div class="vm-pol-body">
+          <div class="vm-entrega">
+            <div class="vm-entrega-status pendente">⏳ Bloqueio comum a toda a Rouanet</div>
+            <div>
+              <div class="vm-entrega-titulo">Nenhuma ingestão do SALIC implementada</div>
+              <div class="vm-entrega-desc">Como a Meta 4 é avaliada <strong>apenas</strong> pelo lado Rouanet neste painel, e a Rouanet não tem ingestão alguma, esta meta está <strong>integralmente parada</strong> — é a única nessa situação. Os itens abaixo são mapeamento de tabelas, não implementação.</div>
             </div>
           </div>
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Parcial</div>
+            <div class="vm-entrega-status parcial">◑ Mapeado</div>
+            <div>
+              <div class="vm-entrega-titulo">% executado fora das capitais</div>
+              <div class="vm-entrega-desc">tbAplComprovacoes traz sgUF + nmMunicipio por comprovação. LEFT JOIN com lista #capitais identifica interior vs. capital. Requer normalização de nomes de municípios — o mesmo problema de grafia que hoje limita a cota territorial da LPG a ~47,5% de casamento.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status parcial">◑ Mapeado</div>
             <div>
               <div class="vm-entrega-titulo">% por região geográfica</div>
               <div class="vm-entrega-desc">Atalho: tbAplComprovacoes.dsRegiao. Caminho robusto: Abrangencia → Municipios → UF → Regiao (cadeia IBGE). Norte, Nordeste e Centro-Oeste são as regiões prioritárias nos normativos.</div>
@@ -4555,7 +4857,7 @@
             <div class="vm-entrega-status pendente">⏳ Pendente</div>
             <div>
               <div class="vm-entrega-titulo">% em periferias e territórios vulnerabilizados</div>
-              <div class="vm-entrega-desc">Abrangencia.idMunicipioBGE → base_territorio_vulnerave (flag_vulneravel, flag_periferia). Complicador: projetos com asAbrangencia="Nacional" não têm município definido — rateio indefinido.</div>
+              <div class="vm-entrega-desc"><strong>A base externa que este painel propunha já existe no projeto.</strong> O painel previa uma <code>base_territorio_vulnerave</code> com <code>flag_vulneravel</code> e <code>flag_periferia</code> — nomes que nunca existiram. O que a PR #16 ingeriu (via <code>ingest_territorio_fcu_dag</code>) é <code>territorio_fcu_setores</code>: 33.273 setores censitários periféricos do Censo 2022, colapsados a município em <code>territorio_municipio</code>, expondo <code>flag_territorio_vulneravel</code>. Não há <code>flag_periferia</code> separada — periferia e vulnerabilidade vêm na mesma flag. <strong>Esse ativo é reutilizável para a Rouanet</strong> assim que houver ingestão do SALIC. Complicador que permanece: projetos com <code>asAbrangencia="Nacional"</code> não têm município definido — rateio indefinido.</div>
             </div>
           </div>
         </div>
@@ -4585,17 +4887,38 @@
 
     <div class="vm-politicas">
 
-      <div class="vm-politica">
+      <div class="vm-politica vm-politica--wide" id="vmx-m5-lpg">
         <div class="vm-pol-header" style="border-left:3px solid #7A34F3;background:#f5f3ff">
           <span class="vm-pol-nome">LPG</span>
-          <span class="vm-pol-fonte">Transferegov</span>
+          <span class="vm-pol-fonte">Transferegov · PNAB pelo mesmo domínio</span>
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status ok">✓ Respondido</div>
+            <div class="vm-entrega-status ok">✓ Pipeline implementado</div>
             <div>
               <div class="vm-entrega-titulo">% de contemplados sem histórico anterior na LPG</div>
-              <div class="vm-entrega-desc">Resultado apurado: <strong>39,11% de novos entrantes</strong> (3.730 proponentes únicos sem contemplação prévia). Medido por CPF/CNPJ únicos entre ciclos via lpg_contemplados. <strong>Pipeline implementado</strong> no domínio <code>agentes_dbt</code>: <code>perfil_agentes_historico</code> → <code>primeiro_acesso_contemplados</code> / <code>primeiro_acesso_resumo</code>, com <code>categoria_primeiro_acesso</code> em 3 valores (Sim · Não · Não sabe/Não informou).</div>
+              <div class="vm-entrega-desc"><strong>Pipeline implementado</strong> no domínio <code>agentes_dbt</code>: <code>perfil_acesso_fomento</code> → <code>primeiro_acesso_contemplados</code> / <code>primeiro_acesso_resumo</code>. A saída é uma tabulação cruzada por <code>programa_fomento</code> × <code>contemplado</code> (sim/não) × <code>categoria_primeiro_acesso</code> (Sim · Não · Não sabe/Não informou), com <code>status_dado</code> separando o que é <strong>autodeclarado</strong> (<code>Confirmado</code>) do que é <strong>inferido</strong> pela ausência na base (<code>Inferido</code>).</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status pendente">⏳ Número do painel não reproduzido</div>
+            <div>
+              <div class="vm-entrega-titulo">Os 39,11% vêm do diagnóstico, não do pipeline</div>
+              <div class="vm-entrega-desc">O painel afirmava "39,11% de novos entrantes (3.730 proponentes)". Esse número <strong>não é produzido por nenhum model, teste ou doc do projeto</strong> — só aparece no próprio painel. E o método divergiu: o diagnóstico media contemplação cruzada entre ciclos de <code>lpg_contemplados</code>; o pipeline implementado combina <strong>autodeclaração do formulário</strong> com <em>flag</em> de contemplação. São definições diferentes de "primeiro acesso", então o número precisa ser reapurado rodando o dbt antes de ser reportado.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status parcial">◑ Ressalva metodológica</div>
+            <div>
+              <div class="vm-entrega-titulo">O match de CPF mascarado usa 6 dígitos e pode colidir</div>
+              <div class="vm-entrega-desc">Documentado no próprio <code>primeiro_acesso_contemplados</code>: o cadastro de proponentes LPG traz o CPF anonimizado como <code>***.NNN.NNN-**</code>, enquanto <code>lpg_contemplados</code> traz o CPF completo — match exato nunca ocorre, gerando falso negativo sistemático. A solução foi casar pelo <strong>"miolo" (6 dígitos centrais)</strong>, o que <strong>tem risco de colisão entre CPFs distintos com miolo igual</strong>. Some-se: na lista geral da PNAB só o CNPJ é utilizável, então PJ contemplada sem registro no PNCV fica de fora.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status parcial">◑ Ressalva de ingestão</div>
+            <div>
+              <div class="vm-entrega-titulo">Colunas "fantasma" nas planilhas de contemplados</div>
+              <div class="vm-entrega-desc">A ingestão dinâmica (<code>extracao_planilhas.py</code>) não normaliza caracteres invisíveis nos nomes de coluna, então o cabeçalho "CPF ou CNPJ" de arquivos diferentes virou <strong>colunas distintas no Postgres</strong> (ex.: com e sem NBSP), cada uma com parte dos dados. O model contorna resolvendo a coluna dinamicamente via <code>information_schema</code> — sem isso, a maior parte dos contemplados ficaria invisível ao JOIN. É contorno, não correção: a causa segue na ingestão.</div>
             </div>
           </div>
           <div class="vm-entrega">
@@ -4608,14 +4931,21 @@
         </div>
       </div>
 
-      <div class="vm-politica">
+      <div class="vm-politica" id="vmx-m5-rouanet">
         <div class="vm-pol-header" style="border-left:3px solid #f59e0b;background:#fffbeb">
           <span class="vm-pol-nome">Lei Rouanet</span>
-          <span class="vm-pol-fonte">SALIC</span>
+          <span class="vm-pol-fonte">SALIC · sem ingestão</span>
         </div>
         <div class="vm-pol-body">
           <div class="vm-entrega">
-            <div class="vm-entrega-status parcial">◑ Parcial</div>
+            <div class="vm-entrega-status pendente">⏳ Bloqueio comum a toda a Rouanet</div>
+            <div>
+              <div class="vm-entrega-titulo">Nenhuma ingestão do SALIC implementada</div>
+              <div class="vm-entrega-desc">Mesmo bloqueio das Metas 3 e 4: zero models, zero DAGs, nenhuma referência a SALIC/PRONAC/FSA no repositório. O item abaixo é mapeamento de tabelas, não implementação.</div>
+            </div>
+          </div>
+          <div class="vm-entrega">
+            <div class="vm-entrega-status parcial">◑ Mapeado</div>
             <div>
               <div class="vm-entrega-titulo">% de proponentes sem histórico no Pronac</div>
               <div class="vm-entrega-desc">Estrutura: Projetos × Agentes (AnoProjeto) — ausência em anos anteriores = primeiro acesso. Complicador: a Rouanet opera por fluxo contínuo (sem editais), então "ciclo" não é óbvio. IN MinC 29/2026 define série histórica como últimos 3 exercícios.</div>
@@ -4688,7 +5018,7 @@
       <div class="hist-placar-meta">Meta 4</div>
       <div class="hist-placar-titulo">Desconcentração Territorial</div>
       <div class="hist-placar-num">0 <span>models · 0 DAGs</span></div>
-      <div class="hist-placar-obs">Meta exclusivamente Rouanet. O SALIC não tem nenhuma ingestão implementada — o mapeamento das abas Rouanet segue como diagnóstico em papel.</div>
+      <div class="hist-placar-obs">Avaliada só pelo lado Rouanet, que não tem ingestão alguma — por isso está integralmente parada. Mas a meta vale para PNAB/LPG também, e ali a infraestrutura territorial já existe (<code>territorio_municipio</code>): é lacuna de escopo, não de dado.</div>
     </div>
 
   </div>
