@@ -24,3 +24,25 @@ models:
         description: >
           Tipo do proponente — 'Pessoa Física', 'Pessoa Jurídica',
           'Coletivo' ou 'Organização'.
+
+  - name: identificadores_contemplados
+    description: >
+      Views — unifica identificadores (CPF/CNPJ normalizados) de
+      contemplados LPG + PNAB. Extraído de primeiro_acesso_contemplados
+      para reuso também em primeiro_acesso_contemplados_bancario (Fase 4).
+      Cobertura: LPG total; PNAB PNCV (PF) total; PNAB Geral só CNPJ (CPF
+      vem anonimizado na fonte).
+    config:
+      meta:
+        tags: [views, agentes, contemplados, meta5]
+    columns:
+      - name: id_normalizado
+        description: CPF ou CNPJ do contemplado, normalizado (só dígitos).
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Programa de fomento — 'LPG' ou 'PNAB'.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LPG', 'PNAB']

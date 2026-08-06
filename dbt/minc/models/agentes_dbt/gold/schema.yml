@@ -222,3 +222,106 @@ models:
           (cada programa soma 100% independentemente).
         tests:
           - not_null
+
+  - name: primeiro_pagamento_bancario
+    description: >
+      Camada Gold — Meta 5 Fase 4. Primeiro pagamento real, comprovado pelo
+      extrato bancário do BB Gestão Ágil, por beneficiário × programa de
+      fomento. Aplica limiar de R$375 (ruído) sobre o total pago por
+      beneficiário+programa. "Sim" em categoria_primeiro_acesso_bancario
+      significa que este é o programa em que o beneficiário recebeu seu
+      pagamento mais antigo comprovado no banco (entre todos os programas).
+
+      ATENÇÃO — cobertura temporal: dado bancário só existe a partir de
+      2023-02. Não captura fomento recebido antes disso (ex. Lei Aldir
+      Blanc I, 2020-2021) nem fora do fundo a fundo federal. "Primeiro
+      pagamento" aqui é "primeiro desde 2023 neste canal", não "primeiro
+      fomento cultural na vida do proponente".
+    config:
+      meta:
+        meta_objetivo: 'Meta 5 Fase 4 — Primeiro Acesso Comprovado por Dado Bancário'
+        origem_dados: 'bsc.raw_bbagil_extrato_transacoes + raw_bbagil_subtransacoes'
+        tags: [gold, agentes, bbagil, meta5, fase4, primeiro_acesso]
+    columns:
+      - name: beneficiario_documento
+        description: CPF ou CNPJ do beneficiário do pagamento (normalizado, só dígitos).
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Programa de fomento — 'LPG' ou 'PNAB'.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LPG', 'PNAB']
+      - name: data_primeiro_pagamento
+        description: Data do primeiro pagamento comprovado nesse programa.
+        tests:
+          - not_null
+      - name: valor_total_pago
+        description: Soma de todos os pagamentos ao beneficiário nesse programa (após limiar de ruído).
+        tests:
+          - not_null
+      - name: data_primeiro_pagamento_geral
+        description: Data do primeiro pagamento comprovado ao beneficiário em qualquer programa.
+        tests:
+          - not_null
+      - name: categoria_primeiro_acesso_bancario
+        description: >
+          'Sim' quando data_primeiro_pagamento = data_primeiro_pagamento_geral
+          (este é o programa de estreia comprovada); 'Não' caso contrário
+          (beneficiário já tinha pagamento comprovado em outro programa antes).
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Sim', 'Não']
+
+  - name: primeiro_acesso_contemplados_bancario
+    description: >
+      Camada Gold — Meta 5 Fase 4. Indicador final de "novos entrantes",
+      comprovado só por dado bancário real do BB Ágil (INNER JOIN entre
+      primeiro_pagamento_bancario e identificadores_contemplados — sem
+      fallback pra dado autodeclarado/inferido). Responde: qual o
+      percentual de agentes culturais contemplados que nunca haviam
+      recebido recursos públicos de fomento antes do pagamento atual.
+
+      Escopo deliberadamente parcial: contemplados sem pagamento
+      encontrado no BB Ágil ficam de fora (não entram no denominador).
+      Decisão consciente — o mapeamento Sim/Não da base autodeclarada
+      (perfil_acesso_fomento, Fase 1-2) não pôde ser confirmado contra o
+      texto real do formulário, então preferimos cobertura parcial e
+      100% verificável a arriscar inverter "novo entrante"/"veterano".
+      Grain: 1 linha por (programa_fomento × categoria_primeiro_acesso).
+    config:
+      meta:
+        meta_objetivo: 'Meta 5 Fase 4 — Novos Entrantes (Comprovado por Banco)'
+        origem_dados: 'primeiro_pagamento_bancario + identificadores_contemplados'
+        tags: [gold, agentes, bbagil, meta5, fase4, contemplados, primeiro_acesso]
+    columns:
+      - name: programa_fomento
+        description: Programa de fomento — 'LPG' ou 'PNAB'.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LPG', 'PNAB']
+      - name: categoria_primeiro_acesso
+        description: >
+          'Sim' — este é o programa em que o beneficiário recebeu seu
+          pagamento mais antigo comprovado no banco (novo entrante);
+          'Não' — o beneficiário já tinha pagamento comprovado em outro
+          programa antes (veterano). Ver primeiro_pagamento_bancario pra
+          a regra exata (MIN(data_pagamento) por programa vs. geral).
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Sim', 'Não']
+      - name: total_proponentes
+        description: Contagem distinta de proponentes contemplados com pagamento comprovado no BB Ágil, por categoria.
+        tests:
+          - not_null
+      - name: percentual
+        description: >
+          Percentual da categoria sobre o total de contemplados com
+          pagamento comprovado no mesmo programa_fomento (cada programa
+          soma 100% independentemente).
+        tests:
+          - not_null

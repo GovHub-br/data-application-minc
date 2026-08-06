@@ -110,3 +110,80 @@ models:
         description: Resposta bruta da PNAB sobre acesso anterior a recursos públicos de fomento.
       - name: programa_fomento
         description: Programa de fomento de origem — sempre 'PNAB' neste modelo.
+
+  - name: bbagil_extrato_filtrado
+    description: >
+      Camada Bronze — extrato bancário do BB Gestão Ágil (schema `bsc`),
+      filtrado pelos 8 filtros de negócio (documento válido, sem
+      subtransação, exclui BB/FNC/estornos/repasses entre entes públicos).
+      Só débitos (pagamentos de fato) sobrevivem. Fonte primária da Meta 5
+      Fase 4 (primeiro acesso comprovado por dado bancário).
+    config:
+      meta:
+        tags: [bronze, agentes, bbagil, meta5, fase4]
+    columns:
+      - name: id_plano_acao
+        description: Identificador do plano de ação (ente + programa) dono da conta bancária.
+        tests:
+          - not_null
+      - name: id
+        description: >
+          Identificador da transação no extrato (id_plano_acao + id é a
+          chave da tabela raw). Usado por bbagil_subtransacoes_filtrado
+          pra achar a transação-mãe (id_transacao_pai = id).
+        tests:
+          - not_null
+      - name: programa_curto
+        description: >
+          Código curto do programa devolvido pelo BSC (governmentprogramname —
+          ex. 'MINC-LPG-MUNI-AUD', 'MINC-PNAB-2023'). Insumo pra derivar
+          programa_fomento em pagamentos_bbagil_beneficiarios.
+      - name: beneficiario_documento
+        description: >
+          CPF/CNPJ do beneficiário do pagamento, normalizado (LPAD por
+          beneficiarypersontype — 11 dígitos p/ CPF, 14 p/ CNPJ).
+        tests:
+          - not_null
+      - name: beneficiario_nome
+        description: Nome do beneficiário do pagamento, como devolvido pelo BSC.
+      - name: valor
+        description: Valor do pagamento (débito), em reais.
+        tests:
+          - not_null
+      - name: data_pagamento
+        description: Data do lançamento no extrato (bookingdate), convertida pra DATE.
+        tests:
+          - not_null
+
+  - name: bbagil_subtransacoes_filtrado
+    description: >
+      Camada Bronze — sublançamentos do BB Gestão Ágil, usados quando a
+      transação-mãe do extrato tem subtransactionquantity > 0 (o
+      beneficiário real só aparece aqui). Filtra por status 'Pago' e
+      exclui repasses entre entes públicos.
+    config:
+      meta:
+        tags: [bronze, agentes, bbagil, meta5, fase4]
+    columns:
+      - name: id_plano_acao
+        description: Identificador do plano de ação, herdado da transação-mãe.
+        tests:
+          - not_null
+      - name: programa_curto
+        description: >
+          Código curto do programa (governmentprogramname), herdado da
+          transação-mãe do extrato via id_plano_acao + id_transacao_pai = id.
+      - name: beneficiario_documento
+        description: CPF/CNPJ do beneficiário do sublançamento, normalizado (LPAD por persontype).
+        tests:
+          - not_null
+      - name: beneficiario_nome
+        description: Nome do beneficiário do sublançamento, como devolvido pelo BSC.
+      - name: valor
+        description: Valor do sublançamento (em módulo), em reais.
+        tests:
+          - not_null
+      - name: data_pagamento
+        description: Data de pagamento do sublançamento (paymentdate), convertida pra DATE.
+        tests:
+          - not_null

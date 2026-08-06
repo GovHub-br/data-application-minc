@@ -34,3 +34,36 @@ models:
           - not_null
           - accepted_values:
               values: ['Sim', 'Não', 'Não sabe/Não informou']
+
+  - name: pagamentos_bbagil_beneficiarios
+    description: >
+      Camada Silver — Meta 5 Fase 4. Unifica bbagil_extrato_filtrado e
+      bbagil_subtransacoes_filtrado em 1 linha por pagamento real a um
+      beneficiário, com programa_fomento (LPG/PNAB) derivado do código
+      curto de programa do BSC. Base para primeiro_pagamento_bancario.
+    config:
+      meta:
+        tags: [silver, agentes, bbagil, meta5, fase4]
+    columns:
+      - name: id_plano_acao
+        description: Identificador do plano de ação (ente + programa) dono da conta que fez o pagamento.
+        tests:
+          - not_null
+      - name: beneficiario_documento
+        description: CPF/CNPJ do beneficiário do pagamento, normalizado.
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Programa de fomento — 'LPG' ou 'PNAB'.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LPG', 'PNAB']
+      - name: valor
+        description: Valor do pagamento, em reais.
+        tests:
+          - not_null
+      - name: data_pagamento
+        description: Data do pagamento.
+        tests:
+          - not_null
