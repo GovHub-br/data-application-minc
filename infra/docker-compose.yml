@@ -45,7 +45,7 @@ x-airflow-environment: &airflow-common-env
   AIRFLOW__CORE__MAX_MAP_LENGTH: 15000
   AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: airflow:admin
   AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres/airflow
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@localhost/airflow
   AIRFLOW__EMAIL__DEFAULT_EMAIL_ON_RETRY: 'false'
   AIRFLOW__EMAIL__DEFAULT_EMAIL_ON_FAILURE: 'false'
   AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: 'America/Sao_Paulo'
@@ -86,6 +86,7 @@ services:
   # Airflow Services
   airflow:
     <<: *airflow-common
+    network_mode: "host"
     # Usamos standalone para não rodar múltiplos containers localmente.
     # A poda automática remove DAGs órfãs do metadata DB quando arquivos são apagados.
     command:
@@ -116,8 +117,6 @@ services:
         fi
 
         wait "$$airflow_pid"
-    ports:
-      - "8080:8080"
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health" ]
       interval: 10s
