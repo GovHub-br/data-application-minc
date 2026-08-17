@@ -1,84 +1,88 @@
 {{ config(materialized='view') }}
 
--- Views — unifica identificadores (CPF/CNPJ normalizados, só dígitos) de
--- contemplados LPG + PNAB, para reuso em qualquer gold que precise cruzar
--- com contemplação (primeiro_acesso_contemplados, Fase 3;
+-- Views — unifica identificadores (CPF/CNPJ normalizados) de contemplados
+-- LPG + PNAB, para reuso em qualquer gold que precise cruzar com
+-- contemplação (primeiro_acesso_contemplados, Fase 3;
 -- primeiro_acesso_contemplados_bancario, Fase 4).
 --
--- ATENÇÃO — colunas "fantasma" em lpg_contemplados: a ingestão dinâmica de
--- planilhas (extracao_planilhas.py) não normaliza espaços/caracteres
--- invisíveis (ex.: NBSP) nos nomes de coluna, então o header "CPF ou CNPJ"
--- de arquivos diferentes pode virar colunas distintas no Postgres
--- (ex.: "cpf ou cnpj" vs. "cpf ou cnpj<NBSP>"), cada uma com parte dos
--- dados. Por isso a coluna de CPF/CNPJ é resolvida dinamicamente via
--- information_schema (qualquer coluna cujo nome contenha "cpf" e "cnpj"),
--- em vez de um nome fixo — o que tornaria a maior parte dos contemplados
--- invisível para o JOIN.
+-- COLUNAS "FANTASMA": a ingestão dinâmica de planilhas (extracao_planilhas.py)
+-- não normaliza espaços nem caracteres invisíveis nos nomes de coluna, então
+-- o mesmo cabeçalho em arquivos diferentes vira colunas distintas no
+-- Postgres, cada uma com parte dos dados. O que existe hoje, de fato:
+--   lpg_contemplados                  "cpf ou cnpj", "cpf ou cnpj<NBSP>", "cnpj<NBSP>"
+--   raw_pnab_lista_contemplados_pncv  "cpf", "cnpj", "cnpj<SP>", "cpf/ cnpj"
+--   raw_pnab_lista_contemplados_geral "cnpj", "cpf ou cnpj<NBSP>"
+-- (<NBSP> = U+00A0, espaço não separável — não é o espaço comum.)
 --
--- Cobertura:
---   - LPG: CPF e CNPJ completos via lpg_contemplados — cobertura total.
---   - PNAB PNCV: CPF real via raw_pnab_lista_contemplados_pncv — cobertura PF.
---   - PNAB Geral: apenas CNPJ via raw_pnab_lista_contemplados_geral — CPF
---     anonimizado (***XXXXXX**), PF da lista geral fora do PNCV não é rastreável.
+-- Por isso a resolução é dinâmica via information_schema, e não uma lista
+-- fixa de nomes. O padrão anterior, ILIKE '%cpf%cnpj%', exigia "cpf" ANTES de
+-- "cnpj" na mesma string: não casava "cnpj" sozinho nem "cpf/ cnpj", e
+-- deixava de fora ~2.100 contemplados do PNAB (a maioria deles COM pagamento
+-- comprovado no extrato bancário) e as colunas só-CNPJ da LPG.
+--
+-- Colunas "cpf (anonimizado)" são excluídas de propósito: trazem
+-- ***XXXXXX** em vez do documento, e não servem para cruzar com nada.
+--
+-- NORMALIZAÇÃO: só dígitos + LPAD para 11 (CPF) ou 14 (CNPJ). O LPAD é
+-- obrigatório porque o lado bancário sempre normaliza assim; sem ele um CPF
+-- que chegou com 10 dígitos (sem o zero à esquerda) nunca casa.
 
-{% set cpf_cnpj_cols_query %}
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_schema = '{{ source('transferegov_fundo_a_fundo', 'lpg_contemplados').schema }}'
-      AND table_name = '{{ source('transferegov_fundo_a_fundo', 'lpg_contemplados').identifier }}'
-      AND column_name ILIKE '%cpf%cnpj%'
-    ORDER BY column_name
-{% endset %}
-{% set cpf_cnpj_results = run_query(cpf_cnpj_cols_query) %}
-{% set cpf_cnpj_cols = cpf_cnpj_results.columns[0].values() if execute else ['cpf ou cnpj'] %}
+{% set fontes = [
+    ('lpg_contemplados', 'LPG'),
+    ('raw_pnab_lista_contemplados_pncv', 'PNAB'),
+    ('raw_pnab_lista_contemplados_geral', 'PNAB')
+] %}
 
-WITH contemplados_lpg_raw AS (
+{# lista plana de (tabela, programa, coluna) para gerar um UNION ALL simples #}
+{% set pares = [] %}
+{% for tabela, programa in fontes %}
+    {% set src = source('transferegov_fundo_a_fundo', tabela) %}
+    {% set consulta %}
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = '{{ src.schema }}'
+          AND table_name = '{{ src.identifier }}'
+          AND (column_name ILIKE '%cpf%' OR column_name ILIKE '%cnpj%')
+          AND column_name NOT ILIKE '%anonimizado%'
+        ORDER BY column_name
+    {% endset %}
+    {% if execute %}
+        {% for col in run_query(consulta).columns[0].values() %}
+            {% do pares.append((tabela, programa, col)) %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+
+WITH bruto AS (
+    {% for tabela, programa, col in pares %}
     SELECT
-        COALESCE(
-            {% for col in cpf_cnpj_cols %}
-            NULLIF(LOWER(TRIM("{{ col }}")), 'nan')
-            {%- if not loop.last %},
-            {% endif %}
-            {% endfor %}
-        ) AS cpf_cnpj_bruto
-    FROM {{ source('transferegov_fundo_a_fundo', 'lpg_contemplados') }}
+        NULLIF(TRIM("{{ col }}"), '') AS doc_bruto,
+        '{{ programa }}' AS programa_fomento
+    FROM {{ source('transferegov_fundo_a_fundo', tabela) }}
+    {%- if not loop.last %}
+    UNION ALL
+    {% endif %}
+    {% endfor %}
 ),
 
-contemplados_lpg AS (
-    SELECT DISTINCT
-        REGEXP_REPLACE(cpf_cnpj_bruto, '[^0-9]', '', 'g') AS id_normalizado,
-        'LPG' AS programa_fomento
-    FROM contemplados_lpg_raw
-    WHERE cpf_cnpj_bruto IS NOT NULL
-      AND cpf_cnpj_bruto NOT IN ('', 'cpf ou cnpj')
-      AND LENGTH(REGEXP_REPLACE(cpf_cnpj_bruto, '[^0-9]', '', 'g')) >= 11
-),
-
--- PNCV fornece CPF real dos contemplados PNAB (PF)
-contemplados_pnab_pncv AS (
-    SELECT DISTINCT
-        REGEXP_REPLACE(TRIM(cpf), '[^0-9]', '', 'g') AS id_normalizado,
-        'PNAB' AS programa_fomento
-    FROM {{ source('transferegov_fundo_a_fundo', 'raw_pnab_lista_contemplados_pncv') }}
-    WHERE cpf IS NOT NULL
-      AND LOWER(TRIM(cpf)) NOT IN ('nan', '', 'cpf')
-      AND LENGTH(REGEXP_REPLACE(TRIM(cpf), '[^0-9]', '', 'g')) = 11
-),
-
--- Lista geral PNAB: CPF está anonimizado (***XXXXXX**) — só o CNPJ é utilizável
--- Cobertura parcial: PJ contemplada via PNAB geral sem registro no PNCV fica de fora
-contemplados_pnab_geral_pj AS (
-    SELECT DISTINCT
-        REGEXP_REPLACE(TRIM(cnpj), '[^0-9]', '', 'g') AS id_normalizado,
-        'PNAB' AS programa_fomento
-    FROM {{ source('transferegov_fundo_a_fundo', 'raw_pnab_lista_contemplados_geral') }}
-    WHERE cnpj IS NOT NULL
-      AND LOWER(TRIM(cnpj)) NOT IN ('nan', '', 'cnpj')
-      AND LENGTH(REGEXP_REPLACE(TRIM(cnpj), '[^0-9]', '', 'g')) = 14
+limpo AS (
+    SELECT
+        REGEXP_REPLACE(doc_bruto, '[^0-9]', '', 'g') AS digitos,
+        programa_fomento
+    FROM bruto
+    WHERE doc_bruto IS NOT NULL
+      -- linhas de cabeçalho repetido e placeholders de leitura de planilha
+      AND LOWER(doc_bruto) NOT IN ('nan', 'none', 'null', 'cpf', 'cnpj', 'cpf ou cnpj', 'cpf/ cnpj')
 )
 
-SELECT id_normalizado, programa_fomento FROM contemplados_lpg
-UNION
-SELECT id_normalizado, programa_fomento FROM contemplados_pnab_pncv
-UNION
-SELECT id_normalizado, programa_fomento FROM contemplados_pnab_geral_pj
+SELECT DISTINCT
+    CASE
+        WHEN LENGTH(digitos) <= 11 THEN LPAD(digitos, 11, '0')
+        ELSE LPAD(digitos, 14, '0')
+    END AS id_normalizado,
+    programa_fomento
+FROM limpo
+-- 9 dígitos é o menor CPF plausível já visto sem zeros à esquerda; abaixo
+-- disso é lixo de parsing (número de ordem, ano, célula vazia lida como 0)
+WHERE LENGTH(digitos) BETWEEN 9 AND 14
+  AND digitos !~ '^0+$'

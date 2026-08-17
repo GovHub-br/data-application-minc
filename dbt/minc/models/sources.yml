@@ -54,3 +54,22 @@ sources:
           Raw — uma linha por sub-lancamento das transacoes com
           ``subtransactionquantity`` > 0, persistida por
           ``extracao_bbagil_dag``.
+
+  # SALIC (Lei Rouanet) — ingestao do SQL Server do MinC para o schema bronze.
+  # Rastreada por ``control.salic_ingestion_log``. So as duas tabelas abaixo
+  # sao usadas pela Meta 5; o resto da base (1.000+ tabelas) nao entra aqui.
+  - name: salic
+    schema: bronze
+    tables:
+      - name: sac__tbapiprojetorouanet
+        description: >
+          Um projeto Rouanet por linha, com CPF/CNPJ do proponente
+          (``nrcnpjcpf``), PRONAC (``nrpronac``), mecanismo e valores
+          consolidados. E a unica tabela carregada que liga projeto a
+          proponente — ``sac__projetos`` existe no schema mas esta vazia.
+      - name: sac__captacao
+        description: >
+          Um recibo de captacao por linha (dinheiro efetivamente captado
+          pelo projeto junto a um incentivador). Liga a
+          ``sac__tbapiprojetorouanet`` por ``anoprojeto || sequencial =
+          nrpronac``. ``cgccpfmecena`` e o incentivador, NAO o proponente.

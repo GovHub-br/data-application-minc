@@ -1,47 +1,53 @@
 {{ config(materialized='table') }}
 
--- Camada Gold — Meta 5 Fase 4: indicador final de "novos entrantes"
--- (Lei Paulo Gustavo + PNAB), comprovado só por dado bancário real do
--- BB Ágil — sem depender de resposta autodeclarada em formulário nem de
--- inferência. Responde à pergunta da Meta 5: qual o percentual de agentes
--- culturais contemplados que nunca haviam recebido recursos públicos de
--- fomento antes do pagamento atual?
+-- Gold — o mesmo indicador de novos entrantes de primeiro_acesso_anual, mas
+-- restrito a quem aparece nas LISTAS OFICIAIS DE CONTEMPLADOS dos editais
+-- (LPG e PNAB), em vez de a todo agente visto recebendo dinheiro. Serve para
+-- a leitura "dos contemplados de edital, quantos eram novos", e para expor a
+-- cobertura entre as duas populações.
 --
--- Escopo deliberadamente simples: contemplado sem pagamento encontrado no
--- BB Ágil fica de fora do indicador (não cai em nenhum fallback
--- autodeclarado/inferido). Motivo: a base autodeclarada
--- (perfil_acesso_fomento, Fase 1-2) tem um mapeamento Sim/Não cujo
--- sentido não foi possível confirmar contra o texto real do formulário —
--- em vez de arriscar inverter "novo entrante"/"veterano", preferimos
--- cobertura parcial (só quem tem prova bancária) a um número
--- potencialmente errado. Ver primeiro_pagamento_bancario.sql pra
--- cobertura temporal do dado bancário (só a partir de 2023).
+-- Grão: 1 linha por (programa × categoria de primeiro acesso).
+--
+-- ATENÇÃO À COBERTURA: a interseção entre lista de contemplados e extrato
+-- bancário é parcial — em torno de 46% na LPG e 89% no PNAB. A causa foi
+-- medida e NÃO é atraso de pagamento nem filtro agressivo: o BB Ágil só
+-- enxerga contas administradas pelo Banco do Brasil, e o município muitas
+-- vezes declara ter pago um contemplado cujo pagamento não passou por lá.
+-- Logo esta tabela descreve bem a fatia coberta, e não deve ser lida como
+-- retrato completo da política. Contemplado sem evento observável fica de
+-- fora — não há fallback autodeclarado (a base perfil_acesso_fomento tem um
+-- mapeamento Sim/Não que não foi possível confirmar contra o formulário
+-- original, e inverter "novo entrante" seria pior que não responder).
+--
+-- A classificação vem de primeiro_acesso_agentes, então já é CROSS-MECANISMO
+-- e já considera a Rouanet desde 1993 — um contemplado da LPG que captou
+-- Rouanet em 2010 aparece aqui corretamente como "Não".
 
-WITH todos_contemplados AS (
-    SELECT id_normalizado, programa_fomento
+WITH contemplados AS (
+    SELECT DISTINCT id_normalizado, programa_fomento
     FROM {{ ref('identificadores_contemplados') }}
 ),
 
-bancario_contemplado AS (
+acesso_contemplado AS (
     SELECT
-        pb.beneficiario_documento,
-        pb.programa_fomento,
-        pb.categoria_primeiro_acesso_bancario
-    FROM {{ ref('primeiro_pagamento_bancario') }} pb
-    INNER JOIN todos_contemplados tc
-        ON pb.beneficiario_documento = tc.id_normalizado
-        AND pb.programa_fomento = tc.programa_fomento
+        pa.programa_fomento,
+        pa.beneficiario_documento,
+        pa.categoria_primeiro_acesso
+    FROM {{ ref('primeiro_acesso_agentes') }} pa
+    INNER JOIN contemplados c
+        ON pa.beneficiario_documento = c.id_normalizado
+        AND pa.programa_fomento = c.programa_fomento
 )
 
 SELECT
     programa_fomento,
-    categoria_primeiro_acesso_bancario AS categoria_primeiro_acesso,
+    categoria_primeiro_acesso,
     COUNT(DISTINCT beneficiario_documento) AS total_proponentes,
     ROUND(
         COUNT(DISTINCT beneficiario_documento)::NUMERIC
         / SUM(COUNT(DISTINCT beneficiario_documento)) OVER (PARTITION BY programa_fomento)
         * 100, 2
     ) AS percentual
-FROM bancario_contemplado
-GROUP BY programa_fomento, categoria_primeiro_acesso_bancario
+FROM acesso_contemplado
+GROUP BY programa_fomento, categoria_primeiro_acesso
 ORDER BY programa_fomento, total_proponentes DESC
