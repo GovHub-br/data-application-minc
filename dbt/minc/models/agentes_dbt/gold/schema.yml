@@ -129,14 +129,15 @@ models:
       (programa_fomento × categoria_primeiro_acesso × contemplado).
 
       Cobertura de contemplados:
-        - LPG: CPF e CNPJ completos via lpg_contemplados — cobertura total.
-        - PNAB PNCV: CPF real via raw_pnab_lista_contemplados_pncv — cobertura PF.
-        - PNAB Geral: apenas CNPJ via raw_pnab_lista_contemplados_geral — CPF
+        - LPG: CPF e CNPJ completos via planilha_contemplados_lpg — cobertura total.
+        - PNAB PNCV: CPF real (fatia tabela_origem = raw_pnab_lista_contemplados_pncv
+          de planilha_contemplados_pnab_ciclo_1) — cobertura PF.
+        - PNAB Geral: apenas CNPJ (fatia raw_pnab_lista_contemplados_geral) — CPF
           anonimizado (***XXXXXX**), PF da lista geral fora do PNCV não é rastreável.
     config:
       meta:
         meta_objetivo: 'Meta 5 — Primeiro Acesso com Contemplação'
-        origem_dados: 'perfil_acesso_fomento + lpg_contemplados + pnab_contemplados'
+        origem_dados: 'perfil_acesso_fomento + planilha_contemplados_lpg + planilha_contemplados_pnab_ciclo_1'
         tags: [gold, agentes, meta5, contemplados, primeiro_acesso]
     columns:
       - name: programa_fomento

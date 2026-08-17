@@ -1,6 +1,6 @@
 {{ config(materialized='table') }}
 
--- Bronze — sublançamentos do BB Gestão Ágil (schema bsc), usados quando a
+-- Bronze — sublançamentos do BB Gestão Ágil (schema bbagil), usados quando a
 -- transação-mãe do extrato tem subtransactionquantity > 0 (o beneficiário
 -- real do pagamento só aparece aqui, não na linha agregada do extrato).
 -- Porta pra SQL os 5 filtros de
@@ -25,8 +25,8 @@ SELECT
     s.beneficiaryname AS beneficiario_nome,
     ABS(s.value::NUMERIC) AS valor,
     TO_DATE(s.paymentdate, 'DD/MM/YYYY') AS data_pagamento
-FROM {{ source('bsc_pnab', 'raw_bbagil_subtransacoes') }} s
-JOIN {{ source('bsc_pnab', 'raw_bbagil_extrato_transacoes') }} e
+FROM {{ source('bbagil', 'subtransacao_bbagil') }} s
+JOIN {{ source('bbagil', 'extrato_bbagil') }} e
     ON s.id_plano_acao = e.id_plano_acao
     AND s.id_transacao_pai = e.id
 WHERE s.beneficiarydocumentid IS NOT NULL

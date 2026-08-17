@@ -9,10 +9,16 @@
 -- não normaliza espaços nem caracteres invisíveis nos nomes de coluna, então
 -- o mesmo cabeçalho em arquivos diferentes vira colunas distintas no
 -- Postgres, cada uma com parte dos dados. O que existe hoje, de fato:
---   lpg_contemplados                  "cpf ou cnpj", "cpf ou cnpj<NBSP>", "cnpj<NBSP>"
---   raw_pnab_lista_contemplados_pncv  "cpf", "cnpj", "cnpj<SP>", "cpf/ cnpj"
---   raw_pnab_lista_contemplados_geral "cnpj", "cpf ou cnpj<NBSP>"
+--   planilha_contemplados_lpg              "cpf ou cnpj", "cpf ou cnpj<NBSP>",
+--                                          "cnpj<NBSP>"
+--   planilha_contemplados_pnab_ciclo_1     "cpf", "cnpj", "cnpj<SP>",
+--                                          "cpf/ cnpj", "cpf ou cnpj<NBSP>"
 -- (<NBSP> = U+00A0, espaço não separável — não é o espaço comum.)
+--
+-- As duas listas do PNAB (geral e Cultura Viva) viraram fatias da mesma
+-- tabela, separadas por `tabela_origem`. Aqui não é preciso filtrar por
+-- fatia: as duas são PNAB e o resultado é DISTINCT, então varrer as colunas
+-- de documento da tabela inteira produz exatamente o mesmo conjunto.
 --
 -- Por isso a resolução é dinâmica via information_schema, e não uma lista
 -- fixa de nomes. O padrão anterior, ILIKE '%cpf%cnpj%', exigia "cpf" ANTES de
@@ -28,15 +34,14 @@
 -- que chegou com 10 dígitos (sem o zero à esquerda) nunca casa.
 
 {% set fontes = [
-    ('lpg_contemplados', 'LPG'),
-    ('raw_pnab_lista_contemplados_pncv', 'PNAB'),
-    ('raw_pnab_lista_contemplados_geral', 'PNAB')
+    ('planilha_contemplados_lpg', 'LPG'),
+    ('planilha_contemplados_pnab_ciclo_1', 'PNAB')
 ] %}
 
 {# lista plana de (tabela, programa, coluna) para gerar um UNION ALL simples #}
 {% set pares = [] %}
 {% for tabela, programa in fontes %}
-    {% set src = source('transferegov_fundo_a_fundo', tabela) %}
+    {% set src = source('relatorio_gestao', tabela) %}
     {% set consulta %}
         SELECT column_name
         FROM information_schema.columns
@@ -58,7 +63,7 @@ WITH bruto AS (
     SELECT
         NULLIF(TRIM("{{ col }}"), '') AS doc_bruto,
         '{{ programa }}' AS programa_fomento
-    FROM {{ source('transferegov_fundo_a_fundo', tabela) }}
+    FROM {{ source('relatorio_gestao', tabela) }}
     {%- if not loop.last %}
     UNION ALL
     {% endif %}

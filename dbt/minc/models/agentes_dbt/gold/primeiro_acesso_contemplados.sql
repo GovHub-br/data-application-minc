@@ -8,8 +8,8 @@
 -- ATENÇÃO — CPF mascarado dos proponentes LPG: a base de proponentes
 -- (lpg_agentes_pf/coletivos) traz o CPF anonimizado no formato
 -- "***.NNN.NNN-**" (apenas os 6 dígitos centrais visíveis), enquanto
--- lpg_contemplados traz o CPF completo. Um match exato (dígito a dígito)
--- nunca ocorre para esses casos, gerando falso negativo sistemático de
+-- planilha_contemplados_lpg traz o CPF completo. Um match exato (dígito a
+-- dígito) nunca ocorre para esses casos, gerando falso negativo sistemático de
 -- 'contemplado' para LPG. Por isso, quando o identificador do proponente
 -- vier mascarado, o JOIN usa um match parcial pelo "miolo" do CPF
 -- (posições 4-9, os mesmos 6 dígitos centrais expostos pela máscara).
