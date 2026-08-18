@@ -58,6 +58,21 @@
     {% endif %}
 {% endfor %}
 
+{#
+  Sem esta guarda o modelo falha da pior maneira possível quando as tabelas de
+  planilha não existem (banco onde as DAGs de conformidade ainda não rodaram):
+  a varredura do information_schema devolve zero colunas, o UNION ALL sai vazio
+  e o modelo compila `WITH bruto AS ()` — SQL inválido, que só quebra no
+  `dbt run` com um erro de sintaxe que não diz nada sobre a causa.
+#}
+{% if execute and pares | length == 0 %}
+    {{ exceptions.raise_compiler_error(
+        "identificadores_contemplados: nenhuma coluna de CPF/CNPJ encontrada em "
+        ~ fontes | map(attribute=0) | join(', ') ~ ". As tabelas de contemplados "
+        ~ "existem no banco alvo? Rode as DAGs de relatorio_gestao antes deste modelo."
+    ) }}
+{% endif %}
+
 WITH bruto AS (
     {% for tabela, programa, col in pares %}
     SELECT
