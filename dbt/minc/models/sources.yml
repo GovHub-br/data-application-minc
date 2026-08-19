@@ -319,179 +319,52 @@ sources:
         meta:
           used: false
 
-  - name: transferegov_fundo_a_fundo
-    schema: transferegov_fundo_a_fundo
-    description: >
-      Base de dados do TransfereGov (fundo a fundo) — planilhas de perfil de
-      agentes (LPG/PNAB), listas de contemplados, editais/instrumentos e apoio
-      à ingestão bbágil. Principal fonte raw consumida pelos domínios
-      agentes_dbt e cotas_dbt.
+
+  - name: transferegov
+    schema: transferegov
     tables:
-      # Perfil LPG (autodeclaração raça/PCD) — base + variantes por edital
-      - name: lpg_dados_pessoa_fisica
-        description: Ficha LPG de pessoa física (raça/PCD, CPF, cidade/UF) — planilha base.
-        meta:
-          used: true
-      - name: lpg_dados_pessoa_fisica_audiovisual
-        description: Ficha LPG de pessoa física — variante do edital audiovisual.
-        meta:
-          used: true
-      - name: lpg_dados_pessoa_fisica_multicultur
-        description: Ficha LPG de pessoa física — variante do edital multicultural (nome truncado).
-        meta:
-          used: true
-      - name: lpg_dados_pessoa_juridica
-        description: Ficha LPG de pessoa jurídica (raça/PCD do corpo diretivo, CNPJ, cidade/UF) — planilha base.
-        meta:
-          used: true
-      - name: lpg_dados_pessoa_juridica_audiovisu
-        description: Ficha LPG de pessoa jurídica — variante do edital audiovisual (nome truncado).
-        meta:
-          used: true
-      - name: lpg_dados_pessoa_juridica_multicult
-        description: Ficha LPG de pessoa jurídica — variante do edital multicultural (nome truncado).
-        meta:
-          used: true
-      - name: lpg_dados_coletivos
-        description: Ficha LPG de proponente coletivo/grupo (CPF do representante, raça/PCD da maioria do grupo) — planilha base.
-        meta:
-          used: true
-      - name: lpg_dados_grupo_coletivo
-        description: Ficha LPG de proponente coletivo/grupo — variante.
-        meta:
-          used: true
-      - name: lpg_dados_grupo_coletivo_audiovisua
-        description: Ficha LPG de proponente coletivo/grupo — variante do edital audiovisual (nome truncado).
-        meta:
-          used: true
-      - name: lpg_dados_grupo_coletivo_multicultu
-        description: Ficha LPG de proponente coletivo/grupo — variante do edital multicultural (nome truncado).
-        meta:
-          used: true
-      # Perfil PNAB (raça/PCD + CPF/CNPJ real) — reaproveitado p/ meta 3
-      - name: pnab_pessoas
-        description: >
-          Ficha PNAB de pessoa física — CPF real (não mascarado), raça/PCD,
-          indígena e quilombola (campos que a LPG não tem).
-        meta:
-          used: true
-      - name: pnab_organizacoes
-        description: >
-          Ficha PNAB de organização — CNPJ real, raça/PCD/indígena/quilombola
-          do representante legal.
-        meta:
-          used: true
-      # Contemplados (lado-valor)
-      - name: lpg_contemplados
-        description: >
-          Lista de contemplados LPG (valor pago por anexo/edital); CPF/CNPJ
-          por vezes mascarado (***.NNN.NNN-**); colunas sujeitas a
-          schema-drift entre arquivos (resolvido via coalesce_por_nome).
-        meta:
-          used: true
-      - name: raw_pnab_lista_contemplados_geral
-        description: >
-          Lista geral de contemplados PNAB; CPF vem sempre anonimizado
-          (***XXXXXX**), só CNPJ é chave casável.
-        meta:
-          used: true
-      - name: raw_pnab_lista_contemplados_pncv
-        description: >
-          Lista de contemplados PNAB via PNCV; traz CPF real (chave casável
-          para pessoa física, diferente da lista geral).
-        meta:
-          used: true
-      # Abas de definição de edital PNAB (número do edital -> ano por anexo)
-      - name: raw_pnab_acoes_gerais
-        description: >
-          Aba de definição de edital PNAB (ações gerais) — traz "número do
-          edital" por anexo, usado para derivar o ano (edital_ano_por_anexo).
-        meta:
-          used: true
-      - name: raw_pnab_acoes_cultura_viva
-        description: >
-          Aba de definição de edital PNAB (Cultura Viva) — mesmo papel de
-          raw_pnab_acoes_gerais para os anexos desse programa.
-        meta:
-          used: true
-      # Editais (denominador / ano)
-      - name: lpg_editais
-        description: Editais LPG (nome, valor total do edital) — planilha base.
-        meta:
-          used: true
-      - name: lpg_dados_instrumentos
-        description: Instrumentos/editais LPG (nome/número/valor do edital) — variante.
-        meta:
-          used: true
-      - name: lpg_dados_instrumentos_2
-        description: Instrumentos/editais LPG — variante 2.
-        meta:
-          used: true
-      - name: lpg_dados_instrumentos_2_2
-        description: Instrumentos/editais LPG — variante 2.2.
-        meta:
-          used: true
-      - name: lpg_dados_instrumentos_publicos
-        description: Instrumentos/editais LPG — variante "públicos".
-        meta:
-          used: true
-      # Ingestão bbágil / rastreabilidade financeira (colega — meta bbágil)
-      - name: raw_programas
-        description: >
-          [Não verificado a nível de coluna] Apoio à ingestão bbágil
-          (programas). Ainda não lido por nenhum model deste projeto.
-        meta:
-          used: false
-      - name: raw_planos_acao
-        description: >
-          Planos de ação por ente (id_plano_acao, código IBGE, município, UF,
-          data de início de vigência). Lido por bbagil_ente_ano — model
-          desabilitado (config enabled=false), aguardando bsc_pnab.fato_bbagil.
-        meta:
-          used: true
-      - name: raw_planos_acao_dado_bancario
-        description: >
-          [Não verificado a nível de coluna] Apoio à ingestão bbágil (dado
-          bancário do plano de ação). Ainda não lido por nenhum model deste
-          projeto.
-        meta:
-          used: false
+      - name: programa_minc
+      - name: plano_acao_minc
+      - name: plano_acao_meta_minc
+      - name: plano_acao_dado_bancario_minc
       - name: relatorios_gestao
-        description: >
-          [Não verificado a nível de coluna] Apoio à ingestão bbágil
-          (relatórios de gestão). Ainda não lido por nenhum model deste
-          projeto.
-        meta:
-          used: false
       - name: anexos_relatorios
-        description: >
-          [Não verificado a nível de coluna] Apoio à ingestão bbágil (anexos
-          de relatórios). Ainda não lido por nenhum model deste projeto.
-        meta:
-          used: false
       # Território IBGE CD2022 (setor->FCU->município->UF) p/ 4ª cota territorial
       - name: territorio_fcu_setores
-        description: >
-          Crosswalk IBGE (Censo 2022) a nível de setor censitário, com código
-          de FCU (Favelas e Comunidades Urbanas) — fonte de territorio_municipio,
-          usado na 4ª cota territorial da LPG.
-        meta:
-          used: true
 
-  - name: bsc_pnab
-    schema: bsc_pnab
-    description: >
-      Schema gerado pela DAG extracao_bbagil_dag (extração do extrato bancário
-      BB Gestão Ágil/SERPRO). Referenciado apenas pelo model stg_bbagil, hoje
-      desabilitado (config enabled=false) — a DAG ainda falha na autenticação
-      SCA (SCA_TOKEN_URL vazio no .env), então esta tabela pode não existir
-      fisicamente ainda.
+  # As planilhas dos relatórios de gestão. Antes eram ~15 tabelas, uma por aba
+  # ou template do Excel; agora são seis, três por política. Qual aba/template
+  # deu origem à linha está em `tabela_origem` e `aba_origem` — é por
+  # `tabela_origem` que os modelos filtram a fatia que antes era uma tabela.
+  - name: relatorio_gestao
+    schema: relatorio_gestao
     tables:
+      - name: planilha_contemplados_lpg
+      - name: planilha_editais_lpg
+      # Perfil LPG (autodeclaração raça/PCD) e abas de instrumentos vivem aqui,
+      # separados por tabela_origem (lpg_dados_pessoa_fisica, lpg_dados_*).
+      - name: planilha_dados_lpg
+      - name: planilha_contemplados_pnab_ciclo_1
+      - name: planilha_editais_pnab_ciclo_1
+      # Perfil PNAB (raça/PCD + CPF/CNPJ real): tabela_origem = pnab_pessoas
+      # ou pnab_organizacoes.
+      - name: planilha_dados_pnab_ciclo_1
+
+  - name: bbagil
+    schema: bbagil
+    tables:
+      # Declarada só para `stg_bbagil` continuar parseando: a tabela não é mais
+      # produzida por ninguém (a DAG parou de gerar o fato_bbagil) e o modelo
+      # que a lê está enabled=false. Sai junto com o modelo, quando ele for
+      # reescrito sobre extrato_bbagil.
       - name: fato_bbagil
+      - name: extrato_bbagil
         description: >
-          Extrato bancário agregado (grão ente+documento) do valor PAGO ao
-          beneficiário final — já filtrado na origem (só débito ao
-          beneficiário, sem repasse entre entes públicos, valores ≥R$375).
-          Lido por stg_bbagil (model desabilitado).
-        meta:
-          used: true
+          Uma linha por transacao do extrato bancario do BB Gestao Agil
+          (orgao de controle), persistida por ``extracao_bbagil_dag`` direto
+          da resposta da API do BSC/SERPRO.
+      - name: subtransacao_bbagil
+        description: >
+          Uma linha por sub-lancamento das transacoes com
+          ``subtransactionquantity`` > 0, persistida por
+          ``extracao_bbagil_dag``.
