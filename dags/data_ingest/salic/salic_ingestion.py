@@ -19,9 +19,11 @@ Connections requeridas:
 """
 
 import logging
+import time
 import traceback
 import psycopg2
 import psycopg2.extras
+import pymssql
 from datetime import datetime, timedelta
 from datetime import timezone
 
@@ -236,6 +238,9 @@ def salic_ingestion() -> None:
         )
 
         pg_conn_str = get_postgres_conn("postgres_default")
+        total = 0
+        chunk_count = 0
+        t_start = time.monotonic()
 
         try:
             # ── 1. Descobre colunas da origem ─────────────────────────────────
@@ -273,7 +278,8 @@ def salic_ingestion() -> None:
             # ── 3. Extract + Load ──────────────────────────────────────────────
             extractor = Extractor(mssql)
 
-            total = 0
+            t_extraction_start = t_start
+
             load_conn = psycopg2.connect(pg_conn_str)
             try:
                 cur = load_conn.cursor()
@@ -283,6 +289,7 @@ def salic_ingestion() -> None:
                 for chunk in extractor.buildExtraction(
                     database, table, chunk_size, schema=schema
                 ):
+                    chunk_count += 1
                     values = [
                         tuple(None if v is None else str(v) for v in row.values())
                         for row in chunk
@@ -294,9 +301,12 @@ def salic_ingestion() -> None:
                         page_size=3000,
                     )
                     total += len(chunk)
+                    elapsed = time.monotonic() - t_extraction_start
                     logging.info(
-                        "[salic_ingestion] %s.[%s].[%s]: %d linhas (total: %d)",
-                        database, schema, table, len(chunk), total,
+                        "[salic_ingestion] %s.[%s].[%s]: chunk=%d rows=%d "
+                        "total=%d elapsed=%.0fs",
+                        database, schema, table,
+                        chunk_count, len(chunk), total, elapsed,
                     )
 
                 load_conn.commit()
@@ -304,24 +314,65 @@ def salic_ingestion() -> None:
                 cur.close()
                 load_conn.close()
 
+            elapsed_total = time.monotonic() - t_extraction_start
             logging.info(
-                "[salic_ingestion] Concluído: %s.\"%s\" — %d linhas.",
-                _BRONZE_SCHEMA, bronze_table, total,
+                "[salic_ingestion] Concluído: %s.\"%s\" — %d linhas em %d chunks "
+                "(%.0fs total).",
+                _BRONZE_SCHEMA, bronze_table, total, chunk_count, elapsed_total,
             )
 
             _insert_log(pg_conn_str, dag_id, run_id, target, bronze_table,
                         "success", total, None, started_at)
             return total
 
-        except Exception as exc:
+        except (pymssql.OperationalError, pymssql.DatabaseError) as exc:
             error_msg = traceback.format_exc()
+            elapsed = time.monotonic() - t_start
+            err_str = str(exc)
+            # pymssql embute o número do erro TDS; 20003/20009 = connection lost,
+            # DB-Lib error 10054 = connection reset by peer (remote query timeout)
+            if any(code in err_str for code in ("20003", "20009", "10054", "timeout", "timed out")):
+                hint = (
+                    "PROVÁVEL CAUSA: remote query timeout do SQL Server (configurado para 20 min). "
+                    "O servidor encerrou a sessão enquanto o cursor ainda estava aberto no chunk "
+                    f"{chunk_count + 1} após {elapsed:.0f}s de extração. "
+                    "Workaround ativo: timeout=0 no pymssql (client-side). "
+                    "Ação recomendada: pedir ao DBA para executar "
+                    "'sp_configure remote query timeout, 0' ou aumentar o valor."
+                )
+            else:
+                hint = f"Erro de banco SQL Server não identificado como timeout. errno/msg: {err_str!r}"
+
             logging.error(
-                "[salic_ingestion] ERRO em %s.[%s].[%s]: %s",
-                database, schema, table, exc,
+                "[salic_ingestion] ERRO DE CONEXÃO/BD em %s.[%s].[%s] "
+                "(conn_id=%s, chunk=%d, rows_ok=%d, elapsed=%.0fs):\n"
+                "  tipo   : %s\n"
+                "  detalhe: %s\n"
+                "  hint   : %s",
+                database, schema, table,
+                conn_id, chunk_count, total, elapsed,
+                type(exc).__name__,
+                exc,
+                hint,
             )
             _insert_log(pg_conn_str, dag_id, run_id, target, bronze_table,
-                        "error", 0, error_msg, started_at)
-            return 0
+                        "error", total, error_msg, started_at)
+            return total  # retorna parcial para o log de controle mostrar progresso
+
+        except Exception as exc:
+            error_msg = traceback.format_exc()
+            elapsed = time.monotonic() - t_start
+            logging.error(
+                "[salic_ingestion] ERRO em %s.[%s].[%s] "
+                "(conn_id=%s, chunk=%d, rows_ok=%d, elapsed=%.0fs) "
+                "tipo=%s: %s",
+                database, schema, table,
+                conn_id, chunk_count, total, elapsed,
+                type(exc).__name__, exc,
+            )
+            _insert_log(pg_conn_str, dag_id, run_id, target, bronze_table,
+                        "error", total, error_msg, started_at)
+            return total
 
     # ── Wiring das tasks ──────────────────────────────────────────────────────
     configs = load_config()

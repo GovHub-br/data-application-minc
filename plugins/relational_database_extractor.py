@@ -1,4 +1,5 @@
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Iterator
 
@@ -58,25 +59,55 @@ class RelationalDatabaseExtractor(ABC):
         )
 
         conn = self._get_conn(database)
+        chunk_n = 0
         try:
             cursor = conn.cursor()
+
+            t_exec = time.monotonic()
+            logging.info(
+                "[%s] buildExtraction: executando query em %s.[%s].[%s]",
+                type(self).__name__, database, schema, table,
+            )
             cursor.execute(query)
-            chunk_n = 0
+            logging.info(
+                "[%s] buildExtraction: cursor aberto em %.1fs — iniciando fetchmany "
+                "(chunk_size=%d) em %s.[%s].[%s]",
+                type(self).__name__,
+                time.monotonic() - t_exec,
+                chunk_size,
+                database, schema, table,
+            )
+
             while True:
-                rows = cursor.fetchmany(chunk_size)
+                t_fetch = time.monotonic()
+                try:
+                    rows = cursor.fetchmany(chunk_size)
+                except Exception as fetch_err:
+                    elapsed = time.monotonic() - t_exec
+                    logging.error(
+                        "[%s] ERRO no fetchmany — chunk=%d, tabela=%s.[%s].[%s], "
+                        "elapsed_total=%.1fs, tipo_erro=%s: %s",
+                        type(self).__name__,
+                        chunk_n + 1,
+                        database, schema, table,
+                        elapsed,
+                        type(fetch_err).__name__,
+                        fetch_err,
+                    )
+                    raise
                 if not rows:
                     break
                 chunk_n += 1
-                yield [dict(zip(columns, row)) for row in rows]
+                fetch_ms = (time.monotonic() - t_fetch) * 1000
                 logging.debug(
-                    "[%s] chunk %d: %d linhas de %s.[%s].[%s]",
+                    "[%s] chunk %d: %d linhas de %s.[%s].[%s] em %.0fms",
                     type(self).__name__,
                     chunk_n,
                     len(rows),
-                    database,
-                    schema,
-                    table,
+                    database, schema, table,
+                    fetch_ms,
                 )
+                yield [dict(zip(columns, row)) for row in rows]
         finally:
             cursor.close()
             conn.close()

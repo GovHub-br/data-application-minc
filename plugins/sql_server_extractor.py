@@ -1,5 +1,6 @@
 import logging
 
+import pymssql
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 
 from relational_database_extractor import RelationalDatabaseExtractor
@@ -41,8 +42,35 @@ class SQLServerExtractor(RelationalDatabaseExtractor):
     # ── Conexão ───────────────────────────────────────────────────────────────
 
     def _get_conn(self, database: str):
+        """Conecta ao SQL Server com timeout=0 para evitar remote query timeout.
+
+        MsSqlHook.get_conn() não expõe o parâmetro timeout do pymssql, então
+        extraímos os parâmetros da Connection do Airflow e abrimos a conexão
+        diretamente.  timeout=0 desabilita o query-level timeout no driver
+        pymssql (distinto do remote query timeout do servidor, mas ajuda a
+        manter o cursor ativo durante fetchmany de tabelas grandes).
+        """
         hook = MsSqlHook(mssql_conn_id=self.conn_id, schema=database)
-        return hook.get_conn()
+        airflow_conn = hook.get_connection(self.conn_id)
+
+        host = airflow_conn.host
+        port = int(airflow_conn.port or 1433)
+        login = airflow_conn.login
+        password = airflow_conn.password
+
+        logging.info(
+            "[SQLServerExtractor] _get_conn: conectando em %s:%d db=%s (conn_id=%s, timeout=0)",
+            host, port, database, self.conn_id,
+        )
+        return pymssql.connect(
+            server=host,
+            port=port,
+            user=login,
+            password=password,
+            database=database,
+            timeout=0,       # sem query-level timeout no driver
+            login_timeout=30,
+        )
 
     # ── Metadados ─────────────────────────────────────────────────────────────
 
