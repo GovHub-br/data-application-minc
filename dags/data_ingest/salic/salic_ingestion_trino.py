@@ -165,6 +165,13 @@ _DEFAULT_SLICE_CONCURRENCY = 4
 # esta DAG existe para resolver.
 _MAX_PARALLEL_TABLES = int(os.getenv("SALIC_TRINO_MAX_PARALLEL_TABLES", "4"))
 
+# Teto de tasks mapeadas. O Airflow recusa expandir acima de `max_map_length`
+# (padrão 1024) com "pushed value is too large to map as a downstream's
+# dependency" — e são 1139 tabelas só no SALIC. Em vez de depender de uma config
+# de infraestrutura que varia por ambiente, a DAG agrupa as tabelas em lotes e
+# mapeia sobre os lotes. Cada lote carrega as suas tabelas em sequência.
+_MAX_MAPPED_TASKS = int(os.getenv("SALIC_TRINO_MAX_MAPPED_TASKS", "256"))
+
 # Repetições de uma faixa isolada antes de derrubar a tabela inteira.
 _SLICE_RETRIES = 2
 
@@ -463,71 +470,40 @@ def salic_ingestion_trino() -> None:
         # Maiores primeiro: com um pool de tarefas fixo, deixar a tabela de 200 GB
         # para o fim faz a DAG inteira esperar por ela sozinha no final.
         targets.sort(key=lambda t: t["row_count"], reverse=True)
+        lotes = _distribuir_em_lotes(targets)
         logging.info(
-            "[salic_trino] plan_targets: %d tabela(s), ~%d linhas no total. "
-            "Maiores: %s",
+            "[salic_trino] plan_targets: %d tabela(s) em %d lote(s), ~%d linhas no "
+            "total. Maiores: %s",
             len(targets),
+            len(lotes),
             sum(t["row_count"] for t in targets),
             [(t["table"], t["row_count"]) for t in targets[:5]],
         )
-        return targets
+        return lotes
 
     @task(max_active_tis_per_dagrun=_MAX_PARALLEL_TABLES)
-    def load_table(target: dict) -> int:
-        """Recria a tabela bronze e a preenche, fatia a fatia, pelo Trino."""
-        started_at = datetime.now(timezone.utc)
-        dry_run = get_current_context()["params"]["dry_run"]
-        t0 = time.monotonic()
+    def load_batch(lote: list[dict]) -> int:
+        """Carrega, em sequência, as tabelas de um lote.
 
-        try:
-            columns = _fetch_columns(target)
-            if not columns:
-                logging.warning(
-                    "[salic_trino] %s.%s sem colunas — pulando.",
-                    target["database"],
-                    target["table"],
-                )
-                write_log(target, "skipped", _stats(started_at, error="sem colunas"))
-                return 0
-
-            statements = build_statements(target, columns, _slices_for(target))
-
-            if dry_run:
-                _log_dry_run(target, columns, statements)
-                write_log(target, "dry_run", _stats(started_at, slices=len(statements)))
-                return 0
-
-            _recreate_bronze_table(target, columns)
-            rows = _run_statements(target, statements)
-
-            logging.info(
-                "[salic_trino] concluído %s.%s: %d linha(s) em %d fatia(s), %.0fs "
-                "(origem estimava %d).",
-                bronze_schema(target),
-                target["bronze_table"],
-                rows,
-                len(statements),
-                time.monotonic() - t0,
-                target["row_count"],
+        Uma tabela que falha não derruba as outras do lote: o erro vai para o log
+        de controle e a task só falha no fim, dizendo quantas quebraram. Assim uma
+        tabela problemática no meio de vinte não custa as outras dezenove.
+        """
+        params = get_current_context()["params"]
+        feitas = (
+            set()
+            if params["full_refresh"]
+            else tables_done_today(_target_catalog(), _control_schema())
+        )
+        total, falhas = _carregar_lote(lote, feitas)
+        if falhas:
+            raise RuntimeError(
+                f"{len(falhas)} de {len(lote)} tabela(s) falharam neste lote: "
+                + ", ".join(falhas[:10])
+                + (" ..." if len(falhas) > 10 else "")
             )
-            _warn_on_divergence(target, rows)
-            write_log(
-                target, "success", _stats(started_at, rows=rows, slices=len(statements))
-            )
-            return rows
+        return total
 
-        except Exception as exc:
-            logging.error(
-                "[salic_trino] ERRO em %s.%s (catálogo=%s, %.0fs) %s: %s",
-                target["database"],
-                target["table"],
-                target["catalog"],
-                time.monotonic() - t0,
-                type(exc).__name__,
-                exc,
-            )
-            write_log(target, "error", _stats(started_at, error=traceback.format_exc()))
-            raise
 
     configs = load_config()
     schemas_ready = ensure_schemas()
@@ -536,7 +512,96 @@ def salic_ingestion_trino() -> None:
     # plan_targets lê control.salic_trino_ingestion_log para saber o que já
     # passou hoje, então depende do ensure_schemas ter criado a tabela.
     schemas_ready >> targets
-    load_table.expand(target=targets)
+    load_batch.expand(lote=targets)
+
+
+# ── Carga de um lote ─────────────────────────────────────────────────────────
+
+
+def _carregar_lote(
+    lote: list[dict], feitas: set[tuple[str, str]]
+) -> tuple[int, list[str]]:
+    """Carrega as tabelas do lote em sequência, sem parar na primeira falha.
+
+    Consultar ``feitas`` aqui dentro — e não só no planejamento — é o que torna a
+    repetição da task barata: numa segunda tentativa, as tabelas que já
+    concluíram no dia são puladas em vez de recarregadas.
+    """
+    total = 0
+    falhas = []
+    for target in lote:
+        if (target["database"], target["table"]) in feitas:
+            logging.info(
+                "[salic_trino] %s.%s já concluída hoje — pulando.",
+                target["database"],
+                target["table"],
+            )
+            continue
+        try:
+            total += _load_one(target)
+        except Exception:
+            falhas.append(f"{target['database']}.{target['table']}")
+    return total, falhas
+
+
+# ── Carga de uma tabela ──────────────────────────────────────────────────────
+
+
+def _load_one(target: dict) -> int:
+    """Recria a tabela bronze e a preenche, fatia a fatia, pelo Trino."""
+    started_at = datetime.now(timezone.utc)
+    dry_run = get_current_context()["params"]["dry_run"]
+    t0 = time.monotonic()
+
+    try:
+        columns = _fetch_columns(target)
+        if not columns:
+            logging.warning(
+                "[salic_trino] %s.%s sem colunas — pulando.",
+                target["database"],
+                target["table"],
+            )
+            write_log(target, "skipped", _stats(started_at, error="sem colunas"))
+            return 0
+
+        statements = build_statements(target, columns, _slices_for(target))
+
+        if dry_run:
+            _log_dry_run(target, columns, statements)
+            write_log(target, "dry_run", _stats(started_at, slices=len(statements)))
+            return 0
+
+        _recreate_bronze_table(target, columns)
+        rows = _run_statements(target, statements)
+
+        logging.info(
+            "[salic_trino] concluído %s.%s: %d linha(s) em %d fatia(s), %.0fs "
+            "(origem estimava %d).",
+            bronze_schema(target),
+            target["bronze_table"],
+            rows,
+            len(statements),
+            time.monotonic() - t0,
+            target["row_count"],
+        )
+        _warn_on_divergence(target, rows)
+        write_log(
+            target, "success", _stats(started_at, rows=rows, slices=len(statements))
+        )
+        return rows
+
+    except Exception as exc:
+        logging.error(
+            "[salic_trino] ERRO em %s.%s (catálogo=%s, %.0fs) %s: %s",
+            target["database"],
+            target["table"],
+            target["catalog"],
+            time.monotonic() - t0,
+            type(exc).__name__,
+            exc,
+        )
+        write_log(target, "error", _stats(started_at, error=traceback.format_exc()))
+        raise
 
 
 # ── Planejamento ─────────────────────────────────────────────────────────────
@@ -593,6 +658,22 @@ def _plan_source(
         sum(1 for t in targets if t["key_column"]),
     )
     return targets
+
+
+def _distribuir_em_lotes(targets: list[dict]) -> list[list[dict]]:
+    """Agrupa as tabelas em no máximo ``_MAX_MAPPED_TASKS`` lotes.
+
+    Distribui em round-robin, e não em fatias contíguas, porque `targets` chega
+    ordenado da maior para a menor: em blocos contíguos o primeiro lote levaria
+    todas as tabelas gigantes e os últimos ficariam ociosos.
+    """
+    if not targets:
+        return []
+    n = min(_MAX_MAPPED_TASKS, len(targets))
+    lotes: list[list[dict]] = [[] for _ in range(n)]
+    for i, target in enumerate(targets):
+        lotes[i % n].append(target)
+    return lotes
 
 
 def _wanted(
