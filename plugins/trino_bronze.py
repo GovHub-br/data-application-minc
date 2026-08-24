@@ -14,8 +14,11 @@ metade — e ninguém percebe até o número aparecer errado num painel.
 from math import ceil
 from typing import Any, Iterable
 
-# Schema de destino no Postgres.
-BRONZE_SCHEMA = "bronze"
+# Schema de destino no Postgres. É só o PADRÃO: o valor real vem da Variable
+# ``salic_trino_bronze_schema`` e viaja no dict do alvo, porque em produção o
+# banco pode ser compartilhado e o usuário do Trino só ter permissão num schema
+# específico.
+DEFAULT_BRONZE_SCHEMA = "bronze"
 
 # Nome do catálogo do Trino que aponta para o data warehouse. É só o PADRÃO: o
 # valor real vem da Variable ``salic_trino_target_catalog`` e viaja no dict do
@@ -188,10 +191,15 @@ def target_catalog(target: dict) -> str:
     return target.get("target_catalog") or DEFAULT_TARGET_CATALOG
 
 
+def bronze_schema(target: dict) -> str:
+    """Schema de destino deste alvo, com o padrão quando não vier definido."""
+    return target.get("bronze_schema") or DEFAULT_BRONZE_SCHEMA
+
+
 def bronze_fqtn(target: dict) -> str:
     """Tabela de destino, qualificada com o catálogo do Trino."""
     return (
-        f"{target_catalog(target)}.{BRONZE_SCHEMA}."
+        f"{target_catalog(target)}.{bronze_schema(target)}."
         f"{quote_ident(target['bronze_table'])}"
     )
 
