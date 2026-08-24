@@ -90,6 +90,96 @@ O paralelismo real é o produto de dois números:
 Padrão: **16 conexões simultâneas ao SQL Server**. Subir os dois sem medir a VPN
 recria o problema que a v2 existe para resolver.
 
+## Implantar em produção
+
+O `docker-compose.yml` deste repositório sobe um Trino **de desenvolvimento**.
+Em produção o Trino é o da infra do MinC, junto do SQL Server e do Postgres — o
+Airflow do Serpro só o orquestra.
+
+### 1. Imagem do Airflow com o provider
+
+O `requirements.txt` ganhou `apache-airflow-providers-trino`. **Sem ele a DAG nem
+importa.**
+
+```bash
+python -c "from airflow.providers.trino.hooks.trino import TrinoHook; print('ok')"
+```
+
+### 2. Catálogos no Trino de produção
+
+Copiar os **seis** `.properties` de `infra/trino/etc/catalog/` para o
+`etc/catalog/` daquele Trino. **Não copie** `config.properties`, `jvm.config` nem
+`node.properties` — aquele Trino tem os seus.
+
+### 3. Dez variáveis de ambiente, no processo do Trino
+
+```bash
+SALIC_MSSQL_HOST=  SALIC_MSSQL_PORT=1433  SALIC_MSSQL_USER=  SALIC_MSSQL_PASSWORD=
+SALIC_MSSQL_URL_OPTS=encrypt=false;trustServerCertificate=true;loginTimeout=30
+TRINO_DW_HOST=  TRINO_DW_PORT=5432  TRINO_DW_DB=  TRINO_DW_USER=  TRINO_DW_PASSWORD=
+```
+
+Faltando uma, aquele catálogo não carrega e o erro só aparece no log do Trino.
+Reinicie o Trino e confira com `SHOW CATALOGS`.
+
+### 4. Airflow: uma Connection e até quatro Variables
+
+```bash
+airflow connections add trino_default \
+  --conn-type trino --conn-host <host> --conn-port <porta> \
+  --conn-login <usuario> --conn-schema bronze \
+  --conn-extra '{"catalog": "<catalogo-destino>", "protocol": "https"}'
+```
+
+É a **única** Connection. A DAG não fala com banco nenhum.
+
+| Variable | Obrigatória? | Padrão |
+|---|---|---|
+| `salic_trino_data` | **sim** — as cinco fontes | — |
+| `salic_trino_target_catalog` | se o catálogo não é `dw` | `dw` |
+| `salic_trino_bronze_schema` | se o schema não é `bronze` | `bronze` |
+| `salic_trino_control_schema` | se o schema não é `control` | `control` |
+
+O usuário do `dw.properties` precisa de `CREATE` nos dois schemas — é ele que
+cria as tabelas:
+
+```sql
+GRANT USAGE, CREATE ON SCHEMA <schema-bronze>   TO <usuario>;
+GRANT USAGE, CREATE ON SCHEMA <schema-controle> TO <usuario>;
+```
+
+### 5. Primeira execução: estreite antes de soltar
+
+A DAG nasce com `schedule=None`. Dispare à mão, nesta ordem:
+
+| # | Parâmetros | Prova |
+|---|---|---|
+| 1 | `dry_run` ligado, `only_tables=BDCorporativo.sysdiagrams` | conecta e planeja; não escreve |
+| 2 | `dry_run` ligado, `only_tables` vazio | retrato completo: 1139 tabelas |
+| 3 | `full_refresh` ligado, `only_tables=BDCorporativo.sysdiagrams` | escrita ponta a ponta |
+| 4 | `full_refresh` ligado, `only_tables=SAC.tbMovimentacao`, `rows_per_slice=250000` | fatiamento real |
+
+Depois de cada um, `rows_loaded = rows_source` na tabela de controle é o sinal.
+
+**`tables: []` na Variable significa as 1139 tabelas** — 1,14 TB. Não solte isso
+antes dos quatro passos.
+
+### Quando falhar
+
+| Sintoma | Causa |
+|---|---|
+| DAG não aparece / erro de import | provider do Trino não instalado |
+| `ImportError: cannot import name ... from 'trino_bronze'` | módulo em cache — **reinicie o dag-processor**. Mudança em `plugins/` não é reimportada sozinha |
+| `Catalog 'X' not found` | defina `salic_trino_target_catalog` |
+| `permission denied for schema X` | falta `CREATE` no schema; conceda o GRANT ou aponte para um schema seu |
+| `SHOW CATALOGS` sem os `salic_*` | variável de ambiente ausente; ver log do Trino |
+| `TCP/IP connection to the host ... has failed` | nome sem domínio que o Trino não resolve — use o FQDN |
+| `Table ... does not exist` numa tabela que o `SHOW TABLES` lista | `case-insensitive-name-matching` desligado na origem |
+| Carrega sem fatiar | passthrough `sys.*` indisponível; a DAG avisa e segue |
+
+Retomada é barata: a DAG pula o que já concluiu com `success` no dia. Para
+refazer tudo, `full_refresh`.
+
 ## Por que estas propriedades
 
 As quatro que não são óbvias, e o que quebra se alguém as remover:
