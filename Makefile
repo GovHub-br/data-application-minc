@@ -3,7 +3,8 @@ COMPOSE_FILE := infra/docker-compose.yml
 export PYTHONPATH := $(CURDIR)/dags:$(CURDIR)/plugins:$(CURDIR)/helpers
 export MYPYPATH := $(CURDIR):$(CURDIR)/dags:$(CURDIR)/helpers:$(CURDIR)/plugins
 
-.PHONY: setup format lint lint-ci test compose-config up down logs-airflow \
+.PHONY: setup format lint lint-ci test compose-config up up-trino down \
+        logs-airflow logs-trino trino-cli \
         docs-setup docs-collect docs-build docs-serve docs-clean
 
 DOCS_DIR := docs-pages
@@ -44,11 +45,24 @@ compose-config:
 up:
 	docker compose -f $(COMPOSE_FILE) up postgres airflow airflow-mcp
 
+# Stack com o Trino, para a ingestão SALIC v2. Fora do `up` porque a imagem
+# é grande e a JVM fica de pé consumindo memória mesmo sem ingestão rodando.
+up-trino:
+	docker compose -f $(COMPOSE_FILE) --profile trino up postgres airflow airflow-mcp trino
+
 down:
 	docker compose -f $(COMPOSE_FILE) down
 
 logs-airflow:
 	docker compose -f $(COMPOSE_FILE) logs airflow --tail=200
+
+logs-trino:
+	docker compose -f $(COMPOSE_FILE) logs trino --tail=200
+
+# Console SQL do Trino — para conferir catálogo, listar schema da origem e
+# rodar a query de uma fatia à mão quando a DAG falha.
+trino-cli:
+	docker compose -f $(COMPOSE_FILE) exec trino trino
 
 # ─── Site de documentação ──────────────────────────────────────────────────
 #

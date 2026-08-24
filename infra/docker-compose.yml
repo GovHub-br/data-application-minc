@@ -45,7 +45,10 @@ x-airflow-environment: &airflow-common-env
   AIRFLOW__CORE__MAX_MAP_LENGTH: 15000
   AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: airflow:admin
   AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@localhost/airflow
+  # A porta e a mesma que o servico postgres publica (POSTGRES_PORT). O Airflow
+  # roda em network_mode: host, entao alcanca o banco pela porta do host — se as
+  # duas divergirem, ele conecta no Postgres de outro projeto que esteja na 5432.
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@localhost:${POSTGRES_PORT:-5432}/airflow
   AIRFLOW__EMAIL__DEFAULT_EMAIL_ON_RETRY: 'false'
   AIRFLOW__EMAIL__DEFAULT_EMAIL_ON_FAILURE: 'false'
   AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: 'America/Sao_Paulo'
@@ -139,12 +142,72 @@ services:
       - postgres-db:/var/lib/postgresql/data
       - ./docker/postgres/:/docker-entrypoint-initdb.d/
     ports:
-      - "5432:5432"
+      # Parametrizada para conviver com outro stack local ja ocupando a 5432.
+      # Definida em infra/.env (o .env da raiz NAO e lido para interpolacao).
+      - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: always
+
+  # Trino — motor de consulta federada usado pela ingestão SALIC v2. Lê do SQL
+  # Server e escreve no Postgres sem que o dado passe por Python: é o que
+  # remove o gargalo de converter linha a linha no worker do Airflow.
+  #
+  # Fica atrás do profile `trino` para não entrar no `make up` do dia a dia —
+  # quem não vai ingerir SALIC não precisa baixar a imagem nem manter a JVM de
+  # pé. Suba com `make up-trino`.
+  trino:
+    image: trinodb/trino:${TRINO_VERSION:-478}
+    profiles:
+      - trino
+    env_file:
+      - path: ./.env
+        required: false
+      - path: ../.env
+        required: false
+    environment:
+      # Destino: o Postgres deste mesmo compose, alcançado pelo nome do serviço.
+      TRINO_DW_HOST: ${TRINO_DW_HOST:-postgres}
+      TRINO_DW_PORT: ${TRINO_DW_PORT:-5432}
+      TRINO_DW_DB: ${TRINO_DW_DB:-${POSTGRES_DB:-postgres}}
+      TRINO_DW_USER: ${TRINO_DW_USER:-${POSTGRES_USER:-postgres}}
+      TRINO_DW_PASSWORD: ${TRINO_DW_PASSWORD:-${POSTGRES_PASSWORD:-postgres}}
+      # Origem: sem default útil — os valores reais vêm do .env (gitignorado).
+      # Vazio deixa o Trino subir mesmo sem VPN; a query é que falha, com erro
+      # de conexão claro, em vez do container entrar em crash loop.
+      SALIC_MSSQL_HOST: ${SALIC_MSSQL_HOST:-}
+      SALIC_MSSQL_PORT: ${SALIC_MSSQL_PORT:-1433}
+      SALIC_MSSQL_USER: ${SALIC_MSSQL_USER:-}
+      SALIC_MSSQL_PASSWORD: ${SALIC_MSSQL_PASSWORD:-}
+      # O SALIC roda em SQL Server antigo: encrypt=false + trustServerCertificate
+      # evitam o handshake TLS que o JDBC moderno exige por padrão. É a mesma
+      # razão do SECLEVEL=1 no Dockerfile do Airflow.
+      SALIC_MSSQL_URL_OPTS: ${SALIC_MSSQL_URL_OPTS:-encrypt=false;trustServerCertificate=true;loginTimeout=30}
+    volumes:
+      - ./trino/etc:/etc/trino
+    # O Airflow roda em network_mode: host e herda o resolvedor da VPN; o Trino
+    # roda em bridge e NAO herda o dominio de busca. Sem isto, um SALIC_MSSQL_HOST
+    # sem dominio (nome curto de servidor) nao resolve dentro do container, ainda
+    # que a maquina host resolva — e o erro chega como "TCP/IP connection to the
+    # host ... has failed", que parece firewall e nao e.
+    #
+    # Defina SALIC_DNS_SEARCH em infra/.env com o dominio de busca da VPN. Vazio
+    # tambem funciona: basta usar o FQDN em SALIC_MSSQL_HOST.
+    dns_search:
+      - ${SALIC_DNS_SEARCH:-localdomain}
+    ports:
+      # 8088 já é do Superset e 8080 é do Airflow (network_mode: host).
+      - "${TRINO_PORT:-8090}:8080"
+    # O heap da JVM é 80% da memória do container (ver infra/trino/etc/jvm.config),
+    # então é aqui que se dimensiona o Trino — não no jvm.config.
+    mem_limit: ${TRINO_MEM_LIMIT:-6g}
+    # A imagem já traz HEALTHCHECK própria (/usr/lib/trino/bin/health-check).
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: always
 
   airflow-mcp:

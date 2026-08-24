@@ -13,6 +13,7 @@ que a substitui, e o antigo passa a `Status: substituído por ADR NNNN`.
 | [0002](0002-skills-versionadas-no-repositorio.md) | Skills versionadas no repositório, não instaladas por marketplace |
 | [0003](0003-labels-por-eixo.md) | Vocabulário de labels organizado por eixo |
 | [0004](0004-revisao-semanal-apura-antes-de-narrar.md) | A revisão semanal apura por script e narra por modelo |
+| [0005](0005-ingestao-salic-por-trino-em-fatias.md) | A ingestão do SALIC passa a ser feita pelo Trino, em fatias de chave |
 
 Para escrever um novo, existe a skill
 [`architecture-decision-records`](../../.claude/skills/architecture-decision-records/).
