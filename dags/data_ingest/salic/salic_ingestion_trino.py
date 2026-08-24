@@ -350,8 +350,11 @@ def tables_done_today(catalogo: str, controle: str) -> set[tuple[str, str]]:
             ),
         ),
         "only_tables": Param(
-            "",
-            type="string",
+            None,
+            # ["null", "string"] em vez de "string": sem o null a UI do Airflow
+            # marca o campo como obrigatório e não deixa disparar com ele vazio —
+            # que é justamente o caso mais comum (carregar tudo).
+            type=["null", "string"],
             title="Carregar apenas estas tabelas",
             description=(
                 "Lista separada por vírgula no formato banco.tabela, por "
