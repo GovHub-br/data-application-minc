@@ -14,10 +14,14 @@ metade — e ninguém percebe até o número aparecer errado num painel.
 from math import ceil
 from typing import Any, Iterable
 
-# Schema de destino no Postgres e nome do catálogo do Trino que aponta para ele
-# (infra/trino/etc/catalog/dw.properties).
+# Schema de destino no Postgres.
 BRONZE_SCHEMA = "bronze"
-TARGET_CATALOG = "dw"
+
+# Nome do catálogo do Trino que aponta para o data warehouse. É só o PADRÃO: o
+# valor real vem da Variable ``salic_trino_target_catalog`` e viaja no dict do
+# alvo, porque o nome do catálogo é uma escolha de quem administra o Trino — em
+# produção ele pode não se chamar "dw".
+DEFAULT_TARGET_CATALOG = "dw"
 
 # Teto de fatias por tabela. Sem ele, uma tabela de 10 bilhões de linhas geraria
 # milhares de queries e o custo de agendar cada uma passaria a dominar.
@@ -179,9 +183,17 @@ def source_fqtn(target: dict) -> str:
     )
 
 
+def target_catalog(target: dict) -> str:
+    """Catálogo de destino deste alvo, com o padrão quando não vier definido."""
+    return target.get("target_catalog") or DEFAULT_TARGET_CATALOG
+
+
 def bronze_fqtn(target: dict) -> str:
     """Tabela de destino, qualificada com o catálogo do Trino."""
-    return f"{TARGET_CATALOG}.{BRONZE_SCHEMA}.{quote_ident(target['bronze_table'])}"
+    return (
+        f"{target_catalog(target)}.{BRONZE_SCHEMA}."
+        f"{quote_ident(target['bronze_table'])}"
+    )
 
 
 # ── Montagem dos comandos ────────────────────────────────────────────────────
