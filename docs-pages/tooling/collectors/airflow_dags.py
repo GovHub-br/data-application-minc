@@ -95,11 +95,17 @@ def coletar() -> dict[str, Any]:
     ingest_dir = DAGS_DIR / "data_ingest"
 
     if ingest_dir.exists():
-        for arquivo in sorted(ingest_dir.rglob("*_dag.py")):
+        # Varre todo .py e filtra pelo decorador @dag, em vez de confiar no
+        # sufixo `_dag.py`. A convenção não é seguida por todos os arquivos
+        # (`salic_ingestion.py`, `salic_ingestion_trino.py`), e um arquivo fora
+        # dela sumia do site sem nenhum sinal de que estava faltando.
+        for arquivo in sorted(ingest_dir.rglob("*.py")):
             arvore = _parse(arquivo)
             if arvore is None:
                 continue
-            info = _decorador_dag(arvore) or {}
+            info = _decorador_dag(arvore)
+            if info is None:
+                continue
             fonte = arquivo.relative_to(ingest_dir).parts[0]
             dags.append(
                 {

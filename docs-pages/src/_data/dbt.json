@@ -5,7 +5,7 @@
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/lpg_agentes_coletivos.sql",
-      "descricao": "Camada Bronze — dados brutos de proponentes coletivos da LPG. Mapeia o CPF do representante do grupo/coletivo como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento.",
+      "descricao": "Camada Bronze — dados brutos de proponentes coletivos da LPG. Mapeia o CPF do representante do grupo/coletivo como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento. Carga incremental, deduplicada por identificador_unico.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -34,7 +34,7 @@
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/lpg_agentes_pf.sql",
-      "descricao": "Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo). Mapeia o CPF como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura.",
+      "descricao": "Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo). Mapeia o CPF como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura. Carga incremental (materialized='incremental'), deduplicada por identificador_unico; descarta CPF nulo, vazio ou 'nan'/'none'.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -63,7 +63,7 @@
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/lpg_agentes_pj.sql",
-      "descricao": "Camada Bronze — dados brutos de pessoas jurídicas da LPG. Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura.",
+      "descricao": "Camada Bronze — dados brutos de pessoas jurídicas da LPG. Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura. Carga incremental, deduplicada por identificador_unico; descarta CNPJ nulo, vazio ou 'nan'/'none'.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -92,7 +92,7 @@
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/pnab_agentes_pf.sql",
-      "descricao": "Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc). Mapeia o CPF como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura nos últimos 5 anos.",
+      "descricao": "Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc). Mapeia o CPF como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura nos últimos 5 anos. Carga incremental, deduplicada por identificador_unico; descarta CPF nulo, vazio ou 'nan'/'none'.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -121,7 +121,7 @@
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/pnab_agentes_pj.sql",
-      "descricao": "Camada Bronze — dados brutos de organizações da PNAB. Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura anteriormente.",
+      "descricao": "Camada Bronze — dados brutos de organizações da PNAB. Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura anteriormente. Carga incremental, deduplicada por identificador_unico.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -150,7 +150,7 @@
       "dominio": "agentes",
       "camada": "gold",
       "caminho": "dbt/minc/models/agentes_dbt/gold/perfil_acesso_fomento.sql",
-      "descricao": "Camada Gold — Meta 5 (Mapeamento de agentes culturais acessando fomento pela primeira vez). Classifica cada proponente por programa com a coluna perfil_acesso_fomento. Respostas confirmadas ('Sim'/'Não') são mantidas; respostas nulas ou omitidas recebem inferência cronológica via ROW_NUMBER() particionado por CPF/CNPJ e ordenado por programa_fomento (proxy temporal: LPG precede PNAB). Um proponente com sequencia_fomento > 1 acessou mais de um programa, evidenciando veterania.",
+      "descricao": "Camada Gold — Meta 5 (Mapeamento de agentes culturais acessando fomento pela primeira vez), construída sobre identificadores_agentes. Classifica cada proponente por programa com a coluna perfil_acesso_fomento. Respostas confirmadas ('Sim'/'Não') são mantidas; respostas nulas ou omitidas recebem inferência cronológica via ROW_NUMBER() particionado por CPF/CNPJ e ordenado por programa_fomento (proxy temporal: LPG precede PNAB alfabeticamente, o que reflete a ordem real de ingresso na base). Um proponente com sequencia_fomento > 1 acessou mais de um programa, evidenciando veterania.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -233,7 +233,7 @@
       "dominio": "agentes",
       "camada": "gold",
       "caminho": "dbt/minc/models/agentes_dbt/gold/primeiro_acesso_contemplados.sql",
-      "descricao": "Camada Gold — Meta 5 com flag de contemplação. Mesma estrutura de primeiro_acesso_resumo com duas dimensões adicionais: se o proponente foi contemplado em edital e a discriminação entre dados confirmados (resposta declarada no formulário) vs. inferidos (derivados por sequência ou presença multi-programa). Grain: 1 linha por (programa_fomento × categoria_primeiro_acesso × contemplado).\nCobertura de contemplados:\n  - LPG: CPF e CNPJ completos via lpg_contemplados — cobertura total.\n  - PNAB PNCV: CPF real via raw_pnab_lista_contemplados_pncv — cobertura PF.\n  - PNAB Geral: apenas CNPJ via raw_pnab_lista_contemplados_geral — CPF\n    anonimizado (***XXXXXX**), PF da lista geral fora do PNCV não é rastreável.",
+      "descricao": "Camada Gold — Meta 5 com flag de contemplação. Estrutura de saída semelhante à de primeiro_acesso_resumo (mesmo par programa × categoria de acesso), mas construída a partir de perfil_acesso_fomento (não de perfil_agentes_historico), pois depende da coluna status_dado (Confirmado/Inferido) exposta apenas naquele modelo. Adiciona duas dimensões: se o proponente foi contemplado em edital e a discriminação entre dados confirmados (resposta declarada no formulário) vs. inferidos (derivados por sequência ou presença multi-programa). Grain: 1 linha por (programa_fomento × categoria_primeiro_acesso × contemplado).\nCobertura de contemplados:\n  - LPG: CPF e CNPJ completos via lpg_contemplados — cobertura total.\n  - PNAB PNCV: CPF real via raw_pnab_lista_contemplados_pncv — cobertura PF.\n  - PNAB Geral: apenas CNPJ via raw_pnab_lista_contemplados_geral — CPF\n    anonimizado (***XXXXXX**), PF da lista geral fora do PNCV não é rastreável.\n\nRessalvas de qualidade do JOIN de contemplação:\n  - CPF mascarado da LPG: a base de proponentes (lpg_agentes_pf/coletivos)\n    traz o CPF anonimizado no formato \"***.NNN.NNN-**\" (só os 6 dígitos\n    centrais visíveis), enquanto lpg_contemplados traz o CPF completo. Um\n    match exato nunca ocorre nesses casos, o que geraria falso-negativo\n    sistemático de 'contemplado'. Por isso o modelo faz, adicionalmente, um\n    match parcial pelo \"miolo\" do CPF (os mesmos 6 dígitos centrais expostos\n    pela máscara) — esse match parcial tem risco de colisão entre CPFs\n    distintos com miolo igual.\n  - Colunas \"fantasma\" em lpg_contemplados: a ingestão dinâmica de planilhas\n    não normaliza espaços/caracteres invisíveis (ex.: NBSP) nos cabeçalhos, então\n    \"CPF ou CNPJ\" de arquivos diferentes pode virar colunas distintas no Postgres,\n    cada uma com parte dos dados. A coluna de CPF/CNPJ é por isso resolvida\n    dinamicamente via information_schema (qualquer coluna cujo nome contenha\n    \"cpf\" e \"cnpj\"), e não por um nome fixo.",
       "colunas": [
         {
           "nome": "programa_fomento",
@@ -281,7 +281,7 @@
       "dominio": "agentes",
       "camada": "gold",
       "caminho": "dbt/minc/models/agentes_dbt/gold/primeiro_acesso_resumo.sql",
-      "descricao": "Camada Gold — resumo agregado da Meta 5 (Indicador de Primeiro Acesso). Conta proponentes distintos por programa de fomento e categoria de acesso anterior a recursos públicos. Calcula o percentual de cada categoria sobre o total do respectivo programa (cada programa soma 100%).",
+      "descricao": "Camada Gold — resumo agregado da Meta 5 (Indicador de Primeiro Acesso), construído sobre perfil_agentes_historico. Conta proponentes distintos por programa de fomento e categoria de acesso anterior a recursos públicos. Calcula o percentual de cada categoria sobre o total do respectivo programa (cada programa soma 100%).",
       "colunas": [
         {
           "nome": "programa_fomento",
@@ -314,7 +314,7 @@
       "dominio": "agentes",
       "camada": "silver",
       "caminho": "dbt/minc/models/agentes_dbt/silver/perfil_agentes_historico.sql",
-      "descricao": "Camada Silver — perfil dos agentes com higienização da coluna de histórico de acesso a recursos públicos. Remove valores nulos, 'nan' e caracteres inválidos (ponto, ponto-e-vírgula). Classifica as respostas em três categorias padronizadas: 'Sim', 'Não' e 'Não sabe/Não informou'. Propaga a coluna programa_fomento para rastreabilidade por programa.",
+      "descricao": "Camada Silver — perfil dos agentes (a partir da view identificadores_agentes, que já consolida os cinco bronzes) com higienização da coluna de histórico de acesso a recursos públicos. Remove valores nulos, 'nan' e caracteres inválidos (ponto, ponto-e-vírgula). Classifica as respostas em três categorias padronizadas: 'Sim', 'Não' e 'Não sabe/Não informou'. Propaga a coluna programa_fomento para rastreabilidade por programa.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -351,7 +351,7 @@
       "dominio": "agentes",
       "camada": "views",
       "caminho": "dbt/minc/models/agentes_dbt/views/identificadores_agentes.sql",
-      "descricao": "Camada Views — consolidação dos cinco modelos bronze (3 LPG + 2 PNAB) em um único dataset via UNION ALL. Padroniza identificador_unico e adiciona as colunas literais programa_fomento e tipo_proponente para rastrear a origem de cada registro.",
+      "descricao": "Camada Views — consolidação dos cinco modelos bronze (3 LPG + 2 PNAB) em um único dataset via UNION ALL. Padroniza identificador_unico e adiciona as colunas literais programa_fomento e tipo_proponente para rastrear a origem de cada registro. Base de onde partem perfil_agentes_historico e perfil_acesso_fomento.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -388,7 +388,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_coletivos.sql",
-      "descricao": "Perfil LPG Coletivos/Grupos (maioria do grupo).",
+      "descricao": "Perfil LPG Coletivos/Grupos — une 4 fontes (base + variantes grupo_coletivo, audiovisual e multicultural) via UNION ALL. Demografia = raça/PCD da maioria do grupo/coletivo (não do indivíduo). Documento normalizado via macro normaliza_documento (só dígitos, vazio → NULL); linhas sem documento válido são descartadas. indigena_bruto e quilombola_bruto não existem na fonte LPG — ficam sempre NULL (só preenchidos no PNAB).",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -404,7 +404,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_pf.sql",
-      "descricao": "Perfil LPG Pessoa Física (base + audiovisual + multicultural), lixo filtrado.",
+      "descricao": "Perfil LPG Pessoa Física — une 3 fontes (base + variantes audiovisual e multicultural) via UNION ALL. Filtra o \"lixo\" de parsing: linhas sem CPF válido são descartadas após normalização (macro normaliza_documento). indigena_bruto e quilombola_bruto ficam sempre NULL (exclusivos do PNAB).",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -420,7 +420,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_pj.sql",
-      "descricao": "Perfil LPG Pessoa Jurídica (corpo diretivo).",
+      "descricao": "Perfil LPG Pessoa Jurídica — une 3 fontes (base + variantes audiovisual e multicultural) via UNION ALL. Demografia = raça/PCD do corpo diretivo da PJ (não de um indivíduo isolado). Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -436,7 +436,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_pnab_pf.sql",
-      "descricao": "Perfil PNAB Pessoa Física (pnab_pessoas) — CPF real + raça/PCD/indígena/quilombola.",
+      "descricao": "Perfil PNAB Pessoa Física (fonte pnab_pessoas) — CPF real (não mascarado) + raça/PCD/indígena/quilombola do próprio indivíduo. Viabiliza cotas demográficas para o PNAB que antes eram impossíveis de calcular (LPG não traz indígena/quilombola). Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -452,7 +452,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_pnab_pj.sql",
-      "descricao": "Perfil PNAB Organizações (pnab_organizacoes) — CNPJ real + raça/PCD do representante.",
+      "descricao": "Perfil PNAB Organizações (fonte pnab_organizacoes) — CNPJ real + raça/PCD/ indígena/quilombola do representante legal da organização. Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -468,7 +468,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_bbagil.sql",
-      "descricao": "",
+      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Aguarda a DAG extracao_bbagil_dag rodar com sucesso (hoje falha na autenticação SCA por SCA_TOKEN_URL vazio no .env); reativar (enabled=true) quando bsc_pnab.fato_bbagil existir.\nLado-valor via extrato bancário (BB Gestão Ágil/SERPRO): mede o valor efetivamente PAGO ao beneficiário final (pessoa), não o repasse a entes públicos. Fonte já vem agregada e filtrada na origem (grão ente+documento, só débito ao beneficiário, sem repasse entre entes públicos, valores ≥R$375).\nPor que importa: fct_pagamentos_elegiveis (lado das listas de contemplados) mede valor RECEBIDO pelos entes (~R$2,7bi, painel \"recebido\"); o bbágil mede o valor GASTO/pago às pessoas (~R$447mi, painel \"gasto\") — o denominador correto para as cotas. O documento do beneficiário vem real (não mascarado), normalizado pela mesma macro normaliza_documento usada em perfil_agentes_normalizado, garantindo join direto e consistente entre as duas bases.",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -484,7 +484,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_contemplados_lpg.sql",
-      "descricao": "Contemplados LPG (valor pago), colunas duplicadas coalescidas.",
+      "descricao": "Contemplados LPG (lado-valor) — colunas duplicadas por schema-drift na ingestão de planilhas são resolvidas via coalesce_por_nome (lê pelo nome real da coluna, imune a espaço/trailing). Extrai anexo_id do id_anexo da fonte. Documento mascarado (contém '*') não vira chave casável (identificador_unico = NULL), mas o valor é preservado e a linha é marcada via chave_anonimizada. Valor monetário convertido por parse_valor, com teto padrão de R$10M (valores acima disso viram NULL em valor_pago_num, mas ficam preservados em valor_bruto_num para diagnóstico).",
       "colunas": [
         {
           "nome": "origem",
@@ -505,7 +505,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_contemplados_pnab.sql",
-      "descricao": "Contemplados PNAB (geral + pncv). CNPJ casável; CPF anonimizado flagado.",
+      "descricao": "Contemplados PNAB (lado-valor) — une as listas geral + pncv via coalesce_por_nome (mesma técnica de stg_contemplados_lpg). Chave = CNPJ real (sempre casável) ou CPF real do PNCV; CPF anonimizado (***XXXXXX**) da lista geral não vira chave (fica NULL, flagado por chave_anonimizada), mas o valor é preservado. anexo_id liga este modelo ao ano do edital derivado por anexo (edital_ano_por_anexo / edital_ano_por_arquivo). Valor monetário convertido por parse_valor (mesmo teto de R$10M).",
       "colunas": [
         {
           "nome": "origem",
@@ -526,7 +526,7 @@
       "dominio": "cotas",
       "camada": "bronze",
       "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_editais.sql",
-      "descricao": "Editais LPG (lpg_editais + instrumentos) — nome, número, valor total.",
+      "descricao": "Editais LPG — une lpg_editais + 4 tabelas de instrumentos via UNION ALL; resolve colunas duplicadas (ex.: \"valor total do edital\" aparece repetida em lpg_editais) via coalesce_por_nome. Base de denominador e de derivação de ano (nome/número do edital) para o reconciliador editais_unif — não é o caminho de ano efetivamente usado pelo fluxo principal das cotas (ver contemplados_unif).",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -543,7 +543,7 @@
       "dominio": "cotas",
       "camada": "gold",
       "caminho": "dbt/minc/models/cotas_dbt/gold/cobertura_pagamentos.sql",
-      "descricao": "Cobertura por ano — teto de confiabilidade das cotas (valor casado + temporal).",
+      "descricao": "Cobertura por ano — teto de confiabilidade das cotas; leitura recomendada antes de consultar as tabelas de distribuição de cotas. Por ano (ano_final, com 'sem_ano' quando não há ano derivado), reporta quantidade de pagamentos, pessoas distintas (documentos, já excluindo mascarados), pessoas com perfil casado, valor total e valor com perfil, e três percentuais (0–100): cobertura_pessoas_pct (pessoas com perfil sobre o total de pessoas), cobertura_valor_pct (valor com perfil sobre valor total) e cobertura_temporal_pct (valor com ano derivado sobre valor total).",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -559,7 +559,7 @@
       "dominio": "cotas",
       "camada": "gold",
       "caminho": "dbt/minc/models/cotas_dbt/gold/comparativo_recebido_vs_pago.sql",
-      "descricao": "",
+      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com stg_bbagil, pois depende de fct_pagamentos_bbagil. Reativar (enabled=true) junto.\nValida o \"Diagnóstico 4\": confronta os dois lados-valor. fct_pagamentos_elegiveis (listas de contemplados) mede o valor RECEBIDO pelos entes (esperado ~R$2,7bi, ≈ painel oficial \"recebido\"); fct_pagamentos_bbagil (extrato bancário) mede o valor PAGO ao beneficiário final (esperado ~R$447mi, ≈ painel oficial \"gasto\"). Se o bbágil bater com o \"gasto\" do painel, ele passa a ser o denominador correto para as cotas. Enquanto a extração bbágil estiver parcial (amostra de 1 programa/ano), o total do bbágil será menor que o real — este modelo serve para acompanhar a convergência à medida que a extração avança.",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -576,7 +576,7 @@
       "dominio": "cotas",
       "camada": "gold",
       "caminho": "dbt/minc/models/cotas_dbt/gold/distribuicao_cotas_lpg.sql",
-      "descricao": "Cotas SOMENTE LPG (valor ponderado): negra 25%, indígena 10%, PCD 5%, território vulnerabilizado 20%; veredito vs meta.",
+      "descricao": "Cotas SOMENTE LPG, via macro compartilhada distribuicao_cotas (mesma lógica de distribuicao_cotas_pnab, sem duplicar SQL). Valor ponderado (não por contagem de agentes) por ano, para 4 grupos com meta legal mínima: negra 25%, indígena 10%, PCD 5%, território vulnerabilizado (periférico) 20% — só a LPG tem a cota territorial, pois depende de flag_territorio_vulneravel (exige cidade/UF do agente). Reporta o percentual do grupo sobre o valor total do ano E sobre o valor total-com-perfil, além do veredito ('alcancada'/'descumprida') comparando o percentual sobre valor-com-perfil contra a meta.",
       "colunas": [
         {
           "nome": "grupo",
@@ -599,7 +599,7 @@
       "dominio": "cotas",
       "camada": "gold",
       "caminho": "dbt/minc/models/cotas_dbt/gold/distribuicao_cotas_pnab.sql",
-      "descricao": "Cotas SOMENTE PNAB (valor ponderado): negra 25%, indígena 10%, PCD 5% (sem território); veredito vs meta.",
+      "descricao": "Cotas SOMENTE PNAB, via macro compartilhada distribuicao_cotas. 3 grupos com meta legal mínima (negra 25%, indígena 10%, PCD 5%), sem a cota territorial — flag_territorio_vulneravel exige cidade/UF do agente, que o lado-valor do PNAB (listas/bbágil) não traz. Ressalva (Diagnóstico 4): enquanto o lado-valor do PNAB vier das listas de contemplados, o denominador mede o valor RECEBIDO pelos entes (repasse, ~R$2,7bi), não o valor efetivamente PAGO a pessoas (~R$447mi). Quando fct_pagamentos_bbagil estiver ativo, este modelo deve passar a ler o valor pago real.",
       "colunas": [
         {
           "nome": "grupo",
@@ -622,7 +622,7 @@
       "dominio": "cotas",
       "camada": "gold",
       "caminho": "dbt/minc/models/cotas_dbt/gold/fct_pagamentos_bbagil.sql",
-      "descricao": "",
+      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com stg_bbagil/bbagil_ente_ano, até a extração bbágil rodar. Reativar (enabled=true) junto.\nFato de pagamentos via extrato bancário (valor PAGO ao beneficiário final) cruzado com o perfil de raça/PCD. Espelha fct_pagamentos_elegiveis (payment-first, LEFT JOIN, preserva órfãos sem perfil), mas usa o bbágil como lado-valor — o denominador correto para as cotas (pago a pessoas, não repasse a entes). Projetado para rodar em PARALELO a fct_pagamentos_elegiveis, não substituí-lo ainda; comparativo_recebido_vs_pago confronta os dois. A decisão de trocar o denominador oficial das cotas para este modelo é do lab (ver plano_integracao_meta3).",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -640,15 +640,19 @@
       "dominio": "cotas",
       "camada": "gold",
       "caminho": "dbt/minc/models/cotas_dbt/gold/fct_pagamentos_elegiveis.sql",
-      "descricao": "1 linha por pagamento (payment-first). Flags de cota + tem_perfil + ano_final + anexo_id.",
+      "descricao": "1 linha por pagamento (payment-first) — base do denominador das cotas. Parte de contemplados_unif com LEFT JOIN para perfil_agentes_normalizado e territorio_municipio, preservando todos os pagamentos (inclusive órfãos sem perfil casado, marcados por tem_perfil=false, e pagamentos sem ano derivado, 'sem_ano'). Carrega flag_negra, flag_indigena, flag_pcd e, exclusivo da LPG, flag_territorio_vulneravel: true quando o município do agente casa (por nome + UF normalizados) com o crosswalk IBGE de zonas periféricas (territorio_municipio); NULL quando o agente não tem cidade informada (majoritariamente PNAB). O casamento por nome cobre cerca de 47,5% dos agentes com perfil — grafias divergentes ainda não refinadas. Meta da cota territorial: 20% (ver distribuicao_cotas_lpg).",
       "colunas": [
         {
           "nome": "origem_ano",
           "descricao": ""
+        },
+        {
+          "nome": "identificador_unico",
+          "descricao": "Documento normalizado do agente (só dígitos). É a entidade `foreign` agente_documento do semantic model; NULL quando o documento veio mascarado na origem."
         }
       ],
-      "colunas_descritas": 0,
-      "testes": 1,
+      "colunas_descritas": 1,
+      "testes": 2,
       "materializacao": "",
       "depende_de": [
         "contemplados_unif",
@@ -663,7 +667,7 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/bbagil_ente_ano.sql",
-      "descricao": "",
+      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com stg_bbagil, mesmo motivo (DAG bbágil bloqueada). Reativar (enabled=true) junto.\nDatação e localização do bbágil por ente (id_plano_acao), buscadas em raw_planos_acao — o fato_bbagil não traz ano nem município diretamente. ano_plano é o ano de INÍCIO DA VIGÊNCIA do plano de ação: uma aproximação (mede o ciclo do plano, não a data exata do edital), por isso é marcado com menor precisão via origem_ano='vigencia_plano'. codigo_ibge destrava o cruzamento com município (e uma futura ponte com o Querido Diário, que busca por território via código IBGE).",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -679,7 +683,7 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/contemplados_unif.sql",
-      "descricao": "Contemplados unificados LPG+PNAB (núcleo do valor) + ano_final/origem_ano.",
+      "descricao": "Contemplados unificados LPG + PNAB — núcleo do lado-valor das cotas. Deriva o ANO do edital em cascata de 3 fontes, todas validadas em [2013, 2026]: 1) nome_edital no padrão \"NN/AAAA\"; 2) ano por ANEXO via número do edital nas abas de definição PNAB (edital_ano_por_anexo); 3) fallback pelo ano no NOME DO ARQUIVO por anexo (edital_ano_por_arquivo). anexo_id é propagado até o fato para rastreio.\nLimpeza de linhas-fantasma: as planilhas PNAB trazem linhas que não são pagamentos individuais mas carregam valor e por isso escapam do filtro do bronze (que só descarta linha sem documento E sem valor). São descartadas aqui por padrão de texto em nome_edital: (a) rodapé de subtotal (\"TOTAL DE RECURSOS APLICADOS:\"), que somado como pagamento duplicaria o dinheiro (medido: ~R$492M de fantasma, mais que o total real do PNAB de ~R$447M no painel oficial); (b) texto de instrução do template (\"Insira informações na aba...\"). O corte é feito na silver (não no bronze, que permanece raw-fiel) para cobrir o fato e os golds num único ponto. IMPORTANTE: nome_edital = 'nan' NÃO é cortado — é pagamento real sem edital identificado (vira 'sem_ano' no denominador), não lixo.",
       "colunas": [
         {
           "nome": "origem",
@@ -707,7 +711,7 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/diag_valores_cortados.sql",
-      "descricao": "",
+      "descricao": "Diagnóstico de valores por magnitude — audita o que o teto de R$10M do parse_valor cortou (valores acima do teto viram NULL em valor_pago_num e saem do denominador de valor). Classifica cada linha de stg_contemplados_lpg/pnab em faixas (sem valor; até R$10M/ok; R$10M–100M cortado; R$100M–1tri cortado; acima de 1tri cortado) e conta por origem.",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -724,7 +728,7 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/editais_unif.sql",
-      "descricao": "Editais unificados com ano derivado (número/nome), validado ≤2026.",
+      "descricao": "Editais unificados a partir de stg_editais, com ano derivado (numero_edital, com fallback para nome_edital), validado em [2013, 2026]. Mantido para reconciliação/auditoria — não é o caminho de ano efetivamente usado pelas cotas (esse é o de contemplados_unif, via edital_ano_por_anexo/edital_ano_por_arquivo).",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -740,7 +744,7 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/edital_ano_por_anexo.sql",
-      "descricao": "Ano do edital por anexo PNAB (abas de definição); só anexos ano-único.",
+      "descricao": "Ano do edital por ANEXO (PNAB) — 2ª fonte na cascata de datação de contemplados_unif. Extraído do campo \"número do edital\" nas abas de definição PNAB (raw_pnab_acoes_gerais + raw_pnab_acoes_cultura_viva), mais completo que o nome do edital na planilha de contemplados. Só mantém anexos com ano ÚNICO e consistente entre linhas — descarta anexo multi-ano por ambiguidade.",
       "colunas": [
         {
           "nome": "anexo_id",
@@ -761,7 +765,7 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/edital_ano_por_arquivo.sql",
-      "descricao": "Ano do edital por anexo via nome do arquivo (fallback 3); só anexos ano-único.",
+      "descricao": "Ano do edital por ANEXO via NOME DO ARQUIVO — 3ª fonte (fallback) na cascata de datação de contemplados_unif, usada só quando nome_edital e o número do edital por anexo não resolvem o ano. O nome do xlsx de origem costuma carregar o ano (ex.: \"Contemplados 2024.xlsx\"). Mesma regra de edital_ano_por_anexo: agrega por anexo_id e só mantém anexos com ano único, na faixa [2013, 2026]. Ganho medido (jul/2026): cobre 1.036 anexos contra 477 do método por número do edital — 849 anexos adicionais. É deliberadamente a fonte de menor prioridade: o nome do arquivo pode refletir a data de publicação, defasada em até ~1 ano em relação ao edital em si.",
       "colunas": [
         {
           "nome": "anexo_id",
@@ -783,7 +787,7 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/identificadores_agentes_cotas.sql",
-      "descricao": "Chaves distintas de agentes (para contagem secundária e unicidade).",
+      "descricao": "Chaves distintas de agentes (identificador_unico, tipo_proponente, origem) extraídas de perfil_agentes_normalizado — usada para teste de unicidade e para contagem secundária de proponentes.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -804,7 +808,7 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/perfil_agentes_normalizado.sql",
-      "descricao": "Perfil unificado LPG+PNAB, 1 linha por documento, raça/PCD normalizados.",
+      "descricao": "Perfil unificado LPG + PNAB — une os 5 bronzes de agentes (pf, pj, coletivos, pnab_pf, pnab_pj). Deduplicado por identificador_unico (1 linha por documento, não por tipo de proponente, para permitir join 1:1 com pagamentos): prioriza, na desambiguação, a linha que já traz raça preenchida, depois por origem. Normaliza raça/cor em 5 categorias (negra, indigena, branca, amarela, nao_declarada) via regex sobre texto sem acento. Deriva as flags flag_negra, flag_indigena (raça normalizada OU campo indígena explícito) e is_pcd. cidade/uf só existem nas fontes LPG (os stg do PNAB não trazem localização do agente) e ficam NULL para PNAB; são propagadas até aqui exclusivamente para viabilizar a 4ª cota territorial (só aplicável à LPG). chave_municipio_uf (cidade+UF sem acento, minúsculo) é a chave de join com territorio_municipio; fica NULL quando não há localização — nesse caso o agente não é classificável pela cota territorial.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -833,15 +837,19 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/territorio_municipio.sql",
-      "descricao": "Crosswalk IBGE CD2022 a nível de município (setor->FCU colapsado): flag em_concentracao_urbana + chave nome+uf p/ 4ª cota territorial LPG.",
+      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor com código FCU preenchido (zona periférica). Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
       "colunas": [
         {
           "nome": "cd_mun",
           "descricao": ""
+        },
+        {
+          "nome": "chave_municipio_uf",
+          "descricao": "Chave de junção por nome (município+UF normalizados) com perfil_agentes_normalizado. É a entidade `primary` do semantic model: duplicata aqui multiplicaria o valor pago no cálculo da cota territorial. NULL quando a sigla da UF não resolve — o teste `unique` ignora nulos."
         }
       ],
-      "colunas_descritas": 0,
-      "testes": 2,
+      "colunas_descritas": 1,
+      "testes": 3,
       "materializacao": "",
       "depende_de": [],
       "sources": [
@@ -891,6 +899,20 @@
       "depende_de": [],
       "sources": [],
       "linhas_sql": 68
+    },
+    {
+      "nome": "metricflow_time_spine",
+      "dominio": "geral",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/metricflow_time_spine.sql",
+      "descricao": "",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "table",
+      "depende_de": [],
+      "sources": [],
+      "linhas_sql": 21
     }
   ],
   "dominios": {
@@ -906,7 +928,7 @@
     },
     "cotas": {
       "modelos": 24,
-      "testes": 20,
+      "testes": 22,
       "camadas": {
         "bronze": 9,
         "gold": 6,
@@ -919,9 +941,290 @@
       "camadas": {
         "outros": 1
       }
+    },
+    "geral": {
+      "modelos": 1,
+      "testes": 0,
+      "camadas": {
+        "outros": 1
+      }
     }
   },
   "sources": [
+    {
+      "nome": "agentes",
+      "schema": "agentes",
+      "descricao": "NÃO é uma fonte raw externa — é o schema físico de SAÍDA do bronze do domínio agentes_dbt (config +schema: agentes em dbt_project.yml). As 5 tabelas abaixo são os models incrementais lpg_agentes_pf/pj/coletivos e pnab_agentes_pf/pj (ver agentes_dbt/bronze/schema.yml e descriptions.yml para a documentação real deles); nenhum model deste projeto as lê via source(), só via ref(). Documentadas aqui para quem consulta o Postgres ou o catálogo (OpenMetadata) sem passar pela lineage do dbt.",
+      "tabelas": [
+        {
+          "nome": "lpg_agentes_coletivos",
+          "descricao": "Dados brutos de proponentes coletivos da LPG. [= model agentes_dbt.lpg_agentes_coletivos, não fonte externa — ver nota do schema]"
+        },
+        {
+          "nome": "lpg_agentes_pf",
+          "descricao": "Dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo). [= model agentes_dbt.lpg_agentes_pf, não fonte externa — ver nota do schema]"
+        },
+        {
+          "nome": "lpg_agentes_pj",
+          "descricao": "Dados brutos de pessoas jurídicas da LPG. [= model agentes_dbt.lpg_agentes_pj, não fonte externa — ver nota do schema]"
+        },
+        {
+          "nome": "pnab_agentes_pf",
+          "descricao": "Dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc). [= model agentes_dbt.pnab_agentes_pf, não fonte externa — ver nota do schema]"
+        },
+        {
+          "nome": "pnab_agentes_pj",
+          "descricao": "Dados brutos de organizações da PNAB. [= model agentes_dbt.pnab_agentes_pj, não fonte externa — ver nota do schema]"
+        }
+      ]
+    },
+    {
+      "nome": "bb_agil",
+      "schema": "bb_agil",
+      "descricao": "Schema de ingestão do extrato bancário BB Gestão Ágil/SERPRO — pouso dos lançamentos financeiros brutos, anterior à agregação/filtragem que gera bsc_pnab.fato_bbagil (a fonte de fato lida pelo model, hoje desabilitado, stg_bbagil). Não consumido diretamente por nenhum model deste projeto.",
+      "tabelas": [
+        {
+          "nome": "raw_ingestao_financeira_lancamentos",
+          "descricao": "[Inferido do nome + do pipeline bbágil, não verificado a nível de coluna] Lançamentos financeiros brutos do extrato bancário, um passo antes da agregação em bsc_pnab.fato_bbagil."
+        }
+      ]
+    },
+    {
+      "nome": "bsc",
+      "schema": "bsc",
+      "descricao": "Schema de apoio à ingestão bbágil (extrato bancário BB Gestão Ágil). [Descrição anterior — \"contemplados, editais, instrumentos e anexos\" — estava copiada de outro schema e não correspondia às tabelas reais aqui; corrigida nesta revisão.] Não consumido diretamente por nenhum model deste projeto.",
+      "tabelas": [
+        {
+          "nome": "raw_bbagil_extrato_transacoes",
+          "descricao": "[Inferido do nome + do pipeline bbágil, não verificado a nível de coluna] Transações do extrato bancário BB Gestão Ágil."
+        },
+        {
+          "nome": "raw_bbagil_subtransacoes",
+          "descricao": "[Inferido do nome + do pipeline bbágil, não verificado a nível de coluna] Subtransações (desdobramento/rateio) de uma transação do extrato BB Gestão Ágil."
+        }
+      ]
+    },
+    {
+      "nome": "dados_mapa_cultura",
+      "schema": "dados_mapa_cultura",
+      "descricao": "Base de dados da plataforma Mapas Culturais (Hacklab) — cadastro de agentes, oportunidades/editais, inscrições, projetos e eventos culturais. [Descrição anterior — \"contemplados, editais, instrumentos e anexos\" — era copiada de outro schema; corrigida nesta revisão.] Schema não integrado a nenhum model deste projeto dbt; as descrições de tabela abaixo são inferidas do modelo de dados público da plataforma (github.com/hacklabr/mapasculturais), NÃO verificadas contra as colunas reais deste banco.",
+      "tabelas": [
+        {
+          "nome": "agent",
+          "descricao": "[Inferido, não verificado] Agente cultural (pessoa física, coletivo ou organização) cadastrado na plataforma."
+        },
+        {
+          "nome": "agent_meta",
+          "descricao": "[Inferido, não verificado] Campos dinâmicos (metadados) do agente cultural."
+        },
+        {
+          "nome": "agent_relation",
+          "descricao": "[Inferido, não verificado] Relação entre agentes (ex.: agente representante de um coletivo/organização)."
+        },
+        {
+          "nome": "event",
+          "descricao": "[Inferido, não verificado] Evento cultural cadastrado."
+        },
+        {
+          "nome": "event_occurence",
+          "descricao": "[Inferido, não verificado] Ocorrência (data/hora) de um evento."
+        },
+        {
+          "nome": "opportunity",
+          "descricao": "[Inferido, não verificado] Oportunidade/edital publicado na plataforma."
+        },
+        {
+          "nome": "opportunity_meta",
+          "descricao": "[Inferido, não verificado] Campos dinâmicos (metadados) da oportunidade/edital."
+        },
+        {
+          "nome": "pcache",
+          "descricao": "[Não identificado com segurança — possível tabela interna de cache da plataforma, não um dado de negócio]"
+        },
+        {
+          "nome": "project",
+          "descricao": "[Inferido, não verificado] Projeto cultural cadastrado."
+        },
+        {
+          "nome": "project_meta",
+          "descricao": "[Inferido, não verificado] Campos dinâmicos (metadados) do projeto cultural."
+        },
+        {
+          "nome": "regist_workplan_goal_deliv_meta",
+          "descricao": "[Inferido, não verificado; nome truncado] Metadados de uma entrega de meta do plano de trabalho de uma inscrição."
+        },
+        {
+          "nome": "registration",
+          "descricao": "[Inferido, não verificado] Inscrição de um agente em uma oportunidade/edital."
+        },
+        {
+          "nome": "registration_evaluation",
+          "descricao": "[Inferido, não verificado] Avaliação de uma inscrição."
+        },
+        {
+          "nome": "registration_field_configuratio",
+          "descricao": "[Inferido, não verificado; nome truncado] Configuração de campo de formulário de inscrição."
+        },
+        {
+          "nome": "registration_file_configuration",
+          "descricao": "[Inferido, não verificado] Configuração de campo de upload de arquivo da inscrição."
+        },
+        {
+          "nome": "registration_meta",
+          "descricao": "[Inferido, não verificado] Campos dinâmicos (metadados) da inscrição."
+        },
+        {
+          "nome": "registration_step",
+          "descricao": "[Inferido, não verificado] Etapa do fluxo de avaliação/seleção da inscrição."
+        },
+        {
+          "nome": "registration_workplan",
+          "descricao": "[Inferido, não verificado] Plano de trabalho vinculado a uma inscrição contemplada."
+        },
+        {
+          "nome": "registration_workplan_goal",
+          "descricao": "[Inferido, não verificado] Meta de um plano de trabalho."
+        },
+        {
+          "nome": "registration_workplan_goal_deli",
+          "descricao": "[Inferido, não verificado; nome truncado] Entrega vinculada a uma meta do plano de trabalho."
+        },
+        {
+          "nome": "registration_workplan_goal_meta",
+          "descricao": "[Inferido, não verificado] Campos dinâmicos (metadados) de uma meta do plano de trabalho."
+        },
+        {
+          "nome": "registration_workplan_meta",
+          "descricao": "[Inferido, não verificado] Campos dinâmicos (metadados) do plano de trabalho."
+        },
+        {
+          "nome": "seal",
+          "descricao": "[Inferido, não verificado] Selo/certificação concedido a um agente, projeto ou evento."
+        },
+        {
+          "nome": "sealmeta",
+          "descricao": "[Inferido, não verificado] Campos dinâmicos (metadados) do selo."
+        },
+        {
+          "nome": "seal_relation",
+          "descricao": "[Inferido, não verificado] Relação entre um selo e a entidade selada (agente/projeto/evento)."
+        },
+        {
+          "nome": "space",
+          "descricao": "[Inferido, não verificado] Espaço cultural cadastrado."
+        },
+        {
+          "nome": "space_meta",
+          "descricao": "[Inferido, não verificado] Campos dinâmicos (metadados) do espaço cultural."
+        },
+        {
+          "nome": "term",
+          "descricao": "[Inferido, não verificado] Termo de taxonomia (categoria/tag) usado para classificar agentes, projetos ou eventos."
+        },
+        {
+          "nome": "term_relation",
+          "descricao": "[Inferido, não verificado] Relação entre um termo de taxonomia e a entidade classificada."
+        }
+      ]
+    },
+    {
+      "nome": "dados_salic",
+      "schema": "dados_salic",
+      "descricao": "Base de dados do SALIC (Sistema de Apoio às Leis de Incentivo à Cultura, MinC) — cadastro de proponentes (pessoas físicas e jurídicas) de projetos culturais incentivados (Lei Rouanet e demais leis de incentivo). [Descrição anterior — \"contemplados, editais, instrumentos e anexos\" — era copiada de outro schema; corrigida nesta revisão.] Schema não integrado a nenhum model deste projeto dbt; descrições de tabela abaixo são inferidas do próprio nome (autoexplicativo em português), NÃO verificadas contra as colunas reais deste banco.",
+      "tabelas": [
+        {
+          "nome": "bairros",
+          "descricao": "[Inferido do nome, não verificado] Cadastro de bairros."
+        },
+        {
+          "nome": "cadastro",
+          "descricao": "[Inferido do nome, não verificado] Cadastro central de proponentes/projetos do SALIC."
+        },
+        {
+          "nome": "categorias_pessoa",
+          "descricao": "[Inferido do nome, não verificado] Categorias de classificação de pessoa (proponente)."
+        },
+        {
+          "nome": "emails",
+          "descricao": "[Inferido do nome, não verificado] E-mails cadastrados."
+        },
+        {
+          "nome": "listapessoais",
+          "descricao": "[Não identificado com segurança pelo nome]"
+        },
+        {
+          "nome": "localidades",
+          "descricao": "[Inferido do nome, não verificado] Cadastro de localidades (municípios)."
+        },
+        {
+          "nome": "logradouros",
+          "descricao": "[Inferido do nome, não verificado] Cadastro de logradouros (endereços)."
+        },
+        {
+          "nome": "orgaos",
+          "descricao": "[Inferido do nome, não verificado] Cadastro de órgãos."
+        },
+        {
+          "nome": "orgaos_ares",
+          "descricao": "[Não identificado com segurança pelo nome]"
+        },
+        {
+          "nome": "orgaos_subordinados",
+          "descricao": "[Inferido do nome, não verificado] Relação de subordinação entre órgãos."
+        },
+        {
+          "nome": "pessoa_dados",
+          "descricao": "[Inferido do nome, não verificado] Dados cadastrais de pessoa (proponente)."
+        },
+        {
+          "nome": "pessoa_enderecos",
+          "descricao": "[Inferido do nome, não verificado] Endereços de pessoa (proponente)."
+        },
+        {
+          "nome": "pessoa_identificacoes",
+          "descricao": "[Inferido do nome, não verificado] Documentos de identificação de pessoa (CPF/CNPJ etc.)."
+        },
+        {
+          "nome": "pessoa_identificacoes_aberto",
+          "descricao": "[Não identificado com segurança pelo nome — possível variante 'em aberto' de pessoa_identificacoes]"
+        },
+        {
+          "nome": "pessoas",
+          "descricao": "[Inferido do nome, não verificado] Cadastro de pessoas (proponentes)."
+        },
+        {
+          "nome": "pessoas_bkp",
+          "descricao": "[Inferido do nome, não verificado] Backup da tabela pessoas."
+        },
+        {
+          "nome": "pessoasxfuncoes",
+          "descricao": "[Inferido do nome, não verificado] Associação entre pessoas e funções/papéis."
+        },
+        {
+          "nome": "sistemas",
+          "descricao": "[Não identificado com segurança pelo nome]"
+        },
+        {
+          "nome": "tipos_pessoa",
+          "descricao": "[Inferido do nome, não verificado] Tipos de pessoa (ex.: física/jurídica)."
+        }
+      ]
+    },
+    {
+      "nome": "execucao_pnab",
+      "schema": "execucao_pnab",
+      "descricao": "Base de dados de execução do PNAB. [Descrição anterior — \"contemplados, editais, instrumentos e anexos\" — era copiada de outro schema; corrigida nesta revisão.] Schema não integrado a nenhum model deste projeto dbt; hipótese não confirmada: pode ser a fonte dos números do \"painel oficial\" (recebido/gasto) citados nos comentários de distribuicao_cotas_pnab.sql e stg_bbagil.sql.",
+      "tabelas": [
+        {
+          "nome": "distribuicao_territorial_pnab",
+          "descricao": "[Inferido do nome, não verificado] Distribuição territorial (provavelmente por UF/município) da execução do PNAB."
+        },
+        {
+          "nome": "execucao_anual_pnab",
+          "descricao": "[Inferido do nome, não verificado] Execução financeira anual do PNAB."
+        }
+      ]
+    },
     {
       "nome": "transferegov",
       "schema": "transferegov",
@@ -1009,9 +1312,9 @@
     }
   ],
   "totais": {
-    "modelos": 36,
-    "testes": 63,
-    "com_descricao": 31,
-    "sources": 16
+    "modelos": 37,
+    "testes": 65,
+    "com_descricao": 36,
+    "sources": 74
   }
 }

@@ -7,13 +7,14 @@ serve o acompanhamento das metas do PNAB e da Lei Paulo Gustavo.
 ## Stack
 
 Airflow 3.2 orquestra, Cosmos executa o dbt, Postgres é o destino, Docker Compose
-sobe tudo local. Dependências via Poetry.
+sobe tudo local. Dependências via Poetry. A ingestão do SALIC tem uma segunda via
+que usa Trino como motor de cópia — ver [ADR 0005](docs/adr/0005-ingestao-salic-por-trino-em-fatias.md).
 
 ## Mapa do repositório
 
 | Pasta | O que tem | Você edita? |
 |---|---|---|
-| `dags/data_ingest/` | uma DAG por endpoint de origem — 10 hoje | Sim |
+| `dags/data_ingest/` | uma DAG por endpoint de origem — 13 hoje | Sim |
 | `dags/dbt/minc_cosmos_dag.py` | a DAG que roda o projeto dbt inteiro | Raramente |
 | `dbt/minc/models/` | dois domínios: `cotas_dbt` (24 modelos) e `agentes_dbt` (11), cada um em bronze → silver → gold | Sim |
 | `dbt/minc/models/sources.yml` | declaração das tabelas de origem | Sim |
@@ -21,6 +22,7 @@ sobe tudo local. Dependências via Poetry.
 | `plugins/` | clientes de API (`cliente_*.py`), autenticação e regras de negócio | Sim |
 | `helpers/` | utilidades importadas pelas DAGs — Postgres, retry, requisição segura | Sim |
 | `infra/` | Docker, Compose, configuração do Airflow e do Superset | Sim |
+| `infra/trino/etc/` | config do Trino e um catálogo por banco. Credenciais só por variável de ambiente — ver [GUIA](infra/trino/GUIA.md) | Sim |
 | `docs-pages/` | o site de documentação publicado no GitHub Pages | Sim — mas só o `src/dominios.yml`. Ver abaixo |
 | `docs/adr/` | registro das decisões de arquitetura | Sim, uma por decisão que custou discussão |
 | `data/` | extrações brutas geradas por quem roda as DAGs | **Não.** Ignorada pelo git, só a estrutura de pastas é versionada |
@@ -34,8 +36,11 @@ make format          # black + ruff --fix + sqlfmt
 make lint            # black --check, ruff, mypy, sqlfmt, sqlfluff
 make test            # pytest
 make up              # sobe postgres, airflow e airflow-mcp
+make up-trino        # o mesmo, mais o Trino (ingestão SALIC v2)
 make down            # derruba
 make logs-airflow    # últimas 200 linhas do Airflow
+make logs-trino      # idem, do Trino
+make trino-cli       # console SQL do Trino
 
 make docs-collect    # relê o repositório e atualiza o acervo do site (usa rede)
 make docs-serve      # constrói e serve o site em localhost:8000 (offline)
