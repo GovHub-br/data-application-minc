@@ -7,6 +7,7 @@ errado num painel.
 """
 
 from trino_bronze import (
+    DEFAULT_TARGET_CATALOG,
     SLICE_COLUMN,
     bronze_ddl,
     build_statements,
@@ -212,6 +213,26 @@ def test_tabela_sem_chave_gera_um_comando_sem_where() -> None:
     assert statements[0]["delete"] == (
         'DELETE FROM dw.bronze."sac__projetos" WHERE "_fatia" = 0'
     )
+
+
+def test_catalogo_de_destino_nao_e_fixo() -> None:
+    # Em producao o catalogo do data warehouse pode nao se chamar "dw" — quem
+    # batiza os catalogos e quem administra o Trino. Ficar fixo derruba a
+    # primeira task com "Catalog 'dw' not found".
+    alvo = {**_alvo(), "target_catalog": "warehouse"}
+
+    _, create = bronze_ddl(alvo, [("Id", "integer")])
+    statements = build_statements(alvo, [("Id", "integer")], [(None, None)])
+
+    assert create.startswith('CREATE TABLE warehouse.bronze."sac__projetos"')
+    assert 'INSERT INTO warehouse.bronze."sac__projetos"' in statements[0]["insert"]
+    assert statements[0]["delete"].startswith('DELETE FROM warehouse.bronze.')
+
+
+def test_sem_catalogo_configurado_usa_o_padrao() -> None:
+    _, create = bronze_ddl(_alvo(), [("Id", "integer")])
+
+    assert create.startswith(f'CREATE TABLE {DEFAULT_TARGET_CATALOG}.bronze.')
 
 
 def test_ddl_cria_tudo_varchar_mais_a_coluna_tecnica() -> None:

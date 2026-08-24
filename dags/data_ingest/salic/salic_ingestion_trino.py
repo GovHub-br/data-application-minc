@@ -111,7 +111,7 @@ from airflow.sdk import Param, dag, get_current_context, task
 from trino_bronze import (
     BRONZE_SCHEMA,
     SLICE_COLUMN,
-    TARGET_CATALOG,
+    DEFAULT_TARGET_CATALOG,
     TSQL_KEY_COLUMNS,
     TSQL_ROW_COUNTS,
     bronze_ddl,
@@ -126,6 +126,7 @@ from trino_bronze import (
     quote_ident,
     source_fqtn,
     sql_literal,
+    target_catalog,
 )
 
 TRINO_CONN_ID = "trino_default"
@@ -134,6 +135,11 @@ _CONTROL_SCHEMA = "control"
 _LOG_TABLE = "salic_trino_ingestion_log"
 _DEFAULT_SCHEMA = "dbo"
 _DEFAULT_CATALOG_PREFIX = "salic_"
+
+# Nome do catálogo do Trino que aponta para o data warehouse. Vem da Variable
+# `salic_trino_target_catalog` porque quem batiza os catálogos é quem administra
+# o Trino — em produção ele pode não se chamar "dw". Sem a Variable, usa o padrão.
+_TARGET_CATALOG_VAR = "salic_trino_target_catalog"
 
 # Uma fatia de 5M linhas leva minutos, não horas — é o que mantém cada query
 # abaixo do `remote query timeout` de 20min do servidor do SALIC.
@@ -203,11 +209,20 @@ def source_metadata(catalog: str, schema: str, tsql: str) -> list[Any]:
 
 # ── Log de controle ──────────────────────────────────────────────────────────
 
-# Sem SERIAL nem CREATE INDEX: o Trino não os emite. A tabela guarda uma linha
-# por tabela por execução — algumas milhares por ano —, então varredura completa
-# na consulta de retomada é irrelevante.
-_CREATE_LOG_TABLE = f"""
-CREATE TABLE IF NOT EXISTS {TARGET_CATALOG}.{_CONTROL_SCHEMA}.{_LOG_TABLE} (
+def _target_catalog() -> str:
+    """Catálogo de destino configurado, ou o padrão."""
+    return Variable.get(_TARGET_CATALOG_VAR, default_var=DEFAULT_TARGET_CATALOG)
+
+
+def _create_log_table_sql(catalogo: str) -> str:
+    """DDL da tabela de controle.
+
+    Sem SERIAL nem CREATE INDEX: o Trino não os emite. A tabela guarda uma linha
+    por tabela por execução — algumas milhares por ano —, então varredura
+    completa na consulta de retomada é irrelevante.
+    """
+    return f"""
+CREATE TABLE IF NOT EXISTS {catalogo}.{_CONTROL_SCHEMA}.{_LOG_TABLE} (
     dag_id       varchar,
     run_id       varchar,
     "catalog"    varchar,
@@ -259,7 +274,7 @@ def write_log(target: dict, status: str, stats: dict) -> None:
     )
     trino_run(
         f"""
-        INSERT INTO {TARGET_CATALOG}.{_CONTROL_SCHEMA}.{_LOG_TABLE}
+        INSERT INTO {target_catalog(target)}.{_CONTROL_SCHEMA}.{_LOG_TABLE}
             (dag_id, run_id, "catalog", "database", "schema", table_name,
              bronze_table, status, key_column, slices, rows_loaded,
              rows_source, error_msg, started_at, finished_at)
@@ -284,12 +299,12 @@ def _instante(quando: datetime) -> str:
     )
 
 
-def tables_done_today() -> set[tuple[str, str]]:
+def tables_done_today(catalogo: str) -> set[tuple[str, str]]:
     """Pares ``(database, tabela)`` que já concluíram hoje, para retomada."""
     linhas = trino_records(
         f"""
         SELECT "database", table_name
-        FROM {TARGET_CATALOG}.{_CONTROL_SCHEMA}.{_LOG_TABLE}
+        FROM {catalogo}.{_CONTROL_SCHEMA}.{_LOG_TABLE}
         WHERE status = 'success'
           AND started_at >= CAST(current_date AS timestamp(6) with time zone)
         """
@@ -388,9 +403,11 @@ def salic_ingestion_trino() -> None:
     @task
     def ensure_schemas() -> None:
         """Cria bronze, control e a tabela de log — tudo pelo Trino."""
-        trino_run(f"CREATE SCHEMA IF NOT EXISTS {TARGET_CATALOG}.{BRONZE_SCHEMA}")
-        trino_run(f"CREATE SCHEMA IF NOT EXISTS {TARGET_CATALOG}.{_CONTROL_SCHEMA}")
-        trino_run(_CREATE_LOG_TABLE)
+        catalogo = _target_catalog()
+        logging.info("[salic_trino] catálogo de destino: %s", catalogo)
+        trino_run(f"CREATE SCHEMA IF NOT EXISTS {catalogo}.{BRONZE_SCHEMA}")
+        trino_run(f"CREATE SCHEMA IF NOT EXISTS {catalogo}.{_CONTROL_SCHEMA}")
+        trino_run(_create_log_table_sql(catalogo))
 
     @task
     def plan_targets(configs: list[dict]) -> list[dict]:
@@ -401,12 +418,13 @@ def salic_ingestion_trino() -> None:
         planejamento inteiro.
         """
         params = get_current_context()["params"]
-        done = set() if params["full_refresh"] else tables_done_today()
+        catalogo = _target_catalog()
+        done = set() if params["full_refresh"] else tables_done_today(catalogo)
         only = parse_only_tables(params["only_tables"])
 
         targets: list[dict] = []
         for source in configs:
-            targets.extend(_plan_source(source, done, only))
+            targets.extend(_plan_source(source, done, only, catalogo))
 
         # Maiores primeiro: com um pool de tarefas fixo, deixar a tabela de 200 GB
         # para o fim faz a DAG inteira esperar por ela sozinha no final.
@@ -491,7 +509,10 @@ def salic_ingestion_trino() -> None:
 
 
 def _plan_source(
-    source: dict, done: set[tuple[str, str]], only: set[tuple[str, str]]
+    source: dict,
+    done: set[tuple[str, str]],
+    only: set[tuple[str, str]],
+    catalogo_destino: str,
 ) -> list[dict]:
     """Descobre as tabelas de um banco e anexa contagem e chave a cada uma."""
     catalog = source["catalog"]
@@ -520,6 +541,7 @@ def _plan_source(
         targets.append(
             {
                 "catalog": catalog,
+                "target_catalog": catalogo_destino,
                 "database": source["database"],
                 "schema": table_schema,
                 "table": table,
