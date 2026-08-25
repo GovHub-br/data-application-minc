@@ -109,7 +109,7 @@ from airflow.providers.trino.hooks.trino import TrinoHook
 from airflow.sdk import Param, dag, get_current_context, task
 
 from trino_bronze import (
-    BRONZE_SCHEMA,
+    DEFAULT_BRONZE_SCHEMA,
     SLICE_COLUMN,
     DEFAULT_TARGET_CATALOG,
     TSQL_KEY_COLUMNS,
@@ -125,13 +125,20 @@ from trino_bronze import (
     plan_slices,
     quote_ident,
     source_fqtn,
+    bronze_schema,
     sql_literal,
     target_catalog,
 )
 
 TRINO_CONN_ID = "trino_default"
 
-_CONTROL_SCHEMA = "control"
+# Schemas de destino. Padrões: os valores reais vêm das Variables
+# `salic_trino_bronze_schema` e `salic_trino_control_schema`. Em banco
+# compartilhado o usuário do Trino costuma ter permissão só num schema próprio —
+# criar tabela fora dele dá "permission denied for schema".
+_DEFAULT_CONTROL_SCHEMA = "control"
+_BRONZE_SCHEMA_VAR = "salic_trino_bronze_schema"
+_CONTROL_SCHEMA_VAR = "salic_trino_control_schema"
 _LOG_TABLE = "salic_trino_ingestion_log"
 _DEFAULT_SCHEMA = "dbo"
 _DEFAULT_CATALOG_PREFIX = "salic_"
@@ -157,6 +164,13 @@ _DEFAULT_SLICE_CONCURRENCY = 4
 # medir é o jeito mais fácil de saturar a VPN — que é justamente o problema que
 # esta DAG existe para resolver.
 _MAX_PARALLEL_TABLES = int(os.getenv("SALIC_TRINO_MAX_PARALLEL_TABLES", "4"))
+
+# Teto de tasks mapeadas. O Airflow recusa expandir acima de `max_map_length`
+# (padrão 1024) com "pushed value is too large to map as a downstream's
+# dependency" — e são 1139 tabelas só no SALIC. Em vez de depender de uma config
+# de infraestrutura que varia por ambiente, a DAG agrupa as tabelas em lotes e
+# mapeia sobre os lotes. Cada lote carrega as suas tabelas em sequência.
+_MAX_MAPPED_TASKS = int(os.getenv("SALIC_TRINO_MAX_MAPPED_TASKS", "256"))
 
 # Repetições de uma faixa isolada antes de derrubar a tabela inteira.
 _SLICE_RETRIES = 2
@@ -214,7 +228,17 @@ def _target_catalog() -> str:
     return Variable.get(_TARGET_CATALOG_VAR, default_var=DEFAULT_TARGET_CATALOG)
 
 
-def _create_log_table_sql(catalogo: str) -> str:
+def _bronze_schema() -> str:
+    """Schema da bronze configurado, ou o padrão."""
+    return Variable.get(_BRONZE_SCHEMA_VAR, default_var=DEFAULT_BRONZE_SCHEMA)
+
+
+def _control_schema() -> str:
+    """Schema do log de controle configurado, ou o padrão."""
+    return Variable.get(_CONTROL_SCHEMA_VAR, default_var=_DEFAULT_CONTROL_SCHEMA)
+
+
+def _create_log_table_sql(catalogo: str, controle: str) -> str:
     """DDL da tabela de controle.
 
     Sem SERIAL nem CREATE INDEX: o Trino não os emite. A tabela guarda uma linha
@@ -222,7 +246,7 @@ def _create_log_table_sql(catalogo: str) -> str:
     completa na consulta de retomada é irrelevante.
     """
     return f"""
-CREATE TABLE IF NOT EXISTS {catalogo}.{_CONTROL_SCHEMA}.{_LOG_TABLE} (
+CREATE TABLE IF NOT EXISTS {catalogo}.{controle}.{_LOG_TABLE} (
     dag_id       varchar,
     run_id       varchar,
     "catalog"    varchar,
@@ -274,7 +298,7 @@ def write_log(target: dict, status: str, stats: dict) -> None:
     )
     trino_run(
         f"""
-        INSERT INTO {target_catalog(target)}.{_CONTROL_SCHEMA}.{_LOG_TABLE}
+        INSERT INTO {target_catalog(target)}.{target["control_schema"]}.{_LOG_TABLE}
             (dag_id, run_id, "catalog", "database", "schema", table_name,
              bronze_table, status, key_column, slices, rows_loaded,
              rows_source, error_msg, started_at, finished_at)
@@ -299,12 +323,12 @@ def _instante(quando: datetime) -> str:
     )
 
 
-def tables_done_today(catalogo: str) -> set[tuple[str, str]]:
+def tables_done_today(catalogo: str, controle: str) -> set[tuple[str, str]]:
     """Pares ``(database, tabela)`` que já concluíram hoje, para retomada."""
     linhas = trino_records(
         f"""
         SELECT "database", table_name
-        FROM {catalogo}.{_CONTROL_SCHEMA}.{_LOG_TABLE}
+        FROM {catalogo}.{controle}.{_LOG_TABLE}
         WHERE status = 'success'
           AND started_at >= CAST(current_date AS timestamp(6) with time zone)
         """
@@ -333,8 +357,11 @@ def tables_done_today(catalogo: str) -> set[tuple[str, str]]:
             ),
         ),
         "only_tables": Param(
-            "",
-            type="string",
+            None,
+            # ["null", "string"] em vez de "string": sem o null a UI do Airflow
+            # marca o campo como obrigatório e não deixa disparar com ele vazio —
+            # que é justamente o caso mais comum (carregar tudo).
+            type=["null", "string"],
             title="Carregar apenas estas tabelas",
             description=(
                 "Lista separada por vírgula no formato banco.tabela, por "
@@ -404,10 +431,15 @@ def salic_ingestion_trino() -> None:
     def ensure_schemas() -> None:
         """Cria bronze, control e a tabela de log — tudo pelo Trino."""
         catalogo = _target_catalog()
-        logging.info("[salic_trino] catálogo de destino: %s", catalogo)
-        trino_run(f"CREATE SCHEMA IF NOT EXISTS {catalogo}.{BRONZE_SCHEMA}")
-        trino_run(f"CREATE SCHEMA IF NOT EXISTS {catalogo}.{_CONTROL_SCHEMA}")
-        trino_run(_create_log_table_sql(catalogo))
+        bronze = _bronze_schema()
+        controle = _control_schema()
+        logging.info(
+            "[salic_trino] destino: %s.%s (bronze) e %s.%s (controle)",
+            catalogo, bronze, catalogo, controle,
+        )
+        trino_run(f"CREATE SCHEMA IF NOT EXISTS {catalogo}.{bronze}")
+        trino_run(f"CREATE SCHEMA IF NOT EXISTS {catalogo}.{controle}")
+        trino_run(_create_log_table_sql(catalogo, controle))
 
     @task
     def plan_targets(configs: list[dict]) -> list[dict]:
@@ -419,81 +451,59 @@ def salic_ingestion_trino() -> None:
         """
         params = get_current_context()["params"]
         catalogo = _target_catalog()
-        done = set() if params["full_refresh"] else tables_done_today(catalogo)
+        bronze = _bronze_schema()
+        controle = _control_schema()
+        done = (
+            set() if params["full_refresh"] else tables_done_today(catalogo, controle)
+        )
+        destino = {
+            "target_catalog": catalogo,
+            "bronze_schema": bronze,
+            "control_schema": controle,
+        }
         only = parse_only_tables(params["only_tables"])
 
         targets: list[dict] = []
         for source in configs:
-            targets.extend(_plan_source(source, done, only, catalogo))
+            targets.extend(_plan_source(source, done, only, destino))
 
         # Maiores primeiro: com um pool de tarefas fixo, deixar a tabela de 200 GB
         # para o fim faz a DAG inteira esperar por ela sozinha no final.
         targets.sort(key=lambda t: t["row_count"], reverse=True)
+        lotes = _distribuir_em_lotes(targets)
         logging.info(
-            "[salic_trino] plan_targets: %d tabela(s), ~%d linhas no total. "
-            "Maiores: %s",
+            "[salic_trino] plan_targets: %d tabela(s) em %d lote(s), ~%d linhas no "
+            "total. Maiores: %s",
             len(targets),
+            len(lotes),
             sum(t["row_count"] for t in targets),
             [(t["table"], t["row_count"]) for t in targets[:5]],
         )
-        return targets
+        return lotes
 
     @task(max_active_tis_per_dagrun=_MAX_PARALLEL_TABLES)
-    def load_table(target: dict) -> int:
-        """Recria a tabela bronze e a preenche, fatia a fatia, pelo Trino."""
-        started_at = datetime.now(timezone.utc)
-        dry_run = get_current_context()["params"]["dry_run"]
-        t0 = time.monotonic()
+    def load_batch(lote: list[dict]) -> int:
+        """Carrega, em sequência, as tabelas de um lote.
 
-        try:
-            columns = _fetch_columns(target)
-            if not columns:
-                logging.warning(
-                    "[salic_trino] %s.%s sem colunas — pulando.",
-                    target["database"],
-                    target["table"],
-                )
-                write_log(target, "skipped", _stats(started_at, error="sem colunas"))
-                return 0
-
-            statements = build_statements(target, columns, _slices_for(target))
-
-            if dry_run:
-                _log_dry_run(target, columns, statements)
-                write_log(target, "dry_run", _stats(started_at, slices=len(statements)))
-                return 0
-
-            _recreate_bronze_table(target, columns)
-            rows = _run_statements(target, statements)
-
-            logging.info(
-                "[salic_trino] concluído %s.%s: %d linha(s) em %d fatia(s), %.0fs "
-                "(origem estimava %d).",
-                BRONZE_SCHEMA,
-                target["bronze_table"],
-                rows,
-                len(statements),
-                time.monotonic() - t0,
-                target["row_count"],
+        Uma tabela que falha não derruba as outras do lote: o erro vai para o log
+        de controle e a task só falha no fim, dizendo quantas quebraram. Assim uma
+        tabela problemática no meio de vinte não custa as outras dezenove.
+        """
+        params = get_current_context()["params"]
+        feitas = (
+            set()
+            if params["full_refresh"]
+            else tables_done_today(_target_catalog(), _control_schema())
+        )
+        total, falhas = _carregar_lote(lote, feitas)
+        if falhas:
+            raise RuntimeError(
+                f"{len(falhas)} de {len(lote)} tabela(s) falharam neste lote: "
+                + ", ".join(falhas[:10])
+                + (" ..." if len(falhas) > 10 else "")
             )
-            _warn_on_divergence(target, rows)
-            write_log(
-                target, "success", _stats(started_at, rows=rows, slices=len(statements))
-            )
-            return rows
+        return total
 
-        except Exception as exc:
-            logging.error(
-                "[salic_trino] ERRO em %s.%s (catálogo=%s, %.0fs) %s: %s",
-                target["database"],
-                target["table"],
-                target["catalog"],
-                time.monotonic() - t0,
-                type(exc).__name__,
-                exc,
-            )
-            write_log(target, "error", _stats(started_at, error=traceback.format_exc()))
-            raise
 
     configs = load_config()
     schemas_ready = ensure_schemas()
@@ -502,7 +512,96 @@ def salic_ingestion_trino() -> None:
     # plan_targets lê control.salic_trino_ingestion_log para saber o que já
     # passou hoje, então depende do ensure_schemas ter criado a tabela.
     schemas_ready >> targets
-    load_table.expand(target=targets)
+    load_batch.expand(lote=targets)
+
+
+# ── Carga de um lote ─────────────────────────────────────────────────────────
+
+
+def _carregar_lote(
+    lote: list[dict], feitas: set[tuple[str, str]]
+) -> tuple[int, list[str]]:
+    """Carrega as tabelas do lote em sequência, sem parar na primeira falha.
+
+    Consultar ``feitas`` aqui dentro — e não só no planejamento — é o que torna a
+    repetição da task barata: numa segunda tentativa, as tabelas que já
+    concluíram no dia são puladas em vez de recarregadas.
+    """
+    total = 0
+    falhas = []
+    for target in lote:
+        if (target["database"], target["table"]) in feitas:
+            logging.info(
+                "[salic_trino] %s.%s já concluída hoje — pulando.",
+                target["database"],
+                target["table"],
+            )
+            continue
+        try:
+            total += _load_one(target)
+        except Exception:
+            falhas.append(f"{target['database']}.{target['table']}")
+    return total, falhas
+
+
+# ── Carga de uma tabela ──────────────────────────────────────────────────────
+
+
+def _load_one(target: dict) -> int:
+    """Recria a tabela bronze e a preenche, fatia a fatia, pelo Trino."""
+    started_at = datetime.now(timezone.utc)
+    dry_run = get_current_context()["params"]["dry_run"]
+    t0 = time.monotonic()
+
+    try:
+        columns = _fetch_columns(target)
+        if not columns:
+            logging.warning(
+                "[salic_trino] %s.%s sem colunas — pulando.",
+                target["database"],
+                target["table"],
+            )
+            write_log(target, "skipped", _stats(started_at, error="sem colunas"))
+            return 0
+
+        statements = build_statements(target, columns, _slices_for(target))
+
+        if dry_run:
+            _log_dry_run(target, columns, statements)
+            write_log(target, "dry_run", _stats(started_at, slices=len(statements)))
+            return 0
+
+        _recreate_bronze_table(target, columns)
+        rows = _run_statements(target, statements)
+
+        logging.info(
+            "[salic_trino] concluído %s.%s: %d linha(s) em %d fatia(s), %.0fs "
+            "(origem estimava %d).",
+            bronze_schema(target),
+            target["bronze_table"],
+            rows,
+            len(statements),
+            time.monotonic() - t0,
+            target["row_count"],
+        )
+        _warn_on_divergence(target, rows)
+        write_log(
+            target, "success", _stats(started_at, rows=rows, slices=len(statements))
+        )
+        return rows
+
+    except Exception as exc:
+        logging.error(
+            "[salic_trino] ERRO em %s.%s (catálogo=%s, %.0fs) %s: %s",
+            target["database"],
+            target["table"],
+            target["catalog"],
+            time.monotonic() - t0,
+            type(exc).__name__,
+            exc,
+        )
+        write_log(target, "error", _stats(started_at, error=traceback.format_exc()))
+        raise
 
 
 # ── Planejamento ─────────────────────────────────────────────────────────────
@@ -512,7 +611,7 @@ def _plan_source(
     source: dict,
     done: set[tuple[str, str]],
     only: set[tuple[str, str]],
-    catalogo_destino: str,
+    destino: dict,
 ) -> list[dict]:
     """Descobre as tabelas de um banco e anexa contagem e chave a cada uma."""
     catalog = source["catalog"]
@@ -541,7 +640,7 @@ def _plan_source(
         targets.append(
             {
                 "catalog": catalog,
-                "target_catalog": catalogo_destino,
+                **destino,
                 "database": source["database"],
                 "schema": table_schema,
                 "table": table,
@@ -559,6 +658,22 @@ def _plan_source(
         sum(1 for t in targets if t["key_column"]),
     )
     return targets
+
+
+def _distribuir_em_lotes(targets: list[dict]) -> list[list[dict]]:
+    """Agrupa as tabelas em no máximo ``_MAX_MAPPED_TASKS`` lotes.
+
+    Distribui em round-robin, e não em fatias contíguas, porque `targets` chega
+    ordenado da maior para a menor: em blocos contíguos o primeiro lote levaria
+    todas as tabelas gigantes e os últimos ficariam ociosos.
+    """
+    if not targets:
+        return []
+    n = min(_MAX_MAPPED_TASKS, len(targets))
+    lotes: list[list[dict]] = [[] for _ in range(n)]
+    for i, target in enumerate(targets):
+        lotes[i % n].append(target)
+    return lotes
 
 
 def _wanted(
@@ -626,7 +741,7 @@ def _recreate_bronze_table(target: dict, columns: list[tuple[str, str]]) -> None
     trino_run(create)
     logging.info(
         "[salic_trino] %s.%s recriada com %d coluna(s) + %s.",
-        BRONZE_SCHEMA,
+        bronze_schema(target),
         target["bronze_table"],
         len(columns),
         SLICE_COLUMN,
@@ -810,7 +925,7 @@ def _log_dry_run(
         "  primeira:\n%s",
         target["database"],
         target["table"],
-        BRONZE_SCHEMA,
+        bronze_schema(target),
         target["bronze_table"],
         len(columns),
         target["key_column"] or "(nenhuma — carga em uma vez só)",
