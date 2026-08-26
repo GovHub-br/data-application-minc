@@ -12,26 +12,49 @@
 -- base: veja as situações "arquivado ... sem captação"). Misturar aprovação
 -- com pagamento tornaria a comparação entre mecanismos incoerente.
 --
--- LIGAÇÃO ENTRE AS DUAS TABELAS: sac__captacao tem o dinheiro e a data mas não
--- tem o proponente (``cgccpfmecena`` é o incentivador que aportou, não quem
--- recebeu). O proponente está em sac__tbapiprojetorouanet.nrcnpjcpf. A chave é
--- o PRONAC: ``anoprojeto || sequencial`` de um lado, ``nrpronac`` do outro —
--- casa 667.461 de 668.365 recibos (99,86%). Não use ``captacao.idprojeto``:
--- ele é 0 na maioria das linhas. sac__projetos, que seria a ponte natural,
--- existe no schema mas foi carregada com 0 linhas.
+-- LIGAÇÃO ENTRE AS TABELAS: sac__captacao tem o dinheiro e a data mas não tem
+-- o proponente (``cgccpfmecena`` é o incentivador que aportou, não quem
+-- recebeu). A chave para chegar nele é o PRONAC. Não use ``captacao.idprojeto``:
+-- ele é 0 na maioria das linhas.
+--
+-- Usamos DUAS fontes de proponente, nesta ordem:
+--   1. ``sac__projetos`` (cadastro oficial do projeto) — carregada em 19/08/2026
+--      depois de meses falhando na ingestão. Cobre 100% dos recibos válidos.
+--   2. ``sac__tbapiprojetorouanet`` (espelho da API pública) — cobre 99,86%.
+--      Fica como reserva: se a carga de sac__projetos regredir, a série não cai.
+--
+-- As duas concordam em 100,00% dos 195.240 projetos que ambas resolvem — mesmo
+-- CPF/CNPJ, sem uma única divergência. Foi essa checagem que validou a ponte,
+-- que até 19/08 dependia só do espelho da API.
 --
 -- JANELA: recibos de 1993 em diante — praticamente toda a vigência da lei
 -- (1991). Diferente do BB Ágil (2023+), a Rouanet aqui quase não tem censura
 -- à esquerda, e é por isso que ela é a fonte que mais consegue desmentir um
 -- falso "novo entrante" do fomento direto.
 
-WITH projeto_proponente AS (
+WITH proponente_bruto AS (
+    -- prioridade 1: cadastro oficial do projeto
     SELECT
+        1 AS prioridade,
+        TRIM(anoprojeto) || TRIM(sequencial) AS pronac,
+        CASE
+            WHEN LENGTH(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g')) <= 11
+                THEN LPAD(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g'), 11, '0')
+            ELSE LPAD(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g'), 14, '0')
+        END AS beneficiario_documento,
+        NULL::TEXT AS beneficiario_nome
+    FROM {{ source('salic', 'sac__projetos') }}
+    WHERE anoprojeto IS NOT NULL
+      AND sequencial IS NOT NULL
+      AND cgccpf IS NOT NULL
+      AND LENGTH(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g')) BETWEEN 8 AND 14
+
+    UNION ALL
+
+    -- prioridade 2: espelho da API, usado onde o cadastro não resolve
+    SELECT
+        2 AS prioridade,
         TRIM(nrpronac) AS pronac,
-        -- <= 11 dígitos é CPF (PF), acima é CNPJ. O LPAD é obrigatório: a base
-        -- traz documentos sem o zero à esquerda (10 e 13 dígitos), e o lado
-        -- bancário sempre normaliza com LPAD — sem isso o mesmo agente vira
-        -- duas pessoas diferentes no cruzamento entre mecanismos.
         CASE
             WHEN LENGTH(REGEXP_REPLACE(TRIM(nrcnpjcpf), '[^0-9]', '', 'g')) <= 11
                 THEN LPAD(REGEXP_REPLACE(TRIM(nrcnpjcpf), '[^0-9]', '', 'g'), 11, '0')
@@ -42,6 +65,15 @@ WITH projeto_proponente AS (
     WHERE nrpronac IS NOT NULL
       AND nrcnpjcpf IS NOT NULL
       AND LENGTH(REGEXP_REPLACE(TRIM(nrcnpjcpf), '[^0-9]', '', 'g')) BETWEEN 8 AND 14
+),
+
+projeto_proponente AS (
+    -- uma linha por PRONAC: o cadastro ganha da API quando os dois existem
+    SELECT DISTINCT ON (pronac) pronac, beneficiario_documento, beneficiario_nome
+    FROM proponente_bruto
+    WHERE beneficiario_documento IS NOT NULL
+      AND beneficiario_documento !~ '^0+$'
+    ORDER BY pronac, prioridade
 ),
 
 recibos AS (

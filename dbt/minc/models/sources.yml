@@ -50,18 +50,40 @@ sources:
           ``subtransactionquantity`` > 0, persistida por
           ``extracao_bbagil_dag``.
 
+  - name: ancine
+    schema: ancine
+    tables:
+      - name: consulta
+        description: >
+          Captacao de projetos audiovisuais registrada pela Ancine, uma linha
+          por aporte: ``cnpj_proponente`` e quem RECEBEU, ``cnpj_investidor``
+          quem aportou (mesma estrutura da captacao da Rouanet). Cobre 17
+          mecanismos de 2005 a 2026, entre eles o FSA e a Lei do Audiovisual.
+          ARMADILHAS DE FORMATO: ``data_captacao`` e TEXT no padrao americano
+          (``7/12/2007`` e 12 de julho) e ``valor_de_captacao`` vem como
+          ``50.000,00``. ART25/ART18 sao Rouanet e NAO devem ser usados aqui —
+          ja entram pelo SALIC, por uma fonte melhor.
+
   # SALIC (Lei Rouanet) — ingestao do SQL Server do MinC para o schema bronze.
-  # Rastreada por ``control.salic_ingestion_log``. So as duas tabelas abaixo
+  # Rastreada por ``control.salic_ingestion_log``. So as tres tabelas abaixo
   # sao usadas pela Meta 5; o resto da base (1.000+ tabelas) nao entra aqui.
   - name: salic
     schema: bronze
     tables:
+      - name: sac__projetos
+        description: >
+          Cadastro oficial do projeto, com CPF/CNPJ do proponente
+          (``cgccpf``) e o PRONAC em duas colunas (``anoprojeto`` +
+          ``sequencial``). Carregada em 19/08/2026, depois de meses falhando
+          na ingestao. E a fonte primaria de proponente: cobre 100% dos
+          recibos validos de ``sac__captacao``.
       - name: sac__tbapiprojetorouanet
         description: >
-          Um projeto Rouanet por linha, com CPF/CNPJ do proponente
-          (``nrcnpjcpf``), PRONAC (``nrpronac``), mecanismo e valores
-          consolidados. E a unica tabela carregada que liga projeto a
-          proponente — ``sac__projetos`` existe no schema mas esta vazia.
+          Espelho da API publica: um projeto Rouanet por linha, com CPF/CNPJ
+          do proponente (``nrcnpjcpf``) e PRONAC (``nrpronac``). Foi a unica
+          ponte disponivel ate 19/08/2026 e segue como reserva — cobre 99,86%
+          dos recibos e concorda com ``sac__projetos`` em 100,00% dos 195.240
+          projetos que ambas resolvem.
       - name: sac__captacao
         description: >
           Um recibo de captacao por linha (dinheiro efetivamente captado

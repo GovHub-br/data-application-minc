@@ -254,7 +254,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['LAB', 'LPG', 'PNAB', 'ROUANET']
+              values: ['AUDIOVISUAL', 'FSA', 'LAB', 'LPG', 'PNAB', 'ROUANET']
       - name: tipo_pessoa
         description: "'PF' quando o documento tem 11 dígitos, 'PJ' quando tem 14."
         tests:
@@ -293,9 +293,10 @@ models:
               values: ['Sim', 'Não']
       - name: entrada_em_ano_censurado
         description: >
-          Verdadeiro quando a entrada caiu no primeiro ano observável da
-          fonte daquele mecanismo (2023 para LAB/LPG/PNAB), onde não existe
-          passado com que comparar e todo agente parece estreante.
+          Verdadeiro quando a entrada caiu no primeiro ano observável daquele
+          mecanismo (2023 para LAB/LPG/PNAB). Descritivo: para a LAB isso é
+          corte de janela, para LPG e PNAB é o ano de nascimento do programa —
+          ver ano_censurado em primeiro_acesso_anual, que separa os dois.
         tests:
           - not_null
 
@@ -329,7 +330,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['LAB', 'LPG', 'PNAB', 'ROUANET', 'TODOS']
+              values: ['AUDIOVISUAL', 'FSA', 'LAB', 'LPG', 'PNAB', 'ROUANET', 'TODOS']
       - name: agentes_atendidos
         description: Agentes distintos que receberam recurso do mecanismo naquele ano (denominador).
         tests:
@@ -350,9 +351,11 @@ models:
           - not_null
       - name: ano_censurado
         description: >
-          Verdadeiro no primeiro ano observável da fonte, onde o percentual
-          é artefato de janela e não medição. No roll-up 'TODOS' inclui 2023,
-          primeiro ano do BB Ágil.
+          Verdadeiro quando a JANELA DE EXTRAÇÃO cortou passado que existe na
+          origem: Rouanet em 1993 (a lei é de 1991) e LAB em 2023 (contas
+          abertas desde 2020, fora da janela pedida). NÃO marca o primeiro ano
+          de um programa novo: LPG e PNAB nasceram em 2023, nenhuma conta deles
+          é anterior, e a comparação contra a Rouanet rodou.
         tests:
           - not_null
       - name: ano_parcial
@@ -383,17 +386,79 @@ models:
       - name: trajetoria
         description: >
           'SO_DIRETO', 'SO_ROUANET', 'DIRETO_DEPOIS_ROUANET',
-          'ROUANET_ANTES_DIRETO' ou 'MESMO_DIA'.
+          'ROUANET_ANTES_DIRETO', 'MESMO_DIA' ou 'SO_AUDIOVISUAL' (so na trilha da Ancine,
+          fora da pergunta 2.3).
         tests:
           - not_null
           - accepted_values:
-              values: ['SO_DIRETO', 'SO_ROUANET', 'DIRETO_DEPOIS_ROUANET', 'ROUANET_ANTES_DIRETO', 'MESMO_DIA']
+              values: ['SO_DIRETO', 'SO_ROUANET', 'SO_AUDIOVISUAL', 'DIRETO_DEPOIS_ROUANET', 'ROUANET_ANTES_DIRETO', 'MESMO_DIA']
       - name: tipo_pessoa
         description: "'PF' ou 'PJ'."
         tests:
           - not_null
+      - name: mecanismo_porta_entrada
+        description: >
+          Mecanismo pelo qual o agente entrou no fomento federal. Necessário
+          para separar percurso de novidade: DIRETO_DEPOIS_ROUANET com porta
+          em AUDIOVISUAL ou FSA é agente que já acessava recurso federal antes
+          de 2023, e portanto não responde à 2.3. É NULL só para o balde
+          SO_AUDIOVISUAL quando o agente não tem porta única identificada.
       - name: agentes
         description: Quantidade de agentes distintos naquela trajetória.
+        tests:
+          - not_null
+
+  - name: conversao_direto_rouanet_coorte
+    description: >
+      Camada Gold — Meta 5, pergunta 2.3 com tempo de exposição controlado:
+      dos agentes que ENTRARAM no fomento federal pelo fomento direto
+      (LAB/LPG/PNAB), quantos depois captaram na Lei Rouanet? Grão: 1 linha
+      por (coorte de entrada × porta de entrada × tipo de pessoa).
+
+      Existe separada de trajetoria_fomento_direto_rouanet porque a contagem
+      bruta é enganosa: o fomento direto nasceu em 2023, então cada coorte
+      teve uma janela diferente para converter. converteram_ate_12m dá a
+      todas a mesma janela; coorte_com_12m_completos marca quais coortes já
+      a cumpriram por inteiro — nas que não cumpriram, a taxa é piso.
+
+      Denominador é porta de entrada, não passagem: quem já aparecia na
+      trilha da Ancine antes de 2023 não é novo entrante e fica fora.
+      Numerador é captação real na Rouanet, não projeto protocolado nem
+      aprovado.
+    config:
+      meta:
+        meta_objetivo: 'Meta 5 — Conversão do fomento direto para a Rouanet, por coorte'
+        origem_dados: 'primeiro_acesso_agentes'
+        tags: [gold, agentes, meta5, primeiro_acesso, rouanet]
+    columns:
+      - name: coorte_entrada
+        description: Ano em que o agente entrou no fomento federal pela primeira vez.
+        tests:
+          - not_null
+      - name: porta_de_entrada
+        description: "Mecanismo de entrada: 'LAB', 'LPG' ou 'PNAB'."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LAB', 'LPG', 'PNAB']
+      - name: tipo_pessoa
+        description: "'PF' ou 'PJ'."
+        tests:
+          - not_null
+      - name: entrantes
+        description: Agentes distintos que entraram por aquela porta naquela coorte.
+        tests:
+          - not_null
+      - name: converteram_rouanet
+        description: >
+          Quantos deles captaram na Rouanet em data posterior à entrada.
+          Nunca maior que entrantes.
+        tests:
+          - not_null
+      - name: converteram_ate_12m
+        description: >
+          Subconjunto de converteram_rouanet que captou em até 365 dias.
+          Métrica comparável entre coortes.
         tests:
           - not_null
 

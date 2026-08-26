@@ -12,15 +12,20 @@
 -- MECANISMOS E SUAS JANELAS DE OBSERVAÇÃO — a assimetria aqui é a limitação
 -- mais importante do indicador, e está materializada na coluna
 -- ano_inicio_observacao para que a gold possa marcar os anos censurados:
---   ROUANET  1993+   captação real (SALIC)          — praticamente completa
---   LAB      2023+   Aldir Blanc II, fundo a fundo  — LAB I (2020-21) não existe no banco
---   LPG      2023+   Lei Paulo Gustavo
---   PNAB     2023+   Política Nacional Aldir Blanc
---   FSA      —       planilha Ancine, fora do banco  — ausente
+--   ROUANET      1993+  captação real (SALIC)         — praticamente completa
+--   AUDIOVISUAL  2005+  Lei do Audiovisual, FUNCINES e editais Ancine
+--   FSA          2011+  Fundo Setorial do Audiovisual (ancine.consulta)
+--   LAB          2023+  movimento nas contas SECULT-A BLANC. A Aldir Blanc
+--                       EMERGENCIAL (2020-21) esta FORA DO ESCOPO por decisao
+--                       de negocio de 20/08/2026: foi resposta emergencial de
+--                       pandemia, nao fomento. Sua ausencia nao e lacuna.
+--   LPG          2023+  Lei Paulo Gustavo             — nasceu em 2023
+--   PNAB         2023+  Política Nacional Aldir Blanc — nasceu em 2023
 --
--- Consequência: um agente que recebeu FSA em 2015, ou LAB I em 2020, e
--- aparece pela primeira vez na LPG em 2023, será classificado como novo
--- entrante. "Novo entrante" significa "nenhuma evidência de acesso anterior
+-- Consequência: um agente cujo único acesso anterior foi por fomento estadual
+-- ou municipal aparece como novo entrante. Os dois exemplos que esta nota
+-- trazia caíram em 20/08/2026: o FSA entrou na espinha via ancine.consulta, e
+-- a Aldir Blanc emergencial saiu do escopo por decisão de negócio. "Novo entrante" significa "nenhuma evidência de acesso anterior
 -- nas fontes disponíveis", não "verificamos que nunca acessou". O erro é
 -- sempre para o mesmo lado — fonte que falta só transforma veterano em falso
 -- novo entrante, nunca o contrário — então os percentuais desta série são
@@ -66,10 +71,20 @@ rouanet AS (
     FROM {{ ref('eventos_fomento_rouanet') }}
 ),
 
+-- FSA e demais mecanismos federais do audiovisual. Como na Rouanet, o evento
+-- já é uma captação formal: não passa pelo piso, que existe só para separar
+-- repasse de resíduo no extrato bancário.
+ancine AS (
+    SELECT beneficiario_documento, programa_fomento, data_evento, valor
+    FROM {{ ref('eventos_fomento_ancine') }}
+),
+
 unificado AS (
     SELECT * FROM bbagil_elegivel
     UNION ALL
     SELECT * FROM rouanet
+    UNION ALL
+    SELECT * FROM ancine
 )
 
 SELECT
@@ -80,6 +95,7 @@ SELECT
     valor,
     CASE
         WHEN programa_fomento = 'ROUANET' THEN 'SALIC'
+        WHEN programa_fomento IN ('FSA', 'AUDIOVISUAL') THEN 'ANCINE'
         ELSE 'BB_AGIL'
     END AS fonte,
     -- primeiro ano em que a fonte daquele mecanismo consegue enxergar
@@ -87,6 +103,8 @@ SELECT
     -- mundo parece estreante porque não existe passado observável
     CASE
         WHEN programa_fomento = 'ROUANET' THEN 1993
+        WHEN programa_fomento = 'AUDIOVISUAL' THEN 2005
+        WHEN programa_fomento = 'FSA' THEN 2011
         WHEN programa_fomento = 'LAB' THEN 2023
         WHEN programa_fomento = 'LPG' THEN 2023
         WHEN programa_fomento = 'PNAB' THEN 2023

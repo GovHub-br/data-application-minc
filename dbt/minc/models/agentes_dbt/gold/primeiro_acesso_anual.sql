@@ -23,11 +23,14 @@
 -- conta UMA vez (COUNT DISTINCT sobre o documento), então a linha 'TODOS'
 -- não é a soma das linhas por mecanismo — é a população real do ano.
 --
--- ANO CENSURADO: o BB Ágil começa em 2023, então em 2023 todo agente de
--- LAB/LPG/PNAB sem passado na Rouanet aparece como estreante por construção,
--- não por medição. A coluna ano_censurado marca essas linhas. Elas não são
--- lixo — são o teto do que se pode afirmar — mas publicar o percentual de um
--- ano censurado como se fosse resultado é o erro clássico aqui.
+-- ANO CENSURADO: marca o ano em que a JANELA DE EXTRACAO cortou passado que
+-- existia na origem — nao o primeiro ano de um programa novo. Depois da
+-- decisao de 20/08/2026 de deixar a Aldir Blanc emergencial fora do escopo,
+-- sobrou pouco: a Rouanet em 1993 (a lei e de 1991) e o primeiro ano de cada
+-- trilha da Ancine, cujo piso em 2005-01-03 tem cara de extrato cortado.
+-- NENHUMA linha de 2023 e censurada: LPG e PNAB nasceram naquele ano, nenhuma
+-- conta deles e anterior, e a comparacao contra a Rouanet (1993+) rodou de
+-- verdade.
 --
 -- O NÚMERO É TETO, NÃO ESTIMATIVA PONTUAL: falta FSA (planilha Ancine, fora
 -- do banco) e falta a LAB I emergencial de 2020-2021 (não existe em nenhuma
@@ -104,13 +107,33 @@ SELECT
     ROUND(c.novos_entrantes::NUMERIC / NULLIF(c.agentes_atendidos, 0) * 100, 2)
         AS percentual_primeiro_acesso,
     CASE
+        -- ROUANET: 1993 é o primeiro ano da fonte, mas a lei é de 1991 — os
+        -- dois primeiros anos podem existir e não estar aqui.
         WHEN c.programa_fomento = 'ROUANET' THEN c.ano <= 1993
-        -- no roll-up, 2023 também é censurado: é o primeiro ano em que o BB
-        -- Ágil enxerga qualquer coisa, e LAB/LPG/PNAB dominam o volume dali
-        -- em diante. Sem essa marca, o 93% de 2023 seria lido como achado
-        -- quando é o mesmo artefato de janela dos mecanismos individuais.
-        WHEN c.programa_fomento = 'TODOS' THEN c.ano <= 1993 OR c.ano = 2023
-        ELSE c.ano <= 2023
+        WHEN c.programa_fomento = 'TODOS' THEN c.ano <= 1993
+        -- A LAB NAO e censurada. As contas dos programas 7/8/9/15 movimentam
+        -- desde 2020 e a extracao so pede meses a partir de 2023-01, mas o que
+        -- ficou de fora e a Aldir Blanc EMERGENCIAL — decidido em 20/08/2026, em
+        -- reuniao, que a transferencia emergencial da pandemia nao conta como
+        -- fomento para esta meta. Nao sendo fomento, sua ausencia nao e lacuna:
+        -- nao ha passado a revelar, e nada aqui e artefato de janela.
+        -- Ancine: a tabela tem piso duro em 2005-01-03 para TODOS os
+        -- mecanismos ao mesmo tempo, o que tem cara de extrato cortado e não
+        -- de início de política — a Lei do Audiovisual é de 1993. Marcamos o
+        -- primeiro ano de cada um por precaução, na mesma regra de sempre:
+        -- censurado é onde a janela pode ter cortado passado que existe.
+        WHEN c.programa_fomento = 'AUDIOVISUAL' THEN c.ano <= 2005
+        WHEN c.programa_fomento = 'FSA' THEN c.ano <= 2011
+        -- LPG e PNAB NÃO são censurados em 2023. Verificado: nenhuma das
+        -- 22.371 contas desses programas foi aberta antes de 2023, então a
+        -- janela não cortou nada deles — 2023 é o ano em que nasceram. E a
+        -- comparação cross-mecanismo de fato rodou contra a Rouanet, que cobre
+        -- 1993 em diante: dos 32.002 agentes da LPG em 2023, 254 foram pegos
+        -- como veteranos por ela. O que 2023 tem de particular não é ausência
+        -- de comparação, é baixa potência dela — em 2024, 68% das correções da
+        -- LPG vêm da coorte de 2023 do próprio programa, corretor que ainda
+        -- não existia. Isso é ressalva de leitura, não artefato de janela.
+        ELSE FALSE
     END AS ano_censurado,
     (c.ano = l.ano_max) AS ano_parcial
 FROM consolidado c

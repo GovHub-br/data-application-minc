@@ -16,9 +16,10 @@
 --
 -- EMPATE: se o menor evento do agente cai no mesmo dia em dois mecanismos,
 -- ambos seriam marcados como porta de entrada e o agente contaria duas vezes
--- na série anual. O desempate é determinístico por ordem de mecanismo
--- (ROUANET < LAB < LPG < PNAB, o mais antigo como política primeiro) via
--- ROW_NUMBER, garantindo exatamente uma porta de entrada por agente.
+-- na série anual. O desempate é determinístico por ordem de mecanismo, a
+-- política mais antiga primeiro — ROUANET (1991) < AUDIOVISUAL (Lei 8.685/93)
+-- < FSA (2006) < LAB (2020) < LPG (2022) < PNAB (2023) — via ROW_NUMBER,
+-- garantindo exatamente uma porta de entrada por agente.
 
 WITH por_agente_mecanismo AS (
     SELECT
@@ -46,9 +47,11 @@ com_geral AS (
                 data_primeiro_acesso_mecanismo,
                 CASE programa_fomento
                     WHEN 'ROUANET' THEN 1
-                    WHEN 'LAB' THEN 2
-                    WHEN 'LPG' THEN 3
-                    WHEN 'PNAB' THEN 4
+                    WHEN 'AUDIOVISUAL' THEN 2
+                    WHEN 'FSA' THEN 3
+                    WHEN 'LAB' THEN 4
+                    WHEN 'LPG' THEN 5
+                    WHEN 'PNAB' THEN 6
                 END
         ) AS ordem_entrada
     FROM por_agente_mecanismo
