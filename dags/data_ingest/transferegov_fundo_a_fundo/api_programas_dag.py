@@ -19,8 +19,11 @@ default_args = {
     "retry_delay": timedelta(minutes=5),
 }
 
+# Filtra por id_programa e nao por codigo_programa: a API publica devolve 500
+# ao filtrar /programas por codigo (bug do lado do servidor), e o id ja e a
+# chave primaria da tabela de destino.
 _URL_CONSULTA_PROGRAMA = (
-    "https://api.transferegov.gestao.gov.br/fundoafundo/programa?codigo_programa=eq.{}"
+    "https://api-publica.transferegov.gestao.gov.br/fundoafundo/programas?id_programa={}"
 )
 
 
@@ -94,9 +97,7 @@ def api_programas_dag() -> None:
                 politica = politicas.get(int(id_programa), {})
                 programa["sigla"] = politica.get("sigla")
                 programa["politica_publica"] = politica.get("politica_publica")
-                programa["url_consulta"] = _URL_CONSULTA_PROGRAMA.format(
-                    programa.get("codigo_programa")
-                )
+                programa["url_consulta"] = _URL_CONSULTA_PROGRAMA.format(id_programa)
                 programa["dt_ingest"] = datetime.now().isoformat()
                 programas_data.append(programa)
 
@@ -156,7 +157,7 @@ def api_programas_dag() -> None:
         wait_for_completion=False,
     )
 
-    carga_finalizada >>  trigger_planos_acao
+    carga_finalizada >> trigger_planos_acao
 
 
 api_programas_dag()
