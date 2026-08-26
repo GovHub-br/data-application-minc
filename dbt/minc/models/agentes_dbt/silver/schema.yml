@@ -3,14 +3,16 @@ version: 2
 models:
   - name: perfil_agentes_historico
     description: >
-      Camada Silver — perfil dos agentes com higienização da coluna de histórico
+      Camada Silver — perfil dos agentes (a partir da view identificadores_agentes,
+      que já consolida os cinco bronzes) com higienização da coluna de histórico
       de acesso a recursos públicos. Remove valores nulos, 'nan' e caracteres
       inválidos (ponto, ponto-e-vírgula). Classifica as respostas em três
       categorias padronizadas: 'Sim', 'Não' e 'Não sabe/Não informou'.
       Propaga a coluna programa_fomento para rastreabilidade por programa.
     config:
+      tags: [silver, agentes, higienizacao]
       meta:
-        tags: [silver, agentes, higienizacao]
+        status: Active
     columns:
       - name: identificador_unico
         description: Identificador único do proponente (CPF, CNPJ ou CPF do representante).
@@ -24,7 +26,8 @@ models:
         description: Programa de fomento de origem — 'LPG' ou 'PNAB'.
         tests:
           - accepted_values:
-              values: ['LPG', 'PNAB']
+              arguments:
+                values: ['LPG', 'PNAB']
       - name: historico_acesso_limpo
         description: Texto limpo da resposta bruta sobre acesso anterior a recursos de fomento.
       - name: categoria_primeiro_acesso
@@ -33,4 +36,154 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Sim', 'Não', 'Não sabe/Não informou']
+              arguments:
+                values: ['Sim', 'Não', 'Não sabe/Não informou']
+
+  - name: pagamentos_bbagil_beneficiarios
+    description: >
+      Camada Silver — Meta 5 Fase 4. Unifica bbagil_extrato_filtrado e
+      bbagil_subtransacoes_filtrado em 1 linha por pagamento real a um
+      beneficiário, com programa_fomento (LPG/PNAB/LAB) derivado do código
+      curto de programa do BSC. Alimenta eventos_fomento.
+
+      LAB deixou de ser colapsado em PNAB: os códigos SECULT-A BLANC são a
+      Lei Aldir Blanc II (Lei 14.399/2022), e a pergunta 2.2 da Meta 5 pede
+      os mecanismos separados. A LAB I emergencial (2020-2021) não existe em
+      nenhuma fonte do banco.
+    config:
+      tags: [silver, agentes, bbagil, meta5, fase4]
+      meta:
+        status: Active
+    columns:
+      - name: id_plano_acao
+        description: Identificador do plano de ação (ente + programa) dono da conta que fez o pagamento.
+        tests:
+          - not_null
+      - name: beneficiario_documento
+        description: CPF/CNPJ do beneficiário do pagamento, normalizado.
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Programa de fomento — 'LPG', 'PNAB' ou 'LAB'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['LPG', 'PNAB', 'LAB']
+      - name: valor
+        description: Valor do pagamento, em reais.
+        tests:
+          - not_null
+      - name: data_pagamento
+        description: Data do pagamento.
+        tests:
+          - not_null
+
+  - name: eventos_fomento_rouanet
+    description: >
+      Camada Silver — Meta 5. Um evento por captação real de recurso na Lei
+      Rouanet, no mesmo formato dos pagamentos do BB Ágil. O evento é o
+      recibo de captação (dinheiro efetivamente captado), não a aprovação do
+      projeto: projeto aprovado que nunca captou não deu acesso a recurso
+      nenhum, e misturar aprovação com pagamento tornaria a comparação entre
+      mecanismos incoerente.
+
+      Liga sac__captacao (dinheiro e data, sem proponente) a
+      sac__tbapiprojetorouanet (proponente) pelo PRONAC —
+      anoprojeto || sequencial = nrpronac, que casa 99,86% dos recibos.
+      sac__projetos, que seria a ponte natural, existe no schema mas foi
+      carregada com 0 linhas.
+    config:
+      tags: [silver, agentes, salic, rouanet, meta5]
+      meta:
+        status: Active
+        meta_objetivo: 'Meta 5 — eventos de captação da Lei Rouanet'
+        origem_dados: 'bronze.sac__captacao + bronze.sac__tbapiprojetorouanet'
+    columns:
+      - name: beneficiario_documento
+        description: CPF (11) ou CNPJ (14) do proponente, normalizado com LPAD.
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Sempre 'ROUANET'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['ROUANET']
+      - name: data_evento
+        description: Data do recibo de captação.
+        tests:
+          - not_null
+      - name: valor
+        description: Valor captado no recibo, em reais. Sempre maior que zero.
+        tests:
+          - not_null
+      - name: pronac
+        description: PRONAC do projeto que captou.
+        tests:
+          - not_null
+
+  - name: eventos_fomento
+    description: >
+      Camada Silver — Meta 5. Espinha unificada: um evento por vez que um
+      agente cultural recebeu recurso de uma política federal de fomento,
+      num formato só. É a tabela que permite perguntar "este agente já havia
+      sido contemplado antes?" acima do mecanismo, que é o que a pergunta da
+      meta exige. Grão: 1 linha por (documento, mecanismo, data, valor).
+
+      Janelas de observação, muito assimétricas: ROUANET 1993+, LAB/LPG/PNAB
+      2023+, FSA ausente. Por isso a coluna ano_inicio_observacao, que a gold
+      usa para marcar os anos censurados à esquerda.
+
+      O piso de valor (var limiar_valor_fomento, padrão 375) é aplicado sobre
+      o TOTAL do agente naquele mecanismo, não por transação, e só ao BB Ágil
+      — é lá que existe resíduo de transação que não é repasse de fomento.
+    config:
+      tags: [silver, agentes, meta5, primeiro_acesso]
+      meta:
+        status: Active
+        meta_objetivo: 'Meta 5 — espinha de eventos de acesso a fomento federal'
+        origem_dados: 'pagamentos_bbagil_beneficiarios + eventos_fomento_rouanet'
+    columns:
+      - name: beneficiario_documento
+        description: CPF (11) ou CNPJ (14) do agente, normalizado com LPAD.
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Mecanismo — 'LAB', 'LPG', 'PNAB' ou 'ROUANET'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['AUDIOVISUAL', 'FSA', 'LAB', 'LPG', 'PNAB', 'ROUANET']
+      - name: data_evento
+        description: Data em que o recurso chegou ao agente.
+        tests:
+          - not_null
+      - name: ano_evento
+        description: Ano civil de data_evento.
+        tests:
+          - not_null
+      - name: valor
+        description: Valor do evento, em reais.
+        tests:
+          - not_null
+      - name: fonte
+        description: "'BB_AGIL', 'SALIC' ou 'ANCINE'."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['ANCINE', 'BB_AGIL', 'SALIC']
+      - name: ano_inicio_observacao
+        description: Primeiro ano em que a fonte daquele mecanismo enxerga qualquer coisa.
+        tests:
+          - not_null
+      - name: tipo_pessoa
+        description: "'PF' (11 dígitos) ou 'PJ' (14)."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PF', 'PJ']

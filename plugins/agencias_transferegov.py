@@ -75,91 +75,60 @@ def _get_logger(logger: logging.Logger | None = None) -> logging.Logger:
     return configure_logger(log_to_file=False)
 
 
-def _parse_content_range(
-    content_range: str | None,
-) -> tuple[int | None, int | None, int | None]:
-    """Extrai início, fim e total do header Content-Range."""
-
-    if not content_range or "/" not in content_range:
-        return None, None, None
-
-    range_part, total_part = content_range.split("/", maxsplit=1)
-    total = int(total_part) if total_part.isdigit() else None
-
-    if "-" not in range_part:
-        return None, None, total
-
-    start_part, end_part = range_part.split("-", maxsplit=1)
-    if not start_part.isdigit() or not end_part.isdigit():
-        return None, None, total
-
-    return int(start_part), int(end_part), total
-
-
 def _get_transferegov_paginated(
     url: str,
     params: dict,
     page_size: int = 1000,
     logger: logging.Logger | None = None,
 ) -> list[dict]:
-    """Consulta endpoints paginados do Transferegov usando limit/offset."""
+    """Consulta endpoints paginados do Transferegov (API publica, FastAPI).
+
+    A API antiga (PostgREST, ``api.transferegov...``) paginava com
+    ``limit``/``offset`` e informava o total no header ``Content-Range``.
+    A nova usa ``pagina``/``tamanho_da_pagina`` e devolve o total dentro do
+    proprio corpo, em ``total_pages`` -- o que dispensa o parse de header e
+    torna o criterio de parada explicito.
+    """
 
     if page_size <= 0:
         raise ValueError("page_size deve ser maior que zero.")
+    if page_size > 1000:
+        raise ValueError("A API limita tamanho_da_pagina a 1000.")
 
-    registros = []
-    offset = 0
-    page_number = 1
+    registros: list[dict] = []
+    pagina_atual = 1
 
     while True:
         page_params = {
             **params,
-            "limit": page_size,
-            "offset": offset,
+            "tamanho_da_pagina": page_size,
+            "pagina": pagina_atual,
         }
 
-        response = requests.get(
-            url,
-            params=page_params,
-            headers={"Prefer": "count=exact"},
-            timeout=30,
-        )
+        response = requests.get(url, params=page_params, timeout=30)
         response.raise_for_status()
 
-        content_range = response.headers.get("Content-Range")
-        _, range_end, total_registros = _parse_content_range(content_range)
-        pagina = response.json()
-        if not pagina:
-            break
-
+        corpo = response.json()
+        pagina = corpo.get("data") or []
+        total_paginas = corpo.get("total_pages") or pagina_atual
         registros.extend(pagina)
 
         if logger is not None:
             logger.info(
-                "Página da API carregada | endpoint=%s | pagina=%s | offset=%s | "
-                "registros_pagina=%s | registros_acumulados=%s | content_range=%s",
+                "Página da API carregada | endpoint=%s | pagina=%s/%s | "
+                "registros_pagina=%s | registros_acumulados=%s | total_itens=%s",
                 url.rsplit("/", maxsplit=1)[-1],
-                page_number,
-                offset,
+                pagina_atual,
+                total_paginas,
                 len(pagina),
                 len(registros),
-                content_range,
+                corpo.get("total_items"),
             )
 
-        if total_registros is not None and len(registros) >= total_registros:
+        if not pagina or pagina_atual >= total_paginas:
             break
 
-        if range_end is not None:
-            next_offset = range_end + 1
-            if next_offset <= offset:
-                break
-            offset = next_offset
-        elif len(pagina) < page_size:
-            break
-        else:
-            offset += page_size
-
-        page_number += 1
+        pagina_atual += 1
 
     return registros
 
@@ -188,9 +157,9 @@ def get_programa_transferegov(
         Resposta da API em formato JSON.
     """
 
-    url = "https://api.transferegov.gestao.gov.br/fundoafundo/programa"
+    url = "https://api-publica.transferegov.gestao.gov.br/fundoafundo/programas"
 
-    params = {"id_programa": f"eq.{id_programa}"}
+    params = {"id_programa": id_programa}
 
     return _get_transferegov_paginated(url, params, page_size=page_size)
 
@@ -234,9 +203,9 @@ def get_plano_acao_transferegov(
         Resposta da API em formato JSON.
     """
 
-    url = "https://api.transferegov.gestao.gov.br/fundoafundo/plano_acao"
+    url = "https://api-publica.transferegov.gestao.gov.br/fundoafundo/planos-acao"
 
-    params = {"id_programa": f"eq.{id_programa}"}
+    params = {"id_programa": id_programa}
 
     return _get_transferegov_paginated(
         url,
@@ -295,9 +264,9 @@ def get_dado_bancario_plano_acao(
         Resposta da API em formato JSON.
     """
 
-    url = "https://api.transferegov.gestao.gov.br/fundoafundo/plano_acao_dado_bancario"
+    url = "https://api-publica.transferegov.gestao.gov.br/fundoafundo/planos-acao-dados-bancarios"
 
-    params = {"id_plano_acao": f"eq.{id_plano_acao}"}
+    params = {"id_plano_acao": id_plano_acao}
 
     return _get_transferegov_paginated(url, params, page_size=page_size)
 

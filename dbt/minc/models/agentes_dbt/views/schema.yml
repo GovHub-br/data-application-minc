@@ -6,10 +6,12 @@ models:
       Camada Views — consolidação dos cinco modelos bronze (3 LPG + 2 PNAB)
       em um único dataset via UNION ALL. Padroniza identificador_unico e adiciona
       as colunas literais programa_fomento e tipo_proponente para rastrear
-      a origem de cada registro.
+      a origem de cada registro. Base de onde partem perfil_agentes_historico
+      e perfil_acesso_fomento.
     config:
+      tags: [views, agentes, identificadores]
       meta:
-        tags: [views, agentes, identificadores]
+        status: Active
     columns:
       - name: identificador_unico
         description: Identificador único do proponente (CPF, CNPJ ou CPF do representante).
@@ -19,8 +21,42 @@ models:
         description: Programa de fomento de origem — 'LPG' ou 'PNAB'.
         tests:
           - accepted_values:
-              values: ['LPG', 'PNAB']
+              arguments:
+                values: ['LPG', 'PNAB']
       - name: tipo_proponente
         description: >
           Tipo do proponente — 'Pessoa Física', 'Pessoa Jurídica',
           'Coletivo' ou 'Organização'.
+
+  - name: identificadores_contemplados
+    description: >
+      Views — unifica identificadores (CPF/CNPJ normalizados) de
+      contemplados LPG + PNAB. Extraído de primeiro_acesso_contemplados
+      para reuso também em primeiro_acesso_contemplados_bancario.
+
+      As colunas de documento são resolvidas dinamicamente via
+      information_schema nas três tabelas de origem, porque a ingestão de
+      planilhas não normaliza espaços nem NBSP nos cabeçalhos e o mesmo
+      campo vira várias colunas, cada uma com parte dos dados. O padrão
+      anterior (ILIKE '%cpf%cnpj%') exigia "cpf" antes de "cnpj" e não casava
+      "cnpj" sozinho nem "cpf/ cnpj", deixando de fora ~2.100 contemplados do
+      PNAB — a maioria deles com pagamento comprovado no extrato bancário.
+
+      Colunas "cpf (anonimizado)" são excluídas de propósito: trazem
+      ***XXXXXX** no lugar do documento. Continua valendo que o CPF de PF da
+      lista geral do PNAB, fora do PNCV, não é rastreável.
+    config:
+      meta:
+        tags: [views, agentes, contemplados, meta5]
+    columns:
+      - name: id_normalizado
+        description: CPF ou CNPJ do contemplado, normalizado (só dígitos).
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Programa de fomento — 'LPG' ou 'PNAB'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['LPG', 'PNAB']

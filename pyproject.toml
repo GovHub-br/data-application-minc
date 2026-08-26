@@ -10,7 +10,10 @@ readme = "README.md"
 python = "~3.11"
 apache-airflow = "3.2.2"
 apache-airflow-providers-amazon = "9.29.0"
+apache-airflow-providers-microsoft-mssql = "4.7.0"
+pymssql = "*"
 apache-airflow-providers-postgres = "6.7.0"
+apache-airflow-providers-trino = "6.6.1"
 apache-airflow-providers-standard = "1.13.1"
 numpy = "1.26.4"
 dbt-core = ">=1.10,<1.11"
@@ -55,6 +58,13 @@ types-passlib = "*"
 types-pycurl = "*"
 types-simplejson = "*"
 types-uWSGI = "*"
+
+
+[tool.poetry.group.docs.dependencies]
+pyyaml = "^6.0.3"
+python-docx = "^1.2.0"
+beautifulsoup4 = "^4.15.0"
+lxml = "^6.1.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -121,6 +131,7 @@ python_files = ["test_*.py"]
 # Mesmos diretórios que o Makefile exporta em PYTHONPATH. O Airflow importa
 # plugins/ e helpers/ como módulos de topo (sem pacote), então um teste que
 # importa `cliente_bacen` só resolve com esses caminhos no sys.path — no CI,
+# importa `territorio_ibge` só resolve com esses caminhos no sys.path — no CI,
 # que chama `pytest` direto, o export do Makefile não existe.
 pythonpath = ["plugins", "helpers", "dags"]
 
