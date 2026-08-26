@@ -3,14 +3,16 @@ version: 2
 models:
   - name: perfil_agentes_historico
     description: >
-      Camada Silver — perfil dos agentes com higienização da coluna de histórico
+      Camada Silver — perfil dos agentes (a partir da view identificadores_agentes,
+      que já consolida os cinco bronzes) com higienização da coluna de histórico
       de acesso a recursos públicos. Remove valores nulos, 'nan' e caracteres
       inválidos (ponto, ponto-e-vírgula). Classifica as respostas em três
       categorias padronizadas: 'Sim', 'Não' e 'Não sabe/Não informou'.
       Propaga a coluna programa_fomento para rastreabilidade por programa.
     config:
+      tags: [silver, agentes, higienizacao]
       meta:
-        tags: [silver, agentes, higienizacao]
+        status: Active
     columns:
       - name: identificador_unico
         description: Identificador único do proponente (CPF, CNPJ ou CPF do representante).
@@ -24,7 +26,8 @@ models:
         description: Programa de fomento de origem — 'LPG' ou 'PNAB'.
         tests:
           - accepted_values:
-              values: ['LPG', 'PNAB']
+              arguments:
+                values: ['LPG', 'PNAB']
       - name: historico_acesso_limpo
         description: Texto limpo da resposta bruta sobre acesso anterior a recursos de fomento.
       - name: categoria_primeiro_acesso
@@ -33,7 +36,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Sim', 'Não', 'Não sabe/Não informou']
+              arguments:
+                values: ['Sim', 'Não', 'Não sabe/Não informou']
 
   - name: pagamentos_bbagil_beneficiarios
     description: >
@@ -47,8 +51,9 @@ models:
       os mecanismos separados. A LAB I emergencial (2020-2021) não existe em
       nenhuma fonte do banco.
     config:
+      tags: [silver, agentes, bbagil, meta5, fase4]
       meta:
-        tags: [silver, agentes, bbagil, meta5, fase4]
+        status: Active
     columns:
       - name: id_plano_acao
         description: Identificador do plano de ação (ente + programa) dono da conta que fez o pagamento.
@@ -63,7 +68,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['LPG', 'PNAB', 'LAB']
+              arguments:
+                values: ['LPG', 'PNAB', 'LAB']
       - name: valor
         description: Valor do pagamento, em reais.
         tests:
@@ -88,10 +94,11 @@ models:
       sac__projetos, que seria a ponte natural, existe no schema mas foi
       carregada com 0 linhas.
     config:
+      tags: [silver, agentes, salic, rouanet, meta5]
       meta:
+        status: Active
         meta_objetivo: 'Meta 5 — eventos de captação da Lei Rouanet'
         origem_dados: 'bronze.sac__captacao + bronze.sac__tbapiprojetorouanet'
-        tags: [silver, agentes, salic, rouanet, meta5]
     columns:
       - name: beneficiario_documento
         description: CPF (11) ou CNPJ (14) do proponente, normalizado com LPAD.
@@ -102,7 +109,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['ROUANET']
+              arguments:
+                values: ['ROUANET']
       - name: data_evento
         description: Data do recibo de captação.
         tests:
@@ -132,10 +140,11 @@ models:
       o TOTAL do agente naquele mecanismo, não por transação, e só ao BB Ágil
       — é lá que existe resíduo de transação que não é repasse de fomento.
     config:
+      tags: [silver, agentes, meta5, primeiro_acesso]
       meta:
+        status: Active
         meta_objetivo: 'Meta 5 — espinha de eventos de acesso a fomento federal'
         origem_dados: 'pagamentos_bbagil_beneficiarios + eventos_fomento_rouanet'
-        tags: [silver, agentes, meta5, primeiro_acesso]
     columns:
       - name: beneficiario_documento
         description: CPF (11) ou CNPJ (14) do agente, normalizado com LPAD.
@@ -146,7 +155,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['AUDIOVISUAL', 'FSA', 'LAB', 'LPG', 'PNAB', 'ROUANET']
+              arguments:
+                values: ['AUDIOVISUAL', 'FSA', 'LAB', 'LPG', 'PNAB', 'ROUANET']
       - name: data_evento
         description: Data em que o recurso chegou ao agente.
         tests:
@@ -164,7 +174,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['ANCINE', 'BB_AGIL', 'SALIC']
+              arguments:
+                values: ['ANCINE', 'BB_AGIL', 'SALIC']
       - name: ano_inicio_observacao
         description: Primeiro ano em que a fonte daquele mecanismo enxerga qualquer coisa.
         tests:
@@ -174,4 +185,5 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['PF', 'PJ']
+              arguments:
+                values: ['PF', 'PJ']

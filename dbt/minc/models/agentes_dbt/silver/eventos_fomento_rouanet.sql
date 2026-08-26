@@ -43,7 +43,7 @@ WITH proponente_bruto AS (
             ELSE LPAD(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g'), 14, '0')
         END AS beneficiario_documento,
         NULL::TEXT AS beneficiario_nome
-    FROM {{ source('salic', 'sac__projetos') }}
+    FROM {{ source('bronze_sac', 'sac__projetos') }}
     WHERE anoprojeto IS NOT NULL
       AND sequencial IS NOT NULL
       AND cgccpf IS NOT NULL
@@ -61,7 +61,7 @@ WITH proponente_bruto AS (
             ELSE LPAD(REGEXP_REPLACE(TRIM(nrcnpjcpf), '[^0-9]', '', 'g'), 14, '0')
         END AS beneficiario_documento,
         NULLIF(TRIM(nmproponente), '') AS beneficiario_nome
-    FROM {{ source('salic', 'sac__tbapiprojetorouanet') }}
+    FROM {{ source('bronze_sac', 'sac__tbapiprojetorouanet') }}
     WHERE nrpronac IS NOT NULL
       AND nrcnpjcpf IS NOT NULL
       AND LENGTH(REGEXP_REPLACE(TRIM(nrcnpjcpf), '[^0-9]', '', 'g')) BETWEEN 8 AND 14
@@ -81,7 +81,7 @@ recibos AS (
         TRIM(anoprojeto) || TRIM(sequencial) AS pronac,
         dtrecibo::DATE AS data_evento,
         captacaoreal::NUMERIC AS valor
-    FROM {{ source('salic', 'sac__captacao') }}
+    FROM {{ source('bronze_sac', 'sac__captacao') }}
     WHERE dtrecibo IS NOT NULL
       -- as duas colunas são TEXT na bronze; o formato já foi verificado como
       -- ISO/numérico em 100% das linhas, mas o guarda fica para a ingestão
