@@ -1,94 +1,23 @@
 {{ config(materialized='table') }}
 
--- Normaliza identificadores para dígitos puro, eliminando diferenças de
--- formatação entre tabelas (CPF com pontos/traço vs. só dígitos, CNPJ com
--- pontos/barra vs. só dígitos).
--- Usada em ambos os lados do JOIN para garantir correspondência consistente.
+-- Camada Gold — Meta 5 Fase 3: primeiro acesso (autodeclarado/inferido)
+-- cruzado com contemplação em edital. Identificadores de contemplados
+-- vêm de identificadores_contemplados (views/) — ver esse modelo pra
+-- notas de cobertura e o motivo do match dinâmico de coluna (NBSP).
 --
 -- ATENÇÃO — CPF mascarado dos proponentes LPG: a base de proponentes
 -- (lpg_agentes_pf/coletivos) traz o CPF anonimizado no formato
 -- "***.NNN.NNN-**" (apenas os 6 dígitos centrais visíveis), enquanto
--- lpg_contemplados traz o CPF completo. Um match exato (dígito a dígito)
--- nunca ocorre para esses casos, gerando falso negativo sistemático de
+-- planilha_contemplados_lpg traz o CPF completo. Um match exato (dígito a
+-- dígito) nunca ocorre para esses casos, gerando falso negativo sistemático de
 -- 'contemplado' para LPG. Por isso, quando o identificador do proponente
 -- vier mascarado, o JOIN usa um match parcial pelo "miolo" do CPF
 -- (posições 4-9, os mesmos 6 dígitos centrais expostos pela máscara).
 -- Esse match parcial tem risco de colisão entre CPFs com miolo igual.
---
--- ATENÇÃO — colunas "fantasma" em lpg_contemplados: a ingestão dinâmica de
--- planilhas (extracao_planilhas.py) não normaliza espaços/caracteres
--- invisíveis (ex.: NBSP) nos nomes de coluna, então o header "CPF ou CNPJ"
--- de arquivos diferentes pode virar colunas distintas no Postgres
--- (ex.: "cpf ou cnpj" vs. "cpf ou cnpj<NBSP>"), cada uma com parte dos
--- dados. Por isso a coluna de CPF/CNPJ é resolvida dinamicamente via
--- information_schema (qualquer coluna cujo nome contenha "cpf" e "cnpj"),
--- em vez de um nome fixo — o que tornaria a maior parte dos contemplados
--- invisível para o JOIN.
 
-{% set cpf_cnpj_cols_query %}
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_schema = '{{ source('relatorio_gestao', 'planilha_contemplados_lpg').schema }}'
-      AND table_name = '{{ source('relatorio_gestao', 'planilha_contemplados_lpg').identifier }}'
-      AND column_name ILIKE '%cpf%cnpj%'
-    ORDER BY column_name
-{% endset %}
-{% set cpf_cnpj_results = run_query(cpf_cnpj_cols_query) %}
-{% set cpf_cnpj_cols = cpf_cnpj_results.columns[0].values() if execute else ['cpf ou cnpj'] %}
-
-WITH contemplados_lpg_raw AS (
-    SELECT
-        COALESCE(
-            {% for col in cpf_cnpj_cols %}
-            NULLIF(LOWER(TRIM("{{ col }}")), 'nan')
-            {%- if not loop.last %},
-            {% endif %}
-            {% endfor %}
-        ) AS cpf_cnpj_bruto
-    FROM {{ source('relatorio_gestao', 'planilha_contemplados_lpg') }}
-),
-
-contemplados_lpg AS (
-    SELECT DISTINCT
-        REGEXP_REPLACE(cpf_cnpj_bruto, '[^0-9]', '', 'g') AS id_normalizado,
-        'LPG' AS programa_fomento
-    FROM contemplados_lpg_raw
-    WHERE cpf_cnpj_bruto IS NOT NULL
-      AND cpf_cnpj_bruto NOT IN ('', 'cpf ou cnpj')
-      AND LENGTH(REGEXP_REPLACE(cpf_cnpj_bruto, '[^0-9]', '', 'g')) >= 11
-),
-
--- PNCV fornece CPF real dos contemplados PNAB (PF)
-contemplados_pnab_pncv AS (
-    SELECT DISTINCT
-        REGEXP_REPLACE(TRIM(cpf), '[^0-9]', '', 'g') AS id_normalizado,
-        'PNAB' AS programa_fomento
-    FROM {{ source('relatorio_gestao', 'planilha_contemplados_pnab_ciclo_1') }}
-    WHERE tabela_origem = 'raw_pnab_lista_contemplados_pncv'
-      AND cpf IS NOT NULL
-      AND LOWER(TRIM(cpf)) NOT IN ('nan', '', 'cpf')
-      AND LENGTH(REGEXP_REPLACE(TRIM(cpf), '[^0-9]', '', 'g')) = 11
-),
-
--- Lista geral PNAB: CPF está anonimizado (***XXXXXX**) — só o CNPJ é utilizável
--- Cobertura parcial: PJ contemplada via PNAB geral sem registro no PNCV fica de fora
-contemplados_pnab_geral_pj AS (
-    SELECT DISTINCT
-        REGEXP_REPLACE(TRIM(cnpj), '[^0-9]', '', 'g') AS id_normalizado,
-        'PNAB' AS programa_fomento
-    FROM {{ source('relatorio_gestao', 'planilha_contemplados_pnab_ciclo_1') }}
-    WHERE tabela_origem = 'raw_pnab_lista_contemplados_geral'
-      AND cnpj IS NOT NULL
-      AND LOWER(TRIM(cnpj)) NOT IN ('nan', '', 'cnpj')
-      AND LENGTH(REGEXP_REPLACE(TRIM(cnpj), '[^0-9]', '', 'g')) = 14
-),
-
-todos_contemplados AS (
-    SELECT id_normalizado, programa_fomento FROM contemplados_lpg
-    UNION
-    SELECT id_normalizado, programa_fomento FROM contemplados_pnab_pncv
-    UNION
-    SELECT id_normalizado, programa_fomento FROM contemplados_pnab_geral_pj
+WITH todos_contemplados AS (
+    SELECT id_normalizado, programa_fomento
+    FROM {{ ref('identificadores_contemplados') }}
 ),
 
 -- Miolo (6 dígitos centrais) do CPF, usado para casar com identificadores

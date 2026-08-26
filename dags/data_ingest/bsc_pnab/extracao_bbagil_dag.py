@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
+import psycopg2
 from airflow.sdk import dag, task
 
 import schemas_minc as schemas
@@ -169,13 +170,39 @@ def _carregar_entes_transferegov() -> list[dict[str, Any]]:
     return entes
 
 
+def _consultar_ou_vazio(db: ClientPostgresDB, query: str, descricao: str) -> list[Any]:
+    """Executa a consulta; devolve lista vazia se a tabela ainda nao existe.
+
+    As tabelas de checkpoint e a propria ``extrato_bbagil`` so nascem na
+    primeira carga bem-sucedida. Antes disso, "tabela ausente" nao e erro --
+    e o estado inicial, e significa exatamente "nada foi extraido ainda".
+    Sem esta guarda a DAG morre com ``UndefinedTable`` na primeira execucao
+    de um banco novo e, como ``retries`` e alto de proposito, o erro
+    estrutural se disfarca de instabilidade e fica horas em ``up_for_retry``.
+
+    A tolerancia vale so para tabela inexistente: qualquer outro erro de
+    banco continua subindo, porque ai a retentativa faz sentido.
+    """
+    try:
+        return db.execute_query(query)
+    except psycopg2.errors.UndefinedTable:
+        logging.info(
+            "[extracao_bbagil_dag.py] %s ainda nao existe; tratando como "
+            "primeira execucao (nenhum registro anterior).",
+            descricao,
+        )
+        return []
+
+
 def _combinacoes_extrato_pendentes(
     db: ClientPostgresDB, entes: list[dict[str, Any]], periodos: list[tuple[str, str]]
 ) -> list[Any]:
-    feitas = db.execute_query(
+    feitas = _consultar_ou_vazio(
+        db,
         "SELECT id_plano_acao, periodo_inicial, periodo_final FROM "
         f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_CONTROLE_EXTRATO} "
-        "WHERE status IN ('ok', 'sem_dados')"
+        "WHERE status IN ('ok', 'sem_dados')",
+        f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_CONTROLE_EXTRATO}",
     )
     feitas_set = {
         (str(id_plano_acao), periodo_inicial, periodo_final)
@@ -278,7 +305,8 @@ def _subtransacoes_pendentes(db: ClientPostgresDB) -> list[dict[str, Any]]:
     # de integracao ja viajam na propria linha do extrato; o join com o dado
     # bancario e so para recuperar agencia e numero da conta, que a chamada
     # de sublancamento exige e a resposta nao devolve.
-    candidatos = db.execute_query(
+    candidatos = _consultar_ou_vazio(
+        db,
         "SELECT extrato.id_plano_acao, extrato.id, extrato.id_programa, "
         "extrato.cod_ibge, extrato.id_plano_acao_dado_bancario, "
         "extrato.id_agencia_conta, "
@@ -289,12 +317,15 @@ def _subtransacoes_pendentes(db: ClientPostgresDB) -> list[dict[str, Any]]:
         f"{schemas.TABELA_PLANO_ACAO_DADO_BANCARIO} banco "
         "  ON extrato.id_plano_acao_dado_bancario = "
         "     banco.id_plano_acao_dado_bancario "
-        "WHERE extrato.subtransactionquantity::int > 0"
+        "WHERE extrato.subtransactionquantity::int > 0",
+        f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_EXTRATO}",
     )
-    feitas = db.execute_query(
+    feitas = _consultar_ou_vazio(
+        db,
         "SELECT id_plano_acao, id_transacao_pai FROM "
         f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_CONTROLE_SUBTRANSACAO} "
-        "WHERE status IN ('ok', 'sem_dados')"
+        "WHERE status IN ('ok', 'sem_dados')",
+        f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_CONTROLE_SUBTRANSACAO}",
     )
     feitas_set = {(str(id_plano_acao), str(id_pai)) for id_plano_acao, id_pai in feitas}
 
