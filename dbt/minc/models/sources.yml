@@ -332,6 +332,21 @@ sources:
       # Território IBGE CD2022 (setor->FCU->município->UF) p/ 4ª cota territorial
       - name: territorio_fcu_setores
 
+  # Indicador externo (BACEN/SGS): deflator para corrigir os valores
+  # nominais das políticas. Uma tabela para todas as séries — série nova é
+  # configuração na Variable `bacen_series_sgs`, não source novo aqui.
+  - name: bacen
+    schema: bacen
+    tables:
+      - name: serie_sgs
+        description: >
+          Séries temporais do SGS/BACEN: uma linha por (``codigo_serie``,
+          ``data``), com ``data`` em ISO (aaaa-mm-dd) e ``valor`` no
+          significado da série (a 10844, IPCA-Serviços, é variação % no
+          mês). Persistida por ``bacen_sgs_ingest_dag``.
+
+  - name: bsc_pnab
+    schema: bsc_pnab
   # As planilhas dos relatórios de gestão. Antes eram ~15 tabelas, uma por aba
   # ou template do Excel; agora são seis, três por política. Qual aba/template
   # deu origem à linha está em `tabela_origem` e `aba_origem` — é por
