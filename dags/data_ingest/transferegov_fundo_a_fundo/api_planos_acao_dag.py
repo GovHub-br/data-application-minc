@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any
 
 from airflow.sdk import dag, task
 from airflow.sdk import Variable
@@ -31,7 +30,12 @@ default_args = {
 )
 def api_planos_acao_dag() -> None:
     @task
-    def fetch_planos_acao() -> list[dict[str, Any]]:
+    def fetch_and_load_planos_acao() -> int:
+        """Busca e carrega planos de ação em uma única task.
+
+        Unificado para evitar XCom de payload grande (lista de dicts com
+        milhares de registros), que causa falha de IPC no Airflow 3.x.
+        """
         logging.info("[api_planos_acao_dag.py] Iniciando extração de planos de ação")
 
         ids_alvo = Variable.get(
@@ -41,7 +45,8 @@ def api_planos_acao_dag() -> None:
         )
 
         api = ClienteTransfereGov()
-        planos_data: list[dict[str, Any]] = []
+        db = ClientPostgresDB(get_postgres_conn())
+        total_carregado = 0
 
         for id_programa in ids_alvo:
             logging.info(
@@ -58,9 +63,16 @@ def api_planos_acao_dag() -> None:
                     plano.update(derivar_territorio(plano))
                     plano["dt_ingest"] = datetime.now().isoformat()
 
-                planos_data.extend(planos)
+                db.insert_data(
+                    planos,
+                    table_name=schemas.TABELA_PLANO_ACAO,
+                    primary_key=["id_plano_acao"],
+                    conflict_fields=["id_plano_acao"],
+                    schema=schemas.SCHEMA_TRANSFEREGOV,
+                )
+                total_carregado += len(planos)
                 logging.info(
-                    "[api_planos_acao_dag.py] Programa %s: %d planos encontrados",
+                    "[api_planos_acao_dag.py] Programa %s: %d planos carregados",
                     id_programa,
                     len(planos),
                 )
@@ -70,32 +82,14 @@ def api_planos_acao_dag() -> None:
                     id_programa,
                 )
 
-        if not planos_data:
+        if total_carregado == 0:
             raise ValueError("[api_planos_acao_dag.py] Nenhum plano de ação foi extraído")
 
         logging.info(
-            "[api_planos_acao_dag.py] Extração concluída com %s registros",
-            len(planos_data),
+            "[api_planos_acao_dag.py] Carga concluída com %s registros no total",
+            total_carregado,
         )
-        return planos_data
-
-    @task
-    def load_planos_to_postgres(planos_data: list[dict[str, Any]]) -> None:
-        logging.info("[api_planos_acao_dag.py] Iniciando carga no PostgreSQL")
-
-        db = ClientPostgresDB(get_postgres_conn())
-        db.insert_data(
-            planos_data,
-            table_name=schemas.TABELA_PLANO_ACAO,
-            primary_key=["id_plano_acao"],
-            conflict_fields=["id_plano_acao"],
-            schema=schemas.SCHEMA_TRANSFEREGOV,
-        )
-
-        logging.info(
-            "[api_planos_acao_dag.py] Carga concluída com %s registros",
-            len(planos_data),
-        )
+        return total_carregado
 
     trigger_relatorios = TriggerDagRunOperator(
         task_id="trigger_relatorios",
@@ -118,7 +112,7 @@ def api_planos_acao_dag() -> None:
         wait_for_completion=False,
     )
 
-    carga = load_planos_to_postgres(fetch_planos_acao())
+    carga = fetch_and_load_planos_acao()
     carga >> [trigger_relatorios, trigger_metas, trigger_dado_bancario]
 
 
