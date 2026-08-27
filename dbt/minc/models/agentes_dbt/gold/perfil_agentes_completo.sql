@@ -2,7 +2,7 @@
 
 WITH perfil_base AS (
     SELECT
-        identificador_unico,
+        id_agente,
         tipo_proponente,
         programa_fomento,
         historico_acesso_limpo,
@@ -15,37 +15,37 @@ WITH perfil_base AS (
 -- da resposta declarada
 contagem_programas AS (
     SELECT
-        identificador_unico,
+        id_agente,
         COUNT(DISTINCT programa_fomento) AS qtd_programas
     FROM perfil_base
-    GROUP BY identificador_unico
+    GROUP BY id_agente
 ),
 
 -- Registro canônico: primeiro programa de cada proponente (sequencia_fomento = 1)
 -- Proxy temporal: LPG < PNAB alfabeticamente, refletindo a ordem de ingresso na base
 primeiro_registro AS (
-    SELECT DISTINCT ON (identificador_unico)
-        identificador_unico,
+    SELECT DISTINCT ON (id_agente)
+        id_agente,
         tipo_proponente,
         programa_fomento,
         historico_acesso_limpo,
         perfil_original
     FROM perfil_base
-    ORDER BY identificador_unico, sequencia_fomento ASC
+    ORDER BY id_agente, sequencia_fomento ASC
 ),
 
 -- historico_acesso_bruto vem direto da fonte bronze, alinhado ao primeiro programa
 bruto AS (
-    SELECT DISTINCT ON (identificador_unico)
-        identificador_unico,
+    SELECT DISTINCT ON (id_agente)
+        id_agente,
         historico_acesso_bruto
     FROM {{ ref('identificadores_agentes') }}
-    ORDER BY identificador_unico, programa_fomento ASC
+    ORDER BY id_agente, programa_fomento ASC
 ),
 
 consolidado AS (
     SELECT
-        pr.identificador_unico,
+        pr.id_agente,
         pr.tipo_proponente,
         pr.programa_fomento,
         b.historico_acesso_bruto,
@@ -54,13 +54,13 @@ consolidado AS (
         c.qtd_programas
     FROM primeiro_registro pr
     LEFT JOIN bruto b
-        ON pr.identificador_unico = b.identificador_unico
+        ON pr.id_agente = b.id_agente
     LEFT JOIN contagem_programas c
-        ON pr.identificador_unico = c.identificador_unico
+        ON pr.id_agente = c.id_agente
 )
 
 SELECT
-    identificador_unico,
+    id_agente,
     tipo_proponente,
     programa_fomento,
     historico_acesso_bruto,

@@ -4,7 +4,7 @@ models:
   - name: identificadores_agentes
     description: >
       Camada Views — consolidação dos cinco modelos bronze (3 LPG + 2 PNAB)
-      em um único dataset via UNION ALL. Padroniza identificador_unico e adiciona
+      em um único dataset via UNION ALL. Padroniza id_agente e adiciona
       as colunas literais programa_fomento e tipo_proponente para rastrear
       a origem de cada registro. Base de onde partem perfil_agentes_historico
       e perfil_acesso_fomento.
@@ -17,12 +17,21 @@ models:
           tier: Tier.Tier2
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: Identificador único do proponente (CPF, CNPJ ou CPF do representante).
+      - name: id_agente
+        description: >
+          Pseudônimo do identificador do proponente (CPF, CNPJ, ou CPF do
+          representante no caso de coletivo). Não é o documento.
         meta:
           openmetadata:
             glossary:
               - MinC.Identificadores.IdentificadorUnico
+      - name: id_agente_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF, só para proponente cujo
+          documento veio mascarado da origem. NULL no resto.
+      - name: documento_mascarado
+        description: >
+          Verdadeiro quando a origem entregou o documento mascarado.
       - name: historico_acesso_bruto
         description: Resposta bruta sobre acesso anterior a recursos de fomento.
       - name: programa_fomento
@@ -61,8 +70,16 @@ models:
           tier: Tier.Tier2
           owner: minc-data-engineering
     columns:
-      - name: id_normalizado
-        description: CPF ou CNPJ do contemplado, normalizado (só dígitos).
+      - name: id_contemplado
+        description: >
+          Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex.
+          Não é o documento e não é reversível sem o salt. Canonizado (só dígitos + LPAD) antes do hash,
+          que é o que o mantém casável com o lado bancário e o de proponentes.
+      - name: id_contemplado_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF (NULL para CNPJ). Existe para
+          casar com proponente cujo CPF veio mascarado — hash não preserva
+          substring, então o recorte é feito antes.
         tests:
           - not_null
       - name: programa_fomento

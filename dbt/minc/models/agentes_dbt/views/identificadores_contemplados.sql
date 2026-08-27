@@ -29,9 +29,17 @@
 -- Colunas "cpf (anonimizado)" são excluídas de propósito: trazem
 -- ***XXXXXX** em vez do documento, e não servem para cruzar com nada.
 --
--- NORMALIZAÇÃO: só dígitos + LPAD para 11 (CPF) ou 14 (CNPJ). O LPAD é
--- obrigatório porque o lado bancário sempre normaliza assim; sem ele um CPF
--- que chegou com 10 dígitos (sem o zero à esquerda) nunca casa.
+-- NORMALIZAÇÃO: só dígitos + LPAD para 11 (CPF) ou 14 (CNPJ), via
+-- documento_canonico. O LPAD é obrigatório porque o lado bancário sempre
+-- normaliza assim; sem ele um CPF que chegou com 10 dígitos (sem o zero à
+-- esquerda) nunca casa. Depois da canonização o documento vira pseudônimo e
+-- não sai mais daqui em claro — ver macros/hash_documento.sql.
+--
+-- id_contemplado_miolo é o hash dos 6 dígitos centrais do CPF. Existe porque a
+-- base de proponentes da LPG mascara o CPF ('***.NNN.NNN-**') e o único
+-- casamento possível com ela é por esses dígitos; como hash não preserva
+-- substring, o recorte precisa ser feito ANTES e hasheado à parte, dos dois
+-- lados do JOIN. NULL para CNPJ, que a origem não mascara.
 
 {% set fontes = [
     ('planilha_contemplados_lpg', 'LPG'),
@@ -93,16 +101,21 @@ limpo AS (
     WHERE doc_bruto IS NOT NULL
       -- linhas de cabeçalho repetido e placeholders de leitura de planilha
       AND LOWER(doc_bruto) NOT IN ('nan', 'none', 'null', 'cpf', 'cnpj', 'cpf ou cnpj', 'cpf/ cnpj')
+),
+
+canonico AS (
+    SELECT
+        {{ documento_canonico('digitos') }} AS documento_canon,
+        programa_fomento
+    FROM limpo
+    -- 9 dígitos é o menor CPF plausível já visto sem zeros à esquerda; abaixo
+    -- disso é lixo de parsing (número de ordem, ano, célula vazia lida como 0)
+    WHERE LENGTH(digitos) BETWEEN 9 AND 14
+      AND digitos !~ '^0+$'
 )
 
 SELECT DISTINCT
-    CASE
-        WHEN LENGTH(digitos) <= 11 THEN LPAD(digitos, 11, '0')
-        ELSE LPAD(digitos, 14, '0')
-    END AS id_normalizado,
+    {{ hash_documento('documento_canon') }} AS id_contemplado,
+    {{ hash_documento(miolo_cpf('documento_canon')) }} AS id_contemplado_miolo,
     programa_fomento
-FROM limpo
--- 9 dígitos é o menor CPF plausível já visto sem zeros à esquerda; abaixo
--- disso é lixo de parsing (número de ordem, ano, célula vazia lida como 0)
-WHERE LENGTH(digitos) BETWEEN 9 AND 14
-  AND digitos !~ '^0+$'
+FROM canonico

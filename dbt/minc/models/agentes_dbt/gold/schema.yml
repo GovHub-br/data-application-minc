@@ -4,7 +4,7 @@ models:
   - name: perfil_agentes_completo
     description: >
       Camada Gold — Master Data de proponentes (Meta 5).
-      Grain: 1 linha por identificador_unico (CPF/CNPJ). Consolida perfil_acesso_fomento
+      Grain: 1 linha por id_agente (CPF/CNPJ). Consolida perfil_acesso_fomento
       eliminando duplicatas entre programas: proponentes presentes em mais de um programa
       têm veterania confirmada por presença multi-programa, sobrepondo a resposta declarada.
       Serve como base para dois consumos:
@@ -21,8 +21,10 @@ models:
           tier: Tier.Tier1
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: CPF ou CNPJ do proponente (normalizado). Chave única do modelo.
+      - name: id_agente
+        description: >
+          Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex.
+          Não é o documento e não é reversível sem o salt. Chave única do modelo.
         tests:
           - not_null
           - unique
@@ -102,14 +104,27 @@ models:
           tier: Tier.Tier1
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: CPF ou CNPJ do proponente (já normalizado em minúsculas e sem espaços).
+      - name: id_agente
+        description: >
+          Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex.
+          Não é o documento e não é reversível sem o salt.
         tests:
           - not_null
         meta:
           openmetadata:
             glossary:
               - MinC.Identificadores.IdentificadorUnico
+      - name: id_agente_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF, preenchido só para
+          proponente cujo documento veio mascarado da origem. Atravessa este
+          modelo sem ser usado nele: quem consome é
+          primeiro_acesso_contemplados, no match parcial com a lista de
+          contemplados. NULL no resto.
+      - name: documento_mascarado
+        description: >
+          Verdadeiro quando a origem entregou o documento mascarado, logo não
+          casável com a lista de contemplados a não ser pelo miolo.
       - name: tipo_proponente
         description: Classificação do proponente — 'Pessoa Física', 'Pessoa Jurídica', 'Coletivo' ou 'Organização'.
         tests:
@@ -123,7 +138,7 @@ models:
       - name: sequencia_fomento
         description: >
           Ordem de acesso do proponente dentro de seu histórico, particionado por
-          identificador_unico e ordenado por programa_fomento (proxy temporal).
+          id_agente e ordenado por programa_fomento (proxy temporal).
           sequencia_fomento = 1 indica o primeiro registro; > 1 indica veterano.
         tests:
           - not_null
@@ -323,8 +338,10 @@ models:
           tier: Tier.Tier1
           owner: minc-data-engineering
     columns:
-      - name: beneficiario_documento
-        description: CPF (11) ou CNPJ (14) do agente, normalizado com LPAD.
+      - name: id_beneficiario
+        description: >
+          Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex.
+          Não é o documento e não é reversível sem o salt.
         tests:
           - not_null
       - name: programa_fomento

@@ -27,6 +27,16 @@
 -- CPF/CNPJ, sem uma única divergência. Foi essa checagem que validou a ponte,
 -- que até 19/08 dependia só do espelho da API.
 --
+-- DOCUMENTO: o CPF/CNPJ do proponente é canonizado (só dígitos + LPAD) e sai
+-- daqui como pseudônimo — ver macros/hash_documento.sql. Os filtros que
+-- dependem do documento em claro (degenerado só-zeros, faixa de comprimento)
+-- rodam ANTES do hash, dentro deste modelo. tipo_pessoa é materializado porque
+-- depois do hash o comprimento não existe mais para deduzi-lo.
+--
+-- nmproponente NÃO é mais lido: o nome do proponente não era usado por nenhum
+-- modelo a jusante — morria em eventos_fomento — e carregá-lo só aumentaria a
+-- superfície de dado pessoal sem contrapartida.
+--
 -- JANELA: recibos de 1993 em diante — praticamente toda a vigência da lei
 -- (1991). Diferente do BB Ágil (2023+), a Rouanet aqui quase não tem censura
 -- à esquerda, e é por isso que ela é a fonte que mais consegue desmentir um
@@ -37,12 +47,7 @@ WITH proponente_bruto AS (
     SELECT
         1 AS prioridade,
         TRIM(anoprojeto) || TRIM(sequencial) AS pronac,
-        CASE
-            WHEN LENGTH(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g')) <= 11
-                THEN LPAD(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g'), 11, '0')
-            ELSE LPAD(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g'), 14, '0')
-        END AS beneficiario_documento,
-        NULL::TEXT AS beneficiario_nome
+        {{ documento_canonico('TRIM(cgccpf)') }} AS documento_canon
     FROM {{ source('bronze_sac', 'sac__projetos') }}
     WHERE anoprojeto IS NOT NULL
       AND sequencial IS NOT NULL
@@ -55,12 +60,7 @@ WITH proponente_bruto AS (
     SELECT
         2 AS prioridade,
         TRIM(nrpronac) AS pronac,
-        CASE
-            WHEN LENGTH(REGEXP_REPLACE(TRIM(nrcnpjcpf), '[^0-9]', '', 'g')) <= 11
-                THEN LPAD(REGEXP_REPLACE(TRIM(nrcnpjcpf), '[^0-9]', '', 'g'), 11, '0')
-            ELSE LPAD(REGEXP_REPLACE(TRIM(nrcnpjcpf), '[^0-9]', '', 'g'), 14, '0')
-        END AS beneficiario_documento,
-        NULLIF(TRIM(nmproponente), '') AS beneficiario_nome
+        {{ documento_canonico('TRIM(nrcnpjcpf)') }} AS documento_canon
     FROM {{ source('bronze_sac', 'sac__tbapiprojetorouanet') }}
     WHERE nrpronac IS NOT NULL
       AND nrcnpjcpf IS NOT NULL
@@ -69,10 +69,10 @@ WITH proponente_bruto AS (
 
 projeto_proponente AS (
     -- uma linha por PRONAC: o cadastro ganha da API quando os dois existem
-    SELECT DISTINCT ON (pronac) pronac, beneficiario_documento, beneficiario_nome
+    SELECT DISTINCT ON (pronac) pronac, documento_canon
     FROM proponente_bruto
-    WHERE beneficiario_documento IS NOT NULL
-      AND beneficiario_documento !~ '^0+$'
+    WHERE documento_canon IS NOT NULL
+      AND documento_canon !~ '^0+$'
     ORDER BY pronac, prioridade
 ),
 
@@ -92,14 +92,17 @@ recibos AS (
 )
 
 SELECT
-    p.beneficiario_documento,
-    p.beneficiario_nome,
+    {{ hash_documento('p.documento_canon') }} AS id_beneficiario,
+    CASE
+        WHEN LENGTH(p.documento_canon) = 11 THEN 'PF'
+        ELSE 'PJ'
+    END AS tipo_pessoa,
     'ROUANET' AS programa_fomento,
     r.data_evento,
     r.valor,
     r.pronac
 FROM recibos r
 INNER JOIN projeto_proponente p ON r.pronac = p.pronac
-WHERE p.beneficiario_documento IS NOT NULL
+WHERE p.documento_canon IS NOT NULL
   -- descarta documentos degenerados (só zeros) que não identificam ninguém
-  AND p.beneficiario_documento !~ '^0+$'
+  AND p.documento_canon !~ '^0+$'

@@ -7,7 +7,7 @@ models:
           Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo).
           Mapeia o CPF como identificador único e traz a coluna bruta de histórico
           de acesso a recursos públicos de fomento à cultura. Carga incremental
-          (materialized='incremental'), deduplicada por identificador_unico;
+          (materialized='incremental'), deduplicada por id_agente;
           descarta CPF nulo, vazio ou 'nan'/'none'.
       - name: lpg_agentes_pj
         status: Active
@@ -15,21 +15,21 @@ models:
           Camada Bronze — dados brutos de pessoas jurídicas da LPG.
           Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
           de acesso a recursos públicos de fomento à cultura. Carga incremental,
-          deduplicada por identificador_unico; descarta CNPJ nulo, vazio ou 'nan'/'none'.
+          deduplicada por id_agente; descarta CNPJ nulo, vazio ou 'nan'/'none'.
       - name: lpg_agentes_coletivos
         status: Active
         description: >
           Camada Bronze — dados brutos de proponentes coletivos da LPG.
           Mapeia o CPF do representante do grupo/coletivo como identificador único
           e traz a coluna bruta de histórico de acesso a recursos públicos de fomento.
-          Carga incremental, deduplicada por identificador_unico.
+          Carga incremental, deduplicada por id_agente.
       - name: pnab_agentes_pf
         status: Active
         description: >
           Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc).
           Mapeia o CPF como identificador único e traz a coluna bruta de histórico
           de acesso a recursos públicos de fomento à cultura nos últimos 5 anos.
-          Carga incremental, deduplicada por identificador_unico; descarta CPF nulo,
+          Carga incremental, deduplicada por id_agente; descarta CPF nulo,
           vazio ou 'nan'/'none'.
       - name: pnab_agentes_pj
         status: Active
@@ -37,7 +37,7 @@ models:
           Camada Bronze — dados brutos de organizações da PNAB.
           Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
           de acesso a recursos públicos de fomento à cultura anteriormente.
-          Carga incremental, deduplicada por identificador_unico.
+          Carga incremental, deduplicada por id_agente.
     silver:
       - name: perfil_agentes_historico
         status: Active
@@ -64,7 +64,7 @@ models:
         status: Active
         description: >
           Camada Gold — Master Data de proponentes (Meta 5).
-          Grain: 1 linha por identificador_unico (CPF/CNPJ). Consolida perfil_acesso_fomento
+          Grain: 1 linha por id_agente (pseudônimo do CPF/CNPJ). Consolida perfil_acesso_fomento
           eliminando duplicatas entre programas: proponentes presentes em mais de um programa
           têm veterania confirmada por presença multi-programa, sobrepondo a resposta declarada.
           Serve como base para dois consumos:
@@ -117,7 +117,7 @@ models:
         status: Active
         description: >
           Camada Views — consolidação dos cinco modelos bronze (3 LPG + 2 PNAB)
-          em um único dataset via UNION ALL. Padroniza identificador_unico e adiciona
+          em um único dataset via UNION ALL. Padroniza id_agente (pseudônimo do CPF/CNPJ) e adiciona
           as colunas literais programa_fomento e tipo_proponente para rastrear
           a origem de cada registro. Base de onde partem perfil_agentes_historico
           e perfil_acesso_fomento.

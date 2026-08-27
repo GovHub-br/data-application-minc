@@ -4,7 +4,7 @@
 
 WITH identificadores AS (
     SELECT
-        identificador_unico,
+        id_agente,
         tipo_proponente,
         programa_fomento,
         historico_acesso_bruto
@@ -13,7 +13,7 @@ WITH identificadores AS (
 
 higienizados AS (
     SELECT
-        identificador_unico,
+        id_agente,
         tipo_proponente,
         programa_fomento,
         TRIM(
@@ -35,7 +35,7 @@ higienizados AS (
 )
 
 SELECT
-    identificador_unico,
+    id_agente,
     tipo_proponente,
     programa_fomento,
     historico_acesso_limpo,

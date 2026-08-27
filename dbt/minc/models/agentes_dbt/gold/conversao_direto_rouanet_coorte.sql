@@ -29,14 +29,14 @@
 
 WITH agente AS (
     SELECT
-        beneficiario_documento,
+        id_beneficiario,
         tipo_pessoa,
         MAX(programa_fomento) FILTER (WHERE eh_porta_de_entrada) AS porta_de_entrada,
         MIN(data_primeiro_acesso_geral) AS data_entrada,
         MIN(data_primeiro_acesso_mecanismo)
             FILTER (WHERE programa_fomento = 'ROUANET') AS data_rouanet
     FROM {{ ref('primeiro_acesso_agentes') }}
-    GROUP BY beneficiario_documento, tipo_pessoa
+    GROUP BY id_beneficiario, tipo_pessoa
 ),
 
 novos_entrantes_direto AS (

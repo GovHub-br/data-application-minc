@@ -12,30 +12,42 @@
 --
 -- Contexto de programa (governmentprogramname) vem herdado da
 -- transação-mãe via id_plano_acao + id_transacao_pai = id.
+--
+-- Como no extrato: o documento vira pseudônimo na saída, o nome do
+-- beneficiário serve ao filtro 4 e não é materializado, e tipo_pessoa é
+-- gravado porque o hash apaga o comprimento que o deduzia.
+
+WITH base AS (
+    SELECT
+        s.id_plano_acao,
+        e.governmentprogramname AS programa_curto,
+        {{ documento_canonico('s.beneficiarydocumentid', 's.beneficiarypersontype') }} AS documento_canon,
+        ABS(s.value::NUMERIC) AS valor,
+        TO_DATE(s.paymentdate, 'DD/MM/YYYY') AS data_pagamento
+    FROM {{ source('bbagil', 'subtransacao_bbagil') }} s
+    JOIN {{ source('bbagil', 'extrato_bbagil') }} e
+        ON s.id_plano_acao = e.id_plano_acao
+        AND s.id_transacao_pai = e.id
+    WHERE s.beneficiarydocumentid IS NOT NULL
+      AND s.beneficiarydocumentid != '0'
+      AND s.subtransactionaccountabilityname = 'Pago'
+      AND NOT (
+          UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'MUNICIPIO%'
+          OR UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'ESTADO%'
+          OR UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'FUNDO%'
+          OR UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'SECRETARIA%'
+          OR UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'SEFAZ%'
+      )
+)
 
 SELECT
-    s.id_plano_acao,
-    e.governmentprogramname AS programa_curto,
+    id_plano_acao,
+    programa_curto,
+    {{ hash_documento('documento_canon') }} AS id_beneficiario,
     CASE
-        WHEN s.beneficiarypersontype = '1'
-            THEN LPAD(REGEXP_REPLACE(s.beneficiarydocumentid, '[^0-9]', '', 'g'), 11, '0')
-        WHEN s.beneficiarypersontype = '2'
-            THEN LPAD(REGEXP_REPLACE(s.beneficiarydocumentid, '[^0-9]', '', 'g'), 14, '0')
-    END AS beneficiario_documento,
-    s.beneficiaryname AS beneficiario_nome,
-    ABS(s.value::NUMERIC) AS valor,
-    TO_DATE(s.paymentdate, 'DD/MM/YYYY') AS data_pagamento
-FROM {{ source('bbagil', 'subtransacao_bbagil') }} s
-JOIN {{ source('bbagil', 'extrato_bbagil') }} e
-    ON s.id_plano_acao = e.id_plano_acao
-    AND s.id_transacao_pai = e.id
-WHERE s.beneficiarydocumentid IS NOT NULL
-  AND s.beneficiarydocumentid != '0'
-  AND s.subtransactionaccountabilityname = 'Pago'
-  AND NOT (
-      UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'MUNICIPIO%'
-      OR UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'ESTADO%'
-      OR UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'FUNDO%'
-      OR UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'SECRETARIA%'
-      OR UPPER(COALESCE(s.beneficiaryname, '')) LIKE 'SEFAZ%'
-  )
+        WHEN LENGTH(documento_canon) = 11 THEN 'PF'
+        ELSE 'PJ'
+    END AS tipo_pessoa,
+    valor,
+    data_pagamento
+FROM base

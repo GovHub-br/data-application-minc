@@ -23,19 +23,20 @@
 -- — hoje nenhum código presente no extrato cai nesse caso.
 
 WITH pagamentos AS (
-    SELECT id_plano_acao, programa_curto, beneficiario_documento, valor, data_pagamento
+    SELECT id_plano_acao, programa_curto, id_beneficiario, tipo_pessoa, valor, data_pagamento
     FROM {{ ref('bbagil_extrato_filtrado') }}
 
     UNION ALL
 
-    SELECT id_plano_acao, programa_curto, beneficiario_documento, valor, data_pagamento
+    SELECT id_plano_acao, programa_curto, id_beneficiario, tipo_pessoa, valor, data_pagamento
     FROM {{ ref('bbagil_subtransacoes_filtrado') }}
 ),
 
 classificado AS (
     SELECT
         id_plano_acao,
-        beneficiario_documento,
+        id_beneficiario,
+        tipo_pessoa,
         valor,
         data_pagamento,
         -- O nome do programa no extrato do BB Agil nao segue convencao: a
@@ -58,11 +59,12 @@ classificado AS (
 
 SELECT
     id_plano_acao,
-    beneficiario_documento,
+    id_beneficiario,
+    tipo_pessoa,
     programa_fomento,
     valor,
     data_pagamento
 FROM classificado
-WHERE beneficiario_documento IS NOT NULL
+WHERE id_beneficiario IS NOT NULL
   AND data_pagamento IS NOT NULL
   AND programa_fomento IS NOT NULL

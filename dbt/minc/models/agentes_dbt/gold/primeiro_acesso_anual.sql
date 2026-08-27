@@ -41,7 +41,7 @@ WITH atendidos_ano_mecanismo AS (
     SELECT DISTINCT
         ano_evento AS ano,
         programa_fomento,
-        beneficiario_documento
+        id_beneficiario
     FROM {{ ref('eventos_fomento') }}
 ),
 
@@ -49,7 +49,7 @@ WITH atendidos_ano_mecanismo AS (
 -- acessou o fomento federal pela primeira vez
 entradas AS (
     SELECT
-        beneficiario_documento,
+        id_beneficiario,
         programa_fomento,
         ano_primeiro_acesso_geral AS ano
     FROM {{ ref('primeiro_acesso_agentes') }}
@@ -60,11 +60,11 @@ por_mecanismo AS (
     SELECT
         a.ano,
         a.programa_fomento,
-        COUNT(DISTINCT a.beneficiario_documento) AS agentes_atendidos,
-        COUNT(DISTINCT e.beneficiario_documento) AS novos_entrantes
+        COUNT(DISTINCT a.id_beneficiario) AS agentes_atendidos,
+        COUNT(DISTINCT e.id_beneficiario) AS novos_entrantes
     FROM atendidos_ano_mecanismo a
     LEFT JOIN entradas e
-        ON a.beneficiario_documento = e.beneficiario_documento
+        ON a.id_beneficiario = e.id_beneficiario
         AND a.programa_fomento = e.programa_fomento
         AND a.ano = e.ano
     GROUP BY a.ano, a.programa_fomento
@@ -76,11 +76,11 @@ total_geral AS (
     SELECT
         a.ano,
         'TODOS' AS programa_fomento,
-        COUNT(DISTINCT a.beneficiario_documento) AS agentes_atendidos,
-        COUNT(DISTINCT e.beneficiario_documento) AS novos_entrantes
+        COUNT(DISTINCT a.id_beneficiario) AS agentes_atendidos,
+        COUNT(DISTINCT e.id_beneficiario) AS novos_entrantes
     FROM atendidos_ano_mecanismo a
     LEFT JOIN entradas e
-        ON a.beneficiario_documento = e.beneficiario_documento
+        ON a.id_beneficiario = e.id_beneficiario
         AND a.ano = e.ano
     GROUP BY a.ano
 ),

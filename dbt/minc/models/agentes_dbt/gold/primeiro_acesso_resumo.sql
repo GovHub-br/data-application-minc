@@ -6,7 +6,7 @@ WITH resumo AS (
     SELECT
         programa_fomento,
         categoria_primeiro_acesso,
-        COUNT(DISTINCT identificador_unico) AS total_proponentes
+        COUNT(DISTINCT id_agente) AS total_proponentes
     FROM {{ ref('perfil_agentes_historico') }}
     GROUP BY programa_fomento, categoria_primeiro_acesso
 )

@@ -35,6 +35,10 @@
 --   valor_de_captacao  TEXT no padrão brasileiro, '50.000,00'.
 -- Verificado no escopo acima: 0 datas e 0 valores fora do padrão, 0 negativos.
 --
+-- O documento é canonizado e sai como pseudônimo (macros/hash_documento.sql);
+-- o filtro de documento degenerado roda antes do hash. nome_proponente não é
+-- mais lido: morria em eventos_fomento sem ser usado.
+--
 -- DOCUMENTO: a tabela é quase toda CNPJ (31.528 linhas de 14 dígitos) e tem 4
 -- linhas com CPF. Proponente pessoa física é, na prática, invisível aqui — é a
 -- limitação desta fonte, e ela empurra na mesma direção de todas as outras:
@@ -46,12 +50,7 @@ WITH bruto AS (
             WHEN mecanismo = 'FSA' THEN 'FSA'
             ELSE 'AUDIOVISUAL'
         END AS programa_fomento,
-        CASE
-            WHEN LENGTH(REGEXP_REPLACE(TRIM(cnpj_proponente), '[^0-9]', '', 'g')) <= 11
-                THEN LPAD(REGEXP_REPLACE(TRIM(cnpj_proponente), '[^0-9]', '', 'g'), 11, '0')
-            ELSE LPAD(REGEXP_REPLACE(TRIM(cnpj_proponente), '[^0-9]', '', 'g'), 14, '0')
-        END AS beneficiario_documento,
-        NULLIF(TRIM(nome_proponente), '') AS beneficiario_nome,
+        {{ documento_canonico('TRIM(cnpj_proponente)') }} AS documento_canon,
         TO_DATE(data_captacao, 'FMMM/FMDD/YYYY') AS data_evento,
         REPLACE(REPLACE(valor_de_captacao, '.', ''), ',', '.')::NUMERIC AS valor,
         NULLIF(TRIM(no_salic), '') AS no_salic
@@ -69,14 +68,17 @@ WITH bruto AS (
 )
 
 SELECT
-    beneficiario_documento,
-    beneficiario_nome,
+    {{ hash_documento('documento_canon') }} AS id_beneficiario,
+    CASE
+        WHEN LENGTH(documento_canon) = 11 THEN 'PF'
+        ELSE 'PJ'
+    END AS tipo_pessoa,
     programa_fomento,
     data_evento,
     valor,
     no_salic
 FROM bruto
-WHERE beneficiario_documento !~ '^0+$'
+WHERE documento_canon !~ '^0+$'
   -- captação com valor zero ou negativo não deu acesso a recurso, mesmo
   -- critério aplicado à Rouanet
   AND valor > 0

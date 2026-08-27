@@ -17,9 +17,17 @@
 --      MUNICIPIO/ESTADO/FUNDO/SECRETARIA/SEFAZ — são repasses administrativos,
 --      não pagamento a agente cultural).
 --
--- beneficiario_documento normalizado via beneficiarypersontype (1=PF/CPF,
--- 2=PJ/CNPJ) + LPAD, porque uma fração relevante das linhas chega sem o
--- zero à esquerda (CNPJ com 12-13 dígitos, CPF com 10).
+-- O documento é canonizado via beneficiarypersontype (1=PF/CPF, 2=PJ/CNPJ) +
+-- LPAD, porque uma fração relevante das linhas chega sem o zero à esquerda
+-- (CNPJ com 12-13 dígitos, CPF com 10) — e só então vira pseudônimo. O
+-- documento em claro existe apenas dentro deste modelo, para os filtros que
+-- dependem dele; o que sai é id_beneficiario. Ver macros/hash_documento.sql.
+--
+-- beneficiario_nome NÃO sai daqui. Ele existe só para o filtro 7, que é
+-- aplicado no WHERE abaixo: usa-se e descarta-se no mesmo modelo. Hashear nome
+-- seria pior que inútil — não serve de chave e uma tabela de nomes é trivial de
+-- montar. tipo_pessoa é materializado aqui porque, depois do hash, ninguém
+-- consegue mais deduzi-lo do comprimento do documento.
 
 WITH base AS (
     SELECT
@@ -27,12 +35,7 @@ WITH base AS (
         id,
         governmentprogramname AS programa_curto,
         beneficiarydocumentid AS beneficiario_documento_bruto,
-        CASE
-            WHEN beneficiarypersontype = '1'
-                THEN LPAD(REGEXP_REPLACE(beneficiarydocumentid, '[^0-9]', '', 'g'), 11, '0')
-            WHEN beneficiarypersontype = '2'
-                THEN LPAD(REGEXP_REPLACE(beneficiarydocumentid, '[^0-9]', '', 'g'), 14, '0')
-        END AS beneficiario_documento,
+        {{ documento_canonico('beneficiarydocumentid', 'beneficiarypersontype') }} AS documento_canon,
         beneficiaryname AS beneficiario_nome,
         creditdebitindicator,
         value::NUMERIC AS valor,
@@ -60,8 +63,11 @@ SELECT
     b.id_plano_acao,
     b.id,
     b.programa_curto,
-    b.beneficiario_documento,
-    b.beneficiario_nome,
+    {{ hash_documento('b.documento_canon') }} AS id_beneficiario,
+    CASE
+        WHEN LENGTH(b.documento_canon) = 11 THEN 'PF'
+        ELSE 'PJ'
+    END AS tipo_pessoa,
     b.valor,
     b.data_pagamento
 FROM base b
@@ -71,7 +77,7 @@ LEFT JOIN chaves_estorno ce
     AND b.valor = ce.valor
 WHERE b.creditdebitindicator = 'D'
   AND ce.id_plano_acao IS NULL
-  AND b.beneficiario_documento IS NOT NULL
+  AND b.documento_canon IS NOT NULL
   AND b.beneficiario_documento_bruto != '3793086100189'
   AND b.descriptionname NOT IN (
       'BB-APLIC C.PRZ-APL.AUT', 'Resgate Automatico', 'Impostos',

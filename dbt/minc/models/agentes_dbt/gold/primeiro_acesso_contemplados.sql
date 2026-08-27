@@ -14,29 +14,48 @@
 -- vier mascarado, o JOIN usa um match parcial pelo "miolo" do CPF
 -- (posições 4-9, os mesmos 6 dígitos centrais expostos pela máscara).
 -- Esse match parcial tem risco de colisão entre CPFs com miolo igual.
+--
+-- MUDANÇA DE NÚMERO CONHECIDA (canonização): antes do pseudônimo, o JOIN
+-- exato comparava os dígitos crus do proponente contra o documento do
+-- contemplado JÁ com LPAD. Documento do proponente que chegou sem o zero à
+-- esquerda (10 dígitos num CPF, 12-13 num CNPJ) portanto nunca casava. Agora os
+-- dois lados passam por documento_canonico antes do hash, e esses casos
+-- passam a casar. O efeito é monotônico — só pode ACRESCENTAR
+-- contemplado = 'sim', nunca remover — e é correção de um falso negativo, não
+-- regressão. Espere este modelo divergir do valor anterior para cima.
+--
+-- COMO ISSO SOBREVIVE AO PSEUDÔNIMO: hash não preserva substring, então o
+-- recorte do miolo não pode mais ser feito aqui. Ele é feito ANTES do hash nos
+-- dois lados — id_agente_miolo na bronze de planilha (só quando o documento
+-- veio mascarado e sobraram exatamente 6 dígitos) e id_contemplado_miolo em
+-- identificadores_contemplados (só para CPF, 11 dígitos) — e aqui o JOIN
+-- apenas casa hash com hash. As condições que antes eram testadas neste
+-- modelo (LIKE '%*%' e comprimento 6) já estão embutidas no fato de
+-- id_agente_miolo ser NULL fora desse caso, e NULL não casa com nada.
 
 WITH todos_contemplados AS (
-    SELECT id_normalizado, programa_fomento
+    SELECT id_contemplado, programa_fomento
     FROM {{ ref('identificadores_contemplados') }}
 ),
 
 -- Miolo (6 dígitos centrais) do CPF, usado para casar com identificadores
--- mascarados de proponentes ("***.NNN.NNN-**"). Só faz sentido para CPF
--- (11 dígitos); CNPJ (14 dígitos) não é mascarado na base de proponentes.
+-- mascarados de proponentes ("***.NNN.NNN-**"). Só faz sentido para CPF;
+-- CNPJ não é mascarado na base de proponentes, e para ele o recorte já vem
+-- NULL de identificadores_contemplados.
 todos_contemplados_miolo AS (
     SELECT
-        id_normalizado,
-        programa_fomento,
-        SUBSTRING(id_normalizado FROM 4 FOR 6) AS miolo_cpf
-    FROM todos_contemplados
-    WHERE LENGTH(id_normalizado) = 11
+        id_contemplado_miolo,
+        programa_fomento
+    FROM {{ ref('identificadores_contemplados') }}
+    WHERE id_contemplado_miolo IS NOT NULL
 ),
 
 -- Base: perfil_acesso_fomento tem 1 linha por (identificador × programa),
 -- preservando a granularidade por programa para o JOIN de contemplação
 perfil_base AS (
     SELECT
-        identificador_unico,
+        id_agente,
+        id_agente_miolo,
         programa_fomento,
         CASE
             WHEN perfil_acesso_fomento IN (
@@ -59,22 +78,21 @@ perfil_base AS (
 
 perfil_com_contemplado AS (
     SELECT
-        pb.identificador_unico,
+        pb.id_agente,
         pb.programa_fomento,
         pb.categoria_primeiro_acesso,
         pb.status_dado,
         CASE
-            WHEN tc.id_normalizado IS NOT NULL OR tcm.id_normalizado IS NOT NULL THEN 'sim'
+            WHEN tc.id_contemplado IS NOT NULL
+              OR tcm.id_contemplado_miolo IS NOT NULL THEN 'sim'
             ELSE 'não'
         END AS contemplado
     FROM perfil_base pb
     LEFT JOIN todos_contemplados tc
-        ON REGEXP_REPLACE(pb.identificador_unico, '[^0-9]', '', 'g') = tc.id_normalizado
+        ON pb.id_agente = tc.id_contemplado
         AND pb.programa_fomento = tc.programa_fomento
     LEFT JOIN todos_contemplados_miolo tcm
-        ON pb.identificador_unico LIKE '%*%'
-        AND LENGTH(REGEXP_REPLACE(pb.identificador_unico, '[^0-9]', '', 'g')) = 6
-        AND REGEXP_REPLACE(pb.identificador_unico, '[^0-9]', '', 'g') = tcm.miolo_cpf
+        ON pb.id_agente_miolo = tcm.id_contemplado_miolo
         AND pb.programa_fomento = tcm.programa_fomento
 )
 
@@ -82,12 +100,12 @@ SELECT
     programa_fomento,
     categoria_primeiro_acesso,
     contemplado,
-    COUNT(DISTINCT identificador_unico)                                                          AS total_proponentes,
-    COUNT(DISTINCT CASE WHEN status_dado = 'Confirmado' THEN identificador_unico END)           AS total_campo_preenchido,
-    COUNT(DISTINCT CASE WHEN status_dado = 'Inferido'   THEN identificador_unico END)           AS total_inferido,
+    COUNT(DISTINCT id_agente)                                                          AS total_proponentes,
+    COUNT(DISTINCT CASE WHEN status_dado = 'Confirmado' THEN id_agente END)           AS total_campo_preenchido,
+    COUNT(DISTINCT CASE WHEN status_dado = 'Inferido'   THEN id_agente END)           AS total_inferido,
     ROUND(
-        COUNT(DISTINCT identificador_unico)::NUMERIC
-        / SUM(COUNT(DISTINCT identificador_unico)) OVER (PARTITION BY programa_fomento, contemplado)
+        COUNT(DISTINCT id_agente)::NUMERIC
+        / SUM(COUNT(DISTINCT id_agente)) OVER (PARTITION BY programa_fomento, contemplado)
         * 100, 2
     ) AS percentual
 FROM perfil_com_contemplado

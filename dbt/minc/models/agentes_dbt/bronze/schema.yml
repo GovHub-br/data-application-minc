@@ -6,7 +6,7 @@ models:
       Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo).
       Mapeia o CPF como identificador único e traz a coluna bruta de histórico
       de acesso a recursos públicos de fomento à cultura. Carga incremental
-      (materialized='incremental'), deduplicada por identificador_unico;
+      (materialized='incremental'), deduplicada por id_agente;
       descarta CPF nulo, vazio ou 'nan'/'none'.
     config:
       tags: [bronze, agentes, pessoa_fisica, lpg]
@@ -17,14 +17,28 @@ models:
           tier: Tier.Tier3
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: CPF do proponente pessoa física, normalizado para lowercase.
+      - name: id_agente
+        description: >
+          Pseudônimo do CPF do proponente: sha256(salt || documento canônico),
+          em hex. NÃO é o documento e não é reversível sem o salt. Documento que
+          chegou mascarado da origem é hasheado como veio, e por isso nunca casa
+          com um documento completo — para esse caso existe id_agente_miolo.
         tests:
           - not_null
         meta:
           openmetadata:
             glossary:
               - MinC.Identificadores.IdentificadorUnico
+      - name: id_agente_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o
+          documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6
+          dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que
+          hash nenhum preservaria por substring. NULL em todo o resto.
+      - name: documento_mascarado
+        description: >
+          Verdadeiro quando a origem entregou o documento mascarado, logo não
+          casável com a lista de contemplados a não ser pelo miolo.
       - name: historico_acesso_bruto
         description: Resposta bruta da LPG sobre acesso anterior a recursos públicos de fomento.
       - name: programa_fomento
@@ -35,7 +49,7 @@ models:
       Camada Bronze — dados brutos de pessoas jurídicas da LPG.
       Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
       de acesso a recursos públicos de fomento à cultura. Carga incremental,
-      deduplicada por identificador_unico; descarta CNPJ nulo, vazio ou 'nan'/'none'.
+      deduplicada por id_agente; descarta CNPJ nulo, vazio ou 'nan'/'none'.
     config:
       tags: [bronze, agentes, pessoa_juridica, lpg]
       meta:
@@ -45,14 +59,28 @@ models:
           tier: Tier.Tier3
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: CNPJ do proponente pessoa jurídica, normalizado para lowercase.
+      - name: id_agente
+        description: >
+          Pseudônimo do CNPJ do proponente: sha256(salt || documento canônico),
+          em hex. NÃO é o documento e não é reversível sem o salt. Documento que
+          chegou mascarado da origem é hasheado como veio, e por isso nunca casa
+          com um documento completo — para esse caso existe id_agente_miolo.
         tests:
           - not_null
         meta:
           openmetadata:
             glossary:
               - MinC.Identificadores.IdentificadorUnico
+      - name: id_agente_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o
+          documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6
+          dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que
+          hash nenhum preservaria por substring. NULL em todo o resto.
+      - name: documento_mascarado
+        description: >
+          Verdadeiro quando a origem entregou o documento mascarado, logo não
+          casável com a lista de contemplados a não ser pelo miolo.
       - name: historico_acesso_bruto
         description: Resposta bruta da LPG sobre acesso anterior a recursos públicos de fomento.
       - name: programa_fomento
@@ -63,7 +91,7 @@ models:
       Camada Bronze — dados brutos de proponentes coletivos da LPG.
       Mapeia o CPF do representante do grupo/coletivo como identificador único
       e traz a coluna bruta de histórico de acesso a recursos públicos de fomento.
-      Carga incremental, deduplicada por identificador_unico.
+      Carga incremental, deduplicada por id_agente.
     config:
       tags: [bronze, agentes, coletivo, lpg]
       meta:
@@ -73,14 +101,28 @@ models:
           tier: Tier.Tier3
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: CPF do representante do grupo/coletivo, normalizado para lowercase.
+      - name: id_agente
+        description: >
+          Pseudônimo do CPF do proponente: sha256(salt || documento canônico),
+          em hex. NÃO é o documento e não é reversível sem o salt. Documento que
+          chegou mascarado da origem é hasheado como veio, e por isso nunca casa
+          com um documento completo — para esse caso existe id_agente_miolo.
         tests:
           - not_null
         meta:
           openmetadata:
             glossary:
               - MinC.Identificadores.IdentificadorUnico
+      - name: id_agente_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o
+          documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6
+          dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que
+          hash nenhum preservaria por substring. NULL em todo o resto.
+      - name: documento_mascarado
+        description: >
+          Verdadeiro quando a origem entregou o documento mascarado, logo não
+          casável com a lista de contemplados a não ser pelo miolo.
       - name: historico_acesso_bruto
         description: Resposta bruta da LPG sobre acesso anterior a recursos públicos de fomento.
       - name: programa_fomento
@@ -91,7 +133,7 @@ models:
       Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc).
       Mapeia o CPF como identificador único e traz a coluna bruta de histórico
       de acesso a recursos públicos de fomento à cultura nos últimos 5 anos.
-      Carga incremental, deduplicada por identificador_unico; descarta CPF nulo,
+      Carga incremental, deduplicada por id_agente; descarta CPF nulo,
       vazio ou 'nan'/'none'.
     config:
       tags: [bronze, agentes, pessoa_fisica, pnab]
@@ -102,14 +144,28 @@ models:
           tier: Tier.Tier3
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: CPF do proponente pessoa física, normalizado para lowercase.
+      - name: id_agente
+        description: >
+          Pseudônimo do CPF do proponente: sha256(salt || documento canônico),
+          em hex. NÃO é o documento e não é reversível sem o salt. Documento que
+          chegou mascarado da origem é hasheado como veio, e por isso nunca casa
+          com um documento completo — para esse caso existe id_agente_miolo.
         tests:
           - not_null
         meta:
           openmetadata:
             glossary:
               - MinC.Identificadores.IdentificadorUnico
+      - name: id_agente_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o
+          documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6
+          dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que
+          hash nenhum preservaria por substring. NULL em todo o resto.
+      - name: documento_mascarado
+        description: >
+          Verdadeiro quando a origem entregou o documento mascarado, logo não
+          casável com a lista de contemplados a não ser pelo miolo.
       - name: historico_acesso_bruto
         description: Resposta bruta da PNAB sobre acesso anterior a recursos públicos de fomento.
       - name: programa_fomento
@@ -120,7 +176,7 @@ models:
       Camada Bronze — dados brutos de organizações da PNAB.
       Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
       de acesso a recursos públicos de fomento à cultura anteriormente.
-      Carga incremental, deduplicada por identificador_unico.
+      Carga incremental, deduplicada por id_agente.
     config:
       tags: [bronze, agentes, pessoa_juridica, pnab]
       meta:
@@ -130,14 +186,28 @@ models:
           tier: Tier.Tier3
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: CNPJ da organização, normalizado para lowercase.
+      - name: id_agente
+        description: >
+          Pseudônimo do CNPJ do proponente: sha256(salt || documento canônico),
+          em hex. NÃO é o documento e não é reversível sem o salt. Documento que
+          chegou mascarado da origem é hasheado como veio, e por isso nunca casa
+          com um documento completo — para esse caso existe id_agente_miolo.
         tests:
           - not_null
         meta:
           openmetadata:
             glossary:
               - MinC.Identificadores.IdentificadorUnico
+      - name: id_agente_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o
+          documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6
+          dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que
+          hash nenhum preservaria por substring. NULL em todo o resto.
+      - name: documento_mascarado
+        description: >
+          Verdadeiro quando a origem entregou o documento mascarado, logo não
+          casável com a lista de contemplados a não ser pelo miolo.
       - name: historico_acesso_bruto
         description: Resposta bruta da PNAB sobre acesso anterior a recursos públicos de fomento.
       - name: programa_fomento
@@ -174,14 +244,19 @@ models:
           Código curto do programa devolvido pelo BSC (governmentprogramname —
           ex. 'MINC-LPG-MUNI-AUD', 'MINC-PNAB-2023'). Insumo pra derivar
           programa_fomento em pagamentos_bbagil_beneficiarios.
-      - name: beneficiario_documento
+      - name: id_beneficiario
         description: >
-          CPF/CNPJ do beneficiário do pagamento, normalizado (LPAD por
-          beneficiarypersontype — 11 dígitos p/ CPF, 14 p/ CNPJ).
+          Pseudônimo do CPF/CNPJ do beneficiário: sha256(salt || documento
+          canônico), em hex. A canonização (LPAD por beneficiarypersontype —
+          11 dígitos p/ CPF, 14 p/ CNPJ) acontece ANTES do hash, e é o que
+          mantém este identificador casável com o das demais fontes.
         tests:
           - not_null
-      - name: beneficiario_nome
-        description: Nome do beneficiário do pagamento, como devolvido pelo BSC.
+      - name: tipo_pessoa
+        description: >
+          'PF' ou 'PJ', derivado do comprimento do documento canônico. É
+          materializado aqui porque, depois do pseudônimo, não há mais
+          comprimento de onde deduzi-lo.
       - name: valor
         description: Valor do pagamento (débito), em reais.
         tests:
@@ -213,12 +288,15 @@ models:
         description: >
           Código curto do programa (governmentprogramname), herdado da
           transação-mãe do extrato via id_plano_acao + id_transacao_pai = id.
-      - name: beneficiario_documento
-        description: CPF/CNPJ do beneficiário do sublançamento, normalizado (LPAD por persontype).
+      - name: id_beneficiario
+        description: >
+          Pseudônimo do CPF/CNPJ do beneficiário do sublançamento, canonizado
+          (LPAD por persontype) antes do hash.
         tests:
           - not_null
-      - name: beneficiario_nome
-        description: Nome do beneficiário do sublançamento, como devolvido pelo BSC.
+      - name: tipo_pessoa
+        description: >
+          'PF' ou 'PJ', derivado do comprimento do documento canônico.
       - name: valor
         description: Valor do sublançamento (em módulo), em reais.
         tests:

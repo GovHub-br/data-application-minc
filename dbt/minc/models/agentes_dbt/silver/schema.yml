@@ -18,8 +18,10 @@ models:
           tier: Tier.Tier2
           owner: minc-data-engineering
     columns:
-      - name: identificador_unico
-        description: Identificador único do proponente (CPF, CNPJ ou CPF do representante).
+      - name: id_agente
+        description: >
+          Pseudônimo do identificador do proponente (CPF, CNPJ, ou CPF do
+          representante no caso de coletivo). Não é o documento.
         tests:
           - not_null
         meta:
@@ -75,10 +77,17 @@ models:
         description: Identificador do plano de ação (ente + programa) dono da conta que fez o pagamento.
         tests:
           - not_null
-      - name: beneficiario_documento
-        description: CPF/CNPJ do beneficiário do pagamento, normalizado.
+      - name: id_beneficiario
+        description: >
+          Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex.
+          Não é o documento e não é reversível sem o salt.
         tests:
           - not_null
+      - name: tipo_pessoa
+        description: >
+          'PF' ou 'PJ', derivado do comprimento do documento canônico antes do
+          hash. Materializado porque o pseudônimo apaga o comprimento que o
+          deduzia.
       - name: programa_fomento
         description: Programa de fomento — 'LPG', 'PNAB' ou 'LAB'.
         tests:
@@ -120,10 +129,17 @@ models:
           tier: Tier.Tier2
           owner: minc-data-engineering
     columns:
-      - name: beneficiario_documento
-        description: CPF (11) ou CNPJ (14) do proponente, normalizado com LPAD.
+      - name: id_beneficiario
+        description: >
+          Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex.
+          Não é o documento e não é reversível sem o salt.
         tests:
           - not_null
+      - name: tipo_pessoa
+        description: >
+          'PF' ou 'PJ', derivado do comprimento do documento canônico antes do
+          hash. Materializado porque o pseudônimo apaga o comprimento que o
+          deduzia.
       - name: programa_fomento
         description: Sempre 'ROUANET'.
         tests:
@@ -170,8 +186,10 @@ models:
           tier: Tier.Tier2
           owner: minc-data-engineering
     columns:
-      - name: beneficiario_documento
-        description: CPF (11) ou CNPJ (14) do agente, normalizado com LPAD.
+      - name: id_beneficiario
+        description: >
+          Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex.
+          Não é o documento e não é reversível sem o salt.
         tests:
           - not_null
       - name: programa_fomento

@@ -2,9 +2,16 @@
     materialized='table'
 ) }}
 
+-- id_agente_miolo e documento_mascarado atravessam este modelo sem serem
+-- usados aqui: quem precisa deles é primeiro_acesso_contemplados, para o match
+-- parcial com a lista de contemplados quando o CPF do proponente veio
+-- mascarado da origem. Antes do pseudônimo esse teste era feito lá mesmo, com
+-- LIKE '%*%' sobre o documento; agora a informação tem de ser carregada.
 WITH todos_proponentes AS (
     SELECT
-        identificador_unico,
+        id_agente,
+        id_agente_miolo,
+        documento_mascarado,
         tipo_proponente,
         programa_fomento,
         historico_acesso_bruto
@@ -13,7 +20,9 @@ WITH todos_proponentes AS (
 
 historico_limpo AS (
     SELECT
-        identificador_unico,
+        id_agente,
+        id_agente_miolo,
+        documento_mascarado,
         tipo_proponente,
         programa_fomento,
         CASE
@@ -35,19 +44,23 @@ historico_limpo AS (
 
 historico_ordenado AS (
     SELECT
-        identificador_unico,
+        id_agente,
+        id_agente_miolo,
+        documento_mascarado,
         tipo_proponente,
         programa_fomento,
         historico_acesso_limpo,
         ROW_NUMBER() OVER (
-            PARTITION BY identificador_unico
+            PARTITION BY id_agente
             ORDER BY programa_fomento ASC
         ) AS sequencia_fomento
     FROM historico_limpo
 )
 
 SELECT
-    identificador_unico,
+    id_agente,
+    id_agente_miolo,
+    documento_mascarado,
     tipo_proponente,
     programa_fomento,
     historico_acesso_limpo,

@@ -23,7 +23,7 @@
 
 WITH por_agente_mecanismo AS (
     SELECT
-        beneficiario_documento,
+        id_beneficiario,
         programa_fomento,
         tipo_pessoa,
         MIN(data_evento) AS data_primeiro_acesso_mecanismo,
@@ -32,17 +32,17 @@ WITH por_agente_mecanismo AS (
         COUNT(*) AS qtd_eventos,
         SUM(valor) AS valor_total
     FROM {{ ref('eventos_fomento') }}
-    GROUP BY beneficiario_documento, programa_fomento, tipo_pessoa
+    GROUP BY id_beneficiario, programa_fomento, tipo_pessoa
 ),
 
 com_geral AS (
     SELECT
         *,
         MIN(data_primeiro_acesso_mecanismo)
-            OVER (PARTITION BY beneficiario_documento) AS data_primeiro_acesso_geral,
-        COUNT(*) OVER (PARTITION BY beneficiario_documento) AS qtd_mecanismos_agente,
+            OVER (PARTITION BY id_beneficiario) AS data_primeiro_acesso_geral,
+        COUNT(*) OVER (PARTITION BY id_beneficiario) AS qtd_mecanismos_agente,
         ROW_NUMBER() OVER (
-            PARTITION BY beneficiario_documento
+            PARTITION BY id_beneficiario
             ORDER BY
                 data_primeiro_acesso_mecanismo,
                 CASE programa_fomento
@@ -58,7 +58,7 @@ com_geral AS (
 )
 
 SELECT
-    beneficiario_documento,
+    id_beneficiario,
     programa_fomento,
     tipo_pessoa,
     data_primeiro_acesso_mecanismo,

@@ -7,7 +7,11 @@
 -- é exatamente o que a pergunta pede ("novos agentes que não haviam sido
 -- anteriormente contemplados", sem qualificar por programa).
 --
--- Grão: 1 linha por (documento, mecanismo, data do evento, valor).
+-- Grão: 1 linha por (agente, mecanismo, data do evento, valor). O agente é
+-- identificado por id_beneficiario, o pseudônimo do CPF/CNPJ — ver
+-- macros/hash_documento.sql. Como o hash é determinístico e a canonização é a
+-- mesma em todas as fontes, o cruzamento entre elas continua valendo, que é
+-- exatamente o que esta espinha existe para fazer.
 --
 -- MECANISMOS E SUAS JANELAS DE OBSERVAÇÃO — a assimetria aqui é a limitação
 -- mais importante do indicador, e está materializada na coluna
@@ -40,7 +44,8 @@
 
 WITH eventos_bbagil AS (
     SELECT
-        beneficiario_documento,
+        id_beneficiario,
+        tipo_pessoa,
         programa_fomento,
         data_pagamento AS data_evento,
         valor
@@ -52,22 +57,22 @@ WITH eventos_bbagil AS (
 -- transação. Avaliar por transação removeria parcelas pequenas de um repasse
 -- legítimo e poderia adiantar artificialmente a data de entrada do agente.
 bbagil_acima_piso AS (
-    SELECT beneficiario_documento, programa_fomento
+    SELECT id_beneficiario, programa_fomento
     FROM eventos_bbagil
-    GROUP BY beneficiario_documento, programa_fomento
+    GROUP BY id_beneficiario, programa_fomento
     HAVING SUM(valor) >= {{ var('limiar_valor_fomento', 375) }}
 ),
 
 bbagil_elegivel AS (
-    SELECT e.beneficiario_documento, e.programa_fomento, e.data_evento, e.valor
+    SELECT e.id_beneficiario, e.tipo_pessoa, e.programa_fomento, e.data_evento, e.valor
     FROM eventos_bbagil e
     INNER JOIN bbagil_acima_piso p
-        ON e.beneficiario_documento = p.beneficiario_documento
+        ON e.id_beneficiario = p.id_beneficiario
         AND e.programa_fomento = p.programa_fomento
 ),
 
 rouanet AS (
-    SELECT beneficiario_documento, programa_fomento, data_evento, valor
+    SELECT id_beneficiario, tipo_pessoa, programa_fomento, data_evento, valor
     FROM {{ ref('eventos_fomento_rouanet') }}
 ),
 
@@ -75,7 +80,7 @@ rouanet AS (
 -- já é uma captação formal: não passa pelo piso, que existe só para separar
 -- repasse de resíduo no extrato bancário.
 ancine AS (
-    SELECT beneficiario_documento, programa_fomento, data_evento, valor
+    SELECT id_beneficiario, tipo_pessoa, programa_fomento, data_evento, valor
     FROM {{ ref('eventos_fomento_ancine') }}
 ),
 
@@ -88,7 +93,7 @@ unificado AS (
 )
 
 SELECT
-    beneficiario_documento,
+    id_beneficiario,
     programa_fomento,
     data_evento,
     EXTRACT(YEAR FROM data_evento)::INT AS ano_evento,
@@ -109,10 +114,9 @@ SELECT
         WHEN programa_fomento = 'LPG' THEN 2023
         WHEN programa_fomento = 'PNAB' THEN 2023
     END AS ano_inicio_observacao,
-    CASE
-        WHEN LENGTH(beneficiario_documento) = 11 THEN 'PF'
-        ELSE 'PJ'
-    END AS tipo_pessoa
+    -- vem materializado das fontes: depois do pseudônimo o comprimento do
+    -- documento não existe mais para deduzir PF/PJ aqui
+    tipo_pessoa
 FROM unificado
-WHERE beneficiario_documento IS NOT NULL
+WHERE id_beneficiario IS NOT NULL
   AND data_evento IS NOT NULL

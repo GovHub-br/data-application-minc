@@ -9,11 +9,15 @@ semantic_models:
     entities:
       - name: proponente
         type: primary
-        expr: identificador_unico
+        expr: id_agente
         description: >
-          CPF/CNPJ do proponente como declarado nos formulários LPG/PNAB, em
-          minúsculas. PODE VIR MASCARADO ('***.123.456-**'). Não é casável com a
-          entidade agente_documento do domínio de cotas, que usa só dígitos.
+          Pseudônimo do CPF/CNPJ do proponente: sha256(salt || documento
+          canônico). NÃO é o documento e não é reversível sem o salt. Proponente
+          cujo documento veio mascarado da origem ('***.123.456-**') tem um
+          pseudônimo próprio, que por construção não casa com o de um documento
+          completo — ver id_agente_miolo. Não é casável com a entidade
+          agente_documento do domínio de cotas, que ainda usa o documento em
+          claro.
     dimensions:
       - name: tipo_proponente
         type: categorical
@@ -53,10 +57,10 @@ semantic_models:
     entities:
       - name: proponente
         type: foreign
-        expr: identificador_unico
+        expr: id_agente
         description: >
-          CPF/CNPJ do proponente (mesma normalização do perfil_agentes_completo,
-          podendo vir mascarado). Vários registros por proponente — um por
+          Pseudônimo do CPF/CNPJ do proponente (mesma construção do
+          perfil_agentes_completo). Vários registros por proponente — um por
           programa em que ele aparece.
     dimensions:
       - name: programa_avaliado

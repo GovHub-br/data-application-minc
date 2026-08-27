@@ -32,7 +32,7 @@
 
 WITH agentes AS (
     SELECT
-        beneficiario_documento,
+        id_beneficiario,
         tipo_pessoa,
         MIN(data_primeiro_acesso_mecanismo)
             FILTER (WHERE programa_fomento IN ('LAB', 'LPG', 'PNAB')) AS entrada_direto,
@@ -40,12 +40,12 @@ WITH agentes AS (
             FILTER (WHERE programa_fomento = 'ROUANET') AS entrada_rouanet,
         MAX(programa_fomento) FILTER (WHERE eh_porta_de_entrada) AS mecanismo_porta_entrada
     FROM {{ ref('primeiro_acesso_agentes') }}
-    GROUP BY beneficiario_documento, tipo_pessoa
+    GROUP BY id_beneficiario, tipo_pessoa
 ),
 
 classificado AS (
     SELECT
-        beneficiario_documento,
+        id_beneficiario,
         tipo_pessoa,
         entrada_direto,
         entrada_rouanet,
