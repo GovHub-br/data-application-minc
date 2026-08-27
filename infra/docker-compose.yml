@@ -75,6 +75,13 @@ x-airflow-environment: &airflow-common-env
   OM_INGEST_PROFILER: ${OM_INGEST_PROFILER:-true}
   OM_INGEST_CLASSIFIER: ${OM_INGEST_CLASSIFIER:-true}
   OM_DBT_PROJECT_DIR: ${OM_DBT_PROJECT_DIR:-dbt/minc}
+  # Salt do pseudônimo de CPF/CNPJ no dbt. Sem default de propósito: a macro
+  # salt_documento() aborta a compilação se ele vier vazio ou curto, porque
+  # sha256(cpf) sem segredo é revertido por força bruta em minutos. Gere com
+  # `openssl rand -base64 48` e ponha no .env do project dir.
+  # É PERMANENTE — trocá-lo reescreve todos os pseudônimos e desfaz qualquer
+  # comparação com o que já foi materializado.
+  MINC_SALT_DOCUMENTO: ${MINC_SALT_DOCUMENTO:-}
   # BSC / SERPRO (bbágil) — interpoladas do .env do project dir. Passadas aqui na
   # `environment:` porque a diretiva `env_file` não injetou as vars neste setup;
   # esta via (${...}) é a mesma que já funciona p/ FERNET_KEY/JWT_SECRET acima.

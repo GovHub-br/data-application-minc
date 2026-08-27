@@ -16,6 +16,16 @@ clean-targets:
   - "dbt_packages"
   - "logs"
 
+# O salt do pseudônimo de CPF/CNPJ. Sem valor default de propósito: a macro
+# salt_documento() falha a compilação quando ele está ausente ou curto demais,
+# porque um salt vazio geraria sha256(cpf) puro — que é revertido por força
+# bruta em minutos e só pareceria anonimização. Ver macros/hash_documento.sql.
+#
+# O salt é PERMANENTE: trocá-lo reescreve todos os pseudônimos e desfaz
+# qualquer comparação com dado já materializado.
+vars:
+  salt_documento: "{{ env_var('MINC_SALT_DOCUMENTO', '') }}"
+
 models:
   minc:
     metadata:
