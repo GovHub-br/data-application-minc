@@ -126,7 +126,7 @@ def _carregar_entes_transferegov() -> list[dict[str, Any]]:
     db = ClientPostgresDB(get_postgres_conn())
     linhas = db.execute_query(_SQL_CONTAS_POR_PLANO)
 
-    entes = [
+    entes_brutos = [
         {
             "id_plano_acao": id_plano_acao,
             "id_plano_acao_dado_bancario": id_dado_bancario,
@@ -152,6 +152,18 @@ def _carregar_entes_transferegov() -> list[dict[str, Any]]:
             nome_programa,
         ) in linhas
     ]
+
+    # Planos com conta='0' ainda não têm conta corrente real no banco
+    # (ex.: "Aguardando Aprovação do Plano de Ação") — o BSC rejeita com
+    # 400 "Conta corrente inválida." e esse status não entra no checkpoint
+    # como 'ok'/'sem_dados', então seriam reprocessados em cada re-execução.
+    entes = [e for e in entes_brutos if str(e["conta"]).strip() != "0"]
+    ignorados = len(entes_brutos) - len(entes)
+    if ignorados:
+        logging.info(
+            "[extracao_bbagil_dag] %d entes ignorados por conta='0' (sem conta corrente real)",
+            ignorados,
+        )
 
     if not entes:
         raise ValueError(
