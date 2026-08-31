@@ -1,0 +1,59 @@
+source:
+  type: postgres
+  serviceName: MinC
+  serviceConnection:
+    config:
+      type: Postgres
+      hostPort: ${DB_DW_HOST}:${DB_DW_PORT}
+      username: ${DB_DW_USER}
+      authType:
+        password: ${DB_DW_PASSWORD}
+      database: ${DB_DW_DBNAME}
+      sslMode: disable
+
+  sourceConfig:
+    config:
+      type: AutoClassification
+      enableAutoClassification: true
+      # Pode analisar valores no worker para detectar PII, mas nao persiste
+      # linhas brutas na aba Sample Data do OpenMetadata.
+      storeSampleData: false
+      sampleDataCount: 50
+      schemaFilterPattern:
+        includes:
+          # Uniao do que o projeto dbt declara como source com o que ele
+          # produz. tests/test_openmetadata_packaging.py deriva a mesma lista
+          # do projeto dbt e falha quando as duas divergem.
+          - '^agentes$'
+          - '^ancine$'
+          - '^bacen$'
+          - '^bb_agil$'
+          - '^bbagil$'
+          - '^bronze$'
+          - '^bsc$'
+          - '^bsc_pnab$'
+          - '^cotas$'
+          - '^dados_mapa_cultura$'
+          - '^dados_salic$'
+          - '^execucao_pnab$'
+          - '^metadata$'
+          - '^relatorio_gestao$'
+          - '^transferegov$'
+processor:
+  type: orm-profiler
+  config: {}
+
+sink:
+  type: metadata-rest
+  config:
+    # Lote pequeno de proposito: o proxy na frente do OpenMetadata corta a
+    # conexao antes de um PUT grande terminar.
+    bulk_sink_batch_size: 10
+
+workflowConfig:
+  loggerLevel: INFO
+  openMetadataServerConfig:
+    hostPort: ${OM_HOST}
+    authProvider: openmetadata
+    securityConfig:
+      jwtToken: ${CLASSIFICATION_TOKEN}

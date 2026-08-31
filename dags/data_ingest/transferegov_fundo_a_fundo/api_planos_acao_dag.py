@@ -6,6 +6,7 @@ from airflow.sdk import Variable
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 import schemas_minc as schemas
+from openmetadata.lineage import publicar_linhagem, tabela
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from postgres_helpers import get_postgres_conn
@@ -29,7 +30,7 @@ default_args = {
     tags=["minc", "transferegov", "planos_acao", "raw"],
 )
 def api_planos_acao_dag() -> None:
-    @task
+    @task(outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO)])
     def fetch_and_load_planos_acao() -> int:
         """Busca e carrega planos de ação em uma única task.
 
@@ -113,7 +114,12 @@ def api_planos_acao_dag() -> None:
     )
 
     carga = fetch_and_load_planos_acao()
-    carga >> [trigger_relatorios, trigger_metas, trigger_dado_bancario]
+    carga >> [
+        trigger_relatorios,
+        trigger_metas,
+        trigger_dado_bancario,
+        publicar_linhagem(),
+    ]
 
 
 api_planos_acao_dag()

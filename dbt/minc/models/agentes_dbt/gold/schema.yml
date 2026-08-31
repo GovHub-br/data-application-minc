@@ -16,12 +16,20 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Master Data de Proponentes'
         origem_dados: 'perfil_acesso_fomento e identificadores_agentes'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: identificador_unico
         description: CPF ou CNPJ do proponente (normalizado). Chave única do modelo.
         tests:
           - not_null
           - unique
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.IdentificadorUnico
       - name: tipo_proponente
         description: >
           Classificação do proponente — 'Pessoa Física', 'Pessoa Jurídica',
@@ -69,6 +77,10 @@ models:
                   - 'Provável Veterano'
                   - 'Indeterminado'
 
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Agentes.PrimeiroAcesso
   - name: perfil_acesso_fomento
     description: >
       Camada Gold — Meta 5 (Mapeamento de agentes culturais acessando fomento
@@ -85,11 +97,19 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Inferência de Primeiro Acesso'
         origem_dados: 'LPG e PNAB (via identificadores_agentes)'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: identificador_unico
         description: CPF ou CNPJ do proponente (já normalizado em minúsculas e sem espaços).
         tests:
           - not_null
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.IdentificadorUnico
       - name: tipo_proponente
         description: Classificação do proponente — 'Pessoa Física', 'Pessoa Jurídica', 'Coletivo' ou 'Organização'.
         tests:
@@ -165,6 +185,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Primeiro Acesso com Contemplação'
         origem_dados: 'perfil_acesso_fomento + planilha_contemplados_lpg + planilha_contemplados_pnab_ciclo_1'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: programa_fomento
         description: Programa de fomento — 'LPG' ou 'PNAB'.
@@ -182,6 +206,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['Sim', 'Não', 'Não sabe/Não informou']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Agentes.PrimeiroAcesso
       - name: contemplado
         description: >
           Flag de contemplação em edital público — 'sim' se o identificador
@@ -192,6 +220,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['sim', 'não']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Agentes.Contemplado
       - name: total_proponentes
         description: Contagem distinta de proponentes no cruzamento programa × categoria × contemplado.
         tests:
@@ -229,6 +261,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Indicador de Primeiro Acesso'
         origem_dados: 'LPG e PNAB'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: programa_fomento
         description: Programa de fomento — 'LPG' ou 'PNAB'.
@@ -246,6 +282,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['Sim', 'Não', 'Não sabe/Não informou']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Agentes.PrimeiroAcesso
       - name: total_proponentes
         description: Contagem distinta de proponentes na categoria dentro do programa.
         tests:
@@ -278,6 +318,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Primeiro Acesso ao Fomento Federal (por agente)'
         origem_dados: 'eventos_fomento (BB Ágil + SALIC)'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: beneficiario_documento
         description: CPF (11) ou CNPJ (14) do agente, normalizado com LPAD.
@@ -328,6 +372,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['Sim', 'Não']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Agentes.PrimeiroAcesso
       - name: entrada_em_ano_censurado
         description: >
           Verdadeiro quando a entrada caiu no primeiro ano observável daquele
@@ -358,6 +406,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Percentual anual de proponentes de primeiro acesso'
         origem_dados: 'eventos_fomento + primeiro_acesso_agentes'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: ano
         description: Ano civil do evento de recebimento de recurso.
@@ -422,6 +474,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Trajetória entre fomento direto e Rouanet'
         origem_dados: 'primeiro_acesso_agentes'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: trajetoria
         description: >
@@ -472,6 +528,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Conversão do fomento direto para a Rouanet, por coorte'
         origem_dados: 'primeiro_acesso_agentes'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: coorte_entrada
         description: Ano em que o agente entrou no fomento federal pela primeira vez.
@@ -528,6 +588,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — Novos Entrantes entre contemplados de edital'
         origem_dados: 'primeiro_acesso_agentes + identificadores_contemplados'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
     columns:
       - name: programa_fomento
         description: Programa de fomento — 'LPG' ou 'PNAB'.
@@ -546,6 +610,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['Sim', 'Não']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Agentes.PrimeiroAcesso
       - name: total_proponentes
         description: Contagem distinta de contemplados com evento observável, por categoria.
         tests:

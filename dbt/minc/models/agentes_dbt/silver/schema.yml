@@ -13,11 +13,19 @@ models:
       tags: [silver, agentes, higienizacao]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: identificador_unico
         description: Identificador único do proponente (CPF, CNPJ ou CPF do representante).
         tests:
           - not_null
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.IdentificadorUnico
       - name: tipo_proponente
         description: >
           Tipo do proponente — 'Pessoa Física', 'Pessoa Jurídica',
@@ -39,6 +47,10 @@ models:
               arguments:
                 values: ['Sim', 'Não', 'Não sabe/Não informou']
 
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Agentes.PrimeiroAcesso
   - name: pagamentos_bbagil_beneficiarios
     description: >
       Camada Silver — Meta 5 Fase 4. Unifica bbagil_extrato_filtrado e
@@ -54,6 +66,10 @@ models:
       tags: [silver, agentes, bbagil, meta5, fase4]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: id_plano_acao
         description: Identificador do plano de ação (ente + programa) dono da conta que fez o pagamento.
@@ -99,6 +115,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — eventos de captação da Lei Rouanet'
         origem_dados: 'bronze.sac__captacao + bronze.sac__tbapiprojetorouanet'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: beneficiario_documento
         description: CPF (11) ou CNPJ (14) do proponente, normalizado com LPAD.
@@ -145,6 +165,10 @@ models:
         status: Active
         meta_objetivo: 'Meta 5 — espinha de eventos de acesso a fomento federal'
         origem_dados: 'pagamentos_bbagil_beneficiarios + eventos_fomento_rouanet'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: beneficiario_documento
         description: CPF (11) ou CNPJ (14) do agente, normalizado com LPAD.

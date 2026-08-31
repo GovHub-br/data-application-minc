@@ -6,6 +6,7 @@ from airflow.sdk import dag, task
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 import schemas_minc as schemas
+from openmetadata.lineage import publicar_linhagem, tabela
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from postgres_helpers import get_postgres_conn
@@ -28,9 +29,11 @@ default_args = {
     tags=["minc", "transferegov", "relatorios", "raw"],
 )
 def api_relatorios_gestao_dag() -> None:
-    @task
+    @task(inlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO)])
     def fetch_relatorios_gestao() -> list[dict[str, Any]]:
-        logging.info("[api_relatorios_gestao_dag.py] Iniciando extração de relatórios de gestão")
+        logging.info(
+            "[api_relatorios_gestao_dag.py] Iniciando extração de relatórios de gestão"
+        )
 
         db = ClientPostgresDB(get_postgres_conn())
         ids_planos = db.get_id_planos_acao(
@@ -38,7 +41,9 @@ def api_relatorios_gestao_dag() -> None:
         )
 
         if not ids_planos:
-            raise ValueError("[api_relatorios_gestao_dag.py] Nenhum plano de ação encontrado")
+            raise ValueError(
+                "[api_relatorios_gestao_dag.py] Nenhum plano de ação encontrado"
+            )
 
         api = ClienteTransfereGov()
         relatorios_data: list[dict[str, Any]] = []
@@ -73,7 +78,9 @@ def api_relatorios_gestao_dag() -> None:
                 )
 
         if not relatorios_data:
-            raise ValueError("[api_relatorios_gestao_dag.py] Nenhum relatório foi extraído")
+            raise ValueError(
+                "[api_relatorios_gestao_dag.py] Nenhum relatório foi extraído"
+            )
 
         logging.info(
             "[api_relatorios_gestao_dag.py] Extração concluída com %s registros",
@@ -81,7 +88,7 @@ def api_relatorios_gestao_dag() -> None:
         )
         return relatorios_data
 
-    @task
+    @task(outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO)])
     def load_relatorios_to_postgres(relatorios_data: list[dict[str, Any]]) -> None:
         logging.info("[api_relatorios_gestao_dag.py] Iniciando carga no PostgreSQL")
 
@@ -105,7 +112,8 @@ def api_relatorios_gestao_dag() -> None:
         wait_for_completion=False,
     )
 
-    load_relatorios_to_postgres(fetch_relatorios_gestao()) >> trigger_anexos
+    carga = load_relatorios_to_postgres(fetch_relatorios_gestao())
+    carga >> [trigger_anexos, publicar_linhagem()]
 
 
 api_relatorios_gestao_dag()

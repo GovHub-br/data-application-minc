@@ -7,6 +7,7 @@ from airflow.sdk import Variable
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 import schemas_minc as schemas
+from openmetadata.lineage import publicar_linhagem, tabela
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from postgres_helpers import get_postgres_conn
@@ -131,7 +132,7 @@ def api_programas_dag() -> None:
         )
         return programas_data
 
-    @task
+    @task(outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PROGRAMA)])
     def load_programas_to_postgres(programas_data: list[dict[str, Any]]) -> None:
         logging.info("[api_programas_dag.py] Iniciando carga no PostgreSQL")
 
@@ -157,7 +158,7 @@ def api_programas_dag() -> None:
         wait_for_completion=False,
     )
 
-    carga_finalizada >> trigger_planos_acao
+    carga_finalizada >> [trigger_planos_acao, publicar_linhagem()]
 
 
 api_programas_dag()

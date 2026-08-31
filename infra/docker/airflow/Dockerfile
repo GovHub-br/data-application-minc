@@ -49,12 +49,15 @@ COPY --chown=airflow:0 infra/airflow/simple_auth_manager_passwords.json ./simple
 FROM airflow-base AS airflow-prod
 ARG AIRFLOW_VERSION
 
-COPY requirements.txt ./requirements.txt
+# O lock e resolvido contra esta imagem base por
+# infra/docker/airflow/compile-lock.sh. Instalar requirements.txt solto aqui
+# rebaixa pacotes que a base ja trazia e o `pip check` abaixo derruba o build.
+COPY infra/docker/airflow/requirements.lock.txt ./requirements.lock.txt
 
-RUN python -m pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" -r requirements.txt \
+RUN python -m pip install --no-cache-dir -r requirements.lock.txt \
   && python -c "import airflow, sys; expected='${AIRFLOW_VERSION}'; actual=airflow.__version__; print(f'Airflow {actual}'); sys.exit(0 if actual == expected else 1)" \
   && python -m pip check \
-  && rm -f requirements.txt
+  && rm -f requirements.lock.txt
 
 ENV ENVIRONMENT=prod
 
@@ -62,11 +65,14 @@ ENV ENVIRONMENT=prod
 FROM airflow-base AS airflow-dev
 ARG AIRFLOW_VERSION
 
-COPY requirements.txt ./requirements.txt
+# O lock e resolvido contra esta imagem base por
+# infra/docker/airflow/compile-lock.sh. Instalar requirements.txt solto aqui
+# rebaixa pacotes que a base ja trazia e o `pip check` abaixo derruba o build.
+COPY infra/docker/airflow/requirements.lock.txt ./requirements.lock.txt
 
-RUN python -m pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" -r requirements.txt \
+RUN python -m pip install --no-cache-dir -r requirements.lock.txt \
   && python -c "import airflow, sys; expected='${AIRFLOW_VERSION}'; actual=airflow.__version__; print(f'Airflow {actual}'); sys.exit(0 if actual == expected else 1)" \
   && python -m pip check \
-  && rm -f requirements.txt
+  && rm -f requirements.lock.txt
 
 ENV ENVIRONMENT=dev

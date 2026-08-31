@@ -21,16 +21,28 @@ models:
       tags: [silver, cotas]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: identificador_unico
         tests:
           - unique
           - not_null
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.IdentificadorUnico
       - name: raca_normalizada
         tests:
           - accepted_values:
               arguments:
                 values: ['negra', 'indigena', 'branca', 'amarela', 'nao_declarada']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Qualificadores.RacaNormalizada
   - name: identificadores_agentes_cotas
     description: >
       Chaves distintas de agentes (identificador_unico, tipo_proponente,
@@ -40,11 +52,19 @@ models:
       tags: [silver, cotas]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: identificador_unico
         tests:
           - unique
           - not_null
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.IdentificadorUnico
   - name: editais_unif
     description: >
       Editais unificados a partir de stg_editais, com ano derivado
@@ -56,6 +76,10 @@ models:
       tags: [silver, cotas]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
   - name: edital_ano_por_anexo
     description: >
       Ano do edital por ANEXO (PNAB) — 2ª fonte na cascata de datação de
@@ -68,6 +92,10 @@ models:
       tags: [silver, cotas]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: anexo_id
         tests:
@@ -89,6 +117,10 @@ models:
       tags: [silver, cotas]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: anexo_id
         tests:
@@ -110,11 +142,19 @@ models:
       tags: [silver, cotas]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: cd_mun
         tests:
           - unique
           - not_null
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.CodigoIBGE
       - name: chave_municipio_uf
         description: >
           Chave de junção por nome (município+UF normalizados) com
@@ -124,6 +164,10 @@ models:
           ignora nulos.
         tests:
           - unique
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.CodigoIBGE
   - name: contemplados_unif
     description: >
       Contemplados unificados LPG + PNAB — núcleo do lado-valor das cotas.
@@ -148,6 +192,10 @@ models:
       tags: [silver, cotas]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
     columns:
       - name: origem
         tests:
@@ -159,6 +207,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['nome_edital', 'anexo_edital', 'nome_arquivo', 'sem_ano']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Qualificadores.OrigemDoAno
   - name: diag_valores_cortados
     description: >
       Diagnóstico de valores por magnitude — audita o que o teto de R$10M do
@@ -170,6 +222,10 @@ models:
       tags: [silver, cotas]
       meta:
         status: Active
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
   - name: bbagil_ente_ano
     description: >
       [MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com
@@ -187,3 +243,7 @@ models:
       tags: [silver, cotas]
       meta:
         status: Disabled
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering

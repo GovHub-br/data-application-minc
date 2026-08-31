@@ -1,10 +1,20 @@
 COMPOSE_FILE := infra/docker-compose.yml
 
+# O Compose usa o .env para DUAS coisas distintas, e por padrao elas apontam
+# para arquivos diferentes:
+#   1. env_file:  injeta variaveis no container  -> resolvido pelo compose file
+#   2. ${VAR}:    substitui dentro do proprio yml -> procurado no project dir
+# Como o compose file vive em infra/, (2) procurava infra/.env, que nao existe,
+# e toda ${VAR} caia no default calado. --env-file aponta (1) e (2) para o mesmo
+# arquivo na raiz. Nao usar --project-directory: ele tambem reposiciona os
+# caminhos dos volumes, que sao relativos a infra/.
+COMPOSE := docker compose --env-file .env -f $(COMPOSE_FILE)
+
 export PYTHONPATH := $(CURDIR)/dags:$(CURDIR)/plugins:$(CURDIR)/helpers
 export MYPYPATH := $(CURDIR):$(CURDIR)/dags:$(CURDIR)/helpers:$(CURDIR)/plugins
 
-.PHONY: setup format lint lint-ci test compose-config up up-trino down \
-        logs-airflow logs-trino trino-cli \
+.PHONY: setup lock dbt-manifest format lint lint-ci test compose-config \
+        up up-trino down logs-airflow logs-trino trino-cli \
         docs-setup docs-collect docs-build docs-serve docs-clean
 
 DOCS_DIR := docs-pages
@@ -19,6 +29,12 @@ setup:
 	poetry install --no-root --with dev
 	poetry export --without-hashes --format=requirements.txt > requirements.generated.txt
 	bash setup-git-hooks.sh
+
+lock:
+	./infra/docker/airflow/compile-lock.sh
+
+dbt-manifest:
+	./scripts/gerar_manifest_dbt.sh
 
 format:
 	poetry run black .
@@ -40,29 +56,29 @@ test:
 	poetry run pytest tests
 
 compose-config:
-	docker compose -f $(COMPOSE_FILE) config
+	$(COMPOSE) config
 
 up:
-	docker compose -f $(COMPOSE_FILE) up postgres airflow airflow-mcp
+	$(COMPOSE) up postgres airflow airflow-mcp
 
 # Stack com o Trino, para a ingestão SALIC v2. Fora do `up` porque a imagem
 # é grande e a JVM fica de pé consumindo memória mesmo sem ingestão rodando.
 up-trino:
-	docker compose -f $(COMPOSE_FILE) --profile trino up postgres airflow airflow-mcp trino
+	$(COMPOSE) --profile trino up postgres airflow airflow-mcp trino
 
 down:
-	docker compose -f $(COMPOSE_FILE) down
+	$(COMPOSE) down
 
 logs-airflow:
-	docker compose -f $(COMPOSE_FILE) logs airflow --tail=200
+	$(COMPOSE) logs airflow --tail=200
 
 logs-trino:
-	docker compose -f $(COMPOSE_FILE) logs trino --tail=200
+	$(COMPOSE) logs trino --tail=200
 
 # Console SQL do Trino — para conferir catálogo, listar schema da origem e
 # rodar a query de uma fatia à mão quando a DAG falha.
 trino-cli:
-	docker compose -f $(COMPOSE_FILE) exec trino trino
+	$(COMPOSE) exec trino trino
 
 # ─── Site de documentação ──────────────────────────────────────────────────
 #

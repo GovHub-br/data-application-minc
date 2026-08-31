@@ -10,9 +10,9 @@ x-airflow-common: &airflow-common
       AIRFLOW_VERSION: ${AIRFLOW_VERSION:-3.2.2}
       PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
   user: "${AIRFLOW_UID:-50000}:0"
+  # O .env vive na RAIZ do repo. Uma entrada so: com duas (./.env e ../.env)
+  # ficava ambiguo qual valia, e a ordem de precedencia nao era obvia.
   env_file:
-    - path: ./.env
-      required: false
     - path: ../.env
       required: false
   volumes:
@@ -68,6 +68,13 @@ x-airflow-environment: &airflow-common-env
   AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
   AIRFLOW_REPO_BASE: /opt/airflow
   AIRFLOW_PRUNE_STALE_DAGS: ${AIRFLOW_PRUNE_STALE_DAGS:-true}
+  # Feature flags da openmetadata_ingestion_dag. Superset desligada porque o
+  # MinC nao tem instancia propria.
+  OM_INGEST_SUPERSET: ${OM_INGEST_SUPERSET:-false}
+  OM_INGEST_AIRFLOW: ${OM_INGEST_AIRFLOW:-true}
+  OM_INGEST_PROFILER: ${OM_INGEST_PROFILER:-true}
+  OM_INGEST_CLASSIFIER: ${OM_INGEST_CLASSIFIER:-true}
+  OM_DBT_PROJECT_DIR: ${OM_DBT_PROJECT_DIR:-dbt/minc}
   # BSC / SERPRO (bbágil) — interpoladas do .env do project dir. Passadas aqui na
   # `environment:` porque a diretiva `env_file` não injetou as vars neste setup;
   # esta via (${...}) é a mesma que já funciona p/ FERNET_KEY/JWT_SECRET acima.
@@ -133,7 +140,8 @@ services:
   postgres:
     image: postgres:15-alpine
     env_file:
-      - ../.env
+      - path: ../.env
+        required: false
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -143,7 +151,7 @@ services:
       - ./docker/postgres/:/docker-entrypoint-initdb.d/
     ports:
       # Parametrizada para conviver com outro stack local ja ocupando a 5432.
-      # Definida em infra/.env (o .env da raiz NAO e lido para interpolacao).
+      # Definida no .env da raiz (o Makefile passa --env-file .env).
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
@@ -163,9 +171,8 @@ services:
     image: trinodb/trino:${TRINO_VERSION:-478}
     profiles:
       - trino
+    # Mesma entrada unica do x-airflow-common: o .env vive na RAIZ do repo.
     env_file:
-      - path: ./.env
-        required: false
       - path: ../.env
         required: false
     environment:
@@ -194,7 +201,7 @@ services:
     # que a maquina host resolva — e o erro chega como "TCP/IP connection to the
     # host ... has failed", que parece firewall e nao e.
     #
-    # Defina SALIC_DNS_SEARCH em infra/.env com o dominio de busca da VPN. Vazio
+    # Defina SALIC_DNS_SEARCH no .env da raiz com o dominio de busca da VPN. Vazio
     # tambem funciona: basta usar o FQDN em SALIC_MSSQL_HOST.
     dns_search:
       - ${SALIC_DNS_SEARCH:-localdomain}
