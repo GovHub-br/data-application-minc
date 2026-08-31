@@ -8,7 +8,8 @@ USER root
 ENV AIRFLOW__CORE__LOAD_EXAMPLES=False \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
-    PIP_DEFAULT_TIMEOUT=300
+    PIP_DEFAULT_TIMEOUT=300 \
+    UV_HTTP_TIMEOUT=300
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -46,33 +47,31 @@ WORKDIR ${AIRFLOW_HOME}
 COPY --chown=airflow:0 infra/airflow/simple_auth_manager_passwords.json ./simple_auth_manager_passwords.json
 
 
-FROM airflow-base AS airflow-prod
+FROM airflow-base AS airflow-deps
 ARG AIRFLOW_VERSION
 
 # O lock e resolvido contra esta imagem base por
 # infra/docker/airflow/compile-lock.sh. Instalar requirements.txt solto aqui
-# rebaixa pacotes que a base ja trazia e o `pip check` abaixo derruba o build.
+# rebaixa pacotes que a base ja trazia e o `uv pip check` abaixo derruba o build.
 COPY infra/docker/airflow/requirements.lock.txt ./requirements.lock.txt
 
-RUN python -m pip install --no-cache-dir -r requirements.lock.txt \
+# uv no lugar do pip: ele ja vem na imagem oficial do Airflow (/home/airflow/
+# .local/bin/uv), entao nao e dependencia nova. Instala no venv apontado por
+# VIRTUAL_ENV=/home/airflow/.local, que a base define -- o mesmo lugar onde o
+# pip instalava. Sem venv encontrado o uv aborta, entao a quebra seria no build,
+# nao em runtime.
+RUN uv pip install --no-cache -r requirements.lock.txt \
   && python -c "import airflow, sys; expected='${AIRFLOW_VERSION}'; actual=airflow.__version__; print(f'Airflow {actual}'); sys.exit(0 if actual == expected else 1)" \
-  && python -m pip check \
+  && uv pip check \
   && rm -f requirements.lock.txt
 
+
+# prod e dev so divergem no ENVIRONMENT. Herdando de airflow-deps, a instalacao
+# dos ~525 pacotes vira uma camada so, compartilhada -- antes cada alvo repetia
+# o install inteiro.
+FROM airflow-deps AS airflow-prod
 ENV ENVIRONMENT=prod
 
 
-FROM airflow-base AS airflow-dev
-ARG AIRFLOW_VERSION
-
-# O lock e resolvido contra esta imagem base por
-# infra/docker/airflow/compile-lock.sh. Instalar requirements.txt solto aqui
-# rebaixa pacotes que a base ja trazia e o `pip check` abaixo derruba o build.
-COPY infra/docker/airflow/requirements.lock.txt ./requirements.lock.txt
-
-RUN python -m pip install --no-cache-dir -r requirements.lock.txt \
-  && python -c "import airflow, sys; expected='${AIRFLOW_VERSION}'; actual=airflow.__version__; print(f'Airflow {actual}'); sys.exit(0 if actual == expected else 1)" \
-  && python -m pip check \
-  && rm -f requirements.lock.txt
-
+FROM airflow-deps AS airflow-dev
 ENV ENVIRONMENT=dev
