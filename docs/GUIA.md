@@ -5,6 +5,10 @@ Documentação escrita à mão, que não é gerada de nada.
 | Caminho | O que é |
 |---|---|
 | [`adr/`](adr/) | registro das decisões de arquitetura — por que cada escolha foi feita e o que foi descartado |
+| [`documentos/`](documentos/) | todos os documentos produzidos para o TED, com o gerador dos que são apurados do código |
+| [`entregas/`](entregas/) | os documentos de entrega das Metas 02 a 04, gerados a partir do código |
+| [`fase1-fundamentos/`](fase1-fundamentos/) | os quatro artefatos da Fase 1 — Fundamentos de Dados |
+| [`relatorio-parcial-03/`](relatorio-parcial-03/) | anexos do 3º Relatório Parcial que não são gerados deste repositório |
 | `index.html` | página estática legada, publicada manualmente na branch `gh-pages` |
 
 ## O que **não** está aqui
