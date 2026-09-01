@@ -1,7 +1,7 @@
 version: 2
 sources:
   - name: bronze_tabelas
-    schema: bronze
+    schema: salic_bronze
     description: >
       Cadastro auxiliar do SALIC: pessoas, endereços, órgãos e domínios de apoio (categorias,
       localidades) usados pelo núcleo SAC. Camada bronze (dados brutos do SALIC, réplica do
@@ -516,55 +516,6 @@ sources:
               Server): varchar(250).
             data_type: text
           - name: eml_status
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): smallint(2).
-            data_type: text
-      - name: tabelas__estacoes
-        description: >
-          Tabela responsável por registrar estações, dispositivos e seus períodos de uso.
-
-
-          Observações do levantamento automatizado: [observado] tabela sem nenhuma linha no
-          bronze hoje (0 registros).
-        config:
-          tags:
-            - bronze
-            - salic
-            - tabelas
-            - possivel_obsoleta
-        meta:
-          openmetadata:
-            tier: Tier.Tier4
-            domain: Cultura.Incentivo Fiscal
-            owner: minc-data-engineering
-        columns:
-          - name: est_codigo
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): char(10).
-            data_type: text
-          - name: est_macaddress
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): char(12).
-            data_type: text
-          - name: est_sistema
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): int(4).
-            data_type: text
-          - name: est_inicio
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): smallint(2).
-            data_type: text
-          - name: est_final
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): smallint(2).
-            data_type: text
-          - name: est_status
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): smallint(2).
@@ -1149,52 +1100,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int(4).
             data_type: text
-      - name: tabelas__mensagens
-        description: >
-          Tabela responsável por armazenar mensagens, botões e códigos de ajuda.
-
-
-          Observações do levantamento automatizado: [observado] tabela sem nenhuma linha no
-          bronze hoje (0 registros).
-        config:
-          tags:
-            - bronze
-            - salic
-            - tabelas
-            - possivel_obsoleta
-        meta:
-          openmetadata:
-            tier: Tier.Tier4
-            domain: Cultura.Incentivo Fiscal
-            owner: minc-data-engineering
-        columns:
-          - name: msg_codigo
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): smallint(2).
-            data_type: text
-            tests:
-              - not_null
-          - name: msg_descricao
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): varchar(255).
-            data_type: text
-          - name: msg_botoes
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): int(4).
-            data_type: text
-          - name: msg_codigo_ajuda
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): smallint(2).
-            data_type: text
-          - name: msg_resposta
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): tinyint(1).
-            data_type: text
       - name: tabelas__menus
         description: >
           Tabela responsável por cadastrar menus, opções e estruturas de navegação do sistema.
@@ -1705,44 +1610,6 @@ sources:
             tests:
               - not_null
           - name: sub_nivel
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): tinyint(1).
-            data_type: text
-      - name: tabelas__orgaosxusuarios
-        description: >
-          Tabela responsável por vincular usuários aos órgãos e níveis de acesso.
-
-
-          Observações do levantamento automatizado: [observado] tabela sem nenhuma linha no
-          bronze hoje (0 registros).
-        config:
-          tags:
-            - bronze
-            - salic
-            - tabelas
-            - possivel_obsoleta
-        meta:
-          openmetadata:
-            tier: Tier.Tier4
-            domain: Cultura.Incentivo Fiscal
-            owner: minc-data-engineering
-        columns:
-          - name: oxu_orgao
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): smallint(2).
-            data_type: text
-            tests:
-              - not_null
-          - name: oxu_usuario
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): smallint(2).
-            data_type: text
-            tests:
-              - not_null
-          - name: oxu_acesso
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): tinyint(1).
@@ -2274,73 +2141,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): tinyint(1).
             data_type: text
-      - name: tabelas__plan1$
-        description: >
-          [Não documentado no dicionário de dados original do SALIC — tabela presente apenas
-          no bronze, sem descrição confirmada.]
-
-
-          Observações do levantamento automatizado: [observado] tabela sem nenhuma linha no
-          bronze hoje (0 registros). [observado] tabela ausente do dicionário de dados original
-          do SALIC (export SchemaSpy) — pode ter sido criada após a extração do dicionário,
-          ou ser uma tabela técnica não catalogada na origem.
-        config:
-          tags:
-            - bronze
-            - salic
-            - tabelas
-            - possivel_obsoleta
-            - nao_documentado
-        meta:
-          openmetadata:
-            tier: Tier.Tier4
-            domain: Cultura.Incentivo Fiscal
-            owner: minc-data-engineering
-        columns:
-          - name: f1
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f2
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f3
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f4
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f5
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f6
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f7
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f8
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f9
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f10
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
-          - name: f11
-            description: >
-              [não documentado no dicionário de dados original do SALIC]
-            data_type: text
       - name: tabelas__servicos_intranet
         description: >
           Tabela responsável por cadastrar serviços disponíveis na intranet e suas características.
@@ -2566,30 +2366,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): tinyint(1).
             data_type: text
-      - name: tabelas__table1
-        description: >
-          Tabela responsável por armazenar dados temporários auxiliares (uso genérico).
-
-
-          Observações do levantamento automatizado: [observado] tabela sem nenhuma linha no
-          bronze hoje (0 registros).
-        config:
-          tags:
-            - bronze
-            - salic
-            - tabelas
-            - possivel_obsoleta
-        meta:
-          openmetadata:
-            tier: Tier.Tier4
-            domain: Cultura.Incentivo Fiscal
-            owner: minc-data-engineering
-        columns:
-          - name: a
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): char(10).
-            data_type: text
       - name: tabelas__temp_tbl
         description: >
           Tabela responsável por armazenar textos temporários para uso interno da aplicação.
@@ -2689,59 +2465,6 @@ sources:
               Server): tinyint(1).
             data_type: text
           - name: tpe_status
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): tinyint(1).
-            data_type: text
-      - name: tabelas__unidadesorcamentarias
-        description: >
-          Tabela responsável por armazenar unidades orçamentárias, siglas, fundos e status.
-
-
-          Observações do levantamento automatizado: [observado] tabela sem nenhuma linha no
-          bronze hoje (0 registros).
-        config:
-          tags:
-            - bronze
-            - salic
-            - tabelas
-            - possivel_obsoleta
-        meta:
-          openmetadata:
-            tier: Tier.Tier4
-            domain: Cultura.Incentivo Fiscal
-            owner: minc-data-engineering
-        columns:
-          - name: uor_exercicio
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): smallint(2).
-            data_type: text
-            tests:
-              - not_null
-          - name: uor_codigo
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): char(6).
-            data_type: text
-            tests:
-              - not_null
-          - name: uor_descricao
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): varchar(60).
-            data_type: text
-          - name: uor_sigla
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): varchar(10).
-            data_type: text
-          - name: uor_fundo
-            description: >
-              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
-              Server): char(1).
-            data_type: text
-          - name: uor_status
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): tinyint(1).
@@ -3162,3 +2885,227 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): tinyint(1).
             data_type: text
+      - name: tabelas__listainstitucionais
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__listapessoais
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_distritos_por_palavra
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_estados_por_palavra
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_hierarquia_orgaos
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_localidade_completa
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_logradouro_completo
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_municipios_por_palavra
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_paises_por_palavra
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_pessoas_nome_completo
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_usuario_completo
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_usuario_orgaos_grupos
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__v_usuarios
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__vwrelservidorhpimpressao
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__vwusuarios
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: tabelas__vwusuariosorgaosgrupos
+        description: >
+          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
+          (export SchemaSpy). Semântica e grão ainda não confirmados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - tabelas
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering

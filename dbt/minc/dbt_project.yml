@@ -37,3 +37,17 @@ models:
         +materialized: view
       gold:
         +materialized: table
+    # SALIC — camada bronze tipada, um modelo por tabela do raw salic_bronze
+    # (571 hoje). View por padrão: o objetivo é a camada semântica no dbt docs
+    # e no OpenMetadata, e view entrega isso com zero armazenamento. Os 52,7 GB
+    # do raw não se duplicam antes de alguém saber quais modelos importam —
+    # promova a table só as pesadas, depois.
+    salic_bronze:
+      +materialized: view
+      # Schema `salic`, NAO `salic_bronze`. Com target `prod` o
+      # generate_schema_name_for_env aplica o custom schema literal, entao
+      # `+schema: salic_bronze` faria o modelo resolver para a MESMA relacao
+      # que a sua propria source -- e o dbt derrubaria a tabela raw de 157 M
+      # de linhas para por uma view no lugar. Segue o padrao de agentes/cotas:
+      # um schema por dominio, as camadas separadas por pasta.
+      +schema: salic
