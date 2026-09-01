@@ -1,6 +1,6 @@
 # Skills do repositório
 
-Dez skills versionadas aqui dentro. Quem clona o repositório recebe todas — não
+Onze skills versionadas aqui dentro. Quem clona o repositório recebe todas — não
 há nada a instalar, nenhum marketplace a registrar, nenhum comando a rodar.
 
 Você não precisa chamá-las pelo nome. O Claude aciona sozinho quando o pedido
@@ -17,6 +17,7 @@ casa com a `description` do `SKILL.md`. Para forçar, cite: *"use a skill
 | [`revisao-semanal`](revisao-semanal/) | Revisão do que foi entregue no período — commits na main, PRs mergeados, issues fechadas e as branches que receberam commit — em Markdown, HTML e PDF (usa o conversor da `accountability-report`) |
 | [`abrir-pr`](abrir-pr/) | Escreve o PR no formato do `PULL_REQUEST_TEMPLATE.md`, a partir dos commits da branch |
 | [`to-issues-minc`](to-issues-minc/) | Escreve issues no formato dos seis formulários, já com a label certa |
+| [`bronze-salic-dbt`](bronze-salic-dbt/) | Modelos dbt da camada bronze do SALIC a partir do raw `salic_bronze`: conexão por VPN, corte de tabelas vazias, tipagem validada contra o dado e documentação no padrão do dbt docs/OpenMetadata. Trabalho em lotes, retomável |
 
 ### Copiadas do GovHub-skills
 

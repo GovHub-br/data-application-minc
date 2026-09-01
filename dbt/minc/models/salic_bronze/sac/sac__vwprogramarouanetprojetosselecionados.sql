@@ -1,0 +1,56 @@
+-- Bronze SALIC — sac__vwprogramarouanetprojetosselecionados.
+-- Origem: salic_bronze.sac__vwprogramarouanetprojetosselecionados, onde tudo chega como
+-- texto da
+-- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
+-- 47 colunas: 22 tipadas, 24 mantidas como texto.
+-- Os casts são guardados por regex (macros bronze_*): valor fora do
+-- padrão vira NULL em vez de derrubar o modelo.
+select
+    {{ bronze_inteiro("idpronac") }} as idpronac,
+    {{ bronze_inteiro("nrpronac") }} as nrpronac,
+    {{ bronze_texto("sguf") }} as sguf,
+    {{ bronze_inteiro("cdarea") }} as cdarea,
+    {{ bronze_texto("dsarea") }} as dsarea,
+    {{ bronze_texto("cdsegmento") }} as cdsegmento,
+    {{ bronze_texto("dssegmento") }} as dssegmento,
+    {{ bronze_texto("nmprojeto") }} as nmprojeto,
+    {{ bronze_texto("nrcnpfcpf") }} as nrcnpfcpf,
+    {{ bronze_texto("nmproponente") }} as nmproponente,
+    {{ bronze_texto("cdsituacao") }} as cdsituacao,
+    {{ bronze_texto("dssituacao") }} as dssituacao,
+    {{ bronze_texto("dscdsituacao") }} as dscdsituacao,
+    {{ bronze_timestamp("dtadmissao") }} as dtadmissao,
+    {{ bronze_inteiro("idunidade") }} as idunidade,
+    {{ bronze_inteiro("idsecretaria") }} as idsecretaria,
+    {{ bronze_timestamp("dtsituacao") }} as dtsituacao,
+    {{ bronze_texto("dsresumoprojeto") }} as dsresumoprojeto,
+    {{ bronze_timestamp("dtinicioexecucao") }} as dtinicioexecucao,
+    {{ bronze_timestamp("dtfimexecucao") }} as dtfimexecucao,
+    {{ bronze_inteiro("nrproposta") }} as nrproposta,
+    {{ bronze_texto("dsobjetivos") }} as dsobjetivos,
+    {{ bronze_texto("dsacessibilidade") }} as dsacessibilidade,
+    {{ bronze_texto("dsdemocratizacaodeacesso") }} as dsdemocratizacaodeacesso,
+    {{ bronze_texto("dsetapadetrabalho") }} as dsetapadetrabalho,
+    {{ bronze_texto("dsfichatecnica") }} as dsfichatecnica,
+    {{ bronze_texto("dssinopse") }} as dssinopse,
+    {{ bronze_texto("dsespecificacaotecnica") }} as dsespecificacaotecnica,
+    {{ bronze_texto("dsestrategiadeexecucao") }} as dsestrategiadeexecucao,
+    {{ bronze_texto("dsdescricaoatividade") }} as dsdescricaoatividade,
+    {{ bronze_texto("tptipicidade") }} as tptipicidade,
+    {{ bronze_texto("dstipicidade") }} as dstipicidade,
+    {{ bronze_inteiro("tptipologia") }} as tptipologia,
+    {{ bronze_texto("dstipologia") }} as dstipologia,
+    {{ bronze_inteiro("idfase") }} as idfase,
+    {{ bronze_texto("dsfase") }} as dsfase,
+    {{ bronze_timestamp("dtiniciocaptacao") }} as dtiniciocaptacao,
+    {{ bronze_timestamp("dtfimcaptacao") }} as dtfimcaptacao,
+    {{ bronze_numerico("vlaprovado") }} as vlaprovado,
+    {{ bronze_numerico("vlcaptado") }} as vlcaptado,
+    {{ bronze_numerico("percentualcaptado") }} as percentualcaptado,
+    {{ bronze_numerico("vlcomprovado") }} as vlcomprovado,
+    {{ bronze_numerico("vlsaldodiariocontas") }} as vlsaldodiariocontas,
+    {{ bronze_numerico("vlutilizado") }} as vlutilizado,
+    {{ bronze_numerico("percentualutilizado") }} as percentualutilizado,
+    {{ bronze_numerico("percentualnascontas") }} as percentualnascontas,
+    _fatia
+from {{ source("bronze_sac", "sac__vwprogramarouanetprojetosselecionados") }}

@@ -37,3 +37,11 @@ models:
         +materialized: view
       gold:
         +materialized: table
+    # SALIC — camada bronze tipada, um modelo por tabela do raw salic_bronze
+    # (571 hoje). View por padrão: o objetivo é a camada semântica no dbt docs
+    # e no OpenMetadata, e view entrega isso com zero armazenamento. Os 52,7 GB
+    # do raw não se duplicam antes de alguém saber quais modelos importam —
+    # promova a table só as pesadas, depois.
+    salic_bronze:
+      +materialized: view
+      +schema: salic_bronze
