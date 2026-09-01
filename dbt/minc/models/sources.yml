@@ -698,19 +698,233 @@ sources:
             owner: minc-data-engineering
   - name: ancine
     schema: ancine
+    description: >
+      Captação de projetos audiovisuais registrada pela Ancine. É a fonte do
+      FSA e da Lei do Audiovisual na Meta 5 — durante meses se registrou que o
+      FSA vinha de "uma planilha da Ancine fora do banco"; não vem, está aqui.
+
+      CARGA MANUAL: não existe DAG de ingestão para este schema. A tabela foi
+      carregada a partir do relatório "Captações Por Mecanismo" exportado da
+      Ancine, e não se atualiza sozinha. Quem repuxar o relatório precisa
+      recarregar à mão e conferir os totais contra o pivô do próprio arquivo
+      (ver `consulta`).
     tables:
       - name: consulta
         description: >
-          Captacao de projetos audiovisuais registrada pela Ancine, uma linha
-          por aporte: ``cnpj_proponente`` e quem RECEBEU, ``cnpj_investidor``
-          quem aportou (mesma estrutura da captacao da Rouanet). Cobre 17
-          mecanismos de 2005 a 2026, entre eles o FSA e a Lei do Audiovisual.
-          ARMADILHAS DE FORMATO: ``data_captacao`` e TEXT no padrao americano
-          (``7/12/2007`` e 12 de julho) e ``valor_de_captacao`` vem como
-          ``50.000,00``. ART25/ART18 sao Rouanet e NAO devem ser usados aqui —
-          ja entram pelo SALIC, por uma fonte melhor.
+          Uma linha por APORTE de recurso a um projeto audiovisual — não por
+          projeto e não por agente. 57.860 linhas, 17 mecanismos, captações de
+          2005-01-03 a 2026-04-09, R$ 10.328.702.836,57 no total.
+
+          QUEM É QUEM: ``cnpj_proponente`` é quem RECEBEU (a produtora dona do
+          projeto) e ``cnpj_investidor`` é quem APORTOU. É a mesma estrutura da
+          captação da Rouanet (``sac__captacao``), e trocar os dois inverte
+          completamente a leitura — os maiores "investidores" da base são
+          Globo, Telecine e Disney, que são pagadores, nunca beneficiários de
+          fomento.
+
+          GRÃO SEM CHAVE NATURAL: (``no_salic``, ``cnpj_investidor``,
+          ``data_captacao``, ``valor_de_captacao``, ``mecanismo``) ainda repete
+          em 204 grupos — aportes iguais do mesmo investidor no mesmo dia são
+          legítimos. Qualquer modelo que precise de chave tem de gerar
+          surrogate key; não existe coluna de id no relatório.
+
+          DIMENSÃO DE PROJETO EMBUTIDA: ``no_salic`` determina sozinho
+          ``nome_projeto``, ``cnpj_proponente``, ``nome_proponente`` e
+          ``valor_total_de_captacao_do_projeto`` — 0 violações em 9.741
+          projetos. Ou seja, a tabela é um fato de captação com uma dimensão de
+          projeto desnormalizada dentro. Dá para partir daqui direto para
+          `dim_projeto_audiovisual` sem deduplicação de conflito.
+
+          CRUZAMENTO COM O SALIC (a ponte que dá mais retorno): ``no_salic``
+          está no formato ``AA-NNNN`` e é o PRONAC do projeto. Remover o hífen
+          produz exatamente a chave que `eventos_fomento_rouanet` monta do lado
+          do SALIC como ``TRIM(anoprojeto) || TRIM(sequencial)``:
+          ``'00-0201' -> '000201'``. Isso liga esta tabela a
+          ``bronze_sac.sac__projetos``, ``bronze_sac.sac__captacao`` e ao resto
+          do catálogo SALIC pelo projeto. RESSALVA: os 9.741 PRONACs daqui têm
+          todos 6 caracteres, mas ``sac__projetos.sequencial`` é varchar(5) —
+          projeto com sequencial de 5 dígitos (PRONAC de 7) não tem
+          representação neste relatório, então a ponte é parcial por
+          construção. Validar cobertura antes de usar como INNER JOIN.
+
+          RECONCILIAÇÃO: o arquivo de origem traz uma aba-pivô (mecanismo × ano)
+          cujos totais batem centavo a centavo com a soma desta tabela, nos 17
+          mecanismos e no total geral. É o controle de carga: se um dia a soma
+          por mecanismo divergir do pivô, a carga veio truncada.
+
+          ARMADILHAS DE FORMATO — as duas são reais e já mordidas:
+            ``data_captacao``     TEXT no padrão AMERICANO M/D/YYYY.
+                                  ``'7/12/2007'`` é 12 de julho, não 7 de
+                                  dezembro. Ordenar como texto mente.
+            ``valor_de_captacao`` TEXT no padrão brasileiro, ``'50.000,00'``.
+
+          CENSURA À ESQUERDA: a série começa em 2005-01-03 com 5 linhas nesse
+          mesmo dia e 46 em todo janeiro de 2005 — tem cara de extrato cortado,
+          não de início real da atividade. `primeiro_acesso_anual` trata 2005
+          como ano censurado por causa disso.
+
+          ESCOPO DE USO: ART25 e ART18 são Rouanet e NÃO devem ser lidos daqui —
+          já entram pelo SALIC, por fonte melhor; usar os dois duplicaria
+          evento. Ver `eventos_fomento_ancine` para o recorte completo do que
+          entra e do que fica de fora, com o porquê de cada exclusão.
         meta:
           openmetadata:
             domain: Cultura.Incentivo Fiscal
             tier: Tier.Tier4
             owner: minc-data-engineering
+        columns:
+          - name: no_salic
+            description: >
+              PRONAC do projeto no formato ``AA-NNNN`` (ex.: ``00-0201``). Os
+              dois primeiros dígitos são o ANO DO PROJETO, não o ano da
+              captação: há projetos com prefixo 96-99 (1996-1999) captando a
+              partir de 2005. 9.741 projetos distintos. Chave de cruzamento com
+              o SALIC depois de remover o hífen — ver a nota da tabela.
+            data_type: text
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.PRONAC
+          - name: cnpj_proponente
+            description: >
+              Documento de QUEM RECEBEU o aporte — a produtora dona do projeto.
+              2.240 documentos distintos, formatados com pontuação
+              (``52.308.558/0001-32``). Quase toda a base é CNPJ: 57.837 linhas
+              de 14 dígitos contra 23 de 11. Pessoa física é praticamente
+              invisível nesta fonte, e essa limitação empurra sempre para o
+              mesmo lado — pode deixar de revelar um veterano, nunca inventar
+              um. Normalizar antes de cruzar: o resto do projeto usa só dígitos
+              com LPAD.
+            data_type: text
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.IdentificadorUnico
+                  - MinC.Agentes.Proponente
+          - name: data_captacao
+            description: >
+              Data do aporte, TEXT no padrão AMERICANO ``M/D/YYYY`` — sem zero
+              à esquerda no mês e no dia. Converter com
+              ``TO_DATE(data_captacao, 'FMMM/FMDD/YYYY')``. 5.192 datas
+              distintas entre 2005-01-03 e 2026-04-09; 100% das linhas casam
+              com ``^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$``.
+            data_type: text
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Qualificadores.JanelaDeObservacao
+          - name: mecanismo
+            description: >
+              Instrumento pelo qual o recurso chegou ao projeto. 17 valores, e
+              eles NÃO são intercambiáveis — a decisão de escopo da Meta 5 é
+              feita nesta coluna. Por volume de recurso: OUTROS EDITAIS
+              (R$ 3,75 bi), ART 3A (R$ 1,73 bi), ART 1A (R$ 1,15 bi), ART3
+              (R$ 1,01 bi), ART39 CONDECINE (R$ 970 mi), FSA (R$ 721 mi),
+              ART1 (R$ 469 mi), RENDIMENTOS (R$ 135 mi), ART41 FUNCINES
+              (R$ 115 mi), ART25 Rouanet (R$ 89 mi), EDITAL ANCINE (PAR)
+              (R$ 63 mi), ART18 Rouanet (R$ 37 mi), EDITAL ANCINE (R$ 37 mi),
+              OUTRAS FONTES (R$ 25 mi), LEI ESTADUAL (R$ 13 mi), LEI MUNICIPAL
+              (R$ 12 mi), CONTRAPARTIDA (R$ 2,7 mi). Por linhas o retrato é
+              outro: ART39 CONDECINE sozinho é 24.062 das 57.860.
+            data_type: text
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Politicas.FSA
+                  - MinC.Politicas.LeiDoAudiovisual
+                  - MinC.Politicas.CONDECINE
+                  - MinC.Politicas.FUNCINES
+          - name: valor_de_captacao
+            description: >
+              Valor do aporte em reais, TEXT no padrão brasileiro
+              (``'50.000,00'``). Converter com
+              ``REPLACE(REPLACE(valor_de_captacao, '.', ''), ',', '.')::NUMERIC``.
+              100% das linhas casam com ``^-?[0-9.]+,[0-9]{2}$``, não há
+              negativo, e há 33 linhas com valor exatamente zero — captação de
+              R$ 0 não deu acesso a recurso e é descartada rio abaixo.
+            data_type: text
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Cotas.ValorPonderado
+          - name: nome_proponente
+            description: >
+              Razão social de quem recebeu. 2.238 nomes distintos para 2.240
+              documentos — dois documentos compartilham nome com outro, então
+              NÃO use o nome como chave. Serve para conferência humana.
+            data_type: text
+          - name: nome_projeto
+            description: >
+              [NOME FÍSICO DA COLUNA NÃO VERIFICADO — ver nota no fim do bloco]
+              Título do projeto audiovisual. 8.995 títulos para 9.741 projetos:
+              títulos se repetem entre PRONACs (refilmagens, temporadas,
+              projetos homônimos). Determinado por ``no_salic``, nunca o
+              contrário.
+            data_type: text
+          - name: uf_proponente
+            description: >
+              [NOME FÍSICO DA COLUNA NÃO VERIFICADO] UF de quem recebeu, sigla
+              de 2 letras. Preenchida em 99,8% das linhas (107 vazias), sem
+              nenhum valor fora das 27 siglas oficiais — é a coluna geográfica
+              limpa desta fonte. Concentração extrema: SP (30.155) e RJ
+              (20.311) somam 87% das linhas, o que é o retrato real do setor
+              audiovisual incentivado e precisa ser dito junto de qualquer
+              recorte territorial.
+            data_type: text
+          - name: cnpj_investidor
+            description: >
+              [NOME FÍSICO DA COLUNA NÃO VERIFICADO] Documento de QUEM APORTOU
+              — patrocinador, incentivador ou o próprio fundo. NÃO é
+              beneficiário de fomento. Preenchida em 79,6% das linhas: fica
+              vazia quando o recurso não vem de investidor identificado (é o
+              caso do FSA, que é fundo). 3.406 documentos distintos, 44.547
+              linhas de 14 dígitos e 1.523 de 11.
+            data_type: text
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Agentes.Investidor
+          - name: nome_investidor
+            description: >
+              [NOME FÍSICO DA COLUNA NÃO VERIFICADO] Nome de quem aportou,
+              preenchido em 84,6% das linhas — 5 pontos a mais que o CNPJ, ou
+              seja, há aporte com nome e sem documento. 3.517 nomes para 3.406
+              documentos: grafias divergentes do mesmo investidor. Agregar por
+              nome infla a contagem; agregue por documento.
+            data_type: text
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Agentes.Investidor
+          - name: uf_investidor
+            description: >
+              [NOME FÍSICO DA COLUNA NÃO VERIFICADO] UF de quem aportou.
+              Coluna SUJA, ao contrário da UF do proponente: preenchida em
+              76,7% e com valores fora do padrão — ``'CA'``, ``'NI'``,
+              ``'P'``, ``'S'`` e ``'Rj'`` (minúscula). Normalizar e validar
+              antes de qualquer uso; não serve para recorte territorial como
+              está.
+            data_type: text
+          - name: valor_total_de_captacao_do_projeto
+            description: >
+              [NOME FÍSICO DA COLUNA NÃO VERIFICADO] Total captado pelo projeto,
+              repetido em toda linha do mesmo ``no_salic`` (agregado
+              desnormalizado). ATENÇÃO: NÃO é a soma das linhas presentes —
+              diverge em 208 dos 9.741 projetos, e sempre para mais (o
+              declarado é maior que a soma). Isso indica captações que existem
+              no total oficial do projeto mas não vieram neste relatório.
+              Somar ``valor_de_captacao`` e comparar com esta coluna é a
+              medida de completude por projeto; usar as duas como se fossem a
+              mesma coisa produz números inconsistentes.
+            data_type: text
+          - name: percentual_da_captacao_do_projeto
+            description: >
+              [NOME FÍSICO DA COLUNA NÃO VERIFICADO — no relatório o cabeçalho
+              é ``% da Captação do Projeto``] Participação do aporte no total
+              do projeto, em % (0-100), padrão brasileiro (``'2,63'``).
+              Derivada: bate com
+              ``valor_de_captacao / valor_total_de_captacao_do_projeto`` em
+              100% das 57.860 linhas. Redundante para cálculo — herda a
+              divergência de ``valor_total_de_captacao_do_projeto`` descrita
+              acima, porque é medida contra o total declarado.
+            data_type: text

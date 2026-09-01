@@ -104,11 +104,17 @@ models:
       nenhum, e misturar aprovação com pagamento tornaria a comparação entre
       mecanismos incoerente.
 
-      Liga sac__captacao (dinheiro e data, sem proponente) a
-      sac__tbapiprojetorouanet (proponente) pelo PRONAC —
-      anoprojeto || sequencial = nrpronac, que casa 99,86% dos recibos.
-      sac__projetos, que seria a ponte natural, existe no schema mas foi
-      carregada com 0 linhas.
+      Liga sac__captacao (dinheiro e data, sem proponente) ao proponente pelo
+      PRONAC — anoprojeto || sequencial. Não use captacao.idprojeto: é 0 na
+      maioria das linhas.
+
+      Duas fontes de proponente, nesta ordem: sac__projetos (cadastro oficial,
+      carregado em 19/08/2026 depois de meses falhando na ingestão, cobre 100%
+      dos recibos válidos) e sac__tbapiprojetorouanet (espelho da API pública,
+      99,86%), que fica como reserva para a série não cair se a carga do
+      cadastro regredir. As duas concordam em 100,00% dos 195.240 projetos que
+      ambas resolvem, sem uma única divergência de CPF/CNPJ — foi essa checagem
+      que validou a ponte.
     config:
       tags: [silver, agentes, salic, rouanet, meta5]
       meta:
@@ -144,6 +150,140 @@ models:
         tests:
           - not_null
 
+  - name: eventos_fomento_ancine
+    description: >
+      Camada Silver — Meta 5. Um evento por captação de projeto audiovisual
+      registrada pela Ancine, no mesmo formato dos pagamentos do BB Ágil e dos
+      recibos da Rouanet, para entrar na espinha unificada (`eventos_fomento`).
+
+      POR QUE ESTA FONTE EXISTE AQUI: a pergunta da Meta 5 cita o FSA entre os
+      mecanismos, e por muito tempo se registrou que a fonte dele era "uma
+      planilha da Ancine fora do banco". Não é: ``ancine.consulta`` está
+      carregada, com 57.860 linhas e 17 mecanismos, de 2005 a 2026.
+
+      ESCOPO (decisão de negócio de 20/08/2026) — entram o FSA e o fomento
+      federal ao audiovisual com repasse identificável ao proponente. Das
+      57.860 linhas da fonte, 31.532 estão nos 9 mecanismos do escopo e 31.522
+      sobrevivem ao piso de valor. Ficam de fora, com o motivo de cada uma:
+        ART25 / ART18    são Rouanet e já entram pelo SALIC, por fonte melhor —
+                         incluí-los aqui duplicaria evento.
+        ART39 CONDECINE  tributo sobre o mercado audiovisual, não fomento direto
+                         ao agente. É a maior exclusão (24.062 linhas, R$ 970
+                         mi). Medido: acrescentaria 46 proponentes e apenas 2
+                         correções de classificação — custo de defesa alto,
+                         ganho nulo.
+        RENDIMENTOS      rendimento de aplicação financeira, não é repasse.
+        CONTRAPARTIDA    dinheiro do próprio proponente.
+        OUTRAS FONTES    origem não identificada.
+        LEI ESTADUAL /
+        LEI MUNICIPAL    não são política federal, que é o recorte da pergunta.
+
+      DOIS MECANISMOS, NÃO UM: 'FSA' responde literalmente ao que o documento
+      da meta nomeia (536 linhas, R$ 721 mi, 315 agentes, 2011-2026);
+      'AUDIOVISUAL' carrega Lei do Audiovisual (ART1/ART3/ART 1A/ART 3A),
+      FUNCINES e os editais da Ancine (30.986 linhas, R$ 8,32 bi, 2.113
+      agentes, 2005-2026). Colapsar tudo em "FSA" seria nome errado para a
+      maior parte das linhas. Note que o FSA é 1 captação por projeto (536
+      linhas em 536 projetos) — é fundo, não investidor.
+
+      COBERTURA: 2.158 agentes distintos, dos quais apenas 4 são pessoa física.
+      Proponente PF é praticamente invisível nesta fonte, e a limitação empurra
+      na mesma direção de todas as outras da Meta 5 — pode deixar de revelar um
+      veterano, nunca inventar um.
+
+      CRUZAMENTO: ``no_salic`` é o PRONAC do projeto no formato ``AA-NNNN``.
+      Remover o hífen dá exatamente a chave que `eventos_fomento_rouanet`
+      monta do lado do SALIC (``anoprojeto || sequencial``), ligando o evento
+      ao catálogo SALIC pelo projeto — 9.249 projetos distintos aqui, todos
+      com PRONAC de 6 caracteres. Esta é a única coluna do modelo que não é
+      consumida por `eventos_fomento`: ela existe para o cruzamento.
+    config:
+      tags: [silver, agentes, ancine, audiovisual, fsa, meta5]
+      meta:
+        status: Active
+        meta_objetivo: 'Meta 5 — eventos de captação do FSA e do audiovisual federal'
+        origem_dados: 'ancine.consulta (carga manual, sem DAG)'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: beneficiario_documento
+        description: >
+          CPF (11) ou CNPJ (14) de quem RECEBEU o aporte, normalizado só com
+          dígitos e LPAD — mesma normalização de `eventos_fomento_rouanet` e
+          `pagamentos_bbagil_beneficiarios`, o que torna as três fontes
+          comparáveis na espinha. Vem de ``cnpj_proponente``, nunca de
+          ``cnpj_investidor``. Documentos degenerados (só zeros) são
+          descartados. 2.158 valores distintos, 4 deles PF.
+        tests:
+          - not_null
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.IdentificadorUnico
+              - MinC.Agentes.Proponente
+      - name: beneficiario_nome
+        description: >
+          Razão social do proponente, sem normalização. Pode ser NULL (a fonte
+          traz vazio) e não é chave — nomes se repetem entre documentos. Use só
+          para conferência humana.
+      - name: programa_fomento
+        description: >
+          Mecanismo do evento — 'FSA' ou 'AUDIOVISUAL'. 'FSA' é o Fundo
+          Setorial do Audiovisual, o único mecanismo que o documento da Meta 5
+          nomeia; 'AUDIOVISUAL' agrupa Lei do Audiovisual, FUNCINES e editais
+          da Ancine. Os dois têm janelas de observação diferentes (2011 e 2005)
+          e é por isso que não podem ser um só.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['AUDIOVISUAL', 'FSA']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Politicas.FSA
+              - MinC.Politicas.LeiDoAudiovisual
+      - name: data_evento
+        description: >
+          Data da captação, já convertida de TEXT americano (M/D/YYYY) para
+          DATE. A série vai de 2005-01-03 a 2026-04-09. O piso de 2005-01-03 é
+          censura à esquerda, não início de atividade: são 5 linhas nesse dia e
+          46 em todo janeiro de 2005, com cara de extrato cortado.
+          `primeiro_acesso_anual` trata 2005 como ano censurado por isso.
+        tests:
+          - not_null
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Qualificadores.JanelaDeObservacao
+      - name: valor
+        description: >
+          Valor captado em reais, já convertido do TEXT brasileiro
+          ('50.000,00') para NUMERIC. Sempre maior que zero — as 33 linhas com
+          valor zero da fonte (10 dentro do escopo) são descartadas, mesmo
+          critério aplicado à Rouanet: captação de R$ 0 não deu acesso a
+          recurso. Não passa pelo piso `limiar_valor_fomento` de
+          `eventos_fomento`, que existe só para separar repasse de resíduo no
+          extrato do BB Ágil.
+        tests:
+          - not_null
+      - name: no_salic
+        description: >
+          PRONAC do projeto que captou, no formato de origem ``AA-NNNN``
+          (ex.: ``00-0201``) — os dois primeiros dígitos são o ano do PROJETO,
+          não o da captação. É a chave de cruzamento com o SALIC: sem o hífen
+          casa com ``TRIM(anoprojeto) || TRIM(sequencial)`` de
+          ``sac__projetos``, que é a mesma chave usada por
+          `eventos_fomento_rouanet`. Preservado no modelo justamente para essa
+          ponte; `eventos_fomento` não o consome. Pode ser NULL quando a fonte
+          traz vazio.
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.PRONAC
+
   - name: eventos_fomento
     description: >
       Camada Silver — Meta 5. Espinha unificada: um evento por vez que um
@@ -152,9 +292,11 @@ models:
       sido contemplado antes?" acima do mecanismo, que é o que a pergunta da
       meta exige. Grão: 1 linha por (documento, mecanismo, data, valor).
 
-      Janelas de observação, muito assimétricas: ROUANET 1993+, LAB/LPG/PNAB
-      2023+, FSA ausente. Por isso a coluna ano_inicio_observacao, que a gold
-      usa para marcar os anos censurados à esquerda.
+      Janelas de observação, muito assimétricas: ROUANET 1993+, AUDIOVISUAL
+      2005+, FSA 2011+, LAB/LPG/PNAB 2023+. Por isso a coluna
+      ano_inicio_observacao, que a gold usa para marcar os anos censurados à
+      esquerda. O FSA deixou de ser lacuna em 20/08/2026, quando
+      eventos_fomento_ancine entrou na espinha.
 
       O piso de valor (var limiar_valor_fomento, padrão 375) é aplicado sobre
       o TOTAL do agente naquele mecanismo, não por transação, e só ao BB Ágil
@@ -164,7 +306,7 @@ models:
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — espinha de eventos de acesso a fomento federal'
-        origem_dados: 'pagamentos_bbagil_beneficiarios + eventos_fomento_rouanet'
+        origem_dados: 'pagamentos_bbagil_beneficiarios + eventos_fomento_rouanet + eventos_fomento_ancine'
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier2
@@ -175,7 +317,10 @@ models:
         tests:
           - not_null
       - name: programa_fomento
-        description: Mecanismo — 'LAB', 'LPG', 'PNAB' ou 'ROUANET'.
+        description: >
+          Mecanismo — 'AUDIOVISUAL', 'FSA', 'LAB', 'LPG', 'PNAB' ou 'ROUANET'.
+          'FSA' e 'AUDIOVISUAL' vêm da Ancine; 'ROUANET' do SALIC; o resto do
+          BB Ágil.
         tests:
           - not_null
           - accepted_values:
@@ -201,9 +346,17 @@ models:
               arguments:
                 values: ['ANCINE', 'BB_AGIL', 'SALIC']
       - name: ano_inicio_observacao
-        description: Primeiro ano em que a fonte daquele mecanismo enxerga qualquer coisa.
+        description: >
+          Primeiro ano em que a fonte daquele mecanismo enxerga qualquer coisa
+          — ROUANET 1993, AUDIOVISUAL 2005, FSA 2011, LAB/LPG/PNAB 2023. A gold
+          usa esta coluna para marcar os anos censurados à esquerda, onde todo
+          agente parece estreante porque não há passado observável.
         tests:
           - not_null
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Qualificadores.JanelaDeObservacao
       - name: tipo_pessoa
         description: "'PF' (11 dígitos) ou 'PJ' (14)."
         tests:
