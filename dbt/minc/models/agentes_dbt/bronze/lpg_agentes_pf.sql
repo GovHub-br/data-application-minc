@@ -57,7 +57,11 @@ pseudonimizado AS (
 SELECT * FROM pseudonimizado
 
 {% if is_incremental() %}
-WHERE id_agente NOT IN (
-    SELECT id_agente FROM {{ this }}
+-- NOT EXISTS, e nao NOT IN: com NOT IN basta um id_agente NULL em {{ this }}
+-- para a comparacao devolver NULL em toda linha, e o modelo passar a inserir
+-- zero linha em silencio, para sempre.
+WHERE NOT EXISTS (
+    SELECT 1 FROM {{ this }} AS existente
+    WHERE existente.id_agente = pseudonimizado.id_agente
 )
 {% endif %}

@@ -22,6 +22,8 @@ WITH base AS (
         LOWER(TRIM("já acessou recursos públicos do fomento à cultura anteriorment")) AS historico_acesso_bruto
     FROM {{ source('relatorio_gestao', 'planilha_dados_pnab_ciclo_1') }}
     WHERE tabela_origem = 'pnab_organizacoes'
+      AND "nº do cnpj" IS NOT NULL
+      AND LOWER(TRIM("nº do cnpj")) NOT IN ('', 'nan', 'none')
 ),
 
 classificado AS (
@@ -55,7 +57,11 @@ pseudonimizado AS (
 SELECT * FROM pseudonimizado
 
 {% if is_incremental() %}
-WHERE id_agente NOT IN (
-    SELECT id_agente FROM {{ this }}
+-- NOT EXISTS, e nao NOT IN: com NOT IN basta um id_agente NULL em {{ this }}
+-- para a comparacao devolver NULL em toda linha, e o modelo passar a inserir
+-- zero linha em silencio, para sempre.
+WHERE NOT EXISTS (
+    SELECT 1 FROM {{ this }} AS existente
+    WHERE existente.id_agente = pseudonimizado.id_agente
 )
 {% endif %}

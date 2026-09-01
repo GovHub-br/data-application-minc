@@ -75,13 +75,14 @@ models:
           Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex.
           Não é o documento e não é reversível sem o salt. Canonizado (só dígitos + LPAD) antes do hash,
           que é o que o mantém casável com o lado bancário e o de proponentes.
-      - name: id_contemplado_miolo
-        description: >
-          Pseudônimo dos 6 dígitos centrais do CPF (NULL para CNPJ). Existe para
-          casar com proponente cujo CPF veio mascarado — hash não preserva
-          substring, então o recorte é feito antes.
         tests:
           - not_null
+      - name: id_contemplado_miolo
+        description: >
+          Pseudônimo dos 6 dígitos centrais do CPF. É NULL para CNPJ, que a
+          origem não mascara — por isso NÃO leva not_null. Existe para casar com
+          proponente cujo CPF veio mascarado: hash não preserva substring, então
+          o recorte é feito antes.
       - name: programa_fomento
         description: Programa de fomento — 'LPG' ou 'PNAB'.
         tests:
