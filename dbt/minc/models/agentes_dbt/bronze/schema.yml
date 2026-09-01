@@ -1,148 +1,6 @@
 version: 2
 
 models:
-  - name: lpg_agentes_pf
-    description: >
-      Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo).
-      Mapeia o CPF como identificador único e traz a coluna bruta de histórico
-      de acesso a recursos públicos de fomento à cultura. Carga incremental
-      (materialized='incremental'), deduplicada por identificador_unico;
-      descarta CPF nulo, vazio ou 'nan'/'none'.
-    config:
-      tags: [bronze, agentes, pessoa_fisica, lpg]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
-    columns:
-      - name: identificador_unico
-        description: CPF do proponente pessoa física, normalizado para lowercase.
-        tests:
-          - not_null
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
-      - name: historico_acesso_bruto
-        description: Resposta bruta da LPG sobre acesso anterior a recursos públicos de fomento.
-      - name: programa_fomento
-        description: Programa de fomento de origem — sempre 'LPG' neste modelo.
-
-  - name: lpg_agentes_pj
-    description: >
-      Camada Bronze — dados brutos de pessoas jurídicas da LPG.
-      Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
-      de acesso a recursos públicos de fomento à cultura. Carga incremental,
-      deduplicada por identificador_unico; descarta CNPJ nulo, vazio ou 'nan'/'none'.
-    config:
-      tags: [bronze, agentes, pessoa_juridica, lpg]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
-    columns:
-      - name: identificador_unico
-        description: CNPJ do proponente pessoa jurídica, normalizado para lowercase.
-        tests:
-          - not_null
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
-      - name: historico_acesso_bruto
-        description: Resposta bruta da LPG sobre acesso anterior a recursos públicos de fomento.
-      - name: programa_fomento
-        description: Programa de fomento de origem — sempre 'LPG' neste modelo.
-
-  - name: lpg_agentes_coletivos
-    description: >
-      Camada Bronze — dados brutos de proponentes coletivos da LPG.
-      Mapeia o CPF do representante do grupo/coletivo como identificador único
-      e traz a coluna bruta de histórico de acesso a recursos públicos de fomento.
-      Carga incremental, deduplicada por identificador_unico.
-    config:
-      tags: [bronze, agentes, coletivo, lpg]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
-    columns:
-      - name: identificador_unico
-        description: CPF do representante do grupo/coletivo, normalizado para lowercase.
-        tests:
-          - not_null
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
-      - name: historico_acesso_bruto
-        description: Resposta bruta da LPG sobre acesso anterior a recursos públicos de fomento.
-      - name: programa_fomento
-        description: Programa de fomento de origem — sempre 'LPG' neste modelo.
-
-  - name: pnab_agentes_pf
-    description: >
-      Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc).
-      Mapeia o CPF como identificador único e traz a coluna bruta de histórico
-      de acesso a recursos públicos de fomento à cultura nos últimos 5 anos.
-      Carga incremental, deduplicada por identificador_unico; descarta CPF nulo,
-      vazio ou 'nan'/'none'.
-    config:
-      tags: [bronze, agentes, pessoa_fisica, pnab]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
-    columns:
-      - name: identificador_unico
-        description: CPF do proponente pessoa física, normalizado para lowercase.
-        tests:
-          - not_null
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
-      - name: historico_acesso_bruto
-        description: Resposta bruta da PNAB sobre acesso anterior a recursos públicos de fomento.
-      - name: programa_fomento
-        description: Programa de fomento de origem — sempre 'PNAB' neste modelo.
-
-  - name: pnab_agentes_pj
-    description: >
-      Camada Bronze — dados brutos de organizações da PNAB.
-      Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico
-      de acesso a recursos públicos de fomento à cultura anteriormente.
-      Carga incremental, deduplicada por identificador_unico.
-    config:
-      tags: [bronze, agentes, pessoa_juridica, pnab]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
-    columns:
-      - name: identificador_unico
-        description: CNPJ da organização, normalizado para lowercase.
-        tests:
-          - not_null
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
-      - name: historico_acesso_bruto
-        description: Resposta bruta da PNAB sobre acesso anterior a recursos públicos de fomento.
-      - name: programa_fomento
-        description: Programa de fomento de origem — sempre 'PNAB' neste modelo.
-
   - name: bbagil_extrato_filtrado
     description: >
       Camada Bronze — extrato bancário do BB Gestão Ágil (schema `bsc`),
@@ -227,3 +85,40 @@ models:
         description: Data de pagamento do sublançamento (paymentdate), convertida pra DATE.
         tests:
           - not_null
+
+  - name: identificadores_contemplados
+    description: >
+      Bronze — unifica identificadores (CPF/CNPJ normalizados) de
+      contemplados LPG + PNAB, para que primeiro_acesso_contemplados possa
+      restringir o indicador a quem foi de fato selecionado em edital.
+
+      As colunas de documento são resolvidas dinamicamente via
+      information_schema nas três tabelas de origem, porque a ingestão de
+      planilhas não normaliza espaços nem NBSP nos cabeçalhos e o mesmo
+      campo vira várias colunas, cada uma com parte dos dados. O padrão
+      anterior (ILIKE '%cpf%cnpj%') exigia "cpf" antes de "cnpj" e não casava
+      "cnpj" sozinho nem "cpf/ cnpj", deixando de fora ~2.100 contemplados do
+      PNAB — a maioria deles com pagamento comprovado no extrato bancário.
+
+      Colunas "cpf (anonimizado)" são excluídas de propósito: trazem
+      ***XXXXXX** no lugar do documento. Continua valendo que o CPF de PF da
+      lista geral do PNAB, fora do PNCV, não é rastreável.
+    config:
+      meta:
+        tags: [bronze, agentes, contemplados, meta5]
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: id_normalizado
+        description: CPF ou CNPJ do contemplado, normalizado (só dígitos).
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Programa de fomento — 'LPG' ou 'PNAB'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['LPG', 'PNAB']

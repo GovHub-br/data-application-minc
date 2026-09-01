@@ -1,10 +1,11 @@
 {{ config(materialized='table') }}
 
--- Gold — grão fino da Meta 5: uma linha por (agente × mecanismo), dizendo
+-- Silver — grão fino da Meta 5: uma linha por (agente × mecanismo), dizendo
 -- quando ele entrou naquele mecanismo e se aquela entrada foi a porta de
--- entrada dele no fomento federal como um todo. Todas as outras golds da
--- meta (primeiro_acesso_anual, trajetoria_fomento_direto_rouanet) derivam
+-- entrada dele no fomento federal como um todo. TODAS as golds da meta derivam
 -- daqui, e é aqui que se olha para auditar um agente específico.
+-- Fica em silver justamente por isso: é fato em nível de linha, não número de
+-- consumo, e gold não deve depender de gold.
 --
 -- A DEFINIÇÃO QUE IMPORTA: novo entrante é comparação CROSS-MECANISMO. O
 -- primeiro acesso do agente é o menor evento dele em QUALQUER mecanismo

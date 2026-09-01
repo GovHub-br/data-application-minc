@@ -1,95 +1,61 @@
 {{ config(materialized='table') }}
 
--- Camada Gold — Meta 5 Fase 3: primeiro acesso (autodeclarado/inferido)
--- cruzado com contemplação em edital. Identificadores de contemplados
--- vêm de identificadores_contemplados (views/) — ver esse modelo pra
--- notas de cobertura e o motivo do match dinâmico de coluna (NBSP).
+-- Gold — o mesmo indicador de novos entrantes de primeiro_acesso_anual, mas
+-- restrito a quem aparece nas LISTAS OFICIAIS DE CONTEMPLADOS dos editais
+-- (LPG e PNAB), em vez de a todo agente visto recebendo dinheiro. Serve para
+-- a leitura "dos contemplados de edital, quantos eram novos", e para expor a
+-- cobertura entre as duas populações.
 --
--- ATENÇÃO — CPF mascarado dos proponentes LPG: a base de proponentes
--- (lpg_agentes_pf/coletivos) traz o CPF anonimizado no formato
--- "***.NNN.NNN-**" (apenas os 6 dígitos centrais visíveis), enquanto
--- planilha_contemplados_lpg traz o CPF completo. Um match exato (dígito a
--- dígito) nunca ocorre para esses casos, gerando falso negativo sistemático de
--- 'contemplado' para LPG. Por isso, quando o identificador do proponente
--- vier mascarado, o JOIN usa um match parcial pelo "miolo" do CPF
--- (posições 4-9, os mesmos 6 dígitos centrais expostos pela máscara).
--- Esse match parcial tem risco de colisão entre CPFs com miolo igual.
+-- SUBSTITUI o antigo modelo de mesmo nome, que respondia esta pergunta pela
+-- resposta AUTODECLARADA do formulário de proponente. Aquele mapeamento Sim/Não
+-- nunca pôde ser confirmado contra o formulário original; aqui a classificação
+-- vem de evidência de repasse, cruzando LPG, PNAB, LAB, Rouanet e audiovisual.
+-- O grão mudou: era (programa × categoria × contemplado), hoje é
+-- (programa × categoria), e a coluna `contemplado` deixou de existir porque
+-- todo mundo nesta tabela é contemplado.
+--
+-- Grão: 1 linha por (programa × categoria de primeiro acesso).
+--
+-- ATENÇÃO À COBERTURA: a interseção entre lista de contemplados e extrato
+-- bancário é parcial — em torno de 46% na LPG e 89% no PNAB. A causa foi
+-- medida e NÃO é atraso de pagamento nem filtro agressivo: o BB Ágil só
+-- enxerga contas administradas pelo Banco do Brasil, e o município muitas
+-- vezes declara ter pago um contemplado cujo pagamento não passou por lá.
+-- Logo esta tabela descreve bem a fatia coberta, e não deve ser lida como
+-- retrato completo da política. Contemplado sem evento observável fica de
+-- fora — não há fallback autodeclarado, e inverter "novo entrante" a partir de
+-- um mapeamento que nunca pôde ser confirmado contra o formulário original
+-- seria pior que não responder.
+--
+-- A classificação vem de primeiro_acesso_agentes, então já é CROSS-MECANISMO
+-- e já considera a Rouanet desde 1993 — um contemplado da LPG que captou
+-- Rouanet em 2010 aparece aqui corretamente como "Não".
 
-WITH todos_contemplados AS (
-    SELECT id_normalizado, programa_fomento
+WITH contemplados AS (
+    SELECT DISTINCT id_normalizado, programa_fomento
     FROM {{ ref('identificadores_contemplados') }}
 ),
 
--- Miolo (6 dígitos centrais) do CPF, usado para casar com identificadores
--- mascarados de proponentes ("***.NNN.NNN-**"). Só faz sentido para CPF
--- (11 dígitos); CNPJ (14 dígitos) não é mascarado na base de proponentes.
-todos_contemplados_miolo AS (
+acesso_contemplado AS (
     SELECT
-        id_normalizado,
-        programa_fomento,
-        SUBSTRING(id_normalizado FROM 4 FOR 6) AS miolo_cpf
-    FROM todos_contemplados
-    WHERE LENGTH(id_normalizado) = 11
-),
-
--- Base: perfil_acesso_fomento tem 1 linha por (identificador × programa),
--- preservando a granularidade por programa para o JOIN de contemplação
-perfil_base AS (
-    SELECT
-        identificador_unico,
-        programa_fomento,
-        CASE
-            WHEN perfil_acesso_fomento IN (
-                'Confirmado - Primeira Vez',
-                'Inferido - Primeira Vez (Estreante na base)'
-            ) THEN 'Sim'
-            WHEN perfil_acesso_fomento IN (
-                'Confirmado - Veterano',
-                'Inferido - Veterano (Possui histórico)'
-            ) THEN 'Não'
-            ELSE 'Não sabe/Não informou'
-        END AS categoria_primeiro_acesso,
-        CASE
-            WHEN perfil_acesso_fomento LIKE 'Confirmado%' THEN 'Confirmado'
-            WHEN perfil_acesso_fomento LIKE 'Inferido%'   THEN 'Inferido'
-            ELSE 'Não Informado'
-        END AS status_dado
-    FROM {{ ref('perfil_acesso_fomento') }}
-),
-
-perfil_com_contemplado AS (
-    SELECT
-        pb.identificador_unico,
-        pb.programa_fomento,
-        pb.categoria_primeiro_acesso,
-        pb.status_dado,
-        CASE
-            WHEN tc.id_normalizado IS NOT NULL OR tcm.id_normalizado IS NOT NULL THEN 'sim'
-            ELSE 'não'
-        END AS contemplado
-    FROM perfil_base pb
-    LEFT JOIN todos_contemplados tc
-        ON REGEXP_REPLACE(pb.identificador_unico, '[^0-9]', '', 'g') = tc.id_normalizado
-        AND pb.programa_fomento = tc.programa_fomento
-    LEFT JOIN todos_contemplados_miolo tcm
-        ON pb.identificador_unico LIKE '%*%'
-        AND LENGTH(REGEXP_REPLACE(pb.identificador_unico, '[^0-9]', '', 'g')) = 6
-        AND REGEXP_REPLACE(pb.identificador_unico, '[^0-9]', '', 'g') = tcm.miolo_cpf
-        AND pb.programa_fomento = tcm.programa_fomento
+        pa.programa_fomento,
+        pa.beneficiario_documento,
+        pa.categoria_primeiro_acesso
+    FROM {{ ref('primeiro_acesso_agentes') }} pa
+    INNER JOIN contemplados c
+        ON pa.beneficiario_documento = c.id_normalizado
+        AND pa.programa_fomento = c.programa_fomento
 )
 
 SELECT
     programa_fomento,
     categoria_primeiro_acesso,
-    contemplado,
-    COUNT(DISTINCT identificador_unico)                                                          AS total_proponentes,
-    COUNT(DISTINCT CASE WHEN status_dado = 'Confirmado' THEN identificador_unico END)           AS total_campo_preenchido,
-    COUNT(DISTINCT CASE WHEN status_dado = 'Inferido'   THEN identificador_unico END)           AS total_inferido,
+    COUNT(DISTINCT beneficiario_documento) AS total_proponentes,
     ROUND(
-        COUNT(DISTINCT identificador_unico)::NUMERIC
-        / SUM(COUNT(DISTINCT identificador_unico)) OVER (PARTITION BY programa_fomento, contemplado)
+        COUNT(DISTINCT beneficiario_documento)::NUMERIC
+        / SUM(COUNT(DISTINCT beneficiario_documento)) OVER (PARTITION BY programa_fomento)
         * 100, 2
     ) AS percentual
-FROM perfil_com_contemplado
-GROUP BY programa_fomento, categoria_primeiro_acesso, contemplado
-ORDER BY programa_fomento, contemplado DESC, total_proponentes DESC
+FROM acesso_contemplado
+GROUP BY programa_fomento, categoria_primeiro_acesso
+ORDER BY programa_fomento, total_proponentes DESC

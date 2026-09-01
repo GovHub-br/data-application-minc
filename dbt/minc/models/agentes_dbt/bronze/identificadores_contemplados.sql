@@ -1,9 +1,9 @@
 {{ config(materialized='view') }}
 
--- Views — unifica identificadores (CPF/CNPJ normalizados) de contemplados
--- LPG + PNAB, para reuso em qualquer gold que precise cruzar com
--- contemplação (primeiro_acesso_contemplados, Fase 3;
--- primeiro_acesso_contemplados_bancario, Fase 4).
+-- Bronze — unifica os identificadores (CPF/CNPJ normalizados) das listas
+-- oficiais de contemplados de edital, LPG + PNAB, para que
+-- primeiro_acesso_contemplados possa restringir o indicador a quem foi de fato
+-- selecionado.
 --
 -- COLUNAS "FANTASMA": a ingestão dinâmica de planilhas (extracao_planilhas.py)
 -- não normaliza espaços nem caracteres invisíveis nos nomes de coluna, então
