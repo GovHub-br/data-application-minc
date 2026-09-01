@@ -78,6 +78,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: false
+          # Carrega no daemon local para o passo seguinte poder rodar a imagem.
+          load: true
           context: .
           file: ./infra/docker/airflow/Dockerfile
           target: airflow-prod
@@ -85,6 +87,20 @@ jobs:
           cache-to: type=gha,mode=max
           tags: |
             ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG_SHA }}
+
+      # Tres testes de tests/test_openmetadata_execution.py so dizem alguma coisa
+      # com o openmetadata-ingestion instalado, e ele mora apenas nesta imagem --
+      # no job `test`, que usa o ambiente do Poetry, eles pulam. E aqui que essas
+      # guardas de ambiente valem: se o CLI `metadata` sumir do lock ou a
+      # biblioteca mudar o call site da paginacao, o build reprova.
+      - name: Testes de ambiente dentro da imagem
+        run: >
+          docker run --rm
+          -v "$PWD":/opt/airflow -w /opt/airflow
+          -e PYTHONPATH=/opt/airflow/plugins:/opt/airflow/helpers:/opt/airflow/dags
+          --entrypoint python
+          ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG_SHA }}
+          -m pytest tests -q -p no:cacheprovider
 
   docker_push:
     name: Docker push

@@ -5,6 +5,7 @@ from typing import Any
 from airflow.sdk import dag, task
 
 import schemas_minc as schemas
+from openmetadata.lineage import publicar_linhagem, tabela
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from extracao_por_plano_acao import carregar_planos_acao, extrair_por_plano_acao
@@ -42,7 +43,7 @@ def api_plano_acao_dado_bancario_dag() -> None:
     filtro na ingestao.
     """
 
-    @task
+    @task(inlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO)])
     def fetch_dados_bancarios() -> list[dict[str, Any]]:
         db = ClientPostgresDB(get_postgres_conn())
         planos = carregar_planos_acao(db)
@@ -90,7 +91,11 @@ def api_plano_acao_dado_bancario_dag() -> None:
 
         return contas
 
-    @task
+    @task(
+        outlets=[
+            tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_DADO_BANCARIO)
+        ]
+    )
     def load_dados_bancarios_to_postgres(contas: list[dict[str, Any]]) -> None:
         db = ClientPostgresDB(get_postgres_conn())
         db.insert_data(
@@ -107,7 +112,7 @@ def api_plano_acao_dado_bancario_dag() -> None:
             len(contas),
         )
 
-    load_dados_bancarios_to_postgres(fetch_dados_bancarios())
+    load_dados_bancarios_to_postgres(fetch_dados_bancarios()) >> publicar_linhagem()
 
 
 api_plano_acao_dado_bancario_dag()

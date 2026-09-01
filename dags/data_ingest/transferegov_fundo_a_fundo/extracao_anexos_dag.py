@@ -182,18 +182,20 @@ def extracao_anexos_dag() -> None:
             if Path(key).name.startswith("~$"):
                 continue
 
-            arquivos_meta.append({
-                "key": key,
-                "bucket": bucket,
-                "nome_programa": nome_politica,
-                "id_anexo": str(id_anexo),
-                "id_relatorio_gestao": id_relatorio_gestao,
-                "id_plano_acao": id_plano_acao,
-                "id_programa": id_programa,
-                "cod_ibge": cod_ibge,
-                "nome_arquivo_origem": nome_arquivo,
-                "url_origem": f"{_URL_ANEXO_RG}{id_anexo}",
-            })
+            arquivos_meta.append(
+                {
+                    "key": key,
+                    "bucket": bucket,
+                    "nome_programa": nome_politica,
+                    "id_anexo": str(id_anexo),
+                    "id_relatorio_gestao": id_relatorio_gestao,
+                    "id_plano_acao": id_plano_acao,
+                    "id_programa": id_programa,
+                    "cod_ibge": cod_ibge,
+                    "nome_arquivo_origem": nome_arquivo,
+                    "url_origem": f"{_URL_ANEXO_RG}{id_anexo}",
+                }
+            )
 
         logging.info(
             "[extracao_anexos_dag.py] %d anexos com arquivo baixado: %d a "
@@ -206,9 +208,7 @@ def extracao_anexos_dag() -> None:
         )
 
         if not arquivos_meta:
-            logging.warning(
-                "[extracao_anexos_dag.py] Nenhum anexo pendente de extração"
-            )
+            logging.warning("[extracao_anexos_dag.py] Nenhum anexo pendente de extração")
             return []
 
         # ── Chunking: fatia a lista em blocos de _CHUNK_SIZE ──
@@ -393,7 +393,12 @@ def extracao_anexos_dag() -> None:
                     df = df.dropna(axis=1, how="all")
                     df = df.dropna(how="all")
 
-                    _col_meta = {"id_anexo", "tipo_edital", "categoria_edital", "categoria_contemplado"}
+                    _col_meta = {
+                        "id_anexo",
+                        "tipo_edital",
+                        "categoria_edital",
+                        "categoria_contemplado",
+                    }
                     col_dados = [c for c in df.columns if c not in _col_meta]
                     if col_dados:
                         thresh_dados = max(1, int(len(col_dados) * 0.3))
@@ -489,8 +494,7 @@ def extracao_anexos_dag() -> None:
                     continue
 
             logging.info(
-                "[extracao_anexos_dag.py] %s '%s': %d subtabelas, "
-                "%d linhas inseridas",
+                "[extracao_anexos_dag.py] %s '%s': %d subtabelas, " "%d linhas inseridas",
                 nome_programa,
                 file_name,
                 n_subtabelas,
@@ -593,11 +597,13 @@ def extracao_anexos_dag() -> None:
                     exc,
                 )
                 resumo["n_erro_critico"] += 1
-                resumo["erros"].append({
-                    "arquivo": file_name,
-                    "status": "erro_critico",
-                    "erro": repr(exc),
-                })
+                resumo["erros"].append(
+                    {
+                        "arquivo": file_name,
+                        "status": "erro_critico",
+                        "erro": repr(exc),
+                    }
+                )
                 continue
 
             status = resultado.get("status", "desconhecido")
@@ -617,11 +623,13 @@ def extracao_anexos_dag() -> None:
             resumo["total_linhas_inseridas"] += resultado.get("n_linhas_inseridas", 0)
 
             if resultado.get("erro"):
-                resumo["erros"].append({
-                    "arquivo": resultado.get("nome_arquivo", "unknown"),
-                    "status": status,
-                    "erro": resultado["erro"],
-                })
+                resumo["erros"].append(
+                    {
+                        "arquivo": resultado.get("nome_arquivo", "unknown"),
+                        "status": status,
+                        "erro": resultado["erro"],
+                    }
+                )
 
         logging.info(
             "[extracao_anexos_dag.py] Lote finalizado: %d/%d OK, "

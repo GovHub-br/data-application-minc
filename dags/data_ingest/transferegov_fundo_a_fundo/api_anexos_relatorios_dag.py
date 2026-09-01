@@ -4,6 +4,7 @@ from airflow.sdk import dag, task
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 import schemas_minc as schemas
+from openmetadata.lineage import publicar_linhagem, tabela
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGovBackend
 from postgres_helpers import get_postgres_conn
@@ -25,7 +26,10 @@ default_args = {
     tags=["minc", "transferegov", "anexos", "raw"],
 )
 def api_anexos_relatorios_dag() -> None:
-    @task
+    @task(
+        inlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO)],
+        outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_ANEXO_RELATORIO)],
+    )
     def fetch_and_load_anexos_relatorios() -> None:
         logging.info("[api_anexos_relatorios_dag.py] Iniciando extração de anexos de relatórios")
 
@@ -36,7 +40,9 @@ def api_anexos_relatorios_dag() -> None:
         )
 
         if not ids_relatorios:
-            raise ValueError("[api_anexos_relatorios_dag.py] Nenhum relatório de gestão encontrado")
+            raise ValueError(
+                "[api_anexos_relatorios_dag.py] Nenhum relatório de gestão encontrado"
+            )
 
         api = ClienteTransfereGovBackend()
         total_inseridos = 0
@@ -89,7 +95,7 @@ def api_anexos_relatorios_dag() -> None:
         wait_for_completion=False,
     )
 
-    fetch_and_load_anexos_relatorios() >> trigger_download
+    fetch_and_load_anexos_relatorios() >> [trigger_download, publicar_linhagem()]
 
 
 api_anexos_relatorios_dag()

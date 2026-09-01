@@ -1,6 +1,93 @@
 {
   "modelos": [
     {
+      "nome": "bbagil_extrato_filtrado",
+      "dominio": "agentes",
+      "camada": "bronze",
+      "caminho": "dbt/minc/models/agentes_dbt/bronze/bbagil_extrato_filtrado.sql",
+      "descricao": "Camada Bronze — extrato bancário do BB Gestão Ágil (schema `bsc`), filtrado pelos 8 filtros de negócio (documento válido, sem subtransação, exclui BB/FNC/estornos/repasses entre entes públicos). Só débitos (pagamentos de fato) sobrevivem. Fonte primária da Meta 5 Fase 4 (primeiro acesso comprovado por dado bancário).",
+      "colunas": [
+        {
+          "nome": "id_plano_acao",
+          "descricao": "Identificador do plano de ação (ente + programa) dono da conta bancária."
+        },
+        {
+          "nome": "id",
+          "descricao": "Identificador da transação no extrato (id_plano_acao + id é a chave da tabela raw). Usado por bbagil_subtransacoes_filtrado pra achar a transação-mãe (id_transacao_pai = id)."
+        },
+        {
+          "nome": "programa_curto",
+          "descricao": "Código curto do programa devolvido pelo BSC (governmentprogramname — ex. 'MINC-LPG-MUNI-AUD', 'MINC-PNAB-2023'). Insumo pra derivar programa_fomento em pagamentos_bbagil_beneficiarios."
+        },
+        {
+          "nome": "beneficiario_documento",
+          "descricao": "CPF/CNPJ do beneficiário do pagamento, normalizado (LPAD por beneficiarypersontype — 11 dígitos p/ CPF, 14 p/ CNPJ)."
+        },
+        {
+          "nome": "beneficiario_nome",
+          "descricao": "Nome do beneficiário do pagamento, como devolvido pelo BSC."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor do pagamento (débito), em reais."
+        },
+        {
+          "nome": "data_pagamento",
+          "descricao": "Data do lançamento no extrato (bookingdate), convertida pra DATE."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 5,
+      "materializacao": "table",
+      "depende_de": [],
+      "sources": [
+        "bbagil.extrato_bbagil"
+      ],
+      "linhas_sql": 88
+    },
+    {
+      "nome": "bbagil_subtransacoes_filtrado",
+      "dominio": "agentes",
+      "camada": "bronze",
+      "caminho": "dbt/minc/models/agentes_dbt/bronze/bbagil_subtransacoes_filtrado.sql",
+      "descricao": "Camada Bronze — sublançamentos do BB Gestão Ágil, usados quando a transação-mãe do extrato tem subtransactionquantity > 0 (o beneficiário real só aparece aqui). Filtra por status 'Pago' e exclui repasses entre entes públicos.",
+      "colunas": [
+        {
+          "nome": "id_plano_acao",
+          "descricao": "Identificador do plano de ação, herdado da transação-mãe."
+        },
+        {
+          "nome": "programa_curto",
+          "descricao": "Código curto do programa (governmentprogramname), herdado da transação-mãe do extrato via id_plano_acao + id_transacao_pai = id."
+        },
+        {
+          "nome": "beneficiario_documento",
+          "descricao": "CPF/CNPJ do beneficiário do sublançamento, normalizado (LPAD por persontype)."
+        },
+        {
+          "nome": "beneficiario_nome",
+          "descricao": "Nome do beneficiário do sublançamento, como devolvido pelo BSC."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor do sublançamento (em módulo), em reais."
+        },
+        {
+          "nome": "data_pagamento",
+          "descricao": "Data de pagamento do sublançamento (paymentdate), convertida pra DATE."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 4,
+      "materializacao": "table",
+      "depende_de": [],
+      "sources": [
+        "bbagil.extrato_bbagil",
+        "bbagil.subtransacao_bbagil"
+      ],
+      "linhas_sql": 42
+    },
+    {
       "nome": "lpg_agentes_coletivos",
       "dominio": "agentes",
       "camada": "bronze",
@@ -146,6 +233,47 @@
       "linhas_sql": 18
     },
     {
+      "nome": "conversao_direto_rouanet_coorte",
+      "dominio": "agentes",
+      "camada": "gold",
+      "caminho": "dbt/minc/models/agentes_dbt/gold/conversao_direto_rouanet_coorte.sql",
+      "descricao": "Camada Gold — Meta 5, pergunta 2.3 com tempo de exposição controlado: dos agentes que ENTRARAM no fomento federal pelo fomento direto (LAB/LPG/PNAB), quantos depois captaram na Lei Rouanet? Grão: 1 linha por (coorte de entrada × porta de entrada × tipo de pessoa).\nExiste separada de trajetoria_fomento_direto_rouanet porque a contagem bruta é enganosa: o fomento direto nasceu em 2023, então cada coorte teve uma janela diferente para converter. converteram_ate_12m dá a todas a mesma janela; coorte_com_12m_completos marca quais coortes já a cumpriram por inteiro — nas que não cumpriram, a taxa é piso.\nDenominador é porta de entrada, não passagem: quem já aparecia na trilha da Ancine antes de 2023 não é novo entrante e fica fora. Numerador é captação real na Rouanet, não projeto protocolado nem aprovado.",
+      "colunas": [
+        {
+          "nome": "coorte_entrada",
+          "descricao": "Ano em que o agente entrou no fomento federal pela primeira vez."
+        },
+        {
+          "nome": "porta_de_entrada",
+          "descricao": "Mecanismo de entrada: 'LAB', 'LPG' ou 'PNAB'."
+        },
+        {
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' ou 'PJ'."
+        },
+        {
+          "nome": "entrantes",
+          "descricao": "Agentes distintos que entraram por aquela porta naquela coorte."
+        },
+        {
+          "nome": "converteram_rouanet",
+          "descricao": "Quantos deles captaram na Rouanet em data posterior à entrada. Nunca maior que entrantes."
+        },
+        {
+          "nome": "converteram_ate_12m",
+          "descricao": "Subconjunto de converteram_rouanet que captou em até 365 dias. Métrica comparável entre coortes."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 7,
+      "materializacao": "table",
+      "depende_de": [
+        "primeiro_acesso_agentes"
+      ],
+      "sources": [],
+      "linhas_sql": 75
+    },
+    {
       "nome": "perfil_acesso_fomento",
       "dominio": "agentes",
       "camada": "gold",
@@ -229,11 +357,118 @@
       "linhas_sql": 98
     },
     {
+      "nome": "primeiro_acesso_agentes",
+      "dominio": "agentes",
+      "camada": "gold",
+      "caminho": "dbt/minc/models/agentes_dbt/gold/primeiro_acesso_agentes.sql",
+      "descricao": "Camada Gold — Meta 5. Grão fino do indicador de novos entrantes: uma linha por (agente × mecanismo), com a data em que ele entrou naquele mecanismo e se aquela entrada foi a porta de entrada dele no fomento federal como um todo. Substitui primeiro_pagamento_bancario, que comparava datas apenas entre LPG e PNAB — num universo de dois programas, \"não é novo entrante\" só conseguia significar \"recebeu o outro programa antes\", e quem aparecia num programa só era sempre classificado como novo. Aqui a comparação é cross-mecanismo de verdade, e inclui a Rouanet desde 1993.\nExatamente uma linha por agente tem eh_porta_de_entrada = true; empates de data no mesmo dia são desempatados por ordem de mecanismo (ROUANET, LAB, LPG, PNAB) para que ninguém conte duas vezes.",
+      "colunas": [
+        {
+          "nome": "beneficiario_documento",
+          "descricao": "CPF (11) ou CNPJ (14) do agente, normalizado com LPAD."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Mecanismo de fomento — 'LAB', 'LPG', 'PNAB' ou 'ROUANET'."
+        },
+        {
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' quando o documento tem 11 dígitos, 'PJ' quando tem 14."
+        },
+        {
+          "nome": "data_primeiro_acesso_mecanismo",
+          "descricao": "Primeiro evento observado do agente neste mecanismo."
+        },
+        {
+          "nome": "data_primeiro_acesso_geral",
+          "descricao": "Primeiro evento do agente em QUALQUER mecanismo. É a data que define se ele é novo entrante."
+        },
+        {
+          "nome": "ano_primeiro_acesso_geral",
+          "descricao": "Ano de data_primeiro_acesso_geral."
+        },
+        {
+          "nome": "qtd_mecanismos_agente",
+          "descricao": "Em quantos mecanismos distintos o agente já recebeu recurso."
+        },
+        {
+          "nome": "eh_porta_de_entrada",
+          "descricao": "Verdadeiro no mecanismo pelo qual o agente entrou no fomento federal. Exatamente uma linha por agente."
+        },
+        {
+          "nome": "categoria_primeiro_acesso",
+          "descricao": "'Sim' quando esta linha é a porta de entrada do agente; 'Não' caso contrário."
+        },
+        {
+          "nome": "entrada_em_ano_censurado",
+          "descricao": "Verdadeiro quando a entrada caiu no primeiro ano observável daquele mecanismo (2023 para LAB/LPG/PNAB). Descritivo: para a LAB isso é corte de janela, para LPG e PNAB é o ano de nascimento do programa — ver ano_censurado em primeiro_acesso_anual, que separa os dois."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 13,
+      "materializacao": "table",
+      "depende_de": [
+        "eventos_fomento"
+      ],
+      "sources": [],
+      "linhas_sql": 82
+    },
+    {
+      "nome": "primeiro_acesso_anual",
+      "dominio": "agentes",
+      "camada": "gold",
+      "caminho": "dbt/minc/models/agentes_dbt/gold/primeiro_acesso_anual.sql",
+      "descricao": "Camada Gold — Meta 5. A série que responde às perguntas 1, 2.1 e 2.2: percentual anual de agentes de primeiro acesso, no total (programa_fomento = 'TODOS') e por mecanismo (LAB, LPG, PNAB, ROUANET). Grão: 1 linha por (ano × mecanismo) mais o roll-up.\nA linha 'TODOS' não é a soma das linhas por mecanismo — um agente atendido por dois mecanismos no mesmo ano conta uma vez só nela.\nOs percentuais são TETO, não estimativa pontual: faltam o FSA (planilha Ancine, fora do banco) e a Lei Aldir Blanc I emergencial de 2020-2021 (não existe em nenhuma fonte do banco). Fonte ausente só transforma veterano em falso novo entrante, nunca o contrário, então o valor real é menor ou igual ao publicado.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Ano civil do evento de recebimento de recurso."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Mecanismo, ou 'TODOS' para o roll-up de todos os mecanismos."
+        },
+        {
+          "nome": "agentes_atendidos",
+          "descricao": "Agentes distintos que receberam recurso do mecanismo naquele ano (denominador)."
+        },
+        {
+          "nome": "novos_entrantes",
+          "descricao": "Destes, quantos tiveram ali o primeiro acesso a qualquer fomento federal observável (numerador)."
+        },
+        {
+          "nome": "ja_contemplados_antes",
+          "descricao": "agentes_atendidos - novos_entrantes."
+        },
+        {
+          "nome": "percentual_primeiro_acesso",
+          "descricao": "novos_entrantes / agentes_atendidos, em %."
+        },
+        {
+          "nome": "ano_censurado",
+          "descricao": "Verdadeiro quando a JANELA DE EXTRAÇÃO cortou passado que existe na origem: Rouanet em 1993 (a lei é de 1991) e LAB em 2023 (contas abertas desde 2020, fora da janela pedida). NÃO marca o primeiro ano de um programa novo: LPG e PNAB nasceram em 2023, nenhuma conta deles é anterior, e a comparação contra a Rouanet rodou."
+        },
+        {
+          "nome": "ano_parcial",
+          "descricao": "Verdadeiro no último ano com dado, que ainda não terminou. O percentual de um ano parcial vem deprimido — menos gente nova acumulada — e não deve ser comparado com anos fechados."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 9,
+      "materializacao": "table",
+      "depende_de": [
+        "eventos_fomento",
+        "primeiro_acesso_agentes"
+      ],
+      "sources": [],
+      "linhas_sql": 142
+    },
+    {
       "nome": "primeiro_acesso_contemplados",
       "dominio": "agentes",
       "camada": "gold",
       "caminho": "dbt/minc/models/agentes_dbt/gold/primeiro_acesso_contemplados.sql",
-      "descricao": "Camada Gold — Meta 5 com flag de contemplação. Estrutura de saída semelhante à de primeiro_acesso_resumo (mesmo par programa × categoria de acesso), mas construída a partir de perfil_acesso_fomento (não de perfil_agentes_historico), pois depende da coluna status_dado (Confirmado/Inferido) exposta apenas naquele modelo. Adiciona duas dimensões: se o proponente foi contemplado em edital e a discriminação entre dados confirmados (resposta declarada no formulário) vs. inferidos (derivados por sequência ou presença multi-programa). Grain: 1 linha por (programa_fomento × categoria_primeiro_acesso × contemplado).\nCobertura de contemplados:\n  - LPG: CPF e CNPJ completos via lpg_contemplados — cobertura total.\n  - PNAB PNCV: CPF real via raw_pnab_lista_contemplados_pncv — cobertura PF.\n  - PNAB Geral: apenas CNPJ via raw_pnab_lista_contemplados_geral — CPF\n    anonimizado (***XXXXXX**), PF da lista geral fora do PNCV não é rastreável.\n\nRessalvas de qualidade do JOIN de contemplação:\n  - CPF mascarado da LPG: a base de proponentes (lpg_agentes_pf/coletivos)\n    traz o CPF anonimizado no formato \"***.NNN.NNN-**\" (só os 6 dígitos\n    centrais visíveis), enquanto lpg_contemplados traz o CPF completo. Um\n    match exato nunca ocorre nesses casos, o que geraria falso-negativo\n    sistemático de 'contemplado'. Por isso o modelo faz, adicionalmente, um\n    match parcial pelo \"miolo\" do CPF (os mesmos 6 dígitos centrais expostos\n    pela máscara) — esse match parcial tem risco de colisão entre CPFs\n    distintos com miolo igual.\n  - Colunas \"fantasma\" em lpg_contemplados: a ingestão dinâmica de planilhas\n    não normaliza espaços/caracteres invisíveis (ex.: NBSP) nos cabeçalhos, então\n    \"CPF ou CNPJ\" de arquivos diferentes pode virar colunas distintas no Postgres,\n    cada uma com parte dos dados. A coluna de CPF/CNPJ é por isso resolvida\n    dinamicamente via information_schema (qualquer coluna cujo nome contenha\n    \"cpf\" e \"cnpj\"), e não por um nome fixo.",
+      "descricao": "Camada Gold — Meta 5 com flag de contemplação. Estrutura de saída semelhante à de primeiro_acesso_resumo (mesmo par programa × categoria de acesso), mas construída a partir de perfil_acesso_fomento (não de perfil_agentes_historico), pois depende da coluna status_dado (Confirmado/Inferido) exposta apenas naquele modelo. Adiciona duas dimensões: se o proponente foi contemplado em edital e a discriminação entre dados confirmados (resposta declarada no formulário) vs. inferidos (derivados por sequência ou presença multi-programa). Grain: 1 linha por (programa_fomento × categoria_primeiro_acesso × contemplado).\nCobertura de contemplados:\n  - LPG: CPF e CNPJ completos via planilha_contemplados_lpg — cobertura total.\n  - PNAB PNCV: CPF real (fatia tabela_origem = raw_pnab_lista_contemplados_pncv\n    de planilha_contemplados_pnab_ciclo_1) — cobertura PF.\n  - PNAB Geral: apenas CNPJ (fatia raw_pnab_lista_contemplados_geral) — CPF\n    anonimizado (***XXXXXX**), PF da lista geral fora do PNCV não é rastreável.\n\nRessalvas de qualidade do JOIN de contemplação:\n  - CPF mascarado da LPG: a base de proponentes (lpg_agentes_pf/coletivos)\n    traz o CPF anonimizado no formato \"***.NNN.NNN-**\" (só os 6 dígitos\n    centrais visíveis), enquanto lpg_contemplados traz o CPF completo. Um\n    match exato nunca ocorre nesses casos, o que geraria falso-negativo\n    sistemático de 'contemplado'. Por isso o modelo faz, adicionalmente, um\n    match parcial pelo \"miolo\" do CPF (os mesmos 6 dígitos centrais expostos\n    pela máscara) — esse match parcial tem risco de colisão entre CPFs\n    distintos com miolo igual.\n  - Colunas \"fantasma\" em lpg_contemplados: a ingestão dinâmica de planilhas\n    não normaliza espaços/caracteres invisíveis (ex.: NBSP) nos cabeçalhos, então\n    \"CPF ou CNPJ\" de arquivos diferentes pode virar colunas distintas no Postgres,\n    cada uma com parte dos dados. A coluna de CPF/CNPJ é por isso resolvida\n    dinamicamente via information_schema (qualquer coluna cujo nome contenha\n    \"cpf\" e \"cnpj\"), e não por um nome fixo.",
       "colunas": [
         {
           "nome": "programa_fomento",
@@ -268,13 +503,45 @@
       "testes": 10,
       "materializacao": "table",
       "depende_de": [
+        "identificadores_contemplados",
         "perfil_acesso_fomento"
       ],
-      "sources": [
-        "relatorio_gestao.planilha_contemplados_lpg",
-        "relatorio_gestao.planilha_contemplados_pnab_ciclo_1"
+      "sources": [],
+      "linhas_sql": 96
+    },
+    {
+      "nome": "primeiro_acesso_contemplados_bancario",
+      "dominio": "agentes",
+      "camada": "gold",
+      "caminho": "dbt/minc/models/agentes_dbt/gold/primeiro_acesso_contemplados_bancario.sql",
+      "descricao": "Camada Gold — Meta 5. O mesmo indicador de novos entrantes, restrito a quem aparece nas listas oficiais de contemplados dos editais (LPG e PNAB), em vez de a todo agente visto recebendo dinheiro. Grão: 1 linha por (programa × categoria de primeiro acesso).\nA classificação vem de primeiro_acesso_agentes, então já é cross-mecanismo e já considera a Rouanet desde 1993.\nCobertura parcial e medida: a interseção entre lista de contemplados e extrato bancário fica em torno de 46% na LPG e 89% no PNAB. A causa não é atraso de pagamento nem filtro agressivo — o BB Ágil só enxerga contas administradas pelo Banco do Brasil, e o município frequentemente declara ter pago um contemplado cujo pagamento não passou por lá. Contemplado sem evento observável fica de fora, sem fallback autodeclarado.",
+      "colunas": [
+        {
+          "nome": "programa_fomento",
+          "descricao": "Programa de fomento — 'LPG' ou 'PNAB'."
+        },
+        {
+          "nome": "categoria_primeiro_acesso",
+          "descricao": "'Sim' — foi por este mecanismo que o agente entrou no fomento federal (novo entrante); 'Não' — já havia recebido recurso antes, em qualquer mecanismo observável."
+        },
+        {
+          "nome": "total_proponentes",
+          "descricao": "Contagem distinta de contemplados com evento observável, por categoria."
+        },
+        {
+          "nome": "percentual",
+          "descricao": "Percentual da categoria sobre o total de contemplados com evento observável no mesmo programa_fomento (cada programa soma 100%)."
+        }
       ],
-      "linhas_sql": 167
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "table",
+      "depende_de": [
+        "identificadores_contemplados",
+        "primeiro_acesso_agentes"
+      ],
+      "sources": [],
+      "linhas_sql": 54
     },
     {
       "nome": "primeiro_acesso_resumo",
@@ -308,6 +575,183 @@
       ],
       "sources": [],
       "linhas_sql": 26
+    },
+    {
+      "nome": "trajetoria_fomento_direto_rouanet",
+      "dominio": "agentes",
+      "camada": "gold",
+      "caminho": "dbt/minc/models/agentes_dbt/gold/trajetoria_fomento_direto_rouanet.sql",
+      "descricao": "Camada Gold — Meta 5, pergunta 2.3: há novos entrantes pelo fomento direto (LAB/LPG/PNAB) que depois acessaram a Lei Rouanet? Grão: 1 linha por (trajetória × tipo de pessoa).\nMede as duas direções. DIRETO_DEPOIS_ROUANET responde a pergunta 2.3 literalmente. ROUANET_ANTES_DIRETO é a direção oposta e vale como controle do indicador inteiro: são agentes que já acessavam recurso público federal antes de 2023 e que, sem a fonte do SALIC, seriam contados como novos entrantes do fomento direto.",
+      "colunas": [
+        {
+          "nome": "trajetoria",
+          "descricao": "'SO_DIRETO', 'SO_ROUANET', 'DIRETO_DEPOIS_ROUANET', 'ROUANET_ANTES_DIRETO', 'MESMO_DIA' ou 'SO_AUDIOVISUAL' (so na trilha da Ancine, fora da pergunta 2.3)."
+        },
+        {
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' ou 'PJ'."
+        },
+        {
+          "nome": "mecanismo_porta_entrada",
+          "descricao": "Mecanismo pelo qual o agente entrou no fomento federal. Necessário para separar percurso de novidade: DIRETO_DEPOIS_ROUANET com porta em AUDIOVISUAL ou FSA é agente que já acessava recurso federal antes de 2023, e portanto não responde à 2.3. É NULL só para o balde SO_AUDIOVISUAL quando o agente não tem porta única identificada."
+        },
+        {
+          "nome": "agentes",
+          "descricao": "Quantidade de agentes distintos naquela trajetória."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 4,
+      "materializacao": "table",
+      "depende_de": [
+        "primeiro_acesso_agentes"
+      ],
+      "sources": [],
+      "linhas_sql": 97
+    },
+    {
+      "nome": "eventos_fomento",
+      "dominio": "agentes",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/agentes_dbt/silver/eventos_fomento.sql",
+      "descricao": "Camada Silver — Meta 5. Espinha unificada: um evento por vez que um agente cultural recebeu recurso de uma política federal de fomento, num formato só. É a tabela que permite perguntar \"este agente já havia sido contemplado antes?\" acima do mecanismo, que é o que a pergunta da meta exige. Grão: 1 linha por (documento, mecanismo, data, valor).\nJanelas de observação, muito assimétricas: ROUANET 1993+, LAB/LPG/PNAB 2023+, FSA ausente. Por isso a coluna ano_inicio_observacao, que a gold usa para marcar os anos censurados à esquerda.\nO piso de valor (var limiar_valor_fomento, padrão 375) é aplicado sobre o TOTAL do agente naquele mecanismo, não por transação, e só ao BB Ágil — é lá que existe resíduo de transação que não é repasse de fomento.",
+      "colunas": [
+        {
+          "nome": "beneficiario_documento",
+          "descricao": "CPF (11) ou CNPJ (14) do agente, normalizado com LPAD."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Mecanismo — 'LAB', 'LPG', 'PNAB' ou 'ROUANET'."
+        },
+        {
+          "nome": "data_evento",
+          "descricao": "Data em que o recurso chegou ao agente."
+        },
+        {
+          "nome": "ano_evento",
+          "descricao": "Ano civil de data_evento."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor do evento, em reais."
+        },
+        {
+          "nome": "fonte",
+          "descricao": "'BB_AGIL', 'SALIC' ou 'ANCINE'."
+        },
+        {
+          "nome": "ano_inicio_observacao",
+          "descricao": "Primeiro ano em que a fonte daquele mecanismo enxerga qualquer coisa."
+        },
+        {
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' (11 dígitos) ou 'PJ' (14)."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 11,
+      "materializacao": "table",
+      "depende_de": [
+        "eventos_fomento_ancine",
+        "eventos_fomento_rouanet",
+        "pagamentos_bbagil_beneficiarios"
+      ],
+      "sources": [],
+      "linhas_sql": 119
+    },
+    {
+      "nome": "eventos_fomento_ancine",
+      "dominio": "agentes",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/agentes_dbt/silver/eventos_fomento_ancine.sql",
+      "descricao": "",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "table",
+      "depende_de": [],
+      "sources": [
+        "ancine.consulta"
+      ],
+      "linhas_sql": 83
+    },
+    {
+      "nome": "eventos_fomento_rouanet",
+      "dominio": "agentes",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/agentes_dbt/silver/eventos_fomento_rouanet.sql",
+      "descricao": "Camada Silver — Meta 5. Um evento por captação real de recurso na Lei Rouanet, no mesmo formato dos pagamentos do BB Ágil. O evento é o recibo de captação (dinheiro efetivamente captado), não a aprovação do projeto: projeto aprovado que nunca captou não deu acesso a recurso nenhum, e misturar aprovação com pagamento tornaria a comparação entre mecanismos incoerente.\nLiga sac__captacao (dinheiro e data, sem proponente) a sac__tbapiprojetorouanet (proponente) pelo PRONAC — anoprojeto || sequencial = nrpronac, que casa 99,86% dos recibos. sac__projetos, que seria a ponte natural, existe no schema mas foi carregada com 0 linhas.",
+      "colunas": [
+        {
+          "nome": "beneficiario_documento",
+          "descricao": "CPF (11) ou CNPJ (14) do proponente, normalizado com LPAD."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Sempre 'ROUANET'."
+        },
+        {
+          "nome": "data_evento",
+          "descricao": "Data do recibo de captação."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor captado no recibo, em reais. Sempre maior que zero."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto que captou."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 6,
+      "materializacao": "table",
+      "depende_de": [],
+      "sources": [
+        "bronze_sac.sac__captacao",
+        "bronze_sac.sac__projetos",
+        "bronze_sac.sac__tbapiprojetorouanet"
+      ],
+      "linhas_sql": 106
+    },
+    {
+      "nome": "pagamentos_bbagil_beneficiarios",
+      "dominio": "agentes",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/agentes_dbt/silver/pagamentos_bbagil_beneficiarios.sql",
+      "descricao": "Camada Silver — Meta 5 Fase 4. Unifica bbagil_extrato_filtrado e bbagil_subtransacoes_filtrado em 1 linha por pagamento real a um beneficiário, com programa_fomento (LPG/PNAB/LAB) derivado do código curto de programa do BSC. Alimenta eventos_fomento.\nLAB deixou de ser colapsado em PNAB: os códigos SECULT-A BLANC são a Lei Aldir Blanc II (Lei 14.399/2022), e a pergunta 2.2 da Meta 5 pede os mecanismos separados. A LAB I emergencial (2020-2021) não existe em nenhuma fonte do banco.",
+      "colunas": [
+        {
+          "nome": "id_plano_acao",
+          "descricao": "Identificador do plano de ação (ente + programa) dono da conta que fez o pagamento."
+        },
+        {
+          "nome": "beneficiario_documento",
+          "descricao": "CPF/CNPJ do beneficiário do pagamento, normalizado."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Programa de fomento — 'LPG', 'PNAB' ou 'LAB'."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor do pagamento, em reais."
+        },
+        {
+          "nome": "data_pagamento",
+          "descricao": "Data do pagamento."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 6,
+      "materializacao": "table",
+      "depende_de": [
+        "bbagil_extrato_filtrado",
+        "bbagil_subtransacoes_filtrado"
+      ],
+      "sources": [],
+      "linhas_sql": 69
     },
     {
       "nome": "perfil_agentes_historico",
@@ -382,6 +826,29 @@
       ],
       "sources": [],
       "linhas_sql": 45
+    },
+    {
+      "nome": "identificadores_contemplados",
+      "dominio": "agentes",
+      "camada": "views",
+      "caminho": "dbt/minc/models/agentes_dbt/views/identificadores_contemplados.sql",
+      "descricao": "Views — unifica identificadores (CPF/CNPJ normalizados) de contemplados LPG + PNAB. Extraído de primeiro_acesso_contemplados para reuso também em primeiro_acesso_contemplados_bancario.\nAs colunas de documento são resolvidas dinamicamente via information_schema nas três tabelas de origem, porque a ingestão de planilhas não normaliza espaços nem NBSP nos cabeçalhos e o mesmo campo vira várias colunas, cada uma com parte dos dados. O padrão anterior (ILIKE '%cpf%cnpj%') exigia \"cpf\" antes de \"cnpj\" e não casava \"cnpj\" sozinho nem \"cpf/ cnpj\", deixando de fora ~2.100 contemplados do PNAB — a maioria deles com pagamento comprovado no extrato bancário.\nColunas \"cpf (anonimizado)\" são excluídas de propósito: trazem ***XXXXXX** no lugar do documento. Continua valendo que o CPF de PF da lista geral do PNAB, fora do PNCV, não é rastreável.",
+      "colunas": [
+        {
+          "nome": "id_normalizado",
+          "descricao": "CPF ou CNPJ do contemplado, normalizado (só dígitos)."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Programa de fomento — 'LPG' ou 'PNAB'."
+        }
+      ],
+      "colunas_descritas": 2,
+      "testes": 3,
+      "materializacao": "view",
+      "depende_de": [],
+      "sources": [],
+      "linhas_sql": 109
     },
     {
       "nome": "stg_agentes_coletivos",
@@ -917,13 +1384,13 @@
   ],
   "dominios": {
     "agentes": {
-      "modelos": 11,
-      "testes": 40,
+      "modelos": 23,
+      "testes": 114,
       "camadas": {
-        "bronze": 5,
-        "gold": 4,
-        "silver": 1,
-        "views": 1
+        "bronze": 7,
+        "gold": 9,
+        "silver": 5,
+        "views": 2
       }
     },
     "cotas": {
@@ -1261,6 +1728,23 @@
       ]
     },
     {
+      "nome": "bacen",
+      "schema": "bacen",
+      "descricao": "",
+      "tabelas": [
+        {
+          "nome": "serie_sgs",
+          "descricao": "Séries temporais do SGS/BACEN: uma linha por (``codigo_serie``, ``data``), com ``data`` em ISO (aaaa-mm-dd) e ``valor`` no significado da série (a 10844, IPCA-Serviços, é variação % no mês). Persistida por ``bacen_sgs_ingest_dag``."
+        }
+      ]
+    },
+    {
+      "nome": "bsc_pnab",
+      "schema": "bsc_pnab",
+      "descricao": "",
+      "tabelas": []
+    },
+    {
       "nome": "relatorio_gestao",
       "schema": "relatorio_gestao",
       "descricao": "",
@@ -1309,12 +1793,23 @@
           "descricao": "Uma linha por sub-lancamento das transacoes com ``subtransactionquantity`` > 0, persistida por ``extracao_bbagil_dag``."
         }
       ]
+    },
+    {
+      "nome": "ancine",
+      "schema": "ancine",
+      "descricao": "",
+      "tabelas": [
+        {
+          "nome": "consulta",
+          "descricao": "Captacao de projetos audiovisuais registrada pela Ancine, uma linha por aporte: ``cnpj_proponente`` e quem RECEBEU, ``cnpj_investidor`` quem aportou (mesma estrutura da captacao da Rouanet). Cobre 17 mecanismos de 2005 a 2026, entre eles o FSA e a Lei do Audiovisual. ARMADILHAS DE FORMATO: ``data_captacao`` e TEXT no padrao americano (``7/12/2007`` e 12 de julho) e ``valor_de_captacao`` vem como ``50.000,00``. ART25/ART18 sao Rouanet e NAO devem ser usados aqui — ja entram pelo SALIC, por uma fonte melhor."
+        }
+      ]
     }
   ],
   "totais": {
-    "modelos": 37,
-    "testes": 65,
-    "com_descricao": 36,
-    "sources": 74
+    "modelos": 49,
+    "testes": 139,
+    "com_descricao": 47,
+    "sources": 76
   }
 }

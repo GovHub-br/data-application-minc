@@ -1,0 +1,37 @@
+source:
+  type: airflow
+  # Nome proprio: o mesmo servidor OpenMetadata ja hospeda o Airflow do
+  # data-application-cidades sob o servico "airflow".
+  serviceName: MinC - Airflow
+  serviceConnection:
+    config:
+      type: Airflow
+      hostPort: ${AIRFLOW_HOST_PORT}
+      numberOfStatus: 20
+      connection:
+        type: Postgres
+        username: ${AIRFLOW_DB_USERNAME}
+        authType:
+          password: ${AIRFLOW_DB_PASSWORD}
+        hostPort: ${AIRFLOW_DB_HOST_PORT}
+        database: ${AIRFLOW_DB_DATABASE}
+        sslMode: disable
+
+  sourceConfig:
+    config:
+      type: PipelineMetadata
+
+sink:
+  type: metadata-rest
+  config:
+    # Lote pequeno de proposito: o proxy na frente do OpenMetadata corta a
+    # conexao antes de um PUT grande terminar.
+    bulk_sink_batch_size: 10
+
+workflowConfig:
+  loggerLevel: INFO
+  openMetadataServerConfig:
+    hostPort: ${OM_HOST}
+    authProvider: openmetadata
+    securityConfig:
+      jwtToken: ${INGESTION_TOKEN}
