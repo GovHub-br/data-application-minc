@@ -1,5 +1,6 @@
 import importlib.util
 import inspect
+import shutil
 import sys
 from types import ModuleType
 from pathlib import Path
@@ -9,6 +10,36 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXECUTION_PATH = REPO_ROOT / "helpers/openmetadata/workflows.py"
+
+
+def _openmetadata_real_instalado() -> bool:
+    """O pacote de verdade, nao o `metadata` falso que os testes injetam.
+
+    A checagem roda na importacao do modulo, antes de qualquer monkeypatch em
+    `sys.modules`, entao nao confunde um com o outro.
+    """
+    return (
+        shutil.which("metadata") is not None
+        and importlib.util.find_spec("metadata") is not None
+    )
+
+
+# Tres testes deste arquivo sao guardas de AMBIENTE: so dizem alguma coisa com o
+# openmetadata-ingestion instalado de verdade. Ele mora apenas na imagem do
+# Airflow (infra/docker/airflow/requirements.lock.txt) e de proposito fica fora
+# do Poetry -- resolve-lo ali rebaixaria pacotes e nao e preciso para o resto da
+# suite. Sem esta marca eles falhavam no CI por ausencia do pacote, que e
+# exatamente a situacao esperada ali.
+#
+# Para que nao virem decoracao, o job `docker_build` roda a suite DENTRO da
+# imagem construida, que e onde estas guardas tem o que verificar.
+requer_openmetadata_real = pytest.mark.skipif(
+    not _openmetadata_real_instalado(),
+    reason=(
+        "openmetadata-ingestion ausente: guarda de ambiente, roda dentro da "
+        "imagem do Airflow (job docker_build), nao no ambiente do Poetry"
+    ),
+)
 
 
 def _load_execution_module():
@@ -188,6 +219,7 @@ def test_table_workflow_installs_pagination_before_execution(monkeypatch) -> Non
     assert workflow.workflow_config.successThreshold == 100
 
 
+@requer_openmetadata_real
 def test_regular_ingestion_keeps_cli_execution(monkeypatch, tmp_path: Path) -> None:
     execution = _load_execution_module()
     recipe = {"source": {"type": "postgres"}}
@@ -244,6 +276,7 @@ def test_render_succeeds_when_every_placeholder_has_a_value(tmp_path: Path) -> N
     assert destino.read_text(encoding="utf-8") == "token: jwt\nhost: https://x/api\n"
 
 
+@requer_openmetadata_real
 def test_pagination_patch_still_binds_to_the_real_client() -> None:
     """O patch precisa continuar pegando na biblioteca de verdade.
 
@@ -280,6 +313,7 @@ def test_pagination_patch_still_binds_to_the_real_client() -> None:
     ), "o fetcher passou a definir `limit`; o patch pode ter ficado redundante."
 
 
+@requer_openmetadata_real
 def test_metadata_cli_is_resolvable_in_this_environment() -> None:
     """O CLI `metadata` precisa existir no PATH de verdade.
 
