@@ -1,56 +1,6 @@
 version: 2
 
 models:
-  - name: perfil_agentes_historico
-    description: >
-      Camada Silver — perfil dos agentes (a partir da view identificadores_agentes,
-      que já consolida os cinco bronzes) com higienização da coluna de histórico
-      de acesso a recursos públicos. Remove valores nulos, 'nan' e caracteres
-      inválidos (ponto, ponto-e-vírgula). Classifica as respostas em três
-      categorias padronizadas: 'Sim', 'Não' e 'Não sabe/Não informou'.
-      Propaga a coluna programa_fomento para rastreabilidade por programa.
-    config:
-      tags: [silver, agentes, higienizacao]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
-    columns:
-      - name: identificador_unico
-        description: Identificador único do proponente (CPF, CNPJ ou CPF do representante).
-        tests:
-          - not_null
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
-      - name: tipo_proponente
-        description: >
-          Tipo do proponente — 'Pessoa Física', 'Pessoa Jurídica',
-          'Coletivo' ou 'Organização'.
-      - name: programa_fomento
-        description: Programa de fomento de origem — 'LPG' ou 'PNAB'.
-        tests:
-          - accepted_values:
-              arguments:
-                values: ['LPG', 'PNAB']
-      - name: historico_acesso_limpo
-        description: Texto limpo da resposta bruta sobre acesso anterior a recursos de fomento.
-      - name: categoria_primeiro_acesso
-        description: >
-          Categoria padronizada da resposta: 'Sim', 'Não' ou 'Não sabe/Não informou'.
-        tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: ['Sim', 'Não', 'Não sabe/Não informou']
-
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Agentes.PrimeiroAcesso
   - name: pagamentos_bbagil_beneficiarios
     description: >
       Camada Silver — Meta 5 Fase 4. Unifica bbagil_extrato_filtrado e
@@ -144,6 +94,60 @@ models:
         tests:
           - not_null
 
+  - name: eventos_fomento_ancine
+    description: >
+      Camada Silver — um evento por captação de projeto audiovisual registrada
+      pela Ancine (`ancine.consulta`), no mesmo formato dos recibos da Rouanet e
+      dos pagamentos do BB Ágil, para entrar em eventos_fomento.
+
+      Dois mecanismos, não um: 'FSA' responde literalmente ao que o documento da
+      meta nomeia; 'AUDIOVISUAL' carrega Lei do Audiovisual (ART1/ART3/1A/3A),
+      FUNCINES e os editais da Ancine. ART25/ART18 ficam de fora porque são
+      Rouanet e já entram pelo SALIC, por fonte melhor — incluí-los duplicaria
+      evento. Também ficam de fora RENDIMENTOS, CONTRAPARTIDA, OUTRAS FONTES e
+      lei estadual/municipal, que não são fomento federal ao agente.
+
+      Armadilhas de formato, as duas medidas nesta tabela: `data_captacao` é
+      TEXT no padrão AMERICANO M/D/YYYY ('7/12/2007' é 12 de julho, não 7 de
+      dezembro), e `valor_de_captacao` é TEXT no padrão brasileiro ('50.000,00').
+
+      A fonte é quase toda CNPJ — proponente pessoa física é, na prática,
+      invisível aqui. É a limitação desta fonte, e empurra na mesma direção de
+      todas as outras: pode deixar de revelar um veterano, nunca inventar um.
+    config:
+      tags: [silver, agentes, ancine, audiovisual, meta5]
+      meta:
+        status: Active
+        meta_objetivo: 'Meta 5 — eventos de captação do audiovisual federal'
+        origem_dados: 'ancine.consulta'
+    columns:
+      - name: beneficiario_documento
+        description: CPF (11) ou CNPJ (14) do proponente, normalizado com LPAD.
+        tests:
+          - not_null
+      - name: beneficiario_nome
+        description: >
+          Nome do proponente como a Ancine registra. Não é usado por nenhum
+          modelo a jusante — morre em eventos_fomento.
+      - name: programa_fomento
+        description: Mecanismo — 'FSA' ou 'AUDIOVISUAL'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['FSA', 'AUDIOVISUAL']
+      - name: data_evento
+        description: Data da captação, convertida do formato americano da origem.
+        tests:
+          - not_null
+      - name: valor
+        description: Valor captado, convertido do formato brasileiro da origem.
+      - name: no_salic
+        description: >
+          Número do projeto no SALIC anotado pela Ancine. Não vem do SALIC — é
+          coluna da própria `ancine.consulta`. Serve de rastreabilidade e não
+          atravessa para eventos_fomento.
+
   - name: eventos_fomento
     description: >
       Camada Silver — Meta 5. Espinha unificada: um evento por vez que um
@@ -211,3 +215,91 @@ models:
           - accepted_values:
               arguments:
                 values: ['PF', 'PJ']
+
+  - name: primeiro_acesso_agentes
+    description: >
+      Camada Silver — Meta 5. Grão fino do indicador de novos entrantes: uma
+      linha por (agente × mecanismo), com a data em que ele entrou naquele
+      mecanismo e se aquela entrada foi a porta de entrada dele no fomento
+      federal como um todo. Substitui primeiro_pagamento_bancario, que
+      comparava datas apenas entre LPG e PNAB — num universo de dois
+      programas, "não é novo entrante" só conseguia significar "recebeu o
+      outro programa antes", e quem aparecia num programa só era sempre
+      classificado como novo. Aqui a comparação é cross-mecanismo de
+      verdade, e inclui a Rouanet desde 1993.
+
+      Exatamente uma linha por agente tem eh_porta_de_entrada = true;
+      empates de data no mesmo dia são desempatados por ordem de mecanismo
+      (ROUANET, LAB, LPG, PNAB) para que ninguém conte duas vezes.
+    config:
+      tags: [silver, agentes, meta5, primeiro_acesso]
+      meta:
+        status: Active
+        meta_objetivo: 'Meta 5 — Primeiro Acesso ao Fomento Federal (por agente)'
+        origem_dados: 'eventos_fomento (BB Ágil + SALIC)'
+        openmetadata:
+          domain: Cultura.Fomento Direto
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: beneficiario_documento
+        description: CPF (11) ou CNPJ (14) do agente, normalizado com LPAD.
+        tests:
+          - not_null
+      - name: programa_fomento
+        description: Mecanismo de fomento — 'LAB', 'LPG', 'PNAB' ou 'ROUANET'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['AUDIOVISUAL', 'FSA', 'LAB', 'LPG', 'PNAB', 'ROUANET']
+      - name: tipo_pessoa
+        description: "'PF' quando o documento tem 11 dígitos, 'PJ' quando tem 14."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PF', 'PJ']
+      - name: data_primeiro_acesso_mecanismo
+        description: Primeiro evento observado do agente neste mecanismo.
+        tests:
+          - not_null
+      - name: data_primeiro_acesso_geral
+        description: >
+          Primeiro evento do agente em QUALQUER mecanismo. É a data que
+          define se ele é novo entrante.
+        tests:
+          - not_null
+      - name: ano_primeiro_acesso_geral
+        description: Ano de data_primeiro_acesso_geral.
+        tests:
+          - not_null
+      - name: qtd_mecanismos_agente
+        description: Em quantos mecanismos distintos o agente já recebeu recurso.
+        tests:
+          - not_null
+      - name: eh_porta_de_entrada
+        description: >
+          Verdadeiro no mecanismo pelo qual o agente entrou no fomento
+          federal. Exatamente uma linha por agente.
+        tests:
+          - not_null
+      - name: categoria_primeiro_acesso
+        description: "'Sim' quando esta linha é a porta de entrada do agente; 'Não' caso contrário."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Agentes.PrimeiroAcesso
+      - name: entrada_em_ano_censurado
+        description: >
+          Verdadeiro quando a entrada caiu no primeiro ano observável daquele
+          mecanismo (2023 para LAB/LPG/PNAB). Descritivo: para a LAB isso é
+          corte de janela, para LPG e PNAB é o ano de nascimento do programa —
+          ver ano_censurado em primeiro_acesso_anual, que separa os dois.
+        tests:
+          - not_null
