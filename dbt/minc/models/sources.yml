@@ -1373,22 +1373,84 @@ sources:
       - name: territorio_fcu_setores
         description: >
           NÃO É DADO DO TRANSFEREGOV — é o recorte territorial do IBGE (Censo
-          2022), na cadeia setor censitário → Concentração Urbana (FCU) →
-          município → UF. Mora neste schema por decisão de infraestrutura, para
-          o banco não ganhar um quarto schema; quem grava é
-          `ingest_territorio_fcu_dag`, com cadência própria.
+          2022), na cadeia setor censitário → FCU → município → UF. Mora neste
+          schema por decisão de infraestrutura, para o banco não ganhar um
+          quarto schema; quem grava é `ingest_territorio_fcu_dag`.
 
-          É a base da 4ª cota da LPG, a territorial (20%): é este crosswalk que
-          `territorio_municipio` consome para marcar município periférico.
+          FCU É "FAVELAS E COMUNIDADES URBANAS", NÃO "CONCENTRAÇÃO URBANA. É o
+          recorte do CD2022 que substituiu o termo 'aglomerado subnormal'. Os
+          números confirmam: 12.348 FCUs em 656 municípios, que são exatamente
+          as contagens oficiais do IBGE para favelas e comunidades urbanas, e os
+          nomes em `nm_fcu` são nomes de comunidade ('Jardim Santana II', 'Fora
+          do Perímetro V'). Concentração Urbana é OUTRO recorte do IBGE, de
+          regiões metropolitanas — trocar um pelo outro inverte o sentido da
+          cota, porque um mede periferia e o outro mede metrópole. A coluna
+          `em_concentracao_urbana` de `territorio_municipio` carrega esse nome
+          errado por herança; o critério que ela aplica está certo.
 
-          [COLUNAS NÃO DOCUMENTADAS — não havia extração desta tabela disponível
-          quando este bloco foi escrito. Ver `ingest_territorio_fcu_dag` e
-          `cotas_dbt/silver/territorio_municipio.sql` para o contrato em uso.]
+          É a base da 4ª cota da LPG, a territorial (20%): `territorio_municipio`
+          colapsa este grão de setor para município e marca como periférico o
+          município com ao menos um setor em FCU. ATENÇÃO AO QUE ISSO SIGNIFICA:
+          é critério de MUNICÍPIO, não de endereço do agente — não se sabe se o
+          agente mora na comunidade, só que o município dele tem uma.
+
+          Carga por DROP+RECREATE do CSV inteiro (`insert_csv_data`), com
+          `schedule=None`: é snapshot estático de censo, recarregado à mão.
+          Não acumula duplicata.
         meta:
           openmetadata:
             domain: Cultura.Repasse Federativo
             tier: Tier.Tier4
             owner: minc-data-engineering
+        columns:
+          - name: cd_setor
+            description: >
+              Código do setor censitário, 15 dígitos. Chave primária real da
+              tabela: 33.272 valores, todos distintos. É o grão mais fino do
+              recorte territorial do IBGE.
+            tests: [not_null, unique]
+          - name: cd_fcu
+            description: >
+              Código da Favela ou Comunidade Urbana, 11 dígitos. A composição é
+              determinística: os 7 dígitos do município seguidos de um
+              sequencial de 4 — verificado em 100% das 33.272 linhas. 12.348
+              FCUs distintas.
+            tests: [not_null]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.FCU
+          - name: nm_fcu
+            description: >
+              Nome da favela/comunidade. 10.784 nomes para 12.348 FCUs — nomes
+              se repetem entre municípios ('Santa Luzia', 'Nova Esperança'), e
+              por isso o nome NÃO é chave. Use `cd_fcu`.
+          - name: cd_mun
+            description: >
+              Código IBGE do município, 7 dígitos. 656 municípios distintos —
+              de 5.570 no país, só estes têm FCU mapeada. Município ausente
+              desta tabela não é município sem periferia: é município sem FCU
+              delimitada pelo Censo 2022.
+            tests: [not_null]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.CodigoIBGE
+          - name: nm_mun
+            description: >
+              Nome do município. 651 nomes para 656 municípios — há homônimos em
+              UFs diferentes. É a base da chave de junção por nome que
+              `territorio_municipio` monta, e a razão de essa junção ser
+              imperfeita por natureza.
+          - name: cd_uf
+            description: >
+              Código IBGE da UF, 2 dígitos. As 27 unidades. Cruza com
+              `ibge_sidra.localidades.id`, que traz os mesmos códigos.
+          - name: nm_uf
+            description: >
+              Nome da UF por extenso ('Rondônia'). É por isso que
+              `territorio_municipio` carrega uma tabela de-para código→sigla: os
+              agentes da LPG gravam a UF como sigla ('RO'), não por extenso.
 
       - name: raw_gestao_financeira_lancamentos
         description: >
@@ -1762,3 +1824,292 @@ sources:
               divergência de ``valor_total_de_captacao_do_projeto`` descrita
               acima, porque é medida contra o total declarado.
             data_type: text
+
+  - name: ibge_sidra
+    schema: ibge_sidra
+    description: >
+      Catálogo do SIDRA — o repositório de tabelas estatísticas do IBGE —
+      extraído da API de Agregados v3 por `ibge_agregados_dag`. NÃO são dados
+      culturais: é o catálogo de o que o IBGE publica, e serve para descobrir
+      qual tabela responde a uma pergunta antes de baixar a série.
+
+      ESTRUTURA — o catálogo desce em quatro níveis:
+        pesquisas            70 pesquisas (Censo, PNAD, POF...)
+        └─ agregados_catalogo   9.298 agregados (as "tabelas" do SIDRA)
+           ├─ metadados         9.293 fichas técnicas
+           ├─ periodos         85.170 períodos disponíveis
+           ├─ variaveis        as variáveis de cada agregado
+           └─ localidades     222.862 pares agregado × localidade
+        resultados           as séries em si
+
+      Integridade verificada: nenhum `agregado_id` órfão em periodos,
+      localidades ou metadados, e nenhum `pesquisa_id` órfão em
+      agregados_catalogo.
+
+      ⚠ TRÊS TABELAS ACUMULAM DUPLICATAS A CADA EXECUÇÃO. A DAG roda semanal
+      (domingo 3h). `pesquisas` e `agregados_catalogo` são recriadas com
+      DROP+INSERT, e `metadados` faz upsert por `agregado_id` — essas três estão
+      corretas. Mas `periodos`, `localidades`, `variaveis` e `resultados` são
+      gravadas com INSERT puro, sem `primary_key` e sem DROP, então cada
+      execução empilha tudo de novo. Já é visível: `localidades` tem 222.862
+      linhas para 167.291 combinações reais — 24,9% da tabela é repetição — e
+      `periodos` tem 2.657 linhas duplicadas. QUEM CONSULTAR PRECISA DE DISTINCT
+      até isso ser corrigido na DAG; contar linhas direto superestima.
+
+      ESCOPO ATUAL: `localidades` só traz nível N3 (Unidade da Federação),
+      padrão da Variable `ibge_config`. Não há dado municipal aqui — para
+      município é preciso mudar `localidades_nivel` para N6. E `resultados` só é
+      populada se `resultados_agregados_ids` estiver preenchida na mesma
+      Variable; vazia, a task passa em silêncio.
+
+      COLUNAS JSON EM TEXTO: várias colunas guardam JSON como string
+      (`agregados`, `literals`, `nivel`, `periodicidade`, `nivelterritorial`,
+      `variaveis`, `classificacoes`). São payload da API achatado, não colunas
+      relacionais — precisam de parse antes de qualquer filtro.
+
+      Nenhum modelo dbt lê este schema hoje.
+    tables:
+      - name: pesquisas
+        description: >
+          As 70 pesquisas do IBGE que agrupam os agregados. Recriada por
+          DROP+INSERT a cada execução — sem risco de duplicata.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Cadastro Cultural
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: id
+            description: >
+              Código da pesquisa. É ALFANUMÉRICO e curto ('D5', por exemplo),
+              não um número — tratar como texto. 70 valores distintos.
+            tests: [not_null, unique]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Instrumentos.PesquisaIBGE
+          - name: nome
+            description: >
+              Nome da pesquisa — 'Censo Demográfico', 'Áreas Urbanizadas do
+              Brasil'. Único por pesquisa.
+          - name: agregados
+            description: >
+              JSON EM TEXTO com a lista de agregados da pesquisa, no formato
+              `[{"id": "10763", "nome": "..."}]`. É a mesma informação que
+              `agregados_catalogo` traz já achatada — use a tabela, não este
+              campo, salvo se precisar do agrupamento original.
+
+      - name: agregados_catalogo
+        description: >
+          Versão plana de todos os agregados do SIDRA, um por linha. 9.298
+          registros. É a tabela de entrada para descobrir o que existe.
+          Recriada por DROP+INSERT — sem risco de duplicata.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Cadastro Cultural
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: id
+            description: >
+              Id do agregado — o número da tabela no SIDRA. 9.298 distintos, é a
+              chave que `metadados`, `periodos`, `variaveis` e `localidades`
+              referenciam como `agregado_id`.
+            tests: [not_null, unique]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Instrumentos.Agregado
+          - name: nome
+            description: >
+              Nome do agregado. 9.268 nomes para 9.298 agregados — há nomes
+              repetidos entre pesquisas, então não serve como chave.
+          - name: pesquisa_id
+            description: "Pesquisa dona do agregado. Zero órfãos verificados."
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('ibge_sidra', 'pesquisas')
+                    field: id
+          - name: pesquisa_nome
+            description: "Nome da pesquisa, desnormalizado de `pesquisas.nome`."
+
+      - name: metadados
+        description: >
+          A ficha técnica de cada agregado: assunto, periodicidade, níveis
+          territoriais, variáveis e classificações. 9.293 registros — 5
+          agregados do catálogo não têm metadados. Grava com upsert por
+          `agregado_id`, então NÃO acumula duplicata.
+
+          É a tabela mais densa do schema (42 MB em CSV) porque quatro colunas
+          guardam JSON inteiro.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Cadastro Cultural
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: agregado_id
+            description: "Chave primária e chave de conflito da carga. Zero órfãos verificados."
+            tests: [not_null, unique]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Instrumentos.Agregado
+          - name: id
+            description: >
+              [REDUNDANTE — idêntico a `agregado_id` em 100% das 9.293 linhas]
+              Sobrou do payload da API, que repete o id dentro do objeto.
+          - name: nome
+            description: "Nome do agregado, como no catálogo."
+          - name: url
+            description: >
+              URL da tabela no SIDRA (`https://sidra.ibge.gov.br/tabela/1990`).
+              Única por agregado — é o link direto para conferência humana.
+          - name: pesquisa
+            description: "Nome da pesquisa. 70 valores, espelha `agregados_catalogo.pesquisa_nome`."
+          - name: assunto
+            description: >
+              Assunto do agregado. 255 valores distintos — é a melhor coluna
+              para navegar o catálogo por tema.
+          - name: periodicidade
+            description: >
+              JSON EM TEXTO: `{"frequencia": "anual", "inicio": 2000, "fim":
+              2000}`. 365 combinações distintas. Precisa de parse para filtrar
+              por janela temporal.
+          - name: nivelterritorial
+            description: >
+              JSON EM TEXTO com os níveis geográficos disponíveis:
+              `{"Administrativo": ["N1", "N2", "N6", ...]}`. 88 combinações. É
+              aqui que se descobre se um agregado tem dado municipal (N6) antes
+              de tentar baixá-lo.
+          - name: variaveis
+            description: >
+              JSON EM TEXTO com as variáveis do agregado. 3.486 combinações
+              distintas. Duplica o conteúdo da tabela `variaveis`, em outro
+              formato.
+          - name: classificacoes
+            description: >
+              JSON EM TEXTO com as classificações e categorias do agregado.
+              4.979 combinações — é o campo que define os recortes possíveis
+              (sexo, cor/raça, faixa etária) de cada tabela.
+
+      - name: periodos
+        description: >
+          Os períodos disponíveis de cada agregado. 85.170 linhas cobrindo 9.293
+          agregados.
+
+          ⚠ ACUMULA DUPLICATA: gravada com INSERT puro, sem chave. Há 2.657
+          linhas repetidas do par (`agregado_id`, `id`) — 82.513 combinações
+          reais. Consulte com DISTINCT.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Cadastro Cultural
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: agregado_id
+            description: "Agregado dono do período. Zero órfãos verificados."
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('ibge_sidra', 'agregados_catalogo')
+                    field: id
+          - name: id
+            description: >
+              Código do período — 635 valores distintos, tipicamente o ano
+              ('2022') ou ano+mês. Não é único sozinho: repete entre agregados.
+          - name: literals
+            description: >
+              JSON EM TEXTO com as formas literais do período (`["2022"]`).
+              1.022 valores distintos.
+          - name: modificacao
+            description: >
+              Data da última modificação do período na origem, no padrão
+              BRASILEIRO DD/MM/YYYY como texto. 1.836 valores. Ordenar como
+              texto mente — converter antes.
+
+      - name: localidades
+        description: >
+          As localidades para as quais cada agregado tem dado. 222.862 linhas
+          cobrindo 6.268 dos 9.298 agregados — um terço do catálogo não tem
+          localidade neste nível.
+
+          ⚠ É A TABELA MAIS AFETADA PELA DUPLICAÇÃO: 55.571 linhas repetidas,
+          24,9% do total, para 167.291 combinações reais de (`agregado_id`,
+          `id`). Contar linhas aqui superestima em um quarto.
+
+          ESCOPO: só nível N3 (Unidade da Federação) — as 27 UFs. Não há
+          município. Mudar exige alterar `localidades_nivel` na Variable
+          `ibge_config`.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Cadastro Cultural
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: agregado_id
+            description: "Agregado dono da localidade. Zero órfãos verificados."
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('ibge_sidra', 'agregados_catalogo')
+                    field: id
+          - name: nivel
+            description: >
+              [CONSTANTE] JSON EM TEXTO com o nível geográfico:
+              `{"id": "N3", "nome": "Unidade da Federação"}` em 100% das linhas.
+              Vira variável se `localidades_nivel` mudar na Variable.
+          - name: id
+            description: >
+              Código da localidade — os 27 códigos de UF do IBGE ('11' a '53').
+              Cruza com `cd_uf` de `transferegov.territorio_fcu_setores`.
+          - name: nome
+            description: "Nome da localidade — as 27 UFs por extenso ('Rondônia')."
+
+      - name: variaveis
+        description: >
+          As variáveis mensuráveis de cada agregado, do endpoint
+          `/agregados/{id}/variaveis`.
+
+          ⚠ ACUMULA DUPLICATA pelo mesmo motivo de `periodos` e `localidades`:
+          INSERT puro, sem chave, sem DROP.
+
+          [COLUNAS NÃO DOCUMENTADAS — não havia extração desta tabela disponível
+          quando este bloco foi escrito. O conteúdo equivalente, em JSON, está
+          em `metadados.variaveis`.]
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Cadastro Cultural
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+
+      - name: resultados
+        description: >
+          As séries estatísticas em si — o único conteúdo de dado, e não de
+          catálogo, deste schema.
+
+          SÓ EXISTE SE CONFIGURADA: a task só roda quando
+          `resultados_agregados_ids` estiver preenchida na Variable
+          `ibge_config`. Com a lista vazia (o padrão) a task registra a razão no
+          log e retorna, então a tabela pode nem existir no banco.
+
+          ⚠ ACUMULA DUPLICATA quando roda: INSERT puro, sem chave, sem DROP.
+
+          [COLUNAS NÃO DOCUMENTADAS — a tabela não estava populada quando este
+          bloco foi escrito.]
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Cadastro Cultural
+            tier: Tier.Tier4
+            owner: minc-data-engineering

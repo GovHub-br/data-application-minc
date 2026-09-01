@@ -69,8 +69,8 @@ semantic_models:
     model: ref('territorio_municipio')
     description: >
       Crosswalk territorial do IBGE (Censo 2022) no grão de município, indicando
-      se o município possui área de concentração urbana/FCU (território
-      periférico). É a dimensão que sustenta a 4ª cota da LPG (território
+      se o município possui Favela ou Comunidade Urbana (FCU) — território
+      periférico. É a dimensão que sustenta a 4ª cota da LPG (território
       vulnerabilizado, meta de 20%).
     entities:
       # `primary` sobre a chave de junção por nome. A unicidade NÃO era testada
@@ -97,6 +97,10 @@ semantic_models:
       - name: em_concentracao_urbana
         type: categorical
         description: >
-          Verdadeiro quando o município tem ao menos um setor censitário com
-          código FCU preenchido, ou seja, possui área periférica. É o critério
-          que define território vulnerabilizado para a cota territorial da LPG.
+          Verdadeiro quando o município tem ao menos um setor censitário dentro
+          de uma FCU — "Favelas e Comunidades Urbanas" do IBGE CD2022, não
+          "Concentração Urbana", que é o recorte metropolitano e significaria o
+          oposto. O nome da dimensão vem da coluna do modelo, mantida por
+          compatibilidade. É o critério que define território vulnerabilizado
+          para a cota territorial da LPG, e é critério de MUNICÍPIO: marca quem
+          tem uma FCU no território, não quem mora nela.

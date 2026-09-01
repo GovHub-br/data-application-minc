@@ -130,7 +130,13 @@ models:
     description: >
       Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão
       MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos
-      um setor com código FCU preenchido (zona periférica). Constrói
+      um setor dentro de uma FCU — "Favelas e Comunidades Urbanas", o recorte do
+      CD2022 que substituiu "aglomerado subnormal", com 12.348 FCUs em 656
+      municípios. O NOME DA COLUNA ESTÁ ERRADO por herança: Concentração Urbana
+      é outro recorte do IBGE, de regiões metropolitanas, e significaria o
+      oposto. O critério aplicado está correto; o nome não foi trocado porque
+      fct_pagamentos_elegiveis e o semantic model dependem dele. Note também que
+      é critério de MUNICÍPIO, não de endereço do agente. Constrói
       chave_municipio_uf (nome do município + sigla da UF, normalizados sem
       acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em
       texto livre, sem código IBGE — o join por nome é por natureza imperfeito
@@ -155,6 +161,17 @@ models:
           openmetadata:
             glossary:
               - MinC.Identificadores.CodigoIBGE
+      - name: em_concentracao_urbana
+        description: >
+          Município tem ao menos um setor censitário dentro de uma Favela ou
+          Comunidade Urbana do IBGE (CD2022). Apesar do nome, NÃO tem relação
+          com "Concentração Urbana" — ver a descrição do modelo. É o insumo
+          direto de flag_territorio_vulneravel em fct_pagamentos_elegiveis.
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.FCU
+              - MinC.Cotas.TerritorioVulnerabilizado
       - name: chave_municipio_uf
         description: >
           Chave de junção por nome (município+UF normalizados) com

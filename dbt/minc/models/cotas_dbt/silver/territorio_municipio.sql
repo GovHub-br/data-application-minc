@@ -1,6 +1,16 @@
 -- Território a nível de MUNICÍPIO (a partir do crosswalk de setores IBGE CD2022).
 -- A fonte territorio_fcu_setores é grão setor censitário; aqui colapsa p/ município
--- e classifica se o município é (ou não) concentração urbana FCU.
+-- e classifica se o município tem (ou não) Favela ou Comunidade Urbana.
+--
+-- FCU = "Favelas e Comunidades Urbanas" (IBGE CD2022, termo que substituiu
+-- "aglomerado subnormal"): 12.348 FCUs em 656 municípios. NÃO é "Concentração
+-- Urbana", que é outro recorte do IBGE, de regiões metropolitanas — um mede
+-- periferia, o outro mede metrópole. A coluna abaixo se chama
+-- em_concentracao_urbana por herança do nome errado; o critério está certo, e
+-- renomear quebraria fct_pagamentos_elegiveis e o semantic model.
+--
+-- CRITÉRIO É DE MUNICÍPIO, NÃO DE ENDEREÇO: marca o município que tem ao menos
+-- uma FCU. Não se sabe se o agente mora nela.
 --
 -- CHAVE DE JUNÇÃO com os agentes = nome do município + UF normalizados (sem_acento
 -- + lower + trim), porque os contemplados/agentes LPG NÃO têm código IBGE, só
@@ -22,8 +32,8 @@ por_municipio as (
         max(nm_mun)                                     as nm_mun,
         max(cd_uf)                                      as cd_uf,
         max(nm_uf)                                      as nm_uf,
-        -- um município está numa concentração urbana se tem ao menos um setor
-        -- com FCU preenchida (cd_fcu não nulo/vazio)
+        -- município tem periferia mapeada se tem ao menos um setor dentro de
+        -- uma Favela/Comunidade Urbana (cd_fcu não nulo/vazio)
         bool_or(cd_fcu is not null and btrim(cd_fcu) <> '') as em_concentracao_urbana
     from setores
     group by cd_mun

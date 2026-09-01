@@ -1329,25 +1329,29 @@
       "dominio": "cotas",
       "camada": "silver",
       "caminho": "dbt/minc/models/cotas_dbt/silver/territorio_municipio.sql",
-      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor com código FCU preenchido (zona periférica). Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
+      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor dentro de uma FCU — \"Favelas e Comunidades Urbanas\", o recorte do CD2022 que substituiu \"aglomerado subnormal\", com 12.348 FCUs em 656 municípios. O NOME DA COLUNA ESTÁ ERRADO por herança: Concentração Urbana é outro recorte do IBGE, de regiões metropolitanas, e significaria o oposto. O critério aplicado está correto; o nome não foi trocado porque fct_pagamentos_elegiveis e o semantic model dependem dele. Note também que é critério de MUNICÍPIO, não de endereço do agente. Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
       "colunas": [
         {
           "nome": "cd_mun",
           "descricao": ""
         },
         {
+          "nome": "em_concentracao_urbana",
+          "descricao": "Município tem ao menos um setor censitário dentro de uma Favela ou Comunidade Urbana do IBGE (CD2022). Apesar do nome, NÃO tem relação com \"Concentração Urbana\" — ver a descrição do modelo. É o insumo direto de flag_territorio_vulneravel em fct_pagamentos_elegiveis."
+        },
+        {
           "nome": "chave_municipio_uf",
           "descricao": "Chave de junção por nome (município+UF normalizados) com perfil_agentes_normalizado. É a entidade `primary` do semantic model: duplicata aqui multiplicaria o valor pago no cálculo da cota territorial. NULL quando a sigla da UF não resolve — o teste `unique` ignora nulos."
         }
       ],
-      "colunas_descritas": 1,
+      "colunas_descritas": 2,
       "testes": 3,
       "materializacao": "",
       "depende_de": [],
       "sources": [
         "transferegov.territorio_fcu_setores"
       ],
-      "linhas_sql": 55
+      "linhas_sql": 65
     },
     {
       "nome": "models_metadata",
@@ -1748,7 +1752,7 @@
         },
         {
           "nome": "territorio_fcu_setores",
-          "descricao": "NÃO É DADO DO TRANSFEREGOV — é o recorte territorial do IBGE (Censo 2022), na cadeia setor censitário → Concentração Urbana (FCU) → município → UF. Mora neste schema por decisão de infraestrutura, para o banco não ganhar um quarto schema; quem grava é `ingest_territorio_fcu_dag`, com cadência própria.\nÉ a base da 4ª cota da LPG, a territorial (20%): é este crosswalk que `territorio_municipio` consome para marcar município periférico.\n[COLUNAS NÃO DOCUMENTADAS — não havia extração desta tabela disponível quando este bloco foi escrito. Ver `ingest_territorio_fcu_dag` e `cotas_dbt/silver/territorio_municipio.sql` para o contrato em uso.]"
+          "descricao": "NÃO É DADO DO TRANSFEREGOV — é o recorte territorial do IBGE (Censo 2022), na cadeia setor censitário → FCU → município → UF. Mora neste schema por decisão de infraestrutura, para o banco não ganhar um quarto schema; quem grava é `ingest_territorio_fcu_dag`.\nFCU É \"FAVELAS E COMUNIDADES URBANAS\", NÃO \"CONCENTRAÇÃO URBANA. É o recorte do CD2022 que substituiu o termo 'aglomerado subnormal'. Os números confirmam: 12.348 FCUs em 656 municípios, que são exatamente as contagens oficiais do IBGE para favelas e comunidades urbanas, e os nomes em `nm_fcu` são nomes de comunidade ('Jardim Santana II', 'Fora do Perímetro V'). Concentração Urbana é OUTRO recorte do IBGE, de regiões metropolitanas — trocar um pelo outro inverte o sentido da cota, porque um mede periferia e o outro mede metrópole. A coluna `em_concentracao_urbana` de `territorio_municipio` carrega esse nome errado por herança; o critério que ela aplica está certo.\nÉ a base da 4ª cota da LPG, a territorial (20%): `territorio_municipio` colapsa este grão de setor para município e marca como periférico o município com ao menos um setor em FCU. ATENÇÃO AO QUE ISSO SIGNIFICA: é critério de MUNICÍPIO, não de endereço do agente — não se sabe se o agente mora na comunidade, só que o município dele tem uma.\nCarga por DROP+RECREATE do CSV inteiro (`insert_csv_data`), com `schedule=None`: é snapshot estático de censo, recarregado à mão. Não acumula duplicata."
         },
         {
           "nome": "raw_gestao_financeira_lancamentos",
@@ -1837,12 +1841,47 @@
           "descricao": "Uma linha por APORTE de recurso a um projeto audiovisual — não por projeto e não por agente. 57.860 linhas, 17 mecanismos, captações de 2005-01-03 a 2026-04-09, R$ 10.328.702.836,57 no total.\nQUEM É QUEM: ``cnpj_proponente`` é quem RECEBEU (a produtora dona do projeto) e ``cnpj_investidor`` é quem APORTOU. É a mesma estrutura da captação da Rouanet (``sac__captacao``), e trocar os dois inverte completamente a leitura — os maiores \"investidores\" da base são Globo, Telecine e Disney, que são pagadores, nunca beneficiários de fomento.\nGRÃO SEM CHAVE NATURAL: (``no_salic``, ``cnpj_investidor``, ``data_captacao``, ``valor_de_captacao``, ``mecanismo``) ainda repete em 204 grupos — aportes iguais do mesmo investidor no mesmo dia são legítimos. Qualquer modelo que precise de chave tem de gerar surrogate key; não existe coluna de id no relatório.\nDIMENSÃO DE PROJETO EMBUTIDA: ``no_salic`` determina sozinho ``nome_projeto``, ``cnpj_proponente``, ``nome_proponente`` e ``valor_total_de_captacao_do_projeto`` — 0 violações em 9.741 projetos. Ou seja, a tabela é um fato de captação com uma dimensão de projeto desnormalizada dentro. Dá para partir daqui direto para `dim_projeto_audiovisual` sem deduplicação de conflito.\nCRUZAMENTO COM O SALIC (a ponte que dá mais retorno): ``no_salic`` está no formato ``AA-NNNN`` e é o PRONAC do projeto. Remover o hífen produz exatamente a chave que `eventos_fomento_rouanet` monta do lado do SALIC como ``TRIM(anoprojeto) || TRIM(sequencial)``: ``'00-0201' -> '000201'``. Isso liga esta tabela a ``bronze_sac.sac__projetos``, ``bronze_sac.sac__captacao`` e ao resto do catálogo SALIC pelo projeto. RESSALVA: os 9.741 PRONACs daqui têm todos 6 caracteres, mas ``sac__projetos.sequencial`` é varchar(5) — projeto com sequencial de 5 dígitos (PRONAC de 7) não tem representação neste relatório, então a ponte é parcial por construção. Validar cobertura antes de usar como INNER JOIN.\nRECONCILIAÇÃO: o arquivo de origem traz uma aba-pivô (mecanismo × ano) cujos totais batem centavo a centavo com a soma desta tabela, nos 17 mecanismos e no total geral. É o controle de carga: se um dia a soma por mecanismo divergir do pivô, a carga veio truncada.\nARMADILHAS DE FORMATO — as duas são reais e já mordidas:\n  ``data_captacao``     TEXT no padrão AMERICANO M/D/YYYY.\n                        ``'7/12/2007'`` é 12 de julho, não 7 de\n                        dezembro. Ordenar como texto mente.\n  ``valor_de_captacao`` TEXT no padrão brasileiro, ``'50.000,00'``.\n\nCENSURA À ESQUERDA: a série começa em 2005-01-03 com 5 linhas nesse mesmo dia e 46 em todo janeiro de 2005 — tem cara de extrato cortado, não de início real da atividade. `primeiro_acesso_anual` trata 2005 como ano censurado por causa disso.\nESCOPO DE USO: ART25 e ART18 são Rouanet e NÃO devem ser lidos daqui — já entram pelo SALIC, por fonte melhor; usar os dois duplicaria evento. Ver `eventos_fomento_ancine` para o recorte completo do que entra e do que fica de fora, com o porquê de cada exclusão."
         }
       ]
+    },
+    {
+      "nome": "ibge_sidra",
+      "schema": "ibge_sidra",
+      "descricao": "Catálogo do SIDRA — o repositório de tabelas estatísticas do IBGE — extraído da API de Agregados v3 por `ibge_agregados_dag`. NÃO são dados culturais: é o catálogo de o que o IBGE publica, e serve para descobrir qual tabela responde a uma pergunta antes de baixar a série.\nESTRUTURA — o catálogo desce em quatro níveis:\n  pesquisas            70 pesquisas (Censo, PNAD, POF...)\n  └─ agregados_catalogo   9.298 agregados (as \"tabelas\" do SIDRA)\n     ├─ metadados         9.293 fichas técnicas\n     ├─ periodos         85.170 períodos disponíveis\n     ├─ variaveis        as variáveis de cada agregado\n     └─ localidades     222.862 pares agregado × localidade\n  resultados           as séries em si\n\nIntegridade verificada: nenhum `agregado_id` órfão em periodos, localidades ou metadados, e nenhum `pesquisa_id` órfão em agregados_catalogo.\n⚠ TRÊS TABELAS ACUMULAM DUPLICATAS A CADA EXECUÇÃO. A DAG roda semanal (domingo 3h). `pesquisas` e `agregados_catalogo` são recriadas com DROP+INSERT, e `metadados` faz upsert por `agregado_id` — essas três estão corretas. Mas `periodos`, `localidades`, `variaveis` e `resultados` são gravadas com INSERT puro, sem `primary_key` e sem DROP, então cada execução empilha tudo de novo. Já é visível: `localidades` tem 222.862 linhas para 167.291 combinações reais — 24,9% da tabela é repetição — e `periodos` tem 2.657 linhas duplicadas. QUEM CONSULTAR PRECISA DE DISTINCT até isso ser corrigido na DAG; contar linhas direto superestima.\nESCOPO ATUAL: `localidades` só traz nível N3 (Unidade da Federação), padrão da Variable `ibge_config`. Não há dado municipal aqui — para município é preciso mudar `localidades_nivel` para N6. E `resultados` só é populada se `resultados_agregados_ids` estiver preenchida na mesma Variable; vazia, a task passa em silêncio.\nCOLUNAS JSON EM TEXTO: várias colunas guardam JSON como string (`agregados`, `literals`, `nivel`, `periodicidade`, `nivelterritorial`, `variaveis`, `classificacoes`). São payload da API achatado, não colunas relacionais — precisam de parse antes de qualquer filtro.\nNenhum modelo dbt lê este schema hoje.",
+      "tabelas": [
+        {
+          "nome": "pesquisas",
+          "descricao": "As 70 pesquisas do IBGE que agrupam os agregados. Recriada por DROP+INSERT a cada execução — sem risco de duplicata."
+        },
+        {
+          "nome": "agregados_catalogo",
+          "descricao": "Versão plana de todos os agregados do SIDRA, um por linha. 9.298 registros. É a tabela de entrada para descobrir o que existe. Recriada por DROP+INSERT — sem risco de duplicata."
+        },
+        {
+          "nome": "metadados",
+          "descricao": "A ficha técnica de cada agregado: assunto, periodicidade, níveis territoriais, variáveis e classificações. 9.293 registros — 5 agregados do catálogo não têm metadados. Grava com upsert por `agregado_id`, então NÃO acumula duplicata.\nÉ a tabela mais densa do schema (42 MB em CSV) porque quatro colunas guardam JSON inteiro."
+        },
+        {
+          "nome": "periodos",
+          "descricao": "Os períodos disponíveis de cada agregado. 85.170 linhas cobrindo 9.293 agregados.\n⚠ ACUMULA DUPLICATA: gravada com INSERT puro, sem chave. Há 2.657 linhas repetidas do par (`agregado_id`, `id`) — 82.513 combinações reais. Consulte com DISTINCT."
+        },
+        {
+          "nome": "localidades",
+          "descricao": "As localidades para as quais cada agregado tem dado. 222.862 linhas cobrindo 6.268 dos 9.298 agregados — um terço do catálogo não tem localidade neste nível.\n⚠ É A TABELA MAIS AFETADA PELA DUPLICAÇÃO: 55.571 linhas repetidas, 24,9% do total, para 167.291 combinações reais de (`agregado_id`, `id`). Contar linhas aqui superestima em um quarto.\nESCOPO: só nível N3 (Unidade da Federação) — as 27 UFs. Não há município. Mudar exige alterar `localidades_nivel` na Variable `ibge_config`."
+        },
+        {
+          "nome": "variaveis",
+          "descricao": "As variáveis mensuráveis de cada agregado, do endpoint `/agregados/{id}/variaveis`.\n⚠ ACUMULA DUPLICATA pelo mesmo motivo de `periodos` e `localidades`: INSERT puro, sem chave, sem DROP.\n[COLUNAS NÃO DOCUMENTADAS — não havia extração desta tabela disponível quando este bloco foi escrito. O conteúdo equivalente, em JSON, está em `metadados.variaveis`.]"
+        },
+        {
+          "nome": "resultados",
+          "descricao": "As séries estatísticas em si — o único conteúdo de dado, e não de catálogo, deste schema.\nSÓ EXISTE SE CONFIGURADA: a task só roda quando `resultados_agregados_ids` estiver preenchida na Variable `ibge_config`. Com a lista vazia (o padrão) a task registra a razão no log e retorna, então a tabela pode nem existir no banco.\n⚠ ACUMULA DUPLICATA quando roda: INSERT puro, sem chave, sem DROP.\n[COLUNAS NÃO DOCUMENTADAS — a tabela não estava populada quando este bloco foi escrito.]"
+        }
+      ]
     }
   ],
   "totais": {
     "modelos": 49,
     "testes": 144,
     "com_descricao": 48,
-    "sources": 78
+    "sources": 85
   }
 }
