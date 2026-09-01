@@ -554,54 +554,888 @@ sources:
             owner: minc-data-engineering
   - name: transferegov
     schema: transferegov
+    description: >
+      Repasse fundo a fundo do MinC aos entes federados, extraído da API pública
+      do TransfereGov. É a origem do lado-repasse de todas as políticas que este
+      repositório acompanha, e a espinha de onde saem o ente, o município e a
+      conta bancária que ligam o resto do pipeline.
+
+      HIERARQUIA — cada nível é filho do anterior, e o grão muda em cada um:
+        programa_minc                  11 programas (4 políticas)
+        └─ plano_acao_minc             23.625 planos (1 por ente × programa × versão)
+           ├─ plano_acao_meta_minc     51.541 metas
+           ├─ plano_acao_dado_bancario_minc  27.847 contas
+           └─ relatorios_gestao        13.289 relatórios
+              └─ anexos_relatorios     45.571 anexos
+
+      INTEGRIDADE REFERENCIAL VERIFICADA: as cinco ligações da hierarquia têm
+      ZERO órfãos — todo id_programa existe em programa_minc, todo id_plano_acao
+      existe em plano_acao_minc, todo id_relatorio_gestao existe em
+      relatorios_gestao. Por isso os testes `relationships` abaixo são seguros
+      como INNER JOIN. A cobertura, essa sim, é parcial: 22.665 dos 23.625
+      planos têm meta, 22.274 têm conta, 13.183 têm relatório, e só 4.985 dos
+      13.289 relatórios têm anexo.
+
+      DUAS TABELAS DESTE SCHEMA NÃO ESTAVAM DECLARADAS até esta revisão:
+      raw_gestao_financeira_lancamentos e raw_gestao_financeira_subtransacoes,
+      gravadas por `api_movimentacoes_financeiras_dag`. Estão declaradas ao fim
+      do bloco, sem coluna — ver a nota de cada uma.
+
+      QUASE NADA DISTO É CONSUMIDO PELO dbt HOJE. Das 9 tabelas, só
+      territorio_fcu_setores é lida por um modelo ativo (`territorio_municipio`).
+      plano_acao_minc — a maior e mais rica delas — é lida apenas por
+      `bbagil_ente_ano`, que está `enabled=false` esperando a extração do bbágil;
+      as outras 7 não são lidas por modelo nenhum. As oito estão marcadas com
+      `meta.used: false`, a mesma convenção usada em `agentes`, `bbagil` e
+      `dados_salic`. Ou seja: no estado atual isto é CATÁLOGO DE ORIGEM, para
+      quem consulta o Postgres ou o OpenMetadata direto — não um produto de
+      dados com linhagem. Quando a Meta 2 (Execução Financeira) sair de "em
+      construção", é daqui que ela parte.
+
+      UM INTRUSO: territorio_fcu_setores vive neste schema mas NÃO vem do
+      TransfereGov — é recorte territorial do IBGE, carregado por
+      `ingest_territorio_fcu_dag`. Mora aqui para o banco não ganhar um quarto
+      schema; a origem é outra e a cadência também.
+
+      CARGA: uma DAG por endpoint em `dags/data_ingest/transferegov_fundo_a_fundo/`,
+      via `ClienteTransfereGov` (API nova, `api-publica.`, FastAPI paginada).
+      As DAGs gravam o payload da API DIRETO, sem lista de colunas — o schema é
+      schema-on-write, então coluna nova na origem aparece sozinha no banco e
+      coluna que a origem parar de mandar simplesmente some. Este bloco descreve
+      o retrato de 2026-09-01.
     tables:
       - name: programa_minc
-        meta:
-          openmetadata:
-            domain: Cultura.Repasse Federativo
-            tier: Tier.Tier4
-            owner: minc-data-engineering
-      - name: plano_acao_minc
-        meta:
-          openmetadata:
-            domain: Cultura.Repasse Federativo
-            tier: Tier.Tier4
-            owner: minc-data-engineering
-      - name: plano_acao_meta_minc
-        meta:
-          openmetadata:
-            domain: Cultura.Repasse Federativo
-            tier: Tier.Tier4
-            owner: minc-data-engineering
-      - name: plano_acao_dado_bancario_minc
-        meta:
-          openmetadata:
-            domain: Cultura.Repasse Federativo
-            tier: Tier.Tier4
-            owner: minc-data-engineering
-      - name: relatorios_gestao
-        meta:
-          openmetadata:
-            domain: Cultura.Repasse Federativo
-            tier: Tier.Tier4
-            owner: minc-data-engineering
-      - name: anexos_relatorios
-      # Território IBGE CD2022 (setor->FCU->município->UF) p/ 4ª cota territorial
-        meta:
-          openmetadata:
-            domain: Cultura.Repasse Federativo
-            tier: Tier.Tier4
-            owner: minc-data-engineering
-      - name: territorio_fcu_setores
+        description: >
+          Um programa de repasse fundo a fundo do MinC. 11 registros — é a
+          tabela-raiz e a menor do schema. Cobre 4 políticas: Lei Aldir Blanc I
+          (ids 7, 8, 9, 15 — 2020/2021), Lei Paulo Gustavo (46, 47 — 2023),
+          PNAB Ciclo 1 (60, 61, 62 — 2023) e PNAB 2025 (111, 112). O escopo
+          efetivo vem da Variable `transferegov_programas_ids`; o padrão está em
+          `plugins/schemas_minc.py`.
 
-  # Indicador externo (BACEN/SGS): deflator para corrigir os valores
-  # nominais das políticas. Uma tabela para todas as séries — série nova é
-  # configuração na Variable `bacen_series_sgs`, não source novo aqui.
+          FALHA ATIVA — `sigla` e `politica_publica` estão VAZIAS nas 11 linhas.
+          Os dois campos são exigidos pela seção 7.2 da especificação, mas o
+          endpoint `/programas` não devolve nenhum dos dois: quem os preenche é
+          a Variable `transferegov_politicas_publicas`, que não está configurada
+          no ambiente. A DAG registra um warning e segue. Enquanto isso durar,
+          agrupar por política exige mapear o id_programa à mão.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Repasse Federativo
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: id_programa
+            description: >
+              Chave primária e chave de conflito da carga. Os 11 valores:
+              7, 8, 9, 15, 46, 47, 60, 61, 62, 111, 112. É por id, e não por
+              `codigo_programa`, que a API é filtrada — filtrar `/programas` por
+              código devolve 500 (bug do servidor).
+            tests: [not_null, unique]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Politicas.FundoAFundo
+          - name: codigo_programa
+            description: >
+              Identificador de negócio do programa (ex.: `30882120230007`),
+              mantido como TEXTO de propósito — é código, não número. Os 8
+              primeiros dígitos são o órgão (30882 = MinC) e o ano.
+          - name: nome_programa
+            description: >
+              Nome oficial, e a única forma confiável hoje de saber a que
+              política o programa pertence, já que `politica_publica` está
+              vazia. Ex.: 'MINC - LEI PAULO GUSTAVO - ESTADOS',
+              'MINC-PNAB-MUNICÍPIOS-2 (Abaixo de R$ 360.000,00)'.
+          - name: sigla
+            description: >
+              [VAZIA EM 100% DAS LINHAS] Sigla da política (LPG, PNAB...).
+              Não vem da API: é preenchida pela Variable
+              `transferegov_politicas_publicas`, hoje não configurada.
+          - name: politica_publica
+            description: >
+              [VAZIA EM 100% DAS LINHAS] Nome da política pública. Mesma origem
+              e mesma falha de `sigla`.
+          - name: ano_programa
+            description: "Ano do programa — 2020, 2021, 2023 ou 2025."
+          - name: valor_global_programa
+            description: >
+              Teto do programa em reais. Somados, os 11 dão R$ 20,66 bi. NÃO é
+              o valor efetivamente repassado: para isso some
+              `valor_total_repasse_plano_acao` em plano_acao_minc, que dá
+              R$ 21,35 bi — maior que o teto global, porque PNAB 2025 municípios
+              já ultrapassou o próprio valor global declarado.
+          - name: situacao_programa
+            description: "'DISPONIBILIZADO' nos 11 registros."
+          - name: modalidade_programa
+            description: "'FUNDO_A_FUNDO' nos 11 registros."
+          - name: quantidade_parcelas_programa
+            description: >
+              Parcelas previstas. 1 para todos os programas até 2023; 4 para os
+              dois de 2025 (PNAB 2025).
+          - name: url_consulta
+            description: >
+              URL do endpoint que originou a linha, montada pela DAG (não vem da
+              API). Serve de rastro de proveniência por registro.
+          - name: dt_ingest
+            description: "Carimbo ISO de quando a DAG gravou a linha. Não é data de negócio."
+          - name: id_fundo_programa
+            description: "Id do fundo repassador no TransfereGov."
+          - name: nome_fundo_programa
+            description: "Nome do fundo repassador — 'FUNDO NACIONAL DA CULTURA'."
+          - name: cnpj_fundo_programa
+            description: "CNPJ do fundo repassador. Dado de órgão público, não de pessoa."
+          - name: uf_fundo_programa
+            description: "UF do fundo repassador — 'DF'."
+          - name: municipio_fundo_programa
+            description: "Município do fundo repassador — 'BRASÍLIA'."
+          - name: codigo_ibge_fundo_programa
+            description: "Código IBGE do município do fundo — 5300108."
+          - name: objetivo_programa
+            description: "Texto livre com o objetivo do programa."
+          - name: descricao_programa
+            description: "Texto livre descritivo. Costuma repetir o objetivo."
+          - name: nome_institucional_programa
+            description: "Nome institucional do programa na origem."
+          - name: nome_gestao_agil_programa
+            description: >
+              Nome do programa no BB Gestão Ágil. É o análogo, em nível de
+              programa, do `nome_programa_agil_conta_plano_acao_dado_bancario`
+              que faz a ponte com o extrato bancário.
+          - name: id_orgao_superior_programa
+            description: "Id do órgão superior — o MinC."
+          - name: nome_orgao_superior_programa
+            description: "Nome do órgão superior."
+          - name: sigla_orgao_superior_programa
+            description: "Sigla do órgão superior."
+          - name: cnpj_orgao_superior_programa
+            description: "CNPJ do órgão superior. Dado de órgão público."
+          - name: id_unidade_gestora_programa
+            description: "Id da unidade gestora orçamentária."
+          - name: grupo_natureza_despesa_programa
+            description: "Grupo de natureza da despesa (classificação orçamentária)."
+          - name: programa_natureza_despesa
+            description: "Natureza da despesa do programa."
+          - name: programa_acao_orcamentaria
+            description: "Ação orçamentária do programa."
+          - name: valor_acao_orcamentaria_programa
+            description: "Valor da ação orçamentária."
+          - name: descricao_acao_orcamentaria_programa
+            description: "Descrição da ação orçamentária."
+          - name: codigo_descricao_orcamentaria_programa
+            description: "Código da descrição orçamentária."
+          - name: permite_transferencia_sem_fundo_programa
+            description: >
+              Se o programa aceita repasse a ente sem fundo constituído.
+              Explica parte dos planos cujo `id_fundo_vinculado` não resolve.
+          - name: data_inicio_recebimento_planos_acao_beneficiarios_emendas
+            description: "Janela de recebimento de planos por emenda — início."
+          - name: data_fim_recebimento_planos_acao_beneficiarios_emendas
+            description: "Janela de recebimento de planos por emenda — fim."
+          - name: data_inicio_recebimento_planos_acao_beneficiarios_especificos
+            description: >
+              Janela de recebimento de planos por transferência específica —
+              início. É a modalidade efetivamente usada por estes 11 programas
+              (ver valor_repasse_especifico_plano_acao).
+          - name: data_fim_recebimento_planos_acao_beneficiarios_especificos
+            description: "Janela de recebimento por transferência específica — fim."
+          - name: data_inicio_recebimento_planos_acao_beneficiarios_voluntarios
+            description: "Janela de recebimento por transferência voluntária — início."
+          - name: data_fim_recebimento_planos_acao_beneficiarios_voluntarios
+            description: "Janela de recebimento por transferência voluntária — fim."
+      - name: plano_acao_minc
+        description: >
+          O plano de ação de um ente federado dentro de um programa. 23.625
+          registros — é a tabela central do schema e a mais consumida do
+          repositório. R$ 21,35 bi em `valor_total_repasse_plano_acao`.
+
+          GRÃO: 1 linha por plano, e NÃO 1 por (ente, programa). O par
+          (cod_ibge, id_programa) repete em 1.300 casos, porque plano rejeitado
+          ou em elaboração convive com o autorizado do mesmo ente no mesmo
+          programa. Somar valor sem filtrar `situacao_plano_acao` conta dinheiro
+          que não foi repassado: 'AUTORIZADO' são 21.272 planos e R$ 20,50 bi
+          dos R$ 21,35 bi; o resto está distribuído em nove outras situações.
+
+          5.596 entes distintos — 23.470 planos de municípios e 155 de
+          estados/DF.
+
+          É A TABELA DE CRUZAMENTO do repositório. Três pontes saem daqui:
+            cod_ibge / codigo_ibge_municipio_ente_recebedor_plano_acao
+                → território IBGE (`territorio_municipio`, e a cota territorial
+                  da LPG). É o que `bbagil_ente_ano` usa para localizar o gasto.
+            cnpj_ente_recebedor_plano_acao
+                → o ente no BB Ágil e nos relatórios de gestão.
+            id_plano_acao
+                → `plano_acao_dado_bancario_minc`, e por ela a conta do BB Ágil.
+                  No fato do bbágil o ente aparece como TEXT, daí o cast em
+                  `bbagil_ente_ano`.
+
+          ARMADILHA DE DATA, medida: `data_inicio_vigencia_plano_acao` vai de
+          1987-08-02 a 2029-04-15 e `data_fim_vigencia_plano_acao` chega a
+          2202-10-31. São valores impossíveis para programas que nascem em 2020 —
+          erro de digitação na origem, não história. `bbagil_ente_ano` já se
+          protege validando a faixa [2013, 2026]; qualquer modelo novo que datar
+          por vigência precisa fazer o mesmo.
+
+          SETE COLUNAS 100% VAZIAS: todo o bloco `ente_repassador` (id, cnpj,
+          nome, uf, município, IBGE) mais `cnpj_orgao_repassador_plano_acao`. A
+          API devolve os campos e nunca os preenche — o repassador é sempre o
+          MinC, que já está no bloco `orgao_repassador`. Não são lacuna de carga.
+
+          TRÊS COLUNAS CONSTANTES EM ZERO: `valor_repasse_emenda_plano_acao`,
+          `valor_repasse_voluntario_plano_acao` e
+          `valor_total_investimento_plano_acao`. Estes programas repassam só por
+          transferência específica e só em custeio.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Repasse Federativo
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: id_plano_acao
+            description: >
+              Chave primária, 23.625 valores distintos. É a chave que amarra
+              metas, dados bancários e relatórios de gestão, e a que chega ao
+              BB Ágil como identificador do ente.
+            tests: [not_null, unique]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.IdPlanoAcao
+                  - MinC.Instrumentos.PlanoAcao
+          - name: id_programa
+            description: >
+              Programa a que o plano pertence. Integridade verificada: nenhum
+              valor fora dos 11 de programa_minc.
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('transferegov', 'programa_minc')
+                    field: id_programa
+          - name: codigo_plano_acao
+            description: "Identificador de negócio do plano, 1:1 com id_plano_acao."
+          - name: situacao_plano_acao
+            description: >
+              Estado do plano no fluxo do TransfereGov, 10 valores. LER ANTES DE
+              SOMAR QUALQUER VALOR: 'AUTORIZADO' (21.272) é o único que
+              representa repasse aprovado. Os demais são 'EM_ELABORACAO' (1.874),
+              'REJEITADO' (280), 'ENVIADO_ANALISE' (69), 'EM_COMPLEMENTACAO'
+              (60), 'ADITIVACAO_SOLICITADA' (38),
+              'REPLANEJAMENTO_ENVIADO_PARA_ANALISE' (13),
+              'ENVIADO_ANALISE_CONSELHO' (11), 'EM_REPLANEJAMENTO' (7) e
+              'REPLANEJAMENTO_ENVIADO_PARA_CONSELHO_LOCAL' (1).
+            tests: [not_null]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Qualificadores.SituacaoDoPlano
+          - name: data_inicio_vigencia_plano_acao
+            description: >
+              Início da vigência. CONTÉM VALORES IMPOSSÍVEIS — o mínimo é
+              1987-08-02, anterior a qualquer um destes programas. Validar a
+              faixa antes de usar como eixo temporal.
+          - name: data_fim_vigencia_plano_acao
+            description: >
+              Fim da vigência. Mesma armadilha, mais grave: o máximo é
+              2202-10-31.
+          - name: valor_total_repasse_plano_acao
+            description: >
+              Valor repassado pela União ao ente — o número do lado-repasse.
+              Soma R$ 21,35 bi no total e R$ 20,50 bi só nos AUTORIZADOS.
+              ATENÇÃO: repasse ao ente NÃO é pagamento ao agente cultural. Os
+              dois diferem por ordem de grandeza, e confundi-los é o erro mais
+              caro da análise (é o Diagnóstico 4 do domínio de cotas).
+            tests: [not_null]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Qualificadores.ValorRepassado
+          - name: valor_repasse_especifico_plano_acao
+            description: >
+              Repasse por transferência específica. É a modalidade real destes
+              programas: praticamente todo `valor_total_repasse_plano_acao` vem
+              daqui.
+          - name: valor_repasse_emenda_plano_acao
+            description: "[CONSTANTE '0.0' EM 100% DAS LINHAS] Repasse por emenda parlamentar."
+          - name: valor_repasse_voluntario_plano_acao
+            description: "[CONSTANTE '0.0' EM 100% DAS LINHAS] Repasse por transferência voluntária."
+          - name: valor_total_plano_acao
+            description: >
+              Total do plano — repasse mais contrapartidas e outros. Soma
+              R$ 21,56 bi, R$ 206 mi acima do repasse.
+          - name: valor_recursos_proprios_plano_acao
+            description: "Contrapartida do ente. Só 94 valores distintos: quase sempre zero."
+          - name: valor_outros_plano_acao
+            description: "Outras fontes de recurso do plano. 288 valores distintos."
+          - name: valor_rendimentos_aplicacao_plano_acao
+            description: >
+              Rendimento de aplicação financeira. Zero em 23.622 das 23.625
+              linhas — só 3 planos têm rendimento declarado aqui.
+          - name: valor_total_investimento_plano_acao
+            description: "[CONSTANTE '0.0' EM 100% DAS LINHAS] Parcela de investimento."
+          - name: valor_total_custeio_plano_acao
+            description: >
+              Parcela de custeio. Como investimento é sempre zero, custeio
+              espelha o total do plano.
+          - name: valor_saldo_disponivel_plano_acao
+            description: >
+              Saldo disponível. Apenas 147 valores distintos em 23.625 linhas —
+              a coluna praticamente não varia, e não serve como medida de
+              execução. Para execução use `valor_executado_relatorio_gestao`.
+          - name: diagnostico_plano_acao
+            description: "Texto livre — diagnóstico cultural do ente. 7.926 textos distintos."
+          - name: objetivos_plano_acao
+            description: "Texto livre — objetivos do plano. 8.961 textos distintos."
+          - name: id_ente_recebedor_plano_acao
+            description: "Id do ente que recebe o repasse. 5.596 distintos, 1:1 com cod_ibge."
+          - name: cnpj_ente_recebedor_plano_acao
+            description: >
+              CNPJ do ente recebedor — prefeitura, governo estadual ou DF.
+              5.596 distintos, 100% preenchido. É dado de órgão público, e é a
+              ponte para identificar o ente no BB Ágil.
+            tests: [not_null]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Agentes.EnteFederado
+          - name: nome_ente_recebedor_plano_acao
+            description: >
+              Nome do ente. 5.315 nomes para 5.596 entes — municípios homônimos
+              em UFs diferentes. NÃO use como chave; use cod_ibge.
+          - name: uf_ente_recebedor_plano_acao
+            description: "UF do ente recebedor. As 27 unidades, 100% preenchido."
+          - name: nome_municipio_ente_recebedor_plano_acao
+            description: "Município do ente recebedor. Mesma ressalva de homonímia do nome."
+          - name: codigo_ibge_municipio_ente_recebedor_plano_acao
+            description: >
+              Código IBGE do município do ente recebedor. É a chave territorial
+              canônica desta tabela e o que `bbagil_ente_ano` seleciona como
+              `codigo_ibge`. Cruza com `territorio_municipio` e com o crosswalk
+              FCU da cota territorial da LPG.
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.CodigoIBGE
+          - name: tipo_ente
+            description: "'MUNICIPIO' (23.470) ou 'ESTADO' (155)."
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['MUNICIPIO', 'ESTADO']
+          - name: tipo_unidade_recebedora_plano_acao
+            description: "[CONSTANTE 'ENTE'] Tipo da unidade recebedora."
+          - name: descricao_tipo_unidade_ente_plano_acao
+            description: "'Ente Municipal' (23.470) ou 'Ente Estadual/Distrital' (155)."
+          - name: cod_ibge
+            description: >
+              Código IBGE do ente — município para os 23.470 municipais, UF para
+              os 155 estaduais. 5.596 distintos. É a coluna de junção
+              territorial acrescentada pela DAG, propagada para as três tabelas
+              filhas.
+            tests: [not_null]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.CodigoIBGE
+          - name: cod_ibge_uf
+            description: "Código IBGE da UF do ente. 27 valores."
+          - name: cod_ibge_municipio
+            description: >
+              Código IBGE do município. Vazio em 0,7% das linhas — exatamente os
+              155 planos de ente estadual, que não têm município.
+          - name: id_orgao_repassador_plano_acao
+            description: "[CONSTANTE '308821'] Órgão repassador — o MinC."
+          - name: sigla_orgao_repassador_plano_acao
+            description: "[CONSTANTE 'MinC']"
+          - name: nome_orgao_repassador_plano_acao
+            description: "[CONSTANTE 'Ministério da Cultura']"
+          - name: cnpj_orgao_repassador_plano_acao
+            description: "[VAZIA EM 100% DAS LINHAS] CNPJ do órgão repassador."
+          - name: id_ente_repassador_plano_acao
+            description: "[VAZIA EM 100% DAS LINHAS] O repassador destes programas é órgão, não ente."
+          - name: cnpj_ente_repassador_plano_acao
+            description: "[VAZIA EM 100% DAS LINHAS]"
+          - name: nome_ente_repassador_plano_acao
+            description: "[VAZIA EM 100% DAS LINHAS]"
+          - name: uf_ente_repassador_plano_acao
+            description: "[VAZIA EM 100% DAS LINHAS]"
+          - name: nome_municipio_ente_repassador_plano_acao
+            description: "[VAZIA EM 100% DAS LINHAS]"
+          - name: codigo_ibge_municipio_ente_repassador_plano_acao
+            description: "[VAZIA EM 100% DAS LINHAS]"
+          - name: id_fundo_repassador_plano_acao
+            description: >
+              Id do fundo repassador. Dois valores: 21873 (17.346 planos) e 928
+              (6.279) — o Fundo Nacional da Cultura tem dois ids na origem,
+              provavelmente por recadastramento. Agrupar por este id separa o
+              que é o mesmo fundo.
+          - name: nome_fundo_repassador_plano_acao
+            description: "[CONSTANTE 'FUNDO NACIONAL DA CULTURA']"
+          - name: cnpj_fundo_repassador_plano_acao
+            description: >
+              CNPJ do FNC. Preenchido em só 26,6% das linhas, apesar de o fundo
+              ser sempre o mesmo — a origem preenche por id de fundo.
+          - name: uf_fundo_repassador_plano_acao
+            description: "[CONSTANTE 'DF']"
+          - name: municipio_fundo_repassador_plano_acao
+            description: "[CONSTANTE 'BRASÍLIA']"
+          - name: codigo_ibge_fundo_repassador_plano_acao
+            description: "[CONSTANTE '5300108'] IBGE de Brasília."
+          - name: id_fundo_vinculado_plano_acao
+            description: >
+              Fundo de cultura do ente recebedor. 1.578 distintos — bem menos
+              que os 5.596 entes, porque nem todo ente tem fundo constituído
+              (ver `permite_transferencia_sem_fundo_programa`).
+          - name: cnpj_fundo_vinculado_plano_acao
+            description: >
+              CNPJ do fundo do ente. Preenchido em apenas 9,5% das linhas. Não
+              serve como chave de cruzamento na prática.
+          - name: nome_fundo_vinculado_plano_acao
+            description: "Nome do fundo do ente. 18,0% preenchido."
+          - name: uf_fundo_vinculado_plano_acao
+            description: "UF do fundo do ente. 18,0% preenchido."
+          - name: municipio_fundo_vinculado_plano_acao
+            description: "Município do fundo do ente. 18,0% preenchido."
+          - name: codigo_ibge_fundo_vinculado_plano_acao
+            description: >
+              IBGE do município do fundo do ente. 100% preenchido, ao contrário
+              das outras colunas do bloco — se precisar localizar o fundo, é
+              esta que responde.
+          - name: tipo_unidade_recebedora_vinculada_plano_acao
+            description: "'FUNDO' (23.615) ou 'ENTE' (10)."
+          - name: descricao_tipo_unidade_recebedora_vinculada_plano_acao
+            description: >
+              Descrição do tipo da unidade vinculada. Preenchida em 18,0% das
+              linhas, embora `tipo_unidade_recebedora_vinculada_plano_acao`
+              esteja completa — as duas não são redundantes na prática.
+          - name: dt_ingest
+            description: "Carimbo ISO da carga. Não é data de negócio."
+      - name: plano_acao_meta_minc
+        description: >
+          As metas pactuadas em cada plano de ação. 51.541 registros, 1 linha
+          por meta. Cobre 22.665 dos 23.625 planos — cerca de 960 planos não têm
+          meta nenhuma, e a maioria deles não está autorizada.
+
+          `valor_meta_plano_acao` é o valor PLANEJADO da meta, não executado. Não
+          confunda com `valor_executado_relatorio_gestao`, que é o que o ente
+          declarou ter gasto.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Repasse Federativo
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: id_meta_plano_acao
+            description: "Chave primária, 51.541 valores distintos."
+            tests: [not_null, unique]
+          - name: id_plano_acao
+            description: "Plano dono da meta. Zero órfãos verificados."
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('transferegov', 'plano_acao_minc')
+                    field: id_plano_acao
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.IdPlanoAcao
+          - name: nome_meta_plano_acao
+            description: >
+              Nome da meta. 5.709 nomes distintos em 51.541 linhas — os entes
+              reaproveitam um vocabulário comum de metas, o que torna esta
+              coluna utilizável para agrupar por tipo de ação cultural.
+          - name: descricao_meta_plano_acao
+            description: "Texto livre detalhando a meta. 8.947 textos distintos."
+          - name: valor_meta_plano_acao
+            description: "Valor PLANEJADO da meta, em reais. 43.155 valores distintos."
+          - name: numero_meta_plano_acao
+            description: "Número da meta dentro do plano. 24 valores — até 24 metas por plano."
+          - name: sequencial_meta_plano_acao
+            description: "Sequencial da meta no plano. Mesma cardinalidade de numero_meta_plano_acao."
+          - name: versao_meta_plano_acao
+            description: >
+              Versão da meta. 32 valores distintos: meta replanejada gera versão
+              nova. Se precisar da meta vigente, filtre pela versão máxima por
+              (id_plano_acao, numero_meta_plano_acao).
+          - name: id_programa
+            description: "Programa, propagado do plano-pai pela DAG."
+          - name: cod_ibge
+            description: "Código IBGE do ente, propagado do plano-pai pela DAG."
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.CodigoIBGE
+          - name: dt_ingest
+            description: "Carimbo ISO da carga."
+
+      - name: plano_acao_dado_bancario_minc
+        description: >
+          As contas bancárias de cada plano de ação. 27.847 registros, 1 linha
+          por conta. É O INSUMO DA EXTRAÇÃO DO BB ÁGIL: é aqui que estão agência
+          e conta que a extração consulta.
+
+          Grão importante: 1 plano pode ter até 8 contas, e 5.567 planos têm mais
+          de uma. Escolher qual conta consultar é regra de consumo, não de
+          ingestão — a DAG grava todas de propósito.
+
+          A PONTE COM O BB ÁGIL é `nome_programa_agil_conta_plano_acao_dado_bancario`,
+          com 10 valores que mapeiam para os mecanismos da Meta 5: 'SECULT-A
+          BLANC-*' → LAB, 'MINC-LPG-*' → LPG, 'MINC-PNAB-2023' e
+          'MINC_PNAB2025_*' → PNAB. É o mesmo código curto que
+          `pagamentos_bbagil_beneficiarios` usa para derivar programa_fomento.
+
+          Todas as 27.847 contas são do Banco do Brasil (código 001) — o repasse
+          fundo a fundo do MinC opera só nele.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Repasse Federativo
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: id_plano_acao_dado_bancario
+            description: "Chave primária, 27.847 valores distintos."
+            tests: [not_null, unique]
+          - name: id_plano_acao
+            description: "Plano dono da conta. Zero órfãos verificados. 22.274 planos têm conta."
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('transferegov', 'plano_acao_minc')
+                    field: id_plano_acao
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.IdPlanoAcao
+          - name: nome_programa_agil_conta_plano_acao_dado_bancario
+            description: >
+              Código curto do programa no BB Gestão Ágil — a chave que liga esta
+              tabela ao extrato bancário. Os 10 valores: 'MINC_PNAB2025_MUNIC'
+              (5.757), 'MINC-LPG-MUNI-AUD' (5.548), 'MINC-LPG-MUNI-OUTRAS'
+              (5.544), 'MINC-PNAB-2023' (5.435), 'SECULT-A BLANC-MUN' (5.419),
+              'SECULT-A BLANC-EST-D' (33), 'MINC-LPG-EST-AUD' (29),
+              'MINC-LPG-EST-OUTRAS' (29), 'MINC_PNAB2025_ESTADO' (27) e
+              'SECULT-A BLANC-EST-R' (26). Note que a LPG separa conta de
+              audiovisual das demais — duas contas por ente, não uma.
+            tests: [not_null]
+          - name: id_agencia_conta
+            description: "Id do par agência/conta na origem. 27.504 distintos."
+          - name: numero_agencia_plano_acao_dado_bancario
+            description: >
+              Número da agência. 3.227 distintas. Junto com a conta, é o que a
+              extração do BB Ágil consulta — tratar como dado sensível de conta
+              pública.
+          - name: numero_conta_plano_acao_dado_bancario
+            description: >
+              Número da conta. 21.969 distintas — menos que as 27.847 linhas,
+              porque a mesma conta atende mais de um plano. Dado sensível.
+          - name: dv_agencia_plano_acao_dado_bancario
+            description: "Dígito verificador da agência."
+          - name: dv_conta_plano_acao_dado_bancario
+            description: "Dígito verificador da conta. Vazio em 3,5% das linhas."
+          - name: nome_banco_plano_acao_dado_bancario
+            description: "[CONSTANTE 'Banco do Brasil']"
+          - name: codigo_banco_plano_acao_dado_bancario
+            description: "[CONSTANTE '001']"
+          - name: situacao_conta_plano_acao_dado_bancario
+            description: >
+              'Conta Ativa' (26.848), 'Aguardando Aprovação do Plano de Ação'
+              (983), 'Conta Inativa' (15) e 'Erro na Abertura de Conta' (1).
+              Conta não-ativa não tem movimento no BB Ágil.
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['Conta Ativa', 'Aguardando Aprovação do Plano de Ação', 'Conta Inativa', 'Erro na Abertura de Conta']
+          - name: data_abertura_conta_plano_acao_dado_bancario
+            description: >
+              Data de abertura da conta, de 2020-08-04 a 2026-08-25. Ao
+              contrário das datas de vigência do plano, esta série é coerente —
+              serve como piso confiável para datar o início da operação do ente.
+          - name: saldo_final_dado_bancario__saldo_final_gestao_financeira
+            description: >
+              Saldo final da conta segundo a gestão financeira. O nome com
+              underscore duplo denuncia um objeto aninhado que a carga achatou.
+              8.015 valores distintos.
+          - name: saldo_final_dado_bancario
+            description: >
+              [INUTILIZÁVEL — literal 'NaN' em 100% das 27.847 linhas] Restou do
+              achatamento do objeto aninhado, que colocou o valor real na coluna
+              com sufixo `__saldo_final_gestao_financeira`. Use aquela.
+          - name: id_programa
+            description: "Programa, propagado do plano-pai pela DAG."
+          - name: cod_ibge
+            description: "Código IBGE do ente, propagado do plano-pai pela DAG."
+          - name: dt_ingest
+            description: "Carimbo ISO da carga."
+
+      - name: relatorios_gestao
+        description: >
+          O relatório de gestão que o ente presta sobre a execução do plano.
+          13.289 registros, 1 por relatório, cobrindo 13.183 dos 23.625 planos —
+          pouco mais da metade. Declara R$ 7,40 bi executados e R$ 771 mi
+          pendentes, contra R$ 21,35 bi repassados.
+
+          FATO DE GOVERNANÇA: só 81 relatórios estão 'APROVADO'. A esmagadora
+          maioria está 'ENVIADO_ANALISE' (8.908) ou 'EM_COMPLEMENTACAO' (3.792).
+          Qualquer leitura de execução baseada nesta tabela está lendo o que o
+          ente DECLAROU, não o que foi homologado.
+
+          É o elo do meio da cadeia de anexos — plano de ação → relatório de
+          gestão → anexo → planilha carregada — que abastece o schema
+          `relatorio_gestao`.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Repasse Federativo
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: id_relatorio_gestao
+            description: "Chave primária, 13.289 valores distintos."
+            tests: [not_null, unique]
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Instrumentos.RelatorioGestao
+          - name: id_plano_acao
+            description: >
+              Plano a que o relatório se refere. Zero órfãos verificados. 13.183
+              planos distintos — alguns planos têm mais de um relatório.
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('transferegov', 'plano_acao_minc')
+                    field: id_plano_acao
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Identificadores.IdPlanoAcao
+          - name: situacao_relatorio_gestao
+            description: >
+              'ENVIADO_ANALISE' (8.908), 'EM_COMPLEMENTACAO' (3.792),
+              'EM_ELABORACAO' (318), 'REJEITADO' (168), 'APROVADO' (81) e
+              'ENVIADO_ANALISE_CONSELHO' (22). Ler antes de citar valor
+              executado: só 81 passaram por aprovação.
+            tests: [not_null]
+          - name: tipo_relatorio_gestao
+            description: "[CONSTANTE 'FINAL'] Não há relatório parcial nesta base."
+          - name: valor_executado_relatorio_gestao
+            description: >
+              Valor que o ente declara ter executado, em reais. Soma R$ 7,40 bi.
+              É declaração do ente, não valor homologado nem pagamento
+              rastreado a agente cultural.
+            meta:
+              openmetadata:
+                glossary:
+                  - MinC.Qualificadores.ValorRepassado
+          - name: valor_pendente_relatorio_gestao
+            description: "Valor pendente de execução declarado. Soma R$ 771 mi."
+          - name: contrapartida_relatorio_gestao
+            description: "Contrapartida declarada. Preenchida em 42,5% das linhas."
+          - name: data_relatorio_gestao
+            description: "Data de referência do relatório. 1.267 datas distintas."
+          - name: data_e_hora_relatorio_gestao
+            description: >
+              Carimbo de data e hora do envio, quase único (13.270 valores para
+              13.289 linhas). É o melhor eixo temporal desta tabela.
+          - name: declaracao_conformidade_relatorio_gestao
+            description: "'true' (13.208) ou 'false' (81)."
+          - name: descritivo_relatorio_gestao
+            description: "Texto livre com o descritivo da execução. 12.578 textos distintos."
+          - name: resultados_alcancados_metas_relatorio_gestao
+            description: >
+              Texto livre sobre os resultados alcançados. Preenchido em 67,9%
+              das linhas — é o campo qualitativo mais rico da cadeia, e o mais
+              incompleto.
+          - name: endereco_eletronico_publicidade_acoes_relatorio_gestao
+            description: >
+              URL onde o ente publicou as ações, exigida por transparência.
+              12.403 valores distintos. Não é validada na origem.
+          - name: dt_ingest
+            description: "Carimbo ISO da carga."
+
+      - name: anexos_relatorios
+        description: >
+          Os anexos de cada relatório de gestão — apenas os METADADOS, sem o
+          conteúdo do arquivo. 45.571 registros ligados a 4.985 relatórios: só
+          37,5% dos 13.289 relatórios têm anexo.
+
+          É daqui que sai a cadeia que abastece o schema `relatorio_gestao`:
+          `download_anexos_dag` baixa os arquivos e `extracao_anexos_dag` lê as
+          planilhas. Por extensão: 37.228 PDF, 4.242 XLSX, 2.479 XLS, 565 DOCX e
+          o resto em imagem e ODS — as planilhas de contemplados e editais estão
+          nos ~6.700 arquivos Excel.
+
+          TABELA COM A PIOR QUALIDADE DO SCHEMA, e três problemas distintos:
+            1. QUATRO COLUNAS 100% VAZIAS — `arquivo`, `arquivocontenttype`,
+               `tamanho` e `situacao`. A API de metadados não devolve nada
+               delas, então não dá para saber o tamanho nem o tipo MIME sem
+               baixar o arquivo.
+            2. LITERAL 'NaN' COMO TEXTO, não NULL, em `tipoanexo`,
+               `tipoanexo__statusedicao` e nos demais campos do bloco
+               `tipoanexo__`. Qualquer filtro precisa tratar a string 'NaN'
+               explicitamente — `IS NOT NULL` não a exclui.
+            3. TIPO INCONSISTENTE no mesmo campo: `tipoanexo__idprograma` traz
+               '62.0' (4.155) e '62' (523) como se fossem valores diferentes, e
+               `tipoanexo__versao` traz '1.0' e '1', '0.0' e '0'. É coerção
+               float/int da carga. Normalize antes de agrupar.
+
+          O bloco `tipoanexo__*` é objeto aninhado achatado e só está preenchido
+          em ~25% das linhas.
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Repasse Federativo
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+        columns:
+          - name: id
+            description: >
+              Chave primária, 45.571 valores distintos. Nome genérico porque vem
+              cru da API de backend, que não segue a convenção `id_<entidade>`
+              do resto do schema.
+            tests: [not_null, unique]
+          - name: id_relatorio_gestao
+            description: >
+              Relatório dono do anexo. Zero órfãos verificados. 4.985 relatórios
+              distintos.
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('transferegov', 'relatorios_gestao')
+                    field: id_relatorio_gestao
+          - name: nome
+            description: >
+              Nome do arquivo, com extensão. 40.467 nomes distintos. É a única
+              forma de saber o tipo do arquivo, já que `arquivocontenttype` está
+              vazia.
+          - name: descricao
+            description: "Descrição do anexo dada pelo ente. 31.376 textos distintos."
+          - name: tipoanexoid
+            description: "Id do tipo de anexo. 44 valores, preenchido em 84,2% das linhas."
+          - name: tipoanexo
+            description: >
+              [INUTILIZÁVEL — literal 'NaN' nas 10.674 linhas em que não está
+              vazia] Use `tipoanexo__nome` ou `tipoanexoid`.
+          - name: arquivo
+            description: "[VAZIA EM 100% DAS LINHAS] O conteúdo não vem por esta API."
+          - name: arquivocontenttype
+            description: "[VAZIA EM 100% DAS LINHAS] Tipo MIME. Derive da extensão em `nome`."
+          - name: tamanho
+            description: "[VAZIA EM 100% DAS LINHAS] Tamanho do arquivo."
+          - name: situacao
+            description: "[VAZIA EM 100% DAS LINHAS] Situação do anexo."
+          - name: versao
+            description: "[CONSTANTE '0'] Versão do registro na origem."
+          - name: auditlogin
+            description: "[CONSTANTE 'admin'] Login de auditoria da origem."
+          - name: inadministrativo
+            description: "[CONSTANTE 'false']"
+          - name: tipoanexo__id
+            description: "Id do tipo de anexo no objeto aninhado. 39 valores, 24,8% preenchido."
+          - name: tipoanexo__nome
+            description: >
+              Nome do tipo de anexo. 9 valores distintos, 24,8% preenchido — é a
+              melhor coluna para classificar o anexo.
+          - name: tipoanexo__funcionalidade
+            description: "'RELATORIO_GESTAO' (6.444) ou o literal 'NaN' (4.867)."
+          - name: tipoanexo__idprograma
+            description: >
+              Programa do tipo de anexo. CONTÉM O MESMO VALOR EM DUAS GRAFIAS —
+              '62.0' e '62', '61.0' e '61', '60.0'. Normalize antes de agrupar
+              ou de cruzar com `programa_minc`.
+          - name: tipoanexo__indicadorobrigatoriedade
+            description: "Se o anexo é obrigatório — 'false' (6.444) ou 'NaN' (4.867)."
+          - name: tipoanexo__utilizado
+            description: "'false' (6.444) ou 'NaN' (4.867)."
+          - name: tipoanexo__versao
+            description: >
+              Versão do tipo de anexo. Cinco grafias para dois valores reais:
+              '1.0', '1', '0.0', '0' e o literal 'NaN'.
+          - name: tipoanexo__statusedicao
+            description: "[INUTILIZÁVEL — literal 'NaN' em todas as linhas preenchidas]"
+          - name: tipoanexo__auditlogin
+            description: >
+              Login de auditoria do tipo de anexo. CONTÉM DADO PESSOAL
+              PARCIALMENTE MASCARADO — aparecem CPFs no formato '***641181**'
+              além de matrículas. Não expor em relatório nem em catálogo aberto.
+          - name: dt_ingest
+            description: "Carimbo ISO da carga."
+
+      - name: territorio_fcu_setores
+        description: >
+          NÃO É DADO DO TRANSFEREGOV — é o recorte territorial do IBGE (Censo
+          2022), na cadeia setor censitário → Concentração Urbana (FCU) →
+          município → UF. Mora neste schema por decisão de infraestrutura, para
+          o banco não ganhar um quarto schema; quem grava é
+          `ingest_territorio_fcu_dag`, com cadência própria.
+
+          É a base da 4ª cota da LPG, a territorial (20%): é este crosswalk que
+          `territorio_municipio` consome para marcar município periférico.
+
+          [COLUNAS NÃO DOCUMENTADAS — não havia extração desta tabela disponível
+          quando este bloco foi escrito. Ver `ingest_territorio_fcu_dag` e
+          `cotas_dbt/silver/territorio_municipio.sql` para o contrato em uso.]
         meta:
           openmetadata:
             domain: Cultura.Repasse Federativo
             tier: Tier.Tier4
             owner: minc-data-engineering
+
+      - name: raw_gestao_financeira_lancamentos
+        description: >
+          Lançamentos de gestão financeira do TransfereGov, do endpoint
+          `/gestao-financeira-lancamentos`. Gravada por
+          `api_movimentacoes_financeiras_dag`, com pouso intermediário no MinIO.
+          Chave primária `id_lancamento_gestao_financeira`.
+
+          NÃO TEM `id_plano_acao` NO PAYLOAD — é a única tabela do schema que
+          não se liga ao plano por chave direta. O cruzamento tem de passar por
+          `cnpj_ente_solicitante_gestao_financeira` ou pela ponte
+          `plano_acao_dado_bancario_minc`. É por isso que a extração é feita em
+          bloco, sem filtro por FK, ao contrário das outras DAGs.
+
+          Estava SEM DECLARAÇÃO neste arquivo até esta revisão, apesar de a DAG
+          gravá-la aqui desde sempre — não aparecia no catálogo nem na linhagem.
+
+          [COLUNAS NÃO DOCUMENTADAS — não havia extração disponível quando este
+          bloco foi escrito.]
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Repasse Federativo
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+
+      - name: raw_gestao_financeira_subtransacoes
+        description: >
+          Subtransações de cada lançamento de gestão financeira, do endpoint
+          `/gestao-financeira-subtransacoes`, filtrado por
+          `id_lancamento_gestao_financeira`. Chave primária
+          `id_subtransacao_gestao_financeira`. Filha de
+          `raw_gestao_financeira_lancamentos`, que é lida do próprio Postgres
+          para descobrir os ids a consultar.
+
+          Mesma situação da tabela-mãe: estava sem declaração neste arquivo até
+          esta revisão.
+
+          [COLUNAS NÃO DOCUMENTADAS — não havia extração disponível quando este
+          bloco foi escrito.]
+        meta:
+          used: false
+          openmetadata:
+            domain: Cultura.Repasse Federativo
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+
   - name: bacen
     schema: bacen
     tables:

@@ -1720,35 +1720,43 @@
     {
       "nome": "transferegov",
       "schema": "transferegov",
-      "descricao": "",
+      "descricao": "Repasse fundo a fundo do MinC aos entes federados, extraído da API pública do TransfereGov. É a origem do lado-repasse de todas as políticas que este repositório acompanha, e a espinha de onde saem o ente, o município e a conta bancária que ligam o resto do pipeline.\nHIERARQUIA — cada nível é filho do anterior, e o grão muda em cada um:\n  programa_minc                  11 programas (4 políticas)\n  └─ plano_acao_minc             23.625 planos (1 por ente × programa × versão)\n     ├─ plano_acao_meta_minc     51.541 metas\n     ├─ plano_acao_dado_bancario_minc  27.847 contas\n     └─ relatorios_gestao        13.289 relatórios\n        └─ anexos_relatorios     45.571 anexos\n\nINTEGRIDADE REFERENCIAL VERIFICADA: as cinco ligações da hierarquia têm ZERO órfãos — todo id_programa existe em programa_minc, todo id_plano_acao existe em plano_acao_minc, todo id_relatorio_gestao existe em relatorios_gestao. Por isso os testes `relationships` abaixo são seguros como INNER JOIN. A cobertura, essa sim, é parcial: 22.665 dos 23.625 planos têm meta, 22.274 têm conta, 13.183 têm relatório, e só 4.985 dos 13.289 relatórios têm anexo.\nDUAS TABELAS DESTE SCHEMA NÃO ESTAVAM DECLARADAS até esta revisão: raw_gestao_financeira_lancamentos e raw_gestao_financeira_subtransacoes, gravadas por `api_movimentacoes_financeiras_dag`. Estão declaradas ao fim do bloco, sem coluna — ver a nota de cada uma.\nQUASE NADA DISTO É CONSUMIDO PELO dbt HOJE. Das 9 tabelas, só territorio_fcu_setores é lida por um modelo ativo (`territorio_municipio`). plano_acao_minc — a maior e mais rica delas — é lida apenas por `bbagil_ente_ano`, que está `enabled=false` esperando a extração do bbágil; as outras 7 não são lidas por modelo nenhum. As oito estão marcadas com `meta.used: false`, a mesma convenção usada em `agentes`, `bbagil` e `dados_salic`. Ou seja: no estado atual isto é CATÁLOGO DE ORIGEM, para quem consulta o Postgres ou o OpenMetadata direto — não um produto de dados com linhagem. Quando a Meta 2 (Execução Financeira) sair de \"em construção\", é daqui que ela parte.\nUM INTRUSO: territorio_fcu_setores vive neste schema mas NÃO vem do TransfereGov — é recorte territorial do IBGE, carregado por `ingest_territorio_fcu_dag`. Mora aqui para o banco não ganhar um quarto schema; a origem é outra e a cadência também.\nCARGA: uma DAG por endpoint em `dags/data_ingest/transferegov_fundo_a_fundo/`, via `ClienteTransfereGov` (API nova, `api-publica.`, FastAPI paginada). As DAGs gravam o payload da API DIRETO, sem lista de colunas — o schema é schema-on-write, então coluna nova na origem aparece sozinha no banco e coluna que a origem parar de mandar simplesmente some. Este bloco descreve o retrato de 2026-09-01.",
       "tabelas": [
         {
           "nome": "programa_minc",
-          "descricao": ""
+          "descricao": "Um programa de repasse fundo a fundo do MinC. 11 registros — é a tabela-raiz e a menor do schema. Cobre 4 políticas: Lei Aldir Blanc I (ids 7, 8, 9, 15 — 2020/2021), Lei Paulo Gustavo (46, 47 — 2023), PNAB Ciclo 1 (60, 61, 62 — 2023) e PNAB 2025 (111, 112). O escopo efetivo vem da Variable `transferegov_programas_ids`; o padrão está em `plugins/schemas_minc.py`.\nFALHA ATIVA — `sigla` e `politica_publica` estão VAZIAS nas 11 linhas. Os dois campos são exigidos pela seção 7.2 da especificação, mas o endpoint `/programas` não devolve nenhum dos dois: quem os preenche é a Variable `transferegov_politicas_publicas`, que não está configurada no ambiente. A DAG registra um warning e segue. Enquanto isso durar, agrupar por política exige mapear o id_programa à mão."
         },
         {
           "nome": "plano_acao_minc",
-          "descricao": ""
+          "descricao": "O plano de ação de um ente federado dentro de um programa. 23.625 registros — é a tabela central do schema e a mais consumida do repositório. R$ 21,35 bi em `valor_total_repasse_plano_acao`.\nGRÃO: 1 linha por plano, e NÃO 1 por (ente, programa). O par (cod_ibge, id_programa) repete em 1.300 casos, porque plano rejeitado ou em elaboração convive com o autorizado do mesmo ente no mesmo programa. Somar valor sem filtrar `situacao_plano_acao` conta dinheiro que não foi repassado: 'AUTORIZADO' são 21.272 planos e R$ 20,50 bi dos R$ 21,35 bi; o resto está distribuído em nove outras situações.\n5.596 entes distintos — 23.470 planos de municípios e 155 de estados/DF.\nÉ A TABELA DE CRUZAMENTO do repositório. Três pontes saem daqui:\n  cod_ibge / codigo_ibge_municipio_ente_recebedor_plano_acao\n      → território IBGE (`territorio_municipio`, e a cota territorial\n        da LPG). É o que `bbagil_ente_ano` usa para localizar o gasto.\n  cnpj_ente_recebedor_plano_acao\n      → o ente no BB Ágil e nos relatórios de gestão.\n  id_plano_acao\n      → `plano_acao_dado_bancario_minc`, e por ela a conta do BB Ágil.\n        No fato do bbágil o ente aparece como TEXT, daí o cast em\n        `bbagil_ente_ano`.\n\nARMADILHA DE DATA, medida: `data_inicio_vigencia_plano_acao` vai de 1987-08-02 a 2029-04-15 e `data_fim_vigencia_plano_acao` chega a 2202-10-31. São valores impossíveis para programas que nascem em 2020 — erro de digitação na origem, não história. `bbagil_ente_ano` já se protege validando a faixa [2013, 2026]; qualquer modelo novo que datar por vigência precisa fazer o mesmo.\nSETE COLUNAS 100% VAZIAS: todo o bloco `ente_repassador` (id, cnpj, nome, uf, município, IBGE) mais `cnpj_orgao_repassador_plano_acao`. A API devolve os campos e nunca os preenche — o repassador é sempre o MinC, que já está no bloco `orgao_repassador`. Não são lacuna de carga.\nTRÊS COLUNAS CONSTANTES EM ZERO: `valor_repasse_emenda_plano_acao`, `valor_repasse_voluntario_plano_acao` e `valor_total_investimento_plano_acao`. Estes programas repassam só por transferência específica e só em custeio."
         },
         {
           "nome": "plano_acao_meta_minc",
-          "descricao": ""
+          "descricao": "As metas pactuadas em cada plano de ação. 51.541 registros, 1 linha por meta. Cobre 22.665 dos 23.625 planos — cerca de 960 planos não têm meta nenhuma, e a maioria deles não está autorizada.\n`valor_meta_plano_acao` é o valor PLANEJADO da meta, não executado. Não confunda com `valor_executado_relatorio_gestao`, que é o que o ente declarou ter gasto."
         },
         {
           "nome": "plano_acao_dado_bancario_minc",
-          "descricao": ""
+          "descricao": "As contas bancárias de cada plano de ação. 27.847 registros, 1 linha por conta. É O INSUMO DA EXTRAÇÃO DO BB ÁGIL: é aqui que estão agência e conta que a extração consulta.\nGrão importante: 1 plano pode ter até 8 contas, e 5.567 planos têm mais de uma. Escolher qual conta consultar é regra de consumo, não de ingestão — a DAG grava todas de propósito.\nA PONTE COM O BB ÁGIL é `nome_programa_agil_conta_plano_acao_dado_bancario`, com 10 valores que mapeiam para os mecanismos da Meta 5: 'SECULT-A BLANC-*' → LAB, 'MINC-LPG-*' → LPG, 'MINC-PNAB-2023' e 'MINC_PNAB2025_*' → PNAB. É o mesmo código curto que `pagamentos_bbagil_beneficiarios` usa para derivar programa_fomento.\nTodas as 27.847 contas são do Banco do Brasil (código 001) — o repasse fundo a fundo do MinC opera só nele."
         },
         {
           "nome": "relatorios_gestao",
-          "descricao": ""
+          "descricao": "O relatório de gestão que o ente presta sobre a execução do plano. 13.289 registros, 1 por relatório, cobrindo 13.183 dos 23.625 planos — pouco mais da metade. Declara R$ 7,40 bi executados e R$ 771 mi pendentes, contra R$ 21,35 bi repassados.\nFATO DE GOVERNANÇA: só 81 relatórios estão 'APROVADO'. A esmagadora maioria está 'ENVIADO_ANALISE' (8.908) ou 'EM_COMPLEMENTACAO' (3.792). Qualquer leitura de execução baseada nesta tabela está lendo o que o ente DECLAROU, não o que foi homologado.\nÉ o elo do meio da cadeia de anexos — plano de ação → relatório de gestão → anexo → planilha carregada — que abastece o schema `relatorio_gestao`."
         },
         {
           "nome": "anexos_relatorios",
-          "descricao": ""
+          "descricao": "Os anexos de cada relatório de gestão — apenas os METADADOS, sem o conteúdo do arquivo. 45.571 registros ligados a 4.985 relatórios: só 37,5% dos 13.289 relatórios têm anexo.\nÉ daqui que sai a cadeia que abastece o schema `relatorio_gestao`: `download_anexos_dag` baixa os arquivos e `extracao_anexos_dag` lê as planilhas. Por extensão: 37.228 PDF, 4.242 XLSX, 2.479 XLS, 565 DOCX e o resto em imagem e ODS — as planilhas de contemplados e editais estão nos ~6.700 arquivos Excel.\nTABELA COM A PIOR QUALIDADE DO SCHEMA, e três problemas distintos:\n  1. QUATRO COLUNAS 100% VAZIAS — `arquivo`, `arquivocontenttype`,\n     `tamanho` e `situacao`. A API de metadados não devolve nada\n     delas, então não dá para saber o tamanho nem o tipo MIME sem\n     baixar o arquivo.\n  2. LITERAL 'NaN' COMO TEXTO, não NULL, em `tipoanexo`,\n     `tipoanexo__statusedicao` e nos demais campos do bloco\n     `tipoanexo__`. Qualquer filtro precisa tratar a string 'NaN'\n     explicitamente — `IS NOT NULL` não a exclui.\n  3. TIPO INCONSISTENTE no mesmo campo: `tipoanexo__idprograma` traz\n     '62.0' (4.155) e '62' (523) como se fossem valores diferentes, e\n     `tipoanexo__versao` traz '1.0' e '1', '0.0' e '0'. É coerção\n     float/int da carga. Normalize antes de agrupar.\n\nO bloco `tipoanexo__*` é objeto aninhado achatado e só está preenchido em ~25% das linhas."
         },
         {
           "nome": "territorio_fcu_setores",
-          "descricao": ""
+          "descricao": "NÃO É DADO DO TRANSFEREGOV — é o recorte territorial do IBGE (Censo 2022), na cadeia setor censitário → Concentração Urbana (FCU) → município → UF. Mora neste schema por decisão de infraestrutura, para o banco não ganhar um quarto schema; quem grava é `ingest_territorio_fcu_dag`, com cadência própria.\nÉ a base da 4ª cota da LPG, a territorial (20%): é este crosswalk que `territorio_municipio` consome para marcar município periférico.\n[COLUNAS NÃO DOCUMENTADAS — não havia extração desta tabela disponível quando este bloco foi escrito. Ver `ingest_territorio_fcu_dag` e `cotas_dbt/silver/territorio_municipio.sql` para o contrato em uso.]"
+        },
+        {
+          "nome": "raw_gestao_financeira_lancamentos",
+          "descricao": "Lançamentos de gestão financeira do TransfereGov, do endpoint `/gestao-financeira-lancamentos`. Gravada por `api_movimentacoes_financeiras_dag`, com pouso intermediário no MinIO. Chave primária `id_lancamento_gestao_financeira`.\nNÃO TEM `id_plano_acao` NO PAYLOAD — é a única tabela do schema que não se liga ao plano por chave direta. O cruzamento tem de passar por `cnpj_ente_solicitante_gestao_financeira` ou pela ponte `plano_acao_dado_bancario_minc`. É por isso que a extração é feita em bloco, sem filtro por FK, ao contrário das outras DAGs.\nEstava SEM DECLARAÇÃO neste arquivo até esta revisão, apesar de a DAG gravá-la aqui desde sempre — não aparecia no catálogo nem na linhagem.\n[COLUNAS NÃO DOCUMENTADAS — não havia extração disponível quando este bloco foi escrito.]"
+        },
+        {
+          "nome": "raw_gestao_financeira_subtransacoes",
+          "descricao": "Subtransações de cada lançamento de gestão financeira, do endpoint `/gestao-financeira-subtransacoes`, filtrado por `id_lancamento_gestao_financeira`. Chave primária `id_subtransacao_gestao_financeira`. Filha de `raw_gestao_financeira_lancamentos`, que é lida do próprio Postgres para descobrir os ids a consultar.\nMesma situação da tabela-mãe: estava sem declaração neste arquivo até esta revisão.\n[COLUNAS NÃO DOCUMENTADAS — não havia extração disponível quando este bloco foi escrito.]"
         }
       ]
     },
@@ -1835,6 +1843,6 @@
     "modelos": 49,
     "testes": 144,
     "com_descricao": 48,
-    "sources": 76
+    "sources": 78
   }
 }

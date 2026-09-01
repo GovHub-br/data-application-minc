@@ -118,9 +118,12 @@ documentação apresenta como configuração de `airflow.cfg`, importa
 Dois módulos vieram junto e **não são importados por ninguém** hoje:
 
 - **`glossary.py`** (`load_glossary`, `sync_glossary`) — funcional e portável,
-  mas **nenhuma task chama**. O glossário `MinC` existe no servidor, com os 26
-  termos que `glossaries/minc.yaml` + `minc.csv` declaram, então foi aplicado
-  fora da DAG em algum momento. O `meta.openmetadata.glossary` dos `schema.yml`
+  mas **nenhuma task chama**. O glossário `MinC` existe no servidor, aplicado
+  fora da DAG em algum momento, com os 26 termos que `minc.csv` declarava
+  então. Hoje o arquivo declara **39** — os 13 acrescentados pela documentação
+  da Ancine e do TransfereGov ainda **não foram sincronizados**, e as
+  referências `meta.openmetadata.glossary` que apontam para eles ficam
+  penduradas até alguém rodar `sync_glossary`. O `meta.openmetadata.glossary` dos `schema.yml`
   apenas **referencia** termo por FQN; não cria. Se os termos forem alterados
   aqui, alguém precisa chamar `sync_glossary` à mão — é idempotente — ou a
   referência aponta para um termo que não existe.
