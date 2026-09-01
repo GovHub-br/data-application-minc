@@ -20,12 +20,12 @@
           "descricao": "Código curto do programa devolvido pelo BSC (governmentprogramname — ex. 'MINC-LPG-MUNI-AUD', 'MINC-PNAB-2023'). Insumo pra derivar programa_fomento em pagamentos_bbagil_beneficiarios."
         },
         {
-          "nome": "beneficiario_documento",
-          "descricao": "CPF/CNPJ do beneficiário do pagamento, normalizado (LPAD por beneficiarypersontype — 11 dígitos p/ CPF, 14 p/ CNPJ)."
+          "nome": "id_beneficiario",
+          "descricao": "Pseudônimo do CPF/CNPJ do beneficiário: sha256(salt || documento canônico), em hex. A canonização (LPAD por beneficiarypersontype — 11 dígitos p/ CPF, 14 p/ CNPJ) acontece ANTES do hash, e é o que mantém este identificador casável com o das demais fontes."
         },
         {
-          "nome": "beneficiario_nome",
-          "descricao": "Nome do beneficiário do pagamento, como devolvido pelo BSC."
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' ou 'PJ', derivado do comprimento do documento canônico. É materializado aqui porque, depois do pseudônimo, não há mais comprimento de onde deduzi-lo."
         },
         {
           "nome": "valor",
@@ -43,7 +43,7 @@
       "sources": [
         "bbagil.extrato_bbagil"
       ],
-      "linhas_sql": 88
+      "linhas_sql": 94
     },
     {
       "nome": "bbagil_subtransacoes_filtrado",
@@ -61,12 +61,12 @@
           "descricao": "Código curto do programa (governmentprogramname), herdado da transação-mãe do extrato via id_plano_acao + id_transacao_pai = id."
         },
         {
-          "nome": "beneficiario_documento",
-          "descricao": "CPF/CNPJ do beneficiário do sublançamento, normalizado (LPAD por persontype)."
+          "nome": "id_beneficiario",
+          "descricao": "Pseudônimo do CPF/CNPJ do beneficiário do sublançamento, canonizado (LPAD por persontype) antes do hash."
         },
         {
-          "nome": "beneficiario_nome",
-          "descricao": "Nome do beneficiário do sublançamento, como devolvido pelo BSC."
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' ou 'PJ', derivado do comprimento do documento canônico."
         },
         {
           "nome": "valor",
@@ -85,18 +85,26 @@
         "bbagil.extrato_bbagil",
         "bbagil.subtransacao_bbagil"
       ],
-      "linhas_sql": 42
+      "linhas_sql": 54
     },
     {
       "nome": "lpg_agentes_coletivos",
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/lpg_agentes_coletivos.sql",
-      "descricao": "Camada Bronze — dados brutos de proponentes coletivos da LPG. Mapeia o CPF do representante do grupo/coletivo como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento. Carga incremental, deduplicada por identificador_unico.",
+      "descricao": "Camada Bronze — dados brutos de proponentes coletivos da LPG. Mapeia o CPF do representante do grupo/coletivo como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento. Carga incremental, deduplicada por id_agente.",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "CPF do representante do grupo/coletivo, normalizado para lowercase."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do CPF do proponente: sha256(salt || documento canônico), em hex. NÃO é o documento e não é reversível sem o salt. Documento que chegou mascarado da origem é hasheado como veio, e por isso nunca casa com um documento completo — para esse caso existe id_agente_miolo."
+        },
+        {
+          "nome": "id_agente_miolo",
+          "descricao": "Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6 dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que hash nenhum preservaria por substring. NULL em todo o resto."
+        },
+        {
+          "nome": "documento_mascarado",
+          "descricao": "Verdadeiro quando a origem entregou o documento mascarado, logo não casável com a lista de contemplados a não ser pelo miolo."
         },
         {
           "nome": "historico_acesso_bruto",
@@ -107,25 +115,33 @@
           "descricao": "Programa de fomento de origem — sempre 'LPG' neste modelo."
         }
       ],
-      "colunas_descritas": 3,
+      "colunas_descritas": 5,
       "testes": 1,
       "materializacao": "incremental",
       "depende_de": [],
       "sources": [
         "relatorio_gestao.planilha_dados_lpg"
       ],
-      "linhas_sql": 18
+      "linhas_sql": 68
     },
     {
       "nome": "lpg_agentes_pf",
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/lpg_agentes_pf.sql",
-      "descricao": "Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo). Mapeia o CPF como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura. Carga incremental (materialized='incremental'), deduplicada por identificador_unico; descarta CPF nulo, vazio ou 'nan'/'none'.",
+      "descricao": "Camada Bronze — dados brutos de pessoas físicas da LPG (Lei Paulo Gustavo). Mapeia o CPF como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura. Carga incremental (materialized='incremental'), deduplicada por id_agente; descarta CPF nulo, vazio ou 'nan'/'none'.",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "CPF do proponente pessoa física, normalizado para lowercase."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do CPF do proponente: sha256(salt || documento canônico), em hex. NÃO é o documento e não é reversível sem o salt. Documento que chegou mascarado da origem é hasheado como veio, e por isso nunca casa com um documento completo — para esse caso existe id_agente_miolo."
+        },
+        {
+          "nome": "id_agente_miolo",
+          "descricao": "Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6 dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que hash nenhum preservaria por substring. NULL em todo o resto."
+        },
+        {
+          "nome": "documento_mascarado",
+          "descricao": "Verdadeiro quando a origem entregou o documento mascarado, logo não casável com a lista de contemplados a não ser pelo miolo."
         },
         {
           "nome": "historico_acesso_bruto",
@@ -136,25 +152,33 @@
           "descricao": "Programa de fomento de origem — sempre 'LPG' neste modelo."
         }
       ],
-      "colunas_descritas": 3,
+      "colunas_descritas": 5,
       "testes": 1,
       "materializacao": "incremental",
       "depende_de": [],
       "sources": [
         "relatorio_gestao.planilha_dados_lpg"
       ],
-      "linhas_sql": 19
+      "linhas_sql": 68
     },
     {
       "nome": "lpg_agentes_pj",
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/lpg_agentes_pj.sql",
-      "descricao": "Camada Bronze — dados brutos de pessoas jurídicas da LPG. Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura. Carga incremental, deduplicada por identificador_unico; descarta CNPJ nulo, vazio ou 'nan'/'none'.",
+      "descricao": "Camada Bronze — dados brutos de pessoas jurídicas da LPG. Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura. Carga incremental, deduplicada por id_agente; descarta CNPJ nulo, vazio ou 'nan'/'none'.",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "CNPJ do proponente pessoa jurídica, normalizado para lowercase."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do CNPJ do proponente: sha256(salt || documento canônico), em hex. NÃO é o documento e não é reversível sem o salt. Documento que chegou mascarado da origem é hasheado como veio, e por isso nunca casa com um documento completo — para esse caso existe id_agente_miolo."
+        },
+        {
+          "nome": "id_agente_miolo",
+          "descricao": "Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6 dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que hash nenhum preservaria por substring. NULL em todo o resto."
+        },
+        {
+          "nome": "documento_mascarado",
+          "descricao": "Verdadeiro quando a origem entregou o documento mascarado, logo não casável com a lista de contemplados a não ser pelo miolo."
         },
         {
           "nome": "historico_acesso_bruto",
@@ -165,25 +189,33 @@
           "descricao": "Programa de fomento de origem — sempre 'LPG' neste modelo."
         }
       ],
-      "colunas_descritas": 3,
+      "colunas_descritas": 5,
       "testes": 1,
       "materializacao": "incremental",
       "depende_de": [],
       "sources": [
         "relatorio_gestao.planilha_dados_lpg"
       ],
-      "linhas_sql": 20
+      "linhas_sql": 68
     },
     {
       "nome": "pnab_agentes_pf",
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/pnab_agentes_pf.sql",
-      "descricao": "Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc). Mapeia o CPF como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura nos últimos 5 anos. Carga incremental, deduplicada por identificador_unico; descarta CPF nulo, vazio ou 'nan'/'none'.",
+      "descricao": "Camada Bronze — dados brutos de pessoas físicas da PNAB (Política Nacional Aldir Blanc). Mapeia o CPF como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura nos últimos 5 anos. Carga incremental, deduplicada por id_agente; descarta CPF nulo, vazio ou 'nan'/'none'.",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "CPF do proponente pessoa física, normalizado para lowercase."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do CPF do proponente: sha256(salt || documento canônico), em hex. NÃO é o documento e não é reversível sem o salt. Documento que chegou mascarado da origem é hasheado como veio, e por isso nunca casa com um documento completo — para esse caso existe id_agente_miolo."
+        },
+        {
+          "nome": "id_agente_miolo",
+          "descricao": "Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6 dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que hash nenhum preservaria por substring. NULL em todo o resto."
+        },
+        {
+          "nome": "documento_mascarado",
+          "descricao": "Verdadeiro quando a origem entregou o documento mascarado, logo não casável com a lista de contemplados a não ser pelo miolo."
         },
         {
           "nome": "historico_acesso_bruto",
@@ -194,25 +226,33 @@
           "descricao": "Programa de fomento de origem — sempre 'PNAB' neste modelo."
         }
       ],
-      "colunas_descritas": 3,
+      "colunas_descritas": 5,
       "testes": 1,
       "materializacao": "incremental",
       "depende_de": [],
       "sources": [
         "relatorio_gestao.planilha_dados_pnab_ciclo_1"
       ],
-      "linhas_sql": 20
+      "linhas_sql": 68
     },
     {
       "nome": "pnab_agentes_pj",
       "dominio": "agentes",
       "camada": "bronze",
       "caminho": "dbt/minc/models/agentes_dbt/bronze/pnab_agentes_pj.sql",
-      "descricao": "Camada Bronze — dados brutos de organizações da PNAB. Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura anteriormente. Carga incremental, deduplicada por identificador_unico.",
+      "descricao": "Camada Bronze — dados brutos de organizações da PNAB. Mapeia o CNPJ como identificador único e traz a coluna bruta de histórico de acesso a recursos públicos de fomento à cultura anteriormente. Carga incremental, deduplicada por id_agente.",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "CNPJ da organização, normalizado para lowercase."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do CNPJ do proponente: sha256(salt || documento canônico), em hex. NÃO é o documento e não é reversível sem o salt. Documento que chegou mascarado da origem é hasheado como veio, e por isso nunca casa com um documento completo — para esse caso existe id_agente_miolo."
+        },
+        {
+          "nome": "id_agente_miolo",
+          "descricao": "Pseudônimo dos 6 dígitos centrais do CPF, preenchido SÓ quando o documento veio mascarado ('***.NNN.NNN-**') e sobraram exatamente 6 dígitos. Sustenta o match parcial de primeiro_acesso_contemplados, que hash nenhum preservaria por substring. NULL em todo o resto."
+        },
+        {
+          "nome": "documento_mascarado",
+          "descricao": "Verdadeiro quando a origem entregou o documento mascarado, logo não casável com a lista de contemplados a não ser pelo miolo."
         },
         {
           "nome": "historico_acesso_bruto",
@@ -223,14 +263,14 @@
           "descricao": "Programa de fomento de origem — sempre 'PNAB' neste modelo."
         }
       ],
-      "colunas_descritas": 3,
+      "colunas_descritas": 5,
       "testes": 1,
       "materializacao": "incremental",
       "depende_de": [],
       "sources": [
         "relatorio_gestao.planilha_dados_pnab_ciclo_1"
       ],
-      "linhas_sql": 18
+      "linhas_sql": 68
     },
     {
       "nome": "conversao_direto_rouanet_coorte",
@@ -281,8 +321,16 @@
       "descricao": "Camada Gold — Meta 5 (Mapeamento de agentes culturais acessando fomento pela primeira vez), construída sobre identificadores_agentes. Classifica cada proponente por programa com a coluna perfil_acesso_fomento. Respostas confirmadas ('Sim'/'Não') são mantidas; respostas nulas ou omitidas recebem inferência cronológica via ROW_NUMBER() particionado por CPF/CNPJ e ordenado por programa_fomento (proxy temporal: LPG precede PNAB alfabeticamente, o que reflete a ordem real de ingresso na base). Um proponente com sequencia_fomento > 1 acessou mais de um programa, evidenciando veterania.",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "CPF ou CNPJ do proponente (já normalizado em minúsculas e sem espaços)."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex. Não é o documento e não é reversível sem o salt."
+        },
+        {
+          "nome": "id_agente_miolo",
+          "descricao": "Pseudônimo dos 6 dígitos centrais do CPF, preenchido só para proponente cujo documento veio mascarado da origem. Atravessa este modelo sem ser usado nele: quem consome é primeiro_acesso_contemplados, no match parcial com a lista de contemplados. NULL no resto."
+        },
+        {
+          "nome": "documento_mascarado",
+          "descricao": "Verdadeiro quando a origem entregou o documento mascarado, logo não casável com a lista de contemplados a não ser pelo miolo."
         },
         {
           "nome": "tipo_proponente",
@@ -298,32 +346,32 @@
         },
         {
           "nome": "sequencia_fomento",
-          "descricao": "Ordem de acesso do proponente dentro de seu histórico, particionado por identificador_unico e ordenado por programa_fomento (proxy temporal). sequencia_fomento = 1 indica o primeiro registro; > 1 indica veterano."
+          "descricao": "Ordem de acesso do proponente dentro de seu histórico, particionado por id_agente e ordenado por programa_fomento (proxy temporal). sequencia_fomento = 1 indica o primeiro registro; > 1 indica veterano."
         },
         {
           "nome": "perfil_acesso_fomento",
           "descricao": "Classificação final para a Meta 5: 'Confirmado - Primeira Vez' | 'Confirmado - Veterano' | 'Inferido - Primeira Vez (Estreante na base)' | 'Inferido - Veterano (Possui histórico)' | 'Não sabe/Não informou'."
         }
       ],
-      "colunas_descritas": 6,
+      "colunas_descritas": 8,
       "testes": 6,
       "materializacao": "table",
       "depende_de": [
         "identificadores_agentes"
       ],
       "sources": [],
-      "linhas_sql": 85
+      "linhas_sql": 98
     },
     {
       "nome": "perfil_agentes_completo",
       "dominio": "agentes",
       "camada": "gold",
       "caminho": "dbt/minc/models/agentes_dbt/gold/perfil_agentes_completo.sql",
-      "descricao": "Camada Gold — Master Data de proponentes (Meta 5). Grain: 1 linha por identificador_unico (CPF/CNPJ). Consolida perfil_acesso_fomento eliminando duplicatas entre programas: proponentes presentes em mais de um programa têm veterania confirmada por presença multi-programa, sobrepondo a resposta declarada. Serve como base para dois consumos:\n  - Relatório consolidado (sem inferência): filtrar WHERE status_origem = 'Confirmado'\n  - Visão analítica (com inferência): consumir todos os registros",
+      "descricao": "Camada Gold — Master Data de proponentes (Meta 5). Grain: 1 linha por id_agente (CPF/CNPJ). Consolida perfil_acesso_fomento eliminando duplicatas entre programas: proponentes presentes em mais de um programa têm veterania confirmada por presença multi-programa, sobrepondo a resposta declarada. Serve como base para dois consumos:\n  - Relatório consolidado (sem inferência): filtrar WHERE status_origem = 'Confirmado'\n  - Visão analítica (com inferência): consumir todos os registros",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "CPF ou CNPJ do proponente (normalizado). Chave única do modelo."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex. Não é o documento e não é reversível sem o salt. Chave única do modelo."
         },
         {
           "nome": "tipo_proponente",
@@ -364,8 +412,8 @@
       "descricao": "Camada Gold — Meta 5. Grão fino do indicador de novos entrantes: uma linha por (agente × mecanismo), com a data em que ele entrou naquele mecanismo e se aquela entrada foi a porta de entrada dele no fomento federal como um todo. Substitui primeiro_pagamento_bancario, que comparava datas apenas entre LPG e PNAB — num universo de dois programas, \"não é novo entrante\" só conseguia significar \"recebeu o outro programa antes\", e quem aparecia num programa só era sempre classificado como novo. Aqui a comparação é cross-mecanismo de verdade, e inclui a Rouanet desde 1993.\nExatamente uma linha por agente tem eh_porta_de_entrada = true; empates de data no mesmo dia são desempatados por ordem de mecanismo (ROUANET, LAB, LPG, PNAB) para que ninguém conte duas vezes.",
       "colunas": [
         {
-          "nome": "beneficiario_documento",
-          "descricao": "CPF (11) ou CNPJ (14) do agente, normalizado com LPAD."
+          "nome": "id_beneficiario",
+          "descricao": "Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex. Não é o documento e não é reversível sem o salt."
         },
         {
           "nome": "programa_fomento",
@@ -507,7 +555,7 @@
         "perfil_acesso_fomento"
       ],
       "sources": [],
-      "linhas_sql": 96
+      "linhas_sql": 114
     },
     {
       "nome": "primeiro_acesso_contemplados_bancario",
@@ -617,8 +665,8 @@
       "descricao": "Camada Silver — Meta 5. Espinha unificada: um evento por vez que um agente cultural recebeu recurso de uma política federal de fomento, num formato só. É a tabela que permite perguntar \"este agente já havia sido contemplado antes?\" acima do mecanismo, que é o que a pergunta da meta exige. Grão: 1 linha por (documento, mecanismo, data, valor).\nJanelas de observação, muito assimétricas: ROUANET 1993+, LAB/LPG/PNAB 2023+, FSA ausente. Por isso a coluna ano_inicio_observacao, que a gold usa para marcar os anos censurados à esquerda.\nO piso de valor (var limiar_valor_fomento, padrão 375) é aplicado sobre o TOTAL do agente naquele mecanismo, não por transação, e só ao BB Ágil — é lá que existe resíduo de transação que não é repasse de fomento.",
       "colunas": [
         {
-          "nome": "beneficiario_documento",
-          "descricao": "CPF (11) ou CNPJ (14) do agente, normalizado com LPAD."
+          "nome": "id_beneficiario",
+          "descricao": "Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex. Não é o documento e não é reversível sem o salt."
         },
         {
           "nome": "programa_fomento",
@@ -658,7 +706,7 @@
         "pagamentos_bbagil_beneficiarios"
       ],
       "sources": [],
-      "linhas_sql": 119
+      "linhas_sql": 123
     },
     {
       "nome": "eventos_fomento_ancine",
@@ -674,7 +722,7 @@
       "sources": [
         "ancine.consulta"
       ],
-      "linhas_sql": 83
+      "linhas_sql": 85
     },
     {
       "nome": "eventos_fomento_rouanet",
@@ -684,8 +732,12 @@
       "descricao": "Camada Silver — Meta 5. Um evento por captação real de recurso na Lei Rouanet, no mesmo formato dos pagamentos do BB Ágil. O evento é o recibo de captação (dinheiro efetivamente captado), não a aprovação do projeto: projeto aprovado que nunca captou não deu acesso a recurso nenhum, e misturar aprovação com pagamento tornaria a comparação entre mecanismos incoerente.\nLiga sac__captacao (dinheiro e data, sem proponente) a sac__tbapiprojetorouanet (proponente) pelo PRONAC — anoprojeto || sequencial = nrpronac, que casa 99,86% dos recibos. sac__projetos, que seria a ponte natural, existe no schema mas foi carregada com 0 linhas.",
       "colunas": [
         {
-          "nome": "beneficiario_documento",
-          "descricao": "CPF (11) ou CNPJ (14) do proponente, normalizado com LPAD."
+          "nome": "id_beneficiario",
+          "descricao": "Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex. Não é o documento e não é reversível sem o salt."
+        },
+        {
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' ou 'PJ', derivado do comprimento do documento canônico antes do hash. Materializado porque o pseudônimo apaga o comprimento que o deduzia."
         },
         {
           "nome": "programa_fomento",
@@ -704,7 +756,7 @@
           "descricao": "PRONAC do projeto que captou."
         }
       ],
-      "colunas_descritas": 5,
+      "colunas_descritas": 6,
       "testes": 6,
       "materializacao": "table",
       "depende_de": [],
@@ -713,7 +765,7 @@
         "bronze_sac.sac__projetos",
         "bronze_sac.sac__tbapiprojetorouanet"
       ],
-      "linhas_sql": 106
+      "linhas_sql": 109
     },
     {
       "nome": "pagamentos_bbagil_beneficiarios",
@@ -727,8 +779,12 @@
           "descricao": "Identificador do plano de ação (ente + programa) dono da conta que fez o pagamento."
         },
         {
-          "nome": "beneficiario_documento",
-          "descricao": "CPF/CNPJ do beneficiário do pagamento, normalizado."
+          "nome": "id_beneficiario",
+          "descricao": "Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex. Não é o documento e não é reversível sem o salt."
+        },
+        {
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' ou 'PJ', derivado do comprimento do documento canônico antes do hash. Materializado porque o pseudônimo apaga o comprimento que o deduzia."
         },
         {
           "nome": "programa_fomento",
@@ -743,7 +799,7 @@
           "descricao": "Data do pagamento."
         }
       ],
-      "colunas_descritas": 5,
+      "colunas_descritas": 6,
       "testes": 6,
       "materializacao": "table",
       "depende_de": [
@@ -751,7 +807,7 @@
         "bbagil_subtransacoes_filtrado"
       ],
       "sources": [],
-      "linhas_sql": 69
+      "linhas_sql": 71
     },
     {
       "nome": "perfil_agentes_historico",
@@ -761,8 +817,8 @@
       "descricao": "Camada Silver — perfil dos agentes (a partir da view identificadores_agentes, que já consolida os cinco bronzes) com higienização da coluna de histórico de acesso a recursos públicos. Remove valores nulos, 'nan' e caracteres inválidos (ponto, ponto-e-vírgula). Classifica as respostas em três categorias padronizadas: 'Sim', 'Não' e 'Não sabe/Não informou'. Propaga a coluna programa_fomento para rastreabilidade por programa.",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "Identificador único do proponente (CPF, CNPJ ou CPF do representante)."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do identificador do proponente (CPF, CNPJ, ou CPF do representante no caso de coletivo). Não é o documento."
         },
         {
           "nome": "tipo_proponente",
@@ -795,11 +851,19 @@
       "dominio": "agentes",
       "camada": "views",
       "caminho": "dbt/minc/models/agentes_dbt/views/identificadores_agentes.sql",
-      "descricao": "Camada Views — consolidação dos cinco modelos bronze (3 LPG + 2 PNAB) em um único dataset via UNION ALL. Padroniza identificador_unico e adiciona as colunas literais programa_fomento e tipo_proponente para rastrear a origem de cada registro. Base de onde partem perfil_agentes_historico e perfil_acesso_fomento.",
+      "descricao": "Camada Views — consolidação dos cinco modelos bronze (3 LPG + 2 PNAB) em um único dataset via UNION ALL. Padroniza id_agente e adiciona as colunas literais programa_fomento e tipo_proponente para rastrear a origem de cada registro. Base de onde partem perfil_agentes_historico e perfil_acesso_fomento.",
       "colunas": [
         {
-          "nome": "identificador_unico",
-          "descricao": "Identificador único do proponente (CPF, CNPJ ou CPF do representante)."
+          "nome": "id_agente",
+          "descricao": "Pseudônimo do identificador do proponente (CPF, CNPJ, ou CPF do representante no caso de coletivo). Não é o documento."
+        },
+        {
+          "nome": "id_agente_miolo",
+          "descricao": "Pseudônimo dos 6 dígitos centrais do CPF, só para proponente cujo documento veio mascarado da origem. NULL no resto."
+        },
+        {
+          "nome": "documento_mascarado",
+          "descricao": "Verdadeiro quando a origem entregou o documento mascarado."
         },
         {
           "nome": "historico_acesso_bruto",
@@ -814,7 +878,7 @@
           "descricao": "Tipo do proponente — 'Pessoa Física', 'Pessoa Jurídica', 'Coletivo' ou 'Organização'."
         }
       ],
-      "colunas_descritas": 4,
+      "colunas_descritas": 6,
       "testes": 1,
       "materializacao": "view",
       "depende_de": [
@@ -825,7 +889,7 @@
         "pnab_agentes_pj"
       ],
       "sources": [],
-      "linhas_sql": 45
+      "linhas_sql": 63
     },
     {
       "nome": "identificadores_contemplados",
@@ -835,20 +899,24 @@
       "descricao": "Views — unifica identificadores (CPF/CNPJ normalizados) de contemplados LPG + PNAB. Extraído de primeiro_acesso_contemplados para reuso também em primeiro_acesso_contemplados_bancario.\nAs colunas de documento são resolvidas dinamicamente via information_schema nas três tabelas de origem, porque a ingestão de planilhas não normaliza espaços nem NBSP nos cabeçalhos e o mesmo campo vira várias colunas, cada uma com parte dos dados. O padrão anterior (ILIKE '%cpf%cnpj%') exigia \"cpf\" antes de \"cnpj\" e não casava \"cnpj\" sozinho nem \"cpf/ cnpj\", deixando de fora ~2.100 contemplados do PNAB — a maioria deles com pagamento comprovado no extrato bancário.\nColunas \"cpf (anonimizado)\" são excluídas de propósito: trazem ***XXXXXX** no lugar do documento. Continua valendo que o CPF de PF da lista geral do PNAB, fora do PNCV, não é rastreável.",
       "colunas": [
         {
-          "nome": "id_normalizado",
-          "descricao": "CPF ou CNPJ do contemplado, normalizado (só dígitos)."
+          "nome": "id_contemplado",
+          "descricao": "Pseudônimo do CPF/CNPJ: sha256(salt || documento canônico), em hex. Não é o documento e não é reversível sem o salt. Canonizado (só dígitos + LPAD) antes do hash, que é o que o mantém casável com o lado bancário e o de proponentes."
+        },
+        {
+          "nome": "id_contemplado_miolo",
+          "descricao": "Pseudônimo dos 6 dígitos centrais do CPF. É NULL para CNPJ, que a origem não mascara — por isso NÃO leva not_null. Existe para casar com proponente cujo CPF veio mascarado: hash não preserva substring, então o recorte é feito antes."
         },
         {
           "nome": "programa_fomento",
           "descricao": "Programa de fomento — 'LPG' ou 'PNAB'."
         }
       ],
-      "colunas_descritas": 2,
+      "colunas_descritas": 3,
       "testes": 3,
       "materializacao": "view",
       "depende_de": [],
       "sources": [],
-      "linhas_sql": 109
+      "linhas_sql": 122
     },
     {
       "nome": "stg_agentes_coletivos",
