@@ -1,4 +1,27 @@
-{{ config(materialized='view') }}
+{{ config(enabled=false, materialized='view') }}
+
+-- DESABILITADO. Depende de relatorio_gestao.planilha_contemplados_lpg e
+-- planilha_contemplados_pnab_ciclo_1, que não existem no banco: elas só nascem
+-- da cadeia de anexos do TransfereGov (api_planos_acao_dag →
+-- api_relatorios_gestao_dag → api_anexos_relatorios_dag →
+-- download_anexos_transferegov_dag → extracao_anexos_dag), toda com trigger
+-- manual e nenhuma delas rodada aqui.
+--
+-- Por que ficou fora do caminho da Meta 5: as perguntas 1, 2.1, 2.2 e 2.3 são
+-- respondidas por primeiro_acesso_anual, trajetoria_fomento_direto_rouanet e
+-- conversao_direto_rouanet_coorte, e nenhum dos três encosta em contemplados —
+-- a linhagem deles é plano de ação → BB Ágil, mais SALIC e Ancine. O único
+-- dependente deste modelo é primeiro_acesso_contemplados, desabilitado junto.
+--
+-- O que se perde enquanto estiver assim: a aferição de cobertura. Este par de
+-- modelos é o que compara "quem o edital selecionou" com "quem apareceu no
+-- extrato" — a distância medida era ~46% na LPG e ~89% no PNAB, e é o que
+-- sustenta a ressalva de que o indicador enxerga só quem recebeu por conta do
+-- Banco do Brasil. Sem eles o número da Meta 5 continua correto, mas a
+-- limitação dele deixa de ser mensurável.
+--
+-- Para reativar: rode a cadeia de anexos acima e troque para enabled=true aqui
+-- e em primeiro_acesso_contemplados.
 
 -- Bronze — unifica os identificadores (CPF/CNPJ normalizados) das listas
 -- oficiais de contemplados de edital, LPG + PNAB, para que
