@@ -97,12 +97,17 @@ models:
       O PRONAC NÃO leva LPAD: é ano de 2 dígitos seguido de sequencial de
       largura variável, e preencher com zero à esquerda quebra o casamento
       com sac__captacao.
+
+      Lê a ingestão v1 do SALIC (source `bronze_sac_legado`, schema `bronze`),
+      não a v2 oficial em `salic_bronze`. Migrar é trabalho à parte: a v2 tem
+      571 modelos de bronze e ainda não foi verificado se a captação chega lá
+      com o mesmo grão e a mesma cobertura de 1993 em diante.
     config:
       tags: [silver, agentes, salic, rouanet, meta5]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — eventos de captação da Lei Rouanet'
-        origem_dados: 'bronze.sac__captacao + bronze.sac__projetos + bronze.sac__tbapiprojetorouanet'
+        origem_dados: 'bronze_sac_legado.sac__captacao + sac__projetos + sac__tbapiprojetorouanet'
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier2
