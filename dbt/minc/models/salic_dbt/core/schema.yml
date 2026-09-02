@@ -1,0 +1,858 @@
+version: 2
+
+models:
+  - name: map_chave_projeto_rouanet
+    description: >
+      Camada Silver / núcleo SALIC. Mapa das três chaves com que o SALIC
+      identifica o mesmo projeto da Lei Rouanet: `pronac` (chave de negócio, 7
+      posições), `id_pronac` (surrogate das tabelas de análise) e `id_projeto`
+      (surrogate antigo, chave de `sac__abrangencia`).
+
+      GRÃO: uma linha por PRONAC. UNIVERSO: todo PRONAC observado em qualquer
+      tabela da bronze v2 que carregue a chave — `sac__aprovacao`,
+      `sac__enquadramento`, `sac__documentosprojeto`,
+      `sac__vwprojetositinerantes`, `sac__vwalterarprojeto`,
+      `sac__vwagentesseusprojetos` e `sac__captacao`. Nada é excluído por
+      situação, ano ou valor.
+
+      PARA QUE SERVE: sem ele a Meta 4 não liga abrangência territorial a
+      PRONAC, porque `sac__abrangencia` só tem `idprojeto`. Também é ele que
+      define o universo de projetos da `dim_projeto_rouanet`.
+
+      DESCONHECIDOS E CONFLITO: quando o mesmo PRONAC aparece com mais de um
+      `id_pronac` (ou mais de um `id_projeto`), a coluna do id sai NULL e a flag
+      correspondente sai `true` — fail-closed. Um join que não acontece é
+      visível; um join com o id errado não é. `idprojeto = 0`, que é o valor
+      preenchido na maior parte de `sac__captacao`, é tratado como ausência.
+
+      LIMITAÇÕES: cobertura e taxa de ambiguidade dependem do que está
+      carregado e ainda não foram medidas contra o banco (gate G1 do plano).
+      ATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.
+    config:
+      tags: [silver, salic, rouanet, core]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Chave conformada do projeto Rouanet — base das Metas 3, 4 e 5'
+        origem_dados: 'salic_bronze (sac) — 7 tabelas com chave de projeto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.Identificadores.PRONAC
+    columns:
+      - name: pronac
+        description: >
+          Chave de negócio do projeto na Rouanet, com 7 posições — dois dígitos
+          de ano seguidos de cinco de sequencial, com zeros à esquerda
+          preservados. Normalizado pela macro `pronac_normalizado` ou montado
+          por `pronac_de_ano_sequencial`, conforme a forma da origem.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.PRONAC
+        tests:
+          - not_null
+          - unique
+      - name: ano_pronac
+        description: >
+          Ano de quatro dígitos derivado das duas primeiras posições do PRONAC.
+          A regra é 91–99 para o século XX e 00–90 para o XXI, válida até 2091.
+          É o ano de abertura do projeto, não o ano de nenhum evento
+          financeiro — não use como ano de referência de indicador.
+        data_type: integer
+      - name: id_pronac
+        description: >
+          Surrogate inteiro do projeto usado pelas tabelas de análise do SALIC.
+          NULL quando a origem apresenta mais de um valor para o mesmo PRONAC.
+        data_type: integer
+      - name: id_projeto
+        description: >
+          Surrogate antigo do projeto, chave de `sac__abrangencia`. NULL quando
+          ambíguo e quando a origem grava 0, que não identifica projeto.
+        data_type: integer
+      - name: id_pronac_ambiguo
+        description: >
+          `true` quando a origem associa mais de um `id_pronac` ao mesmo
+          PRONAC. Nesses casos `id_pronac` é NULL de propósito.
+        data_type: boolean
+        tests:
+          - not_null
+      - name: id_projeto_ambiguo
+        description: >
+          `true` quando a origem associa mais de um `id_projeto` ao mesmo
+          PRONAC. Nesses casos `id_projeto` é NULL de propósito.
+        data_type: boolean
+        tests:
+          - not_null
+      - name: qt_tabelas_origem
+        description: >
+          Quantas das sete tabelas de origem observaram este PRONAC. É a medida
+          de confiança da chave: PRONAC visto em uma tabela só pode ser resíduo
+          de carga, e o valor permite medir isso sem abrir o modelo.
+        data_type: integer
+        tests:
+          - not_null
+
+  - name: dim_projeto_rouanet
+    description: >
+      Camada Silver / núcleo SALIC. Dimensão do projeto cultural na Lei
+      Rouanet: nome, área, segmento, mecanismo, enquadramento, situação, janela
+      de execução, janela de captação e valores autorizados.
+
+      GRÃO: uma linha por PRONAC. CHAVE: `pronac`. UNIVERSO: todo PRONAC de
+      `map_chave_projeto_rouanet`, e não apenas os projetos que o cadastro
+      resolve — um projeto que só aparece em captação existe para efeito de
+      indicador, e incluí-lo só quando o cadastro o descreve produziria um
+      denominador que muda sozinho conforme a carga avança. Projeto sem
+      cadastro sai com atributos descritivos nulos e `cadastro_resolvido`
+      `false`, nunca fora da tabela.
+
+      IDENTIDADE FICA DE FORA: nem CPF/CNPJ, nem nome de proponente, nem
+      `logon` de analista. A ligação projeto → proponente é
+      `brg_projeto_proponente_rouanet`, que é zona restrita. Esta dimensão
+      existe para ser a parte publicável do projeto.
+
+      "ÚLTIMO" É UMA ESCOLHA DECLARADA: aprovação e enquadramento têm histórico
+      (readequação, prorrogação, reenquadramento). A dimensão guarda o registro
+      mais recente de cada um, que é a leitura de painel; o histórico completo
+      está em `fct_aprovacao_rouanet` e nenhuma linha se perde lá.
+
+      MEDIDA E UNIDADE: `valor_aprovado_reais` e `valor_autorizado_reais` estão
+      em reais nominais da data da aprovação, sem correção monetária, e são
+      teto de captação — não recurso realizado. Para recurso realizado use
+      `fct_captacao_rouanet`.
+
+      JOINS: `sac__vwalterarprojeto` (cadastro), `sac__vwagentesseusprojetos`
+      (mecanismo), `sac__enquadramento`, `sac__aprovacao`, `sac__area` e
+      `sac__vsegmento` (dimensões descritivas, esta última casada por área +
+      código, porque o código de segmento se repete entre áreas).
+
+      LIMITAÇÕES: `Projetos` da ingestão v2 ainda não foi carregada, então o
+      cadastro vem da view `sac__vwalterarprojeto`, cujo grão não foi medido
+      contra o banco — o `distinct on` do modelo garante o grão declarado
+      independentemente disso. A cobertura de cadastro e a de nome de área e
+      segmento também não foram medidas (gate G1).
+      ATUALIZAÇÃO: recalculada a cada `dbt build`.
+    config:
+      tags: [silver, salic, rouanet, core, meta3, meta4, meta5]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Dimensão conformada do projeto Rouanet'
+        origem_dados: 'salic_bronze (sac) + map_chave_projeto_rouanet'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.IncentivoFiscal.ProjetoCultural
+            - MinC.Identificadores.PRONAC
+    columns:
+      - name: pronac
+        description: >
+          Chave de negócio do projeto, 7 posições com zeros à esquerda
+          preservados. Chave primária desta dimensão.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.PRONAC
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('map_chave_projeto_rouanet')
+                field: pronac
+      - name: ano_pronac
+        description: >
+          Ano de abertura do projeto, de quatro dígitos, derivado do PRONAC.
+          Não é ano de aprovação nem de captação.
+        data_type: integer
+      - name: id_pronac
+        description: >
+          Surrogate inteiro do projeto no SALIC. NULL quando a origem é ambígua
+          — ver `map_chave_projeto_rouanet.id_pronac_ambiguo`.
+        data_type: integer
+      - name: nome_projeto
+        description: >
+          Nome do projeto cultural como cadastrado no SALIC. Campo público:
+          consta das listagens oficiais da Lei Rouanet.
+        data_type: text
+      - name: codigo_area
+        description: >
+          Código da área cultural do projeto (dança, música, patrimônio e
+          assemelhados), como inteiro. NULL quando o cadastro não resolve.
+        data_type: integer
+      - name: nome_area
+        description: >
+          Descrição da área cultural, de `sac__area`. NULL quando o código não
+          casa com a tabela de domínio — a ponte normaliza o código para
+          dígitos, e área alfanumérica, se existir, resolve para nulo em vez de
+          casar errado.
+        data_type: text
+      - name: codigo_segmento
+        description: >
+          Código do segmento cultural dentro da área. O código se repete entre
+          áreas; a chave real do segmento é o par (área, código).
+        data_type: integer
+      - name: nome_segmento
+        description: >
+          Descrição do segmento cultural, de `sac__vsegmento`, casada por área
+          e código.
+        data_type: text
+      - name: codigo_mecanismo
+        description: >
+          Código do mecanismo de incentivo do projeto, vindo de
+          `sac__vwagentesseusprojetos`. Exposto como código: a tabela de
+          domínio ainda não foi identificada na bronze v2, e inventar a
+          descrição seria pior que não tê-la.
+        data_type: integer
+      - name: codigo_enquadramento
+        description: >
+          Código do enquadramento mais recente do projeto — é ele que separa os
+          artigos da lei com percentual de abatimento diferente. Exposto como
+          código pelo mesmo motivo do mecanismo.
+        data_type: integer
+      - name: data_enquadramento
+        description: Data do enquadramento mais recente registrado para o projeto.
+        data_type: date
+      - name: codigo_situacao
+        description: >
+          Código da situação atual do projeto no SALIC. É um código de texto
+          (não um rótulo legível); a tabela de domínio ainda não foi
+          identificada na bronze v2. Nenhum indicador deve derivar "em
+          execução" daqui antes da taxonomia temporal do gate A0.
+        data_type: text
+      - name: data_situacao
+        description: >
+          Data da última mudança de situação. NÃO é a data de registro do
+          projeto — usá-la como entrada do proponente no sistema data errado
+          todo indicador de primeiro acesso.
+        data_type: date
+      - name: data_inicio_execucao
+        description: Início da janela de execução do projeto, como cadastrado.
+        data_type: date
+      - name: data_fim_execucao
+        description: Fim da janela de execução do projeto, como cadastrado.
+        data_type: date
+      - name: data_primeira_aprovacao
+        description: >
+          Data da primeira aprovação registrada para o projeto. Distinta de
+          `data_ultima_aprovacao` sempre que houve readequação ou prorrogação.
+        data_type: date
+      - name: data_ultima_aprovacao
+        description: Data da aprovação mais recente registrada para o projeto.
+        data_type: date
+      - name: data_publicacao_ultima_aprovacao
+        description: >
+          Data de publicação da portaria da aprovação mais recente. É a data
+          com efeito legal: é a partir dela que o projeto pode captar.
+        data_type: date
+      - name: data_inicio_captacao
+        description: Início da janela em que o projeto está autorizado a captar.
+        data_type: date
+      - name: data_fim_captacao
+        description: Fim da janela em que o projeto está autorizado a captar.
+        data_type: date
+      - name: valor_aprovado_reais
+        description: >
+          Valor aprovado na aprovação mais recente, em reais nominais da data
+          da aprovação, sem correção monetária. É teto, não recurso realizado.
+        data_type: numeric
+      - name: valor_autorizado_reais
+        description: >
+          Valor autorizado a captar na aprovação mais recente, em reais
+          nominais, sem correção monetária. Comparar com o captado exige
+          `fct_captacao_rouanet`; usar este valor como execução superestima
+          qualquer indicador.
+        data_type: numeric
+      - name: qt_aprovacoes
+        description: >
+          Quantas aprovações o projeto acumulou. Zero para projeto nunca
+          aprovado — não NULL, porque a ausência de aprovação é informação.
+        data_type: integer
+        tests:
+          - not_null
+      - name: projeto_aprovado
+        description: >
+          `true` quando o projeto tem ao menos uma aprovação registrada.
+          Aprovado não implica ter captado.
+        data_type: boolean
+        tests:
+          - not_null
+      - name: cadastro_resolvido
+        description: >
+          `false` quando o PRONAC existe em alguma tabela transacional mas o
+          cadastro não o descreve. Expõe a cobertura do cadastro em vez de
+          escondê-la reduzindo o universo.
+        data_type: boolean
+        tests:
+          - not_null
+
+  - name: brg_projeto_proponente_rouanet
+    description: >
+      Camada Silver / núcleo SALIC. Ponte entre projeto e agente proponente na
+      Lei Rouanet.
+
+      ZONA RESTRITA — não publicável e proibida em corpus de RAG, no modelo
+      inteiro e não por coluna. É o único modelo do núcleo que carrega
+      identidade (CPF/CNPJ e nome), e existe separado da `dim_projeto_rouanet`
+      exatamente para que o projeto possa ser publicado sem arrastar a pessoa
+      junto.
+
+      GRÃO: uma linha por PRONAC × agente. CHAVE: `id_projeto_proponente`.
+      UNIVERSO: os vínculos que `sac__vwagentesseusprojetos` registra, com
+      PRONAC e agente resolvidos.
+
+      POR QUE UMA PONTE E NÃO UMA COLUNA NA DIMENSÃO: um projeto pode ter mais
+      de um agente ligado a ele. Guardar o proponente como atributo do projeto
+      obrigaria a escolher um em silêncio, e é essa escolha que muda a contagem
+      de proponentes distintos das Metas 3 e 5.
+
+      IDENTIDADE ENTRE BASES: a chave de cruzamento com LPG, PNAB e BB Ágil
+      ainda não está aqui. O plano decidiu HMAC-SHA256 com segredo gerenciado,
+      porque hash simples de CPF/CNPJ é enumerável; enquanto o segredo não
+      existir, esta ponte guarda apenas o documento normalizado, na zona
+      restrita, e nenhum modelo publicável o consome.
+
+      LIMITAÇÕES: `sac__vwagentesseusprojetos` não está no dicionário original
+      do SALIC; o grão PRONAC × agente é leitura das colunas, não medição, e o
+      `distinct on` garante o grão declarado independentemente do que a origem
+      entregue. Que todo agente listado seja proponente, e não outro papel, é
+      hipótese a confirmar antes de qualquer KPI contar proponentes a partir
+      daqui (gate G1). ATUALIZAÇÃO: recalculada a cada `dbt build`.
+    config:
+      tags: [silver, salic, rouanet, core, restrito, meta3, meta5]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Ligação projeto → proponente, isolada da dimensão publicável'
+        origem_dados: 'salic_bronze.sac__vwagentesseusprojetos'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          # Colunas cujo NOME parece identificador mas cujo CONTEUDO nao
+          # identifica ninguem. A dispensa mora aqui, e nao na heuristica do
+          # teste, para que ela seja revisavel no mesmo diff do modelo.
+          derivadas_nao_identificantes: [documento_valido]
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          tags:
+            - PII.Sensitive
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.Agentes.Proponente
+    columns:
+      - name: id_projeto_proponente
+        description: >
+          Chave da ponte: PRONAC e id do agente concatenados. Existe para que a
+          unicidade do grão composto seja testável sem depender de pacote
+          externo. É chave técnica derivada de identificador de pessoa, por
+          isso classificada como PII.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+        tests:
+          - not_null
+          - unique
+      - name: pronac
+        description: PRONAC do projeto, 7 posições. Casa com `dim_projeto_rouanet`.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.PRONAC
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_projeto_rouanet')
+                field: pronac
+      - name: id_agente
+        description: >
+          Identificador do agente no cadastro do SALIC. Chave técnica que
+          identifica pessoa indiretamente — classificada como PII por isso,
+          e não pelo formato.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+        tests:
+          - not_null
+      - name: documento_proponente
+        description: >
+          CPF ou CNPJ do proponente, normalizado para dígitos (macro
+          `normaliza_documento`), com zeros à esquerda preservados. Vazio vira
+          NULL. Nunca sai da zona restrita.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+            glossary:
+              - MinC.Identificadores.IdentificadorUnico
+      - name: documento_valido
+        description: >
+          `true` quando o documento normalizado tem 11 ou 14 dígitos. Valida
+          formato, não existência: não confere dígito verificador nem consulta
+          base oficial.
+        data_type: boolean
+        tests:
+          - not_null
+      - name: tipo_pessoa_proponente
+        description: >
+          'PF' ou 'PJ', derivado apenas do comprimento do documento. NULL
+          quando o comprimento não é 11 nem 14 — documento inválido não vira
+          uma terceira categoria.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PF', 'PJ']
+      - name: nome_proponente
+        description: >
+          Nome ou razão social do proponente, como cadastrado. Dado pessoal:
+          nunca sai da zona restrita, mesmo sendo público em listagens oficiais
+          — aqui ele aparece ligado a documento e a projeto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: id_solicitante
+        description: >
+          Identificador do solicitante do vínculo no SALIC, como texto na
+          origem. Chave técnica ligada a pessoa.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: descricao_vinculo
+        description: >
+          Texto da origem que descreve o vínculo entre agente e projeto. É o
+          único campo que distingue o papel do agente, por isso fica; o domínio
+          de valores não foi levantado e nenhum filtro do repositório depende
+          dele. Por ser texto livre da origem, é tratado como campo que pode
+          conter dado pessoal.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+
+  - name: fct_captacao_rouanet
+    description: >
+      Camada Silver / núcleo SALIC. Fato da captação de recurso na Lei Rouanet.
+
+      GRÃO: uma linha por recibo de captação. CHAVE: `id_captacao`. UNIVERSO:
+      todos os recibos de `sac__captacao` com id, data e PRONAC resolvidos.
+      Nenhum corte por ano, valor ou situação do projeto.
+
+      O QUE MEDE: na Rouanet o MinC não repassa dinheiro ao agente — o projeto
+      aprovado capta de um incentivador, que abate o valor do imposto devido. O
+      recibo é o registro de que o recurso entrou, e por isso ele, e não a
+      portaria de aprovação, é a medida de recurso captado das Metas 3 e 5.
+
+      CAPTAÇÃO NÃO É PAGAMENTO: captado, comprovado e pago são três medidas
+      diferentes, e um indicador nunca pode usar uma no numerador e outra no
+      denominador. Este fato responde por captado.
+
+      MEDIDA E UNIDADE: `valor_captado_reais` em reais nominais da data do
+      recibo, sem correção monetária. `valor_captado_ufir` é o mesmo valor na
+      unidade fiscal histórica e só faz sentido para série antiga.
+
+      O MECENAS FICA DE FORA: `cgccpfmecena` identifica o incentivador e não é
+      trazido. No lugar fica `tipo_pessoa_mecenas`, derivado só do comprimento
+      do documento. É o que deixa este fato candidato a publicação depois da
+      validação de segurança; análise por incentivador pede um fato restrito
+      próprio.
+
+      NULOS E DESCONHECIDOS: valor zero ou negativo (estorno) é preservado —
+      filtrar aqui esconderia estorno de quem soma, e a decisão do que entra em
+      cada indicador é do gold, com a regra declarada. Sai apenas o que não
+      identifica evento: recibo sem id, sem data ou sem PRONAC resolvido.
+
+      LIMITAÇÕES: a reconciliação por ano e PRONAC com
+      `agentes_dbt/silver/eventos_fomento_rouanet` — que lê a bronze v1, no
+      schema `bronze` — é o gate G3 e ainda não foi feita. Até lá os dois
+      convivem e nenhum substitui o outro.
+      ATUALIZAÇÃO: recalculado a cada `dbt build`.
+    config:
+      tags: [silver, salic, rouanet, core, meta3, meta5]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Recurso efetivamente captado por projeto — Metas 3 e 5'
+        origem_dados: 'salic_bronze.sac__captacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.IncentivoFiscal.CaptacaoEfetiva
+    columns:
+      - name: id_captacao
+        description: Identificador do recibo de captação no SALIC. Chave do fato.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: pronac
+        description: PRONAC do projeto que captou, 7 posições.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.PRONAC
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_projeto_rouanet')
+                field: pronac
+      - name: numero_recibo
+        description: Número do recibo de captação, como texto na origem.
+        data_type: text
+      - name: data_recibo
+        description: >
+          Data do recibo — é o evento que data a captação e o que define o ano
+          de referência de qualquer indicador de recurso captado.
+        data_type: date
+        tests:
+          - not_null
+      - name: ano_recibo
+        description: Ano da data do recibo, para corte anual sem derivar data no gold.
+        data_type: integer
+        tests:
+          - not_null
+      - name: data_chegada_recibo
+        description: >
+          Data em que o recibo chegou ao SALIC. Diferente da data do recibo, e
+          é a diferença entre as duas que explica atraso de série.
+        data_type: date
+      - name: valor_captado_reais
+        description: >
+          Valor captado em reais nominais da data do recibo, sem correção
+          monetária. Valores zero e negativos (estorno) são preservados.
+        data_type: numeric
+      - name: valor_captado_ufir
+        description: >
+          Mesmo valor na unidade fiscal histórica (UFIR). Só faz sentido para a
+          série anterior à extinção da unidade; não misture com reais.
+        data_type: numeric
+      - name: codigo_tipo_apoio
+        description: >
+          Código do tipo de apoio do recibo, como na origem. A tabela de
+          domínio ainda não foi identificada na bronze v2.
+        data_type: text
+      - name: medida_provisoria
+        description: >
+          Medida provisória sob a qual a captação foi registrada, quando a
+          origem preenche.
+        data_type: text
+      - name: tipo_pessoa_mecenas
+        description: >
+          'PF' ou 'PJ' do incentivador, derivado apenas do comprimento do
+          documento. Deliberadamente não identificante: o CPF/CNPJ do mecenas
+          não é trazido para esta camada.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PF', 'PJ']
+      - name: situacao_transferencia_recurso
+        description: Situação da transferência do recurso, como código de texto na origem.
+        data_type: text
+      - name: data_transferencia_recurso
+        description: Data da transferência do recurso, quando registrada.
+        data_type: date
+      - name: indicador_bem_servico
+        description: >
+          Marcador da origem para captação em bem ou serviço, em vez de
+          dinheiro. Mantido como texto: o domínio de valores não foi levantado
+          e convertê-lo para booleano aqui inventaria uma leitura.
+        data_type: text
+
+  - name: fct_aprovacao_rouanet
+    description: >
+      Camada Silver / núcleo SALIC. Fato da aprovação de projeto na Lei
+      Rouanet, com o histórico completo.
+
+      GRÃO: uma linha por registro de aprovação. CHAVE: `id_aprovacao`.
+      UNIVERSO: todos os registros de `sac__aprovacao` com id e PRONAC
+      resolvidos.
+
+      POR QUE O HISTÓRICO INTEIRO: um projeto tem mais de uma aprovação ao
+      longo da vida — inicial, readequação, prorrogação. A `dim_projeto_rouanet`
+      guarda só a mais recente, que é o que um painel lê; aqui nenhuma linha se
+      perde, porque a série de valor autorizado e a janela de captação dependem
+      do histórico. `codigo_tipo_aprovacao`, `id_readequacao` e
+      `id_prorrogacao` são o que distingue os registros entre si.
+
+      APROVAÇÃO NÃO É CAPTAÇÃO: o valor autorizado é teto — quanto o projeto
+      pode captar, não quanto captou. Usá-lo como recurso realizado superestima
+      qualquer indicador de execução.
+
+      MEDIDA E UNIDADE: todos os valores `_reais` em reais nominais da data da
+      aprovação, sem correção monetária; os `_ufir` na unidade fiscal
+      histórica.
+
+      DUAS COLUNAS DA ORIGEM FICAM DE FORA: `logon`, que identifica o servidor
+      que registrou a aprovação, e `resumoaprovacao`, texto livre digitado por
+      analista — texto livre é o vetor por onde nome, endereço e documento
+      entram numa tabela que nenhuma classificação automática marca.
+
+      LIMITAÇÕES: o domínio de `codigo_tipo_aprovacao` não foi levantado contra
+      o banco e fica exposto como código, sem descrição inventada (gate G1).
+      ATUALIZAÇÃO: recalculado a cada `dbt build`.
+    config:
+      tags: [silver, salic, rouanet, core, meta5]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Histórico de aprovação e teto de captação por projeto'
+        origem_dados: 'salic_bronze.sac__aprovacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.IncentivoFiscal.ProjetoCultural
+    columns:
+      - name: id_aprovacao
+        description: Identificador do registro de aprovação no SALIC. Chave do fato.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: pronac
+        description: PRONAC do projeto aprovado, 7 posições.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.PRONAC
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_projeto_rouanet')
+                field: pronac
+      - name: id_pronac
+        description: Surrogate inteiro do projeto, como gravado na própria linha de origem.
+        data_type: integer
+      - name: id_parecer
+        description: Identificador do parecer que embasou a aprovação.
+        data_type: integer
+      - name: codigo_tipo_aprovacao
+        description: >
+          Código que distingue aprovação inicial de readequação e prorrogação.
+          Exposto como código: a tabela de domínio ainda não foi identificada.
+        data_type: text
+      - name: data_aprovacao
+        description: Data em que a aprovação foi registrada.
+        data_type: date
+      - name: ano_aprovacao
+        description: Ano da data de aprovação, para corte anual.
+        data_type: integer
+      - name: numero_portaria
+        description: Número da portaria de aprovação.
+        data_type: text
+      - name: data_portaria
+        description: Data da portaria de aprovação.
+        data_type: date
+      - name: data_publicacao
+        description: >
+          Data de publicação da portaria. É a data com efeito legal: a partir
+          dela o projeto pode captar. Preferida a `data_aprovacao` quando se
+          precisa datar o acesso.
+        data_type: date
+      - name: data_inicio_captacao
+        description: Início da janela autorizada de captação.
+        data_type: date
+      - name: data_fim_captacao
+        description: Fim da janela autorizada de captação.
+        data_type: date
+      - name: valor_aprovado_reais
+        description: Valor aprovado, em reais nominais da data da aprovação.
+        data_type: numeric
+      - name: valor_autorizado_reais
+        description: >
+          Valor autorizado a captar, em reais nominais. É teto, não recurso
+          realizado.
+        data_type: numeric
+      - name: valor_concedido_custeio_reais
+        description: Parcela de custeio do valor concedido, em reais nominais.
+        data_type: numeric
+      - name: valor_concedido_capital_reais
+        description: Parcela de capital do valor concedido, em reais nominais.
+        data_type: numeric
+      - name: valor_contrapartida_reais
+        description: Contrapartida registrada na aprovação, em reais nominais.
+        data_type: numeric
+      - name: valor_aprovado_ufir
+        description: Valor aprovado na unidade fiscal histórica (UFIR).
+        data_type: numeric
+      - name: valor_autorizado_ufir
+        description: Valor autorizado na unidade fiscal histórica (UFIR).
+        data_type: numeric
+      - name: id_prorrogacao
+        description: Identificador da prorrogação, quando a aprovação é uma prorrogação.
+        data_type: integer
+      - name: id_readequacao
+        description: Identificador da readequação, quando a aprovação é uma readequação.
+        data_type: integer
+
+  - name: fct_evento_acesso_rouanet
+    description: >
+      Camada Silver / núcleo SALIC. Espinha de eventos datados de acesso à Lei
+      Rouanet, no grão do projeto.
+
+      GRÃO: uma linha por evento qualificável. CHAVE: `id_evento`. UNIVERSO:
+      união de `fct_captacao_rouanet` e `fct_aprovacao_rouanet`, restrita aos
+      eventos com data resolvida.
+
+      PARA QUE SERVE: a Meta 5 pergunta quantos proponentes acessaram a Rouanet
+      pela primeira vez em um ano. Responder exige uma série de eventos datados
+      e comparáveis, e exige que "primeira aprovação" e "primeira captação"
+      continuem distinguíveis — são conceitos diferentes e o plano proíbe
+      colapsá-los. Por isso o tipo do evento é coluna, e não filtro embutido.
+
+      É MODELO DE PROJETO, NÃO DE PESSOA: não carrega proponente, documento nem
+      id de agente. A ligação com identidade acontece uma camada acima, na zona
+      restrita, cruzando com `brg_projeto_proponente_rouanet`. Manter a espinha
+      no grão do projeto é o que permite publicá-la.
+
+      FALTA O EVENTO DE REGISTRO, e a ausência é conhecida: a data de registro
+      da proposta está em `PreProjeto`/`Projetos` da v2, que não foram
+      ingeridas. Derivá-la de `data_situacao` seria errado — aquilo é a última
+      mudança de situação, não a entrada. Enquanto a fonte não chega,
+      `tipo_evento` tem dois valores, e qualquer KPI de primeiro acesso
+      construído sobre isto mede primeiro acesso A RECURSO, não primeiro
+      contato com o sistema.
+
+      MEDIDA E UNIDADE: `valor_reais` é captado quando o evento é captação e
+      autorizado quando é aprovação. São medidas diferentes na mesma coluna, de
+      propósito, porque a coluna é o valor associado ao evento — somar as duas
+      juntas é erro, e é por isso que `tipo_evento` nunca deve ser agregado
+      fora.
+
+      REGRA DA DATA: publicação vem antes de data de aprovação no `coalesce`
+      porque é a data com efeito legal. Quando a publicação não está
+      preenchida, a data de aprovação entra como substituta e
+      `data_evento_substituta` marca isso, para que o gold possa medir o quanto
+      da série depende do substituto.
+
+      LIMITAÇÕES: herda os limites dos dois fatos de origem, incluindo a
+      reconciliação pendente com a bronze v1 (gate G3).
+      ATUALIZAÇÃO: recalculado a cada `dbt build`.
+    config:
+      tags: [silver, salic, rouanet, core, meta5]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Meta 5 — série datada de acesso a recurso na Rouanet'
+        origem_dados: 'fct_captacao_rouanet + fct_aprovacao_rouanet'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.Agentes.PrimeiroAcesso
+            - MinC.IncentivoFiscal.CaptacaoEfetiva
+    columns:
+      - name: id_evento
+        description: >
+          Chave do evento: tipo e id de origem concatenados. Garante unicidade
+          entre os dois fatos, cujos ids são independentes entre si.
+        data_type: text
+        tests:
+          - not_null
+          - unique
+      - name: tipo_evento
+        description: >
+          'APROVACAO' ou 'CAPTACAO'. Nunca agregue valores de tipos diferentes
+          na mesma soma: são medidas distintas. 'REGISTRO' está previsto e
+          ausente porque a fonte não foi ingerida.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['APROVACAO', 'CAPTACAO']
+      - name: pronac
+        description: PRONAC do projeto a que o evento pertence.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.PRONAC
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_projeto_rouanet')
+                field: pronac
+      - name: id_origem
+        description: >
+          Id do registro no fato de origem — `id_captacao` ou `id_aprovacao`.
+          Único apenas dentro do mesmo `tipo_evento`.
+        data_type: integer
+        tests:
+          - not_null
+      - name: data_evento
+        description: >
+          Data do evento: data do recibo, na captação; data de publicação da
+          portaria (ou de aprovação, como substituta) na aprovação.
+        data_type: date
+        tests:
+          - not_null
+      - name: ano_evento
+        description: Ano da data do evento, para corte anual.
+        data_type: integer
+        tests:
+          - not_null
+      - name: data_evento_substituta
+        description: >
+          `true` quando a data do evento veio de campo substituto — hoje, só
+          aprovação sem data de publicação. Expõe a fragilidade da série em vez
+          de escondê-la.
+        data_type: boolean
+        tests:
+          - not_null
+      - name: valor_reais
+        description: >
+          Valor em reais nominais associado ao evento: captado, quando
+          captação; autorizado, quando aprovação. Só é somável dentro de um
+          mesmo `tipo_evento`.
+        data_type: numeric

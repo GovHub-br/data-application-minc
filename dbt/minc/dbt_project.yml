@@ -52,6 +52,24 @@ models:
       # um schema por dominio, as camadas separadas por pasta.
       +schema: salic
 
+    # SALIC — silvers conformadas da Rouanet, sobre a bronze tipada acima.
+    # Mesmo schema `salic`: a convencao do repositorio e um schema por
+    # dominio, com as camadas separadas por PASTA (igual a agentes e cotas).
+    # Nao ha colisao de nome porque a bronze e `sac__*`/`agentes__*` e a
+    # silver e `dim_*`/`fct_*`/`brg_*`/`map_*`.
+    #
+    # `table`, e nao `view`: sao poucos modelos, todos com join pesado sobre
+    # views da bronze que ja leem 157 M de linhas. Materializar aqui e o que
+    # evita recomputar a bronze inteira a cada consulta de painel.
+    #
+    # A DECISAO: `salic_bronze` e `salic_dbt` viram um grupo de modelos so --
+    # `salic_dbt/{bronze,core}` -- como em agentes e cotas. Enquanto isso nao
+    # acontece, o SALIC e o unico dominio do projeto com duas pastas de topo.
+    # Detalhe e cuidados na frente F16 de docs/openmetadata/MEMORY.md.
+    salic_dbt:
+      +materialized: table
+      +schema: salic
+
     # Fontes de API (TransfereGov, SIDRA/IBGE, SGS/Bacen). Chegam 100% como
     # `text`, entao precisam da mesma camada de tipagem do SALIC -- as macros
     # bronze_* sao as mesmas, e o cast de cada coluna foi decidido pelo padrao
