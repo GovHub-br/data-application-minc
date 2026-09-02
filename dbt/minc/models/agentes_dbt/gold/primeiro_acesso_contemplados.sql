@@ -1,4 +1,12 @@
-{{ config(materialized='table') }}
+{{ config(enabled=false, materialized='table') }}
+
+-- DESABILITADO junto com identificadores_contemplados, seu único insumo — ver
+-- lá o motivo por extenso e a cadeia de DAGs necessária para reativar.
+--
+-- Em uma linha: as listas oficiais de contemplados só existem como planilha
+-- anexada ao relatório de gestão do TransfereGov, e essa cadeia não rodou
+-- neste banco. Nenhum dos três gold que respondem à Meta 5 depende deste
+-- modelo — ele confere o indicador, não o produz.
 
 -- Gold — o mesmo indicador de novos entrantes de primeiro_acesso_anual, mas
 -- restrito a quem aparece nas LISTAS OFICIAIS DE CONTEMPLADOS dos editais
