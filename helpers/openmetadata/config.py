@@ -39,8 +39,33 @@ INGEST_SUPERSET = _flag("OM_INGEST_SUPERSET", default=False)
 
 INGEST_AIRFLOW = _flag("OM_INGEST_AIRFLOW", default=True)
 
+# O par que constroi o catalogo de dados: postgres_metadata cria os ativos e
+# dbt_metadata anexa descricao, tag e linhagem. Ligados por padrao porque sem
+# eles a DAG nao faz o trabalho para o qual existe -- o flag serve para isolar
+# uma das duas durante investigacao, nao para operacao normal.
+INGEST_POSTGRES = _flag("OM_INGEST_POSTGRES", default=True)
+INGEST_DBT = _flag("OM_INGEST_DBT", default=True)
+
+# Desligado por padrao, e a diferenca entre os dois nao e arbitraria: o
+# classifier roda com `storeSampleData: false` e nunca persiste linha bruta,
+# enquanto o profiler publica min, max e distribuicao -- que sao estatisticas
+# reveladoras num repositorio com CPF, CNPJ e dados de raca e deficiencia.
+# O profiler so deve ser ligado depois que as exclusoes de coluna sensivel
+# estiverem verificadas.
 INGEST_PROFILER = _flag("OM_INGEST_PROFILER", default=False)
-INGEST_CLASSIFIER = _flag("OM_INGEST_CLASSIFIER", default=False)
+INGEST_CLASSIFIER = _flag("OM_INGEST_CLASSIFIER", default=True)
+
+# O glossario e pre-requisito, nao recipe: `meta.openmetadata.glossary` nos
+# schema.yml apenas REFERENCIA termo por FQN, e quem cria o termo e este sync.
+# Referencia a FQN inexistente nao falha a ingestao -- ela e ignorada em
+# silencio, e o modelo chega ao catalogo sem o vinculo.
+INGEST_GLOSSARY = _flag("OM_INGEST_GLOSSARY", default=True)
+
+OPENMETADATA_GLOSSARIES_DIR = f"{AIRFLOW_REPO_BASE}/helpers/openmetadata/glossaries"
+GLOSSARY_DEFINITION_PATH = os.environ.get(
+    "OM_GLOSSARY_PATH", f"{OPENMETADATA_GLOSSARIES_DIR}/minc.yaml"
+)
+GLOSSARY_TASK_ID = "sync_glossary"
 
 
 COMMON_REPLACEMENTS = {
@@ -80,6 +105,7 @@ AIRFLOW_METADATA_RECIPE = RecipeDefinition(
 
 POSTGRES_METADATA_RECIPE = RecipeDefinition(
     task_id="postgres_metadata",
+    enabled=INGEST_POSTGRES,
     recipe_path=f"{OPENMETADATA_RECIPES_DIR}/postgres_metadata.yaml",
     command="ingest",
     replacements=COMMON_REPLACEMENTS,
@@ -115,6 +141,7 @@ SUPERSET_METADATA_RECIPE = RecipeDefinition(
 
 DBT_METADATA_RECIPE = RecipeDefinition(
     task_id="dbt_metadata",
+    enabled=INGEST_DBT,
     recipe_path=f"{OPENMETADATA_RECIPES_DIR}/dbt_metadata.yaml",
     command="ingest",
     replacements=COMMON_REPLACEMENTS,

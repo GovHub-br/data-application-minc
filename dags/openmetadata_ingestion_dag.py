@@ -8,7 +8,13 @@ from datetime import datetime, timedelta
 from airflow.sdk import dag, task
 from schedule_loader import get_dynamic_schedule
 
-from openmetadata.config import ALL_RECIPES, RECIPE_PIPELINE
+from openmetadata.config import (
+    ALL_RECIPES,
+    GLOSSARY_DEFINITION_PATH,
+    GLOSSARY_TASK_ID,
+    INGEST_GLOSSARY,
+    RECIPE_PIPELINE,
+)
 
 
 @dag(
@@ -54,6 +60,30 @@ def openmetadata_ingestion_dag() -> None:
             dbt_project_dir=dbt_project_dir,
         )
 
+    @task(task_id=GLOSSARY_TASK_ID)
+    def sync_glossary(glossary_definition_path: str) -> dict:
+        """Cria ou atualiza o glossario MinC antes de qualquer recipe rodar.
+
+        Precisa vir ANTES: `meta.openmetadata.glossary` nos schema.yml apenas
+        referencia termo por FQN. Quem cria o termo e este sync, e uma
+        referencia a FQN que nao existe no servidor nao derruba a ingestao --
+        ela e descartada em silencio, e o ativo chega ao catalogo sem o
+        vinculo. Ate hoje os 26 termos foram aplicados a mao em algum momento,
+        e editar `glossaries/minc.csv` nao chegava ao servidor.
+
+        E idempotente e nao remove termo remoto: sincroniza a hierarquia
+        primeiro e as relacoes depois, quando todos os FQNs ja existem.
+        """
+        from airflow.sdk import Variable
+
+        from openmetadata.glossary import sync_glossary as aplicar_glossario
+
+        return aplicar_glossario(
+            glossary_definition_path=glossary_definition_path,
+            host_port=Variable.get("OM_HOST"),
+            jwt_token=Variable.get("INGESTION_TOKEN"),
+        )
+
     recipe_tasks = {
         recipe.task_id: run_openmetadata_recipe.override(task_id=recipe.task_id)(
             recipe_path=recipe.recipe_path,
@@ -65,7 +95,11 @@ def openmetadata_ingestion_dag() -> None:
         for recipe in ALL_RECIPES
     }
 
-    previous_task = None
+    previous_task = (
+        sync_glossary(glossary_definition_path=GLOSSARY_DEFINITION_PATH)
+        if INGEST_GLOSSARY
+        else None
+    )
     for task_id in RECIPE_PIPELINE:
         current_task = recipe_tasks.get(task_id)
         if current_task is None:

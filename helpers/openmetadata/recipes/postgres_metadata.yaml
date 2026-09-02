@@ -16,6 +16,17 @@ source:
       type: DatabaseMetadata
       includeTables: true
       includeViews: true
+      # O default e `true`, e ele apaga catalogo. Rodar esta recipe contra um
+      # banco incompleto -- ambiente restaurado pela metade, VPN caindo no meio
+      # da carga, schema ainda nao materializado -- marca como deletado tudo
+      # que o catalogo tem e o banco nao, sem nenhum aviso. Com 571 modelos
+      # SALIC materializados como view, uma carga parcial custaria o catalogo
+      # inteiro. Tabela removida de verdade sai do catalogo a mao; e mais
+      # barato que a alternativa.
+      #
+      # So aqui: profiler e classifier nao sao `DatabaseMetadata` e nao apagam
+      # nada. tests/test_openmetadata_packaging.py guarda as duas coisas.
+      markDeletedTables: false
       schemaFilterPattern:
         includes:
           # Uniao do que o projeto dbt declara como source com o que ele

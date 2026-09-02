@@ -72,7 +72,13 @@ x-airflow-environment: &airflow-common-env
   # MinC nao tem instancia propria.
   OM_INGEST_SUPERSET: ${OM_INGEST_SUPERSET:-false}
   OM_INGEST_AIRFLOW: ${OM_INGEST_AIRFLOW:-true}
-  OM_INGEST_PROFILER: ${OM_INGEST_PROFILER:-true}
+  OM_INGEST_POSTGRES: ${OM_INGEST_POSTGRES:-true}
+  OM_INGEST_DBT: ${OM_INGEST_DBT:-true}
+  OM_INGEST_GLOSSARY: ${OM_INGEST_GLOSSARY:-true}
+  # Profiler desligado: ele publica min, max e distribuicao, que sao
+  # estatisticas reveladoras num banco com CPF, CNPJ e dados de raca e
+  # deficiencia. Ligue depois de verificar as exclusoes de coluna sensivel.
+  OM_INGEST_PROFILER: ${OM_INGEST_PROFILER:-false}
   OM_INGEST_CLASSIFIER: ${OM_INGEST_CLASSIFIER:-true}
   OM_DBT_PROJECT_DIR: ${OM_DBT_PROJECT_DIR:-dbt/minc}
   # BSC / SERPRO (bbágil) — interpoladas do .env do project dir. Passadas aqui na

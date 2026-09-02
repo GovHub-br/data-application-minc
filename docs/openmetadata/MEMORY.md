@@ -48,7 +48,7 @@ vem depois dela.
 
 ## 1. Estado atual
 
-**Última atualização: 2026-09-02 18:30 -03 · Claude (núcleo silver SALIC implementado)**
+**Última atualização: 2026-09-02 19:40 -03 · Claude (F2, F3 e F4 fechadas)**
 
 | Item | Situação |
 |---|---|
@@ -57,8 +57,9 @@ vem depois dela.
 | MinC — recipes | 6, serviço `MinC` / `MinC - Airflow` / `MinC - Superset` |
 | MinC — governança dbt | `meta.openmetadata` em 8 `schema.yml` (71 blocos), domínio/tier/owner/glossary |
 | MinC — camada declarativa REST | ❌ **não existe** |
-| MinC — `markDeletedTables` | ❌ **ausente de `postgres_metadata.yaml`** → default `true` → risco real (§7) |
-| MinC — `glossary.py` / `semantic_relationships.py` | ⚠️ presentes e **órfãos**: nenhuma task chama |
+| MinC — `markDeletedTables` | ✅ `false` explícito em `postgres_metadata.yaml`, com dois testes (F2) |
+| MinC — `glossary.py` | ✅ ligado na DAG como primeira task, antes das recipes (F3) |
+| MinC — `semantic_relationships.py` | ⚠️ segue **órfão**, de propósito: valida `kind: MCIDSemanticRelationshipCatalog` e não existe catálogo desse formato aqui |
 | MinC — `lineage.py` | ✅ em uso por 7 DAGs do `transferegov_fundo_a_fundo` |
 | MinC — testes OM | 660 linhas, 26 funções / 28 casos coletados (`test_openmetadata_packaging.py`, `..._execution.py`); validação desta sessão: 25 passed, 3 skipped em ambiente emprestado |
 | Cidades — integração OM | ⚠️ na branch `fixture/ajustes-conjuntura`, **não mergeada** |
@@ -280,7 +281,14 @@ Isto não bloqueia as outras frentes. Vale como frente **F1**, independente.
 - **`markDeletedTables` tem default `true`.** Rodar `postgres_metadata` contra
   um banco incompleto — ambiente restaurado pela metade, VPN caindo, schema
   ainda não materializado — marca como deletado tudo que o catálogo tem e o
-  banco não. Sem aviso. **O MinC ainda não tem a proteção.**
+  banco não. Sem aviso. **Protegido no MinC desde a F2**, com teste que também
+  impede declarar a chave nas outras recipes, onde ela não tem efeito.
+- **O sync de glossário usa o `INGESTION_TOKEN` e envia `displayName`.** O bot
+  de ingestão tem a regra `DisplayName-Deny` (ver adiante nesta seção). Termo de
+  glossário legitimamente tem `displayName`, e o módulo sempre o enviou — mas
+  isto nunca rodou pela DAG aqui. **Se a primeira execução live recusar, o
+  caminho é um token com papel próprio para o glossário, não remover o
+  `displayName`.**
 - **O conector dbt não cria tabela.** Ele faz `es_search_from_fqn` e *anexa*
   metadado a tabela existente. Quem cria é `postgres_metadata`; a ordem entre as
   duas é obrigatória. Modelo dbt sem tabela materializada não aparece no
@@ -364,9 +372,9 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | ID | Frente | Repo | Estado |
 |---|---|---|---|
 | F1 | Credencial vazada: rotacionar, parametrizar, testar | cidades | 🟠 PARCIAL — HEAD/teste corrigidos em `88a110a`; rotação, instância e histórico pendentes |
-| F2 | `markDeletedTables: false` em `postgres_metadata` + teste | minc | 🟢 LIVRE |
-| F3 | Ligar `glossary` e `semantic_relationships` na DAG | minc | 🟢 LIVRE |
-| F4 | Flags `OM_INGEST_POSTGRES` / `OM_INGEST_DBT` | minc | 🟢 LIVRE |
+| F2 | `markDeletedTables: false` em `postgres_metadata` + teste | minc | ✅ FEITO · Claude · 2026-09-02 19:40 -03 |
+| F3 | Ligar `glossary` e `semantic_relationships` na DAG | minc | ✅ FEITO · Claude · 2026-09-02 19:40 -03 — só o glossário, como a própria frente recomendava |
+| F4 | Flags `OM_INGEST_POSTGRES` / `OM_INGEST_DBT` | minc | ✅ FEITO · Claude · 2026-09-02 19:40 -03 |
 | F5 | Definir e implementar o núcleo comum | ambos | 🟡 LIVRE — decidir §5 antes |
 | F6 | Extrair núcleo e adaptar `scripts/governance/` + declarar `dbt/minc/governance/*.yml` | minc | 🟡 LIVRE — maior; não copiar integralmente (§12) |
 | F7 | Portar `lineage.py` para o Cidades | cidades | 🟢 LIVRE |
@@ -1454,3 +1462,70 @@ antes de abrir PR.
 banco, as três primeiras medições da lista acima decidem se a Meta 4 sai pela
 abrangência ou precisa da view de itens comprovados. As frentes F13, F14 e F15
 de §9 já estão abertas para quem assumir.
+
+---
+
+## 15. Ingestão OpenMetadata correta e completa — F2, F3 e F4
+
+### 2026-09-02 · Claude · As três frentes verdes do MinC, fechadas
+
+**Por que estas três, e nesta ordem.** A F3 deixou de ser opcional no momento em
+que a §14 entregou seis `schema.yml` referenciando `MinC.Identificadores.PRONAC`
+e mais três termos novos: sem alguém chamando `sync_glossary`, essas referências
+apontam para termo que não existe no servidor — e o OpenMetadata **não reclama**,
+ele descarta o vínculo em silêncio. A F2 é pré-requisito de qualquer execução
+live, como a Onda 1 do plano já dizia. A F4 fecha a lacuna de flags e, de
+quebra, resolve uma divergência que estava anotada como "inofensiva".
+
+**F2 — `markDeletedTables: false`.** Uma linha em `postgres_metadata.yaml`, com
+o porquê no arquivo, e **duas** guardas: uma exige a chave lá, a outra proíbe a
+chave nas outras cinco recipes. A segunda existe porque declarar em três lugares
+daria a impressão de que há três pontos a proteger, e no dia em que um fosse
+esquecido ninguém saberia qual importava — profiler e classifier não são
+`DatabaseMetadata` e não apagam nada.
+
+**F3 — glossário como primeira task da corrente.** `sync_glossary` entra antes
+de todas as recipes, com flag `OM_INGEST_GLOSSARY` (default ligado). O
+`semantic_relationships.py` **ficou de fora de propósito**: ele valida
+`kind: MCIDSemanticRelationshipCatalog`, formato do Ministério das Cidades, e
+não existe catálogo desse tipo aqui. A própria frente já registrava que ligar só
+o glossário resolve o problema real; criar um catálogo de 1.255 linhas para o
+MinC é outra decisão, não um efeito colateral desta.
+
+**F4 — flags, e uma decisão de segurança dentro delas.** Entraram
+`OM_INGEST_POSTGRES`, `OM_INGEST_DBT` e `OM_INGEST_GLOSSARY`, ligados por
+padrão. A divergência anotada em §9 (config.py com default `False`, compose com
+`true`) foi resolvida **separando os dois casos em vez de escolher um lado**:
+
+- **classifier alinhado para `true`** nos dois — ele roda com
+  `storeSampleData: false` e nunca persiste linha bruta;
+- **profiler alinhado para `false`** nos dois — ele publica min, max e
+  distribuição, que são estatísticas reveladoras num banco com CPF, CNPJ e
+  dados de raça e deficiência. A §11 já dizia que o profiler não é seguro sem
+  exclusões verificadas; deixá-lo ligado por default contradizia isso.
+
+**Isto muda comportamento local:** quem sobe o compose hoje deixa de rodar o
+profiler. Volta com `OM_INGEST_PROFILER=true` no `.env`, e a intenção fica
+registrada onde alguém a lê.
+
+**Guardas novas (10 casos em `test_openmetadata_packaging.py`).** Além das duas
+do `markDeletedTables`: as duas recipes de catálogo ligadas por padrão, cada uma
+isolável por flag, o par profiler/classifier com os defaults acima, o glossário
+como cabeça da corrente (por AST — importar a DAG exigiria Airflow configurado)
+e, a mais útil no médio prazo, **flag declarada no `config.py` tem que chegar ao
+container pelo compose**. Flag que o código lê e o compose não passa é flag
+morta: o default do código vence e mexer no `.env` não muda nada.
+
+**Verificado.** Suíte inteira: **165 passed, 3 skipped** (eram 155). `black`,
+`ruff` e validação de YAML passam nos arquivos tocados.
+
+**NÃO verificado.** A DAG **não foi parseada de verdade**: o Airflow disponível
+nesta máquina é o 2.8.1 do virtualenv do Cidades, e este repositório é Airflow
+3.2 (`airflow.sdk`). A guarda do encadeamento é sintática. O parse real acontece
+quando o container subir — é o primeiro a conferir. E nada rodou contra a
+instância: o glossário nunca foi sincronizado por DAG aqui, o que traz o risco
+de `DisplayName-Deny` registrado em §7.
+
+**Próximo passo.** F16 (unificar `salic_bronze` e `salic_dbt`) é a única frente
+grande ainda offline. As Metas 3, 4 e 5 (F13–F15) continuam esperando o gate A0
+e a auditoria live.
