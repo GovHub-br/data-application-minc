@@ -14,29 +14,30 @@ models:
       cidade informada (majoritariamente PNAB). O casamento por nome cobre
       cerca de 47,5% dos agentes com perfil — grafias divergentes ainda não
       refinadas. Meta da cota territorial: 20% (ver distribuicao_cotas_lpg).
+
     config:
       tags: [gold, cotas]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier1
-          owner: minc-data-engineering
+          tier: "Tier.Tier1"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Gold", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
     columns:
-      - name: origem_ano
-        tests:
-          - accepted_values:
-              arguments:
-                values: ['nome_edital', 'anexo_edital', 'nome_arquivo', 'sem_ano']
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Qualificadores.OrigemDoAno
       - name: identificador_unico
         description: >
           Documento normalizado do agente (só dígitos). É a entidade `foreign`
           agente_documento do semantic model; NULL quando o documento veio
           mascarado na origem.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
         tests:
           # Integridade da entidade de junção do MetricFlow: todo pagamento que
           # se declara casado com perfil (tem_perfil) precisa mesmo existir na
@@ -49,13 +50,126 @@ models:
                 field: identificador_unico
               config:
                 where: "tem_perfil"
-  # fct_pagamentos_bbagil e comparativo_recebido_vs_pago estão enabled=false
-  # (aguardam a extração bbágil gerar bsc_pnab.fato_bbagil) — já documentados
-  # abaixo com status: Disabled; reativar (enabled=true nos .sql) depois.
+
+      - name: valor_pago_num
+        description: >
+          Valor pago em reais, com o teto de R$10M já aplicado no bronze. É a
+          medida somada em todas as cotas — o denominador e, filtrado pelas
+          flags, também os numeradores.
+        data_type: numeric
+        meta:
+          openmetadata: {}
+
+      - name: ano_final
+        description: >
+          Ano do edital resolvido pela cascata de datação, ou 'sem_ano'. Os
+          'sem_ano' entram no total geral mas ficam fora de qualquer recorte
+          anual — ver cobertura_temporal_pct em cobertura_pagamentos.
+        data_type: text
+
+      - name: origem_ano
+        description: >
+          Etapa da cascata que resolveu ano_final, do mais preciso ao mais
+          frágil: nome_edital, anexo_edital, nome_arquivo, sem_ano.
+        data_type: text
         meta:
           openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
+            glossary: ["MinC.Qualificadores.OrigemDoAno"]
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['nome_edital', 'anexo_edital', 'nome_arquivo', 'sem_ano']
+
+      - name: origem
+        description: Política de origem do pagamento ('lpg' ou 'pnab').
+        data_type: text
+
+      - name: chave_anonimizada
+        description: >
+          True quando o documento veio mascarado na planilha. Explica por que
+          tem_perfil é false sem que isso indique falha de casamento.
+        data_type: boolean
+
+      - name: nome_edital
+        description: Nome do edital de origem do pagamento.
+        data_type: text
+        meta:
+          openmetadata:
+
+      - name: nome_programa
+        description: Rótulo do programa ('LPG' ou 'PNAB') para leitura humana.
+        data_type: text
+
+      - name: anexo_id
+        description: >
+          Anexo do relatório de gestão que originou o pagamento — permite
+          rastrear qualquer linha do fato de volta à planilha exata.
+        data_type: text
+
+      - name: nome_arquivo
+        description: Nome do xlsx de origem, preservado para rastreio.
+        data_type: text
+
+      - name: tem_perfil
+        description: >
+          True quando o pagamento casou com perfil_agentes_normalizado. É o
+          divisor de águas da leitura: as cotas calculadas "sobre com perfil"
+          usam só estas linhas; as calculadas "sobre total" incluem os órfãos.
+        data_type: boolean
+
+      - name: flag_negra
+        description: >
+          Agente autodeclarado negro (preto ou pardo). Numerador da cota de 25%.
+          False também quando não há perfil — leia sempre junto de tem_perfil.
+        data_type: boolean
+        meta:
+          openmetadata:
+
+      - name: flag_indigena
+        description: >
+          Agente autodeclarado indígena, por raça normalizada OU pelo campo
+          indígena do PNAB. Numerador da cota de 10%.
+        data_type: boolean
+        meta:
+          openmetadata:
+
+      - name: flag_pcd
+        description: >
+          Agente autodeclarado pessoa com deficiência (is_pcd no perfil).
+          Numerador da cota de 5%.
+        data_type: boolean
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: agente_cidade
+        description: >
+          Município do agente, propagado do perfil. Preenchido só para LPG —
+          NULL no PNAB, que não coleta localização.
+        data_type: text
+
+      - name: agente_uf
+        description: UF do agente, propagada do perfil. NULL no PNAB.
+        data_type: text
+
+      - name: tem_territorio
+        description: >
+          True quando o município do agente casou com o crosswalk IBGE. Separa
+          "não é território vulnerável" de "não deu para saber" — sem esta
+          coluna, os dois virariam false e subestimariam a cota territorial.
+        data_type: boolean
+
+      - name: flag_territorio_vulneravel
+        description: >
+          True quando o município do agente tem ao menos um setor censitário
+          FCU (zona periférica). Numerador da 4ª cota, meta 20%, EXCLUSIVA da
+          LPG. NULL quando o agente não tem cidade informada. Cobertura atual
+          do casamento por nome: ~47,5% dos agentes com perfil — subestima a
+          cota, não a superestima.
+        data_type: boolean
+        meta:
+          openmetadata:
+
   - name: cobertura_pagamentos
     description: >
       Cobertura por ano — teto de confiabilidade das cotas; leitura recomendada
@@ -67,14 +181,72 @@ models:
       sobre o total de pessoas), cobertura_valor_pct (valor com perfil sobre
       valor total) e cobertura_temporal_pct (valor com ano derivado sobre
       valor total).
+
     config:
-      tags: [gold, cotas]
+      tags: [gold, cotas, qualidade]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier1
-          owner: minc-data-engineering
+          tier: "Tier.Tier1"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Gold"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: ano_final
+        description: >
+          Ano do edital, ou 'sem_ano'. A linha 'sem_ano' é a mais importante
+          desta tabela: mede quanto dinheiro não pôde ser atribuído a um ano.
+        data_type: text
+
+      - name: qtd_pagamentos
+        description: Número de linhas de pagamento no ano.
+        data_type: bigint
+
+      - name: qtd_pessoas
+        description: >
+          Documentos distintos no ano, já excluindo os mascarados. Não é
+          "pessoas" no sentido estrito — um CNPJ conta como um.
+        data_type: bigint
+
+      - name: qtd_pessoas_com_perfil
+        description: Subconjunto de qtd_pessoas que casou com o perfil de raça/PCD.
+        data_type: bigint
+
+      - name: valor_total
+        description: Soma de valor_pago_num no ano, incluindo pagamentos sem perfil.
+        data_type: numeric
+        meta:
+          openmetadata:
+
+      - name: valor_com_perfil
+        description: >
+          Soma de valor_pago_num restrita a pagamentos com perfil casado. É o
+          denominador honesto das cotas — o único sobre o qual a proporção
+          demográfica é mensurável.
+        data_type: numeric
+
+      - name: cobertura_pessoas_pct
+        description: >
+          qtd_pessoas_com_perfil / qtd_pessoas, em 0–100. Mede quanto do público
+          é demograficamente conhecido.
+        data_type: numeric
+
+      - name: cobertura_valor_pct
+        description: >
+          valor_com_perfil / valor_total, em 0–100. Mais relevante que a
+          cobertura por pessoas, porque as cotas são ponderadas por valor.
+        data_type: numeric
+
+      - name: cobertura_temporal_pct
+        description: >
+          Valor com ano derivado / valor total, em 0–100. Percentual baixo aqui
+          invalida qualquer leitura por ano, mesmo que a cobertura de perfil
+          esteja boa.
+        data_type: numeric
+
   - name: distribuicao_cotas_lpg
     description: >
       Cotas SOMENTE LPG, via macro compartilhada distribuicao_cotas (mesma
@@ -86,25 +258,93 @@ models:
       percentual do grupo sobre o valor total do ano E sobre o valor
       total-com-perfil, além do veredito ('alcancada'/'descumprida') comparando
       o percentual sobre valor-com-perfil contra a meta.
+
     config:
-      tags: [gold, cotas]
+      tags: [gold, cotas, lpg, entrega]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier1
-          owner: minc-data-engineering
+          tier: "Tier.Tier1"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Gold"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
     columns:
+      - name: programa
+        description: Programa da linha. Constante 'LPG' neste modelo.
+        data_type: text
+
+      - name: ano_final
+        description: Ano do edital, ou 'sem_ano' para o bloco sem datação.
+        data_type: text
+
       - name: grupo
+        description: >
+          Grupo com cota legal. Na LPG são 4, incluindo a territorial, que não
+          existe no PNAB por falta de localização do agente.
+        data_type: text
         tests:
           - accepted_values:
               arguments:
                 values: ['negra', 'indigena', 'pcd', 'territorio_vulneravel']
+
+      - name: valor_grupo
+        description: >
+          Soma de valor_pago_num dos pagamentos cuja flag do grupo é true.
+          Numerador da cota, ponderado por dinheiro e não por número de agentes.
+        data_type: numeric
+        meta:
+          openmetadata:
+
+      - name: valor_total_ano
+        description: >
+          Valor total do ano, incluindo pagamentos SEM perfil. Denominador
+          otimista: a cota calculada sobre ele é sempre subestimada.
+        data_type: numeric
+
+      - name: valor_total_com_perfil_ano
+        description: >
+          Valor do ano restrito a pagamentos com perfil casado. É o denominador
+          honesto e o que define o veredito de status_sobre_com_perfil.
+        data_type: numeric
+
+      - name: pct_sobre_total
+        description: >
+          valor_grupo / valor_total_ano, em 0–100. Piso da estimativa — trata
+          todo pagamento sem perfil como se fosse fora da cota.
+        data_type: numeric
+
+      - name: pct_sobre_com_perfil
+        description: >
+          valor_grupo / valor_total_com_perfil_ano, em 0–100. É o percentual
+          comparado com a meta legal, e o que deve ser citado.
+        data_type: numeric
+
+      - name: qtd_agentes_grupo
+        description: >
+          Documentos distintos no grupo. Contagem secundária, informativa: a
+          cota é medida por valor, não por cabeça.
+        data_type: bigint
+
+      - name: meta_minima_pct
+        description: >
+          Meta legal mínima do grupo, em 0–100: negra 25, indígena 10, PCD 5,
+          território vulnerabilizado 20.
+        data_type: numeric
+
       - name: status_sobre_com_perfil
+        description: >
+          Veredito comparando pct_sobre_com_perfil com meta_minima_pct.
+          'alcancada' ou 'descumprida'. Só é interpretável junto da cobertura
+          do ano — cobertura baixa torna o veredito frágil nas duas direções.
+        data_type: text
         tests:
           - accepted_values:
               arguments:
                 values: ['alcancada', 'descumprida']
+
   - name: distribuicao_cotas_pnab
     description: >
       Cotas SOMENTE PNAB, via macro compartilhada distribuicao_cotas. 3 grupos
@@ -115,25 +355,85 @@ models:
       denominador mede o valor RECEBIDO pelos entes (repasse, ~R$2,7bi), não o
       valor efetivamente PAGO a pessoas (~R$447mi). Quando fct_pagamentos_bbagil
       estiver ativo, este modelo deve passar a ler o valor pago real.
+
     config:
-      tags: [gold, cotas]
+      tags: [gold, cotas, pnab, entrega]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier1
-          owner: minc-data-engineering
+          tier: "Tier.Tier1"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Gold"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
     columns:
+      - name: programa
+        description: Programa da linha. Constante 'PNAB' neste modelo.
+        data_type: text
+
+      - name: ano_final
+        description: Ano do edital, ou 'sem_ano'.
+        data_type: text
+
       - name: grupo
+        description: >
+          Grupo com cota legal. No PNAB são 3 — sem a territorial, que exige
+          localização do agente inexistente nesta fonte.
+        data_type: text
         tests:
           - accepted_values:
               arguments:
                 values: ['negra', 'indigena', 'pcd']
+
+      - name: valor_grupo
+        description: >
+          Soma de valor_pago_num do grupo. ATENÇÃO: hoje mede repasse recebido
+          por entes, não pagamento a pessoas — ver a ressalva do modelo.
+        data_type: numeric
+        meta:
+          openmetadata:
+
+      - name: valor_total_ano
+        description: Valor total do ano, incluindo pagamentos sem perfil.
+        data_type: numeric
+
+      - name: valor_total_com_perfil_ano
+        description: Valor do ano restrito a pagamentos com perfil casado.
+        data_type: numeric
+
+      - name: pct_sobre_total
+        description: valor_grupo / valor_total_ano, em 0–100. Piso da estimativa.
+        data_type: numeric
+
+      - name: pct_sobre_com_perfil
+        description: >
+          valor_grupo / valor_total_com_perfil_ano, em 0–100. É o percentual
+          comparado com a meta legal.
+        data_type: numeric
+
+      - name: qtd_agentes_grupo
+        description: Documentos distintos no grupo, contagem informativa.
+        data_type: bigint
+
+      - name: meta_minima_pct
+        description: "Meta legal mínima em 0–100: negra 25, indígena 10, PCD 5."
+        data_type: numeric
+
       - name: status_sobre_com_perfil
+        description: >
+          Veredito 'alcancada'/'descumprida' comparando pct_sobre_com_perfil
+          com a meta. Herda a ressalva do denominador do PNAB.
+        data_type: text
         tests:
           - accepted_values:
               arguments:
                 values: ['alcancada', 'descumprida']
+
+  # ---------------------------------------------------------------------------
+  # DESABILITADOS — aguardam a extração bbágil gerar bsc_pnab.fato_bbagil
+  # ---------------------------------------------------------------------------
   - name: fct_pagamentos_bbagil
     description: >
       [MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com
@@ -148,14 +448,101 @@ models:
       fct_pagamentos_elegiveis, não substituí-lo ainda; comparativo_recebido_vs_pago
       confronta os dois. A decisão de trocar o denominador oficial das cotas
       para este modelo é do lab (ver plano_integracao_meta3).
+
     config:
-      tags: [gold, cotas]
+      tags: [gold, cotas, pnab, bbagil]
       meta:
         status: Disabled
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier1
-          owner: minc-data-engineering
+          tier: "Tier.Tier1"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Gold", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: identificador_unico
+        description: >
+          CPF/CNPJ do beneficiário final, normalizado pela mesma macro do
+          perfil. Aqui o documento vem real (não mascarado), então o casamento
+          com perfil é muito melhor que no lado das listas.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+
+      - name: ente_bbagil
+        description: Ente federado que efetuou o pagamento, vindo do extrato.
+        data_type: text
+
+      - name: valor_pago_num
+        description: >
+          Valor EFETIVAMENTE PAGO à pessoa. É a diferença essencial em relação
+          a fct_pagamentos_elegiveis, que mede o repasse recebido pelo ente.
+        data_type: numeric
+        meta:
+          openmetadata:
+
+      - name: chave_anonimizada
+        description: True quando o documento do extrato veio mascarado.
+        data_type: boolean
+
+      - name: ano_final
+        description: >
+          Ano de início da vigência do plano de ação, vindo de bbagil_ente_ano.
+          Aproximação do ano do edital, não o ano exato.
+        data_type: integer
+
+      - name: origem_ano
+        description: >
+          Constante 'vigencia_plano' — marca explicitamente que a datação aqui
+          é menos precisa que a cascata usada no lado das listas.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Qualificadores.OrigemDoAno"]
+
+      - name: codigo_ibge
+        description: Código IBGE do município do ente, de bbagil_ente_ano.
+        data_type: text
+
+      - name: municipio
+        description: Município do ente federado pagador.
+        data_type: text
+
+      - name: uf
+        description: UF do ente federado pagador.
+        data_type: text
+
+      - name: origem
+        description: Constante 'pnab_bbagil' — distingue esta trilha da das listas.
+        data_type: text
+
+      - name: tem_perfil
+        description: True quando o beneficiário casou com perfil_agentes_normalizado.
+        data_type: boolean
+
+      - name: flag_negra
+        description: Beneficiário autodeclarado negro. Numerador da cota de 25%.
+        data_type: boolean
+        meta:
+          openmetadata:
+
+      - name: flag_indigena
+        description: Beneficiário autodeclarado indígena. Numerador da cota de 10%.
+        data_type: boolean
+        meta:
+          openmetadata:
+
+      - name: flag_pcd
+        description: Beneficiário autodeclarado PCD. Numerador da cota de 5%.
+        data_type: boolean
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
   - name: comparativo_recebido_vs_pago
     description: >
       [MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com
@@ -172,11 +559,38 @@ models:
       (amostra de 1 programa/ano), o total do bbágil será menor que o real —
       este modelo serve para acompanhar a convergência à medida que a
       extração avança.
+
     config:
-      tags: [gold, cotas]
+      tags: [gold, cotas, pnab, bbagil, diagnostico]
       meta:
         status: Disabled
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier1
-          owner: minc-data-engineering
+          tier: "Tier.Tier1"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Gold"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: fonte
+        description: >
+          Qual lado-valor a linha resume: 'recebido (listas/contemplados)' ou
+          'pago (bbágil/extrato bancário)'. A tabela tem exatamente 2 linhas.
+        data_type: text
+
+      - name: linhas
+        description: Quantidade de linhas de pagamento naquele lado.
+        data_type: bigint
+
+      - name: docs_distintos
+        description: Documentos distintos naquele lado — mede sobreposição de público.
+        data_type: bigint
+
+      - name: valor_total
+        description: >
+          Soma de valor_pago_num do lado, arredondada a 2 casas. É a comparação
+          que decide se o bbágil pode virar o denominador oficial das cotas.
+        data_type: numeric
+        meta:
+          openmetadata:

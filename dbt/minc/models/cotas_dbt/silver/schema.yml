@@ -17,157 +17,163 @@ models:
       acento, minúsculo) é a chave de join com territorio_municipio; fica NULL
       quando não há localização — nesse caso o agente não é classificável pela
       cota territorial.
+
     config:
       tags: [silver, cotas]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
     columns:
       - name: identificador_unico
+        description: >
+          CPF/CNPJ normalizado do agente — chave primária desta dimensão e a
+          entidade de junção 1:1 com os fatos de pagamento. A dedup por este
+          campo (e não por tipo_proponente) existe justamente para garantir
+          que um pagamento nunca se multiplique ao casar com o perfil.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
         tests:
           - unique
           - not_null
+
+      - name: tipo_proponente
+        description: >
+          Natureza do proponente na linha vencedora da dedup (pf, pj ou
+          coletivo). Como a dedup é por documento, um mesmo agente que apareceu
+          como PF e como coletivo é representado por uma linha só.
+        data_type: text
+
+      - name: origem
+        description: >
+          Política de onde veio a linha vencedora da dedup ('lpg' ou 'pnab').
+          Não significa que o agente só participou dessa política — significa
+          que essa foi a fonte escolhida na desambiguação.
+        data_type: text
+
+      - name: raca_bruto
+        description: >
+          Raça/cor autodeclarada em texto livre, preservada da fonte para
+          auditoria da normalização. Cuidado: a semântica muda por origem
+          (indivíduo no PNAB PF, corpo diretivo na LPG PJ, maioria no coletivo).
+        data_type: text
         meta:
           openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
+            tags: ["PII.Sensitive"]
+
       - name: raca_normalizada
+        description: >
+          Raça/cor reduzida a 5 categorias por regex sobre o texto sem acento:
+          'negra' (preta/parda/negra), 'indigena', 'branca', 'amarela' e
+          'nao_declarada' — que absorve vazio, 'nan' e qualquer grafia não
+          reconhecida. É a base do numerador das cotas raciais.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Qualificadores.RacaNormalizada"]
         tests:
           - accepted_values:
               arguments:
                 values: ['negra', 'indigena', 'branca', 'amarela', 'nao_declarada']
+
+      - name: cidade
+        description: >
+          Município do agente em texto livre. Preenchido só para agentes LPG —
+          NULL para PNAB, que não coleta localização do agente.
+        data_type: text
+
+      - name: uf
+        description: UF do agente, sigla. NULL para PNAB, mesma razão de cidade.
+        data_type: text
+
+      - name: chave_municipio_uf
+        description: >
+          Chave de junção com territorio_municipio no formato
+          "municipio_sem_acento|uf_sem_acento", ambos em minúsculo. NULL quando
+          cidade ou UF faltam — e agente sem esta chave não é classificável
+          pela cota territorial, entrando como não-coberto, não como fora da cota.
+        data_type: text
         meta:
           openmetadata:
-            glossary:
-              - MinC.Qualificadores.RacaNormalizada
+            glossary: ["MinC.Identificadores.CodigoIBGE"]
+
+      - name: flag_negra
+        description: >
+          True quando raca_normalizada = 'negra'. Numerador da cota racial de
+          25% (meta legal mínima).
+        data_type: boolean
+        meta:
+          openmetadata: {}
+
+      - name: flag_indigena
+        description: >
+          True quando raca_normalizada = 'indigena' OU o campo indigena_bruto do
+          PNAB indica sim. É um OR de propósito: a autodeclaração indígena do
+          PNAB é um campo separado da raça/cor, e ignorá-lo subestimaria a cota
+          de 10%.
+        data_type: boolean
+        meta:
+          openmetadata:
+
+      - name: is_pcd
+        description: >
+          True quando pcd_bruto indica sim (sim/s/1/true, sem acento). Numerador
+          da cota de 5% para pessoas com deficiência. No fato chama-se flag_pcd.
+        data_type: boolean
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
   - name: identificadores_agentes_cotas
     description: >
       Chaves distintas de agentes (identificador_unico, tipo_proponente,
       origem) extraídas de perfil_agentes_normalizado — usada para teste de
       unicidade e para contagem secundária de proponentes.
+
     config:
       tags: [silver, cotas]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
     columns:
       - name: identificador_unico
-        tests:
-          - unique
-          - not_null
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Identificadores.IdentificadorUnico
-  - name: editais_unif
-    description: >
-      Editais unificados a partir de stg_editais, com ano derivado
-      (numero_edital, com fallback para nome_edital), validado em [2013, 2026].
-      Mantido para reconciliação/auditoria — não é o caminho de ano
-      efetivamente usado pelas cotas (esse é o de contemplados_unif, via
-      edital_ano_por_anexo/edital_ano_por_arquivo).
-    config:
-      tags: [silver, cotas]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
-  - name: edital_ano_por_anexo
-    description: >
-      Ano do edital por ANEXO (PNAB) — 2ª fonte na cascata de datação de
-      contemplados_unif. Extraído do campo "número do edital" nas abas de
-      definição PNAB (raw_pnab_acoes_gerais + raw_pnab_acoes_cultura_viva), mais
-      completo que o nome do edital na planilha de contemplados. Só mantém
-      anexos com ano ÚNICO e consistente entre linhas — descarta anexo
-      multi-ano por ambiguidade.
-    config:
-      tags: [silver, cotas]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
-    columns:
-      - name: anexo_id
-        tests:
-          - unique
-          - not_null
-  - name: edital_ano_por_arquivo
-    description: >
-      Ano do edital por ANEXO via NOME DO ARQUIVO — 3ª fonte (fallback) na
-      cascata de datação de contemplados_unif, usada só quando nome_edital e
-      o número do edital por anexo não resolvem o ano. O nome do xlsx de
-      origem costuma carregar o ano (ex.: "Contemplados 2024.xlsx"). Mesma
-      regra de edital_ano_por_anexo: agrega por anexo_id e só mantém anexos
-      com ano único, na faixa [2013, 2026]. Ganho medido (jul/2026): cobre
-      1.036 anexos contra 477 do método por número do edital — 849 anexos
-      adicionais. É deliberadamente a fonte de menor prioridade: o nome do
-      arquivo pode refletir a data de publicação, defasada em até ~1 ano em
-      relação ao edital em si.
-    config:
-      tags: [silver, cotas]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
-    columns:
-      - name: anexo_id
-        tests:
-          - unique
-          - not_null
-  - name: territorio_municipio
-    description: >
-      Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão
-      MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos
-      um setor com código FCU preenchido (zona periférica). Constrói
-      chave_municipio_uf (nome do município + sigla da UF, normalizados sem
-      acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em
-      texto livre, sem código IBGE — o join por nome é por natureza imperfeito
-      (grafias divergentes), por isso a chave normalizada é exposta para
-      auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla,
-      já que o crosswalk traz a UF por extenso ("Rondônia") enquanto os
-      agentes LPG normalmente registram a sigla ("RO").
-    config:
-      tags: [silver, cotas]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
-    columns:
-      - name: cd_mun
-        tests:
-          - unique
-          - not_null
-        meta:
-          openmetadata:
-            glossary:
-              - MinC.Identificadores.CodigoIBGE
-      - name: chave_municipio_uf
         description: >
-          Chave de junção por nome (município+UF normalizados) com
-          perfil_agentes_normalizado. É a entidade `primary` do semantic model:
-          duplicata aqui multiplicaria o valor pago no cálculo da cota
-          territorial. NULL quando a sigla da UF não resolve — o teste `unique`
-          ignora nulos.
-        tests:
-          - unique
+          CPF/CNPJ normalizado. Como o perfil já é deduplicado por este campo,
+          o teste de unicidade aqui é uma segunda barreira: se falhar, a dedup
+          do perfil quebrou e todo cálculo de cota a jusante está inflado.
+        data_type: text
         meta:
           openmetadata:
-            glossary:
-              - MinC.Identificadores.CodigoIBGE
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+        tests:
+          - unique
+          - not_null
+
+      - name: tipo_proponente
+        description: Natureza do proponente (pf, pj, coletivo), herdada do perfil.
+        data_type: text
+
+      - name: origem
+        description: Política de origem da linha ('lpg' ou 'pnab'), herdada do perfil.
+        data_type: text
+
   - name: contemplados_unif
     description: >
       Contemplados unificados LPG + PNAB — núcleo do lado-valor das cotas.
@@ -188,29 +194,304 @@ models:
       bronze, que permanece raw-fiel) para cobrir o fato e os golds num único
       ponto. IMPORTANTE: nome_edital = 'nan' NÃO é cortado — é pagamento real
       sem edital identificado (vira 'sem_ano' no denominador), não lixo.
+
     config:
       tags: [silver, cotas]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
     columns:
+      - name: identificador_unico
+        description: >
+          CPF/CNPJ do contemplado, normalizado. NULL quando o documento veio
+          mascarado — a linha permanece no denominador de valor, mas não casa
+          com perfil e portanto não entra em nenhum numerador de cota.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+
+      - name: chave_anonimizada
+        description: >
+          True quando o documento de origem estava mascarado. Distingue
+          "sem perfil porque o dado é protegido" de "sem perfil porque não casou".
+        data_type: boolean
+
+      - name: valor_pago_num
+        description: >
+          Valor pago em reais, já com o teto de R$10M do parse_valor aplicado.
+          É a medida somada em todos os golds de cota.
+        data_type: numeric
+        meta:
+          openmetadata:
+
+      - name: nome_edital
+        description: >
+          Nome do edital. 1ª fonte da cascata de datação e campo usado para
+          cortar as linhas-fantasma. 'nan' aqui é pagamento real sem edital
+          identificado — não é lixo e não é cortado.
+        data_type: text
+        meta:
+          openmetadata:
+
       - name: origem
+        description: Política de origem do pagamento.
+        data_type: text
         tests:
           - accepted_values:
               arguments:
                 values: ['lpg', 'pnab']
+
+      - name: nome_programa
+        description: Rótulo do programa para leitura humana ('LPG' ou 'PNAB').
+        data_type: text
+
+      - name: anexo_id
+        description: >
+          Anexo do relatório de gestão que originou a linha. Propagado até o
+          fato para permitir rastrear qualquer número de volta à planilha.
+        data_type: text
+
+      - name: nome_arquivo
+        description: Nome do xlsx de origem — insumo da 3ª fonte de datação.
+        data_type: text
+
+      - name: ano_final
+        description: >
+          Ano do edital resolvido pela cascata de 3 fontes, validado em
+          [2013, 2026]. Assume 'sem_ano' quando nenhuma fonte resolve — esses
+          pagamentos continuam no total, mas ficam fora do recorte anual.
+        data_type: text
+
       - name: origem_ano
+        description: >
+          Qual etapa da cascata resolveu ano_final. Serve para medir confiança:
+          'nome_edital' é a mais precisa, 'nome_arquivo' a mais frágil (pode
+          refletir data de publicação, defasada até ~1 ano).
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Qualificadores.OrigemDoAno"]
         tests:
           - accepted_values:
               arguments:
                 values: ['nome_edital', 'anexo_edital', 'nome_arquivo', 'sem_ano']
+
+  - name: editais_unif
+    description: >
+      Editais unificados a partir de stg_editais, com ano derivado
+      (numero_edital, com fallback para nome_edital), validado em [2013, 2026].
+      Mantido para reconciliação/auditoria — não é o caminho de ano
+      efetivamente usado pelas cotas (esse é o de contemplados_unif, via
+      edital_ano_por_anexo/edital_ano_por_arquivo).
+
+    config:
+      tags: [silver, cotas]
+      meta:
+        status: Active
+        openmetadata:
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: nome_edital
+        description: Nome do edital em texto livre.
+        data_type: text
         meta:
           openmetadata:
-            glossary:
-              - MinC.Qualificadores.OrigemDoAno
+
+      - name: numero_edital
+        description: Número do edital ("NN/AAAA") — 1ª fonte do ano aqui.
+        data_type: text
+
+      - name: valor_total
+        description: >
+          Valor total previsto do edital. Denominador alternativo para
+          reconciliação; não é o denominador usado nas cotas.
+        data_type: numeric
+
+      - name: nome_programa
+        description: Rótulo do programa.
+        data_type: text
+
+      - name: ano_edital
+        description: >
+          Ano derivado de numero_edital, com fallback para nome_edital,
+          validado em [2013, 2026]. NULL quando nenhum dos dois resolve.
+        data_type: text
+
+  - name: edital_ano_por_anexo
+    description: >
+      Ano do edital por ANEXO (PNAB) — 2ª fonte na cascata de datação de
+      contemplados_unif. Extraído do campo "número do edital" nas abas de
+      definição PNAB (raw_pnab_acoes_gerais + raw_pnab_acoes_cultura_viva), mais
+      completo que o nome do edital na planilha de contemplados. Só mantém
+      anexos com ano ÚNICO e consistente entre linhas — descarta anexo
+      multi-ano por ambiguidade.
+
+    config:
+      tags: [silver, cotas, pnab]
+      meta:
+        status: Active
+        openmetadata:
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: anexo_id
+        description: >
+          Anexo do relatório de gestão. Chave primária: um anexo resolve no
+          máximo um ano. Anexos com mais de um ano são descartados na origem,
+          não desempatados — ambiguidade aqui viraria erro silencioso de cota.
+        data_type: text
+        tests:
+          - unique
+          - not_null
+
+      - name: ano_edital
+        description: >
+          Ano extraído do número do edital nas abas de definição do PNAB,
+          validado em [2013, 2026]. Mais confiável que o ano por nome de arquivo.
+        data_type: text
+
+  - name: edital_ano_por_arquivo
+    description: >
+      Ano do edital por ANEXO via NOME DO ARQUIVO — 3ª fonte (fallback) na
+      cascata de datação de contemplados_unif, usada só quando nome_edital e
+      o número do edital por anexo não resolvem o ano. O nome do xlsx de
+      origem costuma carregar o ano (ex.: "Contemplados 2024.xlsx"). Mesma
+      regra de edital_ano_por_anexo: agrega por anexo_id e só mantém anexos
+      com ano único, na faixa [2013, 2026]. Ganho medido (jul/2026): cobre
+      1.036 anexos contra 477 do método por número do edital — 849 anexos
+      adicionais. É deliberadamente a fonte de menor prioridade: o nome do
+      arquivo pode refletir a data de publicação, defasada em até ~1 ano em
+      relação ao edital em si.
+
+    config:
+      tags: [silver, cotas]
+      meta:
+        status: Active
+        openmetadata:
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: anexo_id
+        description: >
+          Anexo do relatório de gestão. Chave primária, mesma regra do
+          edital_ano_por_anexo: anexo multi-ano é descartado.
+        data_type: text
+        tests:
+          - unique
+          - not_null
+
+      - name: ano_edital
+        description: >
+          Ano extraído do NOME DO ARQUIVO xlsx, validado em [2013, 2026]. Use
+          com ressalva: pode ser o ano de publicação do arquivo, não do edital.
+        data_type: text
+
+  - name: territorio_municipio
+    description: >
+      Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão
+      MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos
+      um setor com código FCU preenchido (zona periférica). Constrói
+      chave_municipio_uf (nome do município + sigla da UF, normalizados sem
+      acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em
+      texto livre, sem código IBGE — o join por nome é por natureza imperfeito
+      (grafias divergentes), por isso a chave normalizada é exposta para
+      auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla,
+      já que o crosswalk traz a UF por extenso ("Rondônia") enquanto os
+      agentes LPG normalmente registram a sigla ("RO").
+
+    config:
+      tags: [silver, cotas, territorio]
+      meta:
+        status: Active
+        openmetadata:
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: cd_mun
+        description: >
+          Código IBGE do município (7 dígitos). Chave primária do crosswalk
+          depois do colapso do grão setor para o grão município.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.CodigoIBGE"]
+        tests:
+          - unique
+          - not_null
+
+      - name: nm_mun
+        description: Nome do município conforme o IBGE, com acentuação original.
+        data_type: text
+
+      - name: cd_uf
+        description: Código IBGE da UF (2 dígitos).
+        data_type: text
+
+      - name: nm_uf
+        description: >
+          Nome da UF por extenso, como vem do IBGE ("Rondônia"). É a razão de
+          existir o mapeamento para sigla — os agentes LPG registram "RO".
+        data_type: text
+
+      - name: sigla_uf
+        description: Sigla da UF derivada de cd_uf, para casar com o texto dos agentes.
+        data_type: text
+
+      - name: em_concentracao_urbana
+        description: >
+          True quando o município tem ao menos UM setor censitário com código
+          FCU preenchido — isto é, alguma zona periférica. É um indicador no
+          grão município, não no grão setor: um município grande marcado como
+          true não é periférico por inteiro.
+        data_type: boolean
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.FCU"]
+
+      - name: chave_municipio_uf
+        description: >
+          Chave de junção por nome (município+UF normalizados) com
+          perfil_agentes_normalizado. É a entidade `primary` do semantic model:
+          duplicata aqui multiplicaria o valor pago no cálculo da cota
+          territorial. NULL quando a sigla da UF não resolve — o teste `unique`
+          ignora nulos.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.CodigoIBGE"]
+        tests:
+          - unique
+
   - name: diag_valores_cortados
     description: >
       Diagnóstico de valores por magnitude — audita o que o teto de R$10M do
@@ -218,14 +499,39 @@ models:
       e saem do denominador de valor). Classifica cada linha de
       stg_contemplados_lpg/pnab em faixas (sem valor; até R$10M/ok; R$10M–100M
       cortado; R$100M–1tri cortado; acima de 1tri cortado) e conta por origem.
+
     config:
-      tags: [silver, cotas]
+      tags: [silver, cotas, diagnostico]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: origem
+        description: Política de origem das linhas contadas ('lpg' ou 'pnab').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['lpg', 'pnab']
+
+      - name: faixa_valor
+        description: >
+          Faixa de magnitude do valor bruto: sem valor, até R$10M (ok), e as
+          três faixas cortadas pelo teto (R$10M–100M, R$100M–1tri, acima de
+          1tri). Valor absurdo em geral é erro de parsing da planilha.
+        data_type: text
+
+      - name: qtd
+        description: Quantidade de linhas naquela faixa e origem.
+        data_type: bigint
+
   - name: bbagil_ente_ano
     description: >
       [MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com
@@ -239,11 +545,44 @@ models:
       com menor precisão via origem_ano='vigencia_plano'. codigo_ibge destrava
       o cruzamento com município (e uma futura ponte com o Querido Diário, que
       busca por território via código IBGE).
+
     config:
-      tags: [silver, cotas]
+      tags: [silver, cotas, pnab, bbagil]
       meta:
         status: Disabled
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier2
-          owner: minc-data-engineering
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: ente_bbagil
+        description: >
+          Ente federado titular da conta no BB Gestão Ágil. Chave de junção com
+          stg_bbagil, que não traz ano nem localização.
+        data_type: text
+
+      - name: codigo_ibge
+        description: >
+          Código IBGE do município do ente, vindo de raw_planos_acao. Destrava
+          o cruzamento territorial do PNAB e uma futura ponte com o Querido Diário.
+        data_type: text
+
+      - name: municipio
+        description: Nome do município do ente federado.
+        data_type: text
+
+      - name: uf
+        description: UF do ente federado.
+        data_type: text
+
+      - name: ano_plano
+        description: >
+          Ano de INÍCIO DA VIGÊNCIA do plano de ação — aproximação do ano do
+          edital, não o ano exato. Por isso o fato marca origem_ano =
+          'vigencia_plano', sinalizando menor precisão que a cascata de datação
+          das listas.
+        data_type: integer

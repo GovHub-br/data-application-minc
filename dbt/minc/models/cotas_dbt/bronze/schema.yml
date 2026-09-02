@@ -1,34 +1,203 @@
 version: 2
 
 models:
+  # ---------------------------------------------------------------------------
+  # PERFIL DE AGENTES — 5 modelos com o MESMO contrato de 12 colunas.
+  # A diferença entre eles é a fonte e o significado da demografia, não o shape.
+  # ---------------------------------------------------------------------------
   - name: stg_agentes_pf
     description: >
       Perfil LPG Pessoa Física — une 3 fontes (base + variantes audiovisual e
       multicultural) via UNION ALL. Filtra o "lixo" de parsing: linhas sem CPF
       válido são descartadas após normalização (macro normaliza_documento).
       indigena_bruto e quilombola_bruto ficam sempre NULL (exclusivos do PNAB).
+
     config:
-      tags: [bronze, cotas]
+      tags: [bronze, cotas, lpg]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: identificador_unico
+        description: >
+          CPF do agente normalizado pela macro normaliza_documento (só dígitos,
+          vazio vira NULL). Chave de ligação com contemplados e pagamentos.
+          Linhas sem documento válido não chegam a este modelo.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+
+      - name: tipo_proponente
+        description: Natureza do proponente nesta fonte. Sempre pessoa física aqui.
+        data_type: text
+
+      - name: origem
+        description: Política que originou o registro. Constante 'lpg' neste modelo.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['lpg']
+
+      - name: raca_bruto
+        description: >
+          Raça/cor autodeclarada, exatamente como veio da planilha — texto livre,
+          sem normalização, com grafias divergentes e valores como 'nan'. A
+          normalização em 5 categorias acontece só em perfil_agentes_normalizado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: pcd_bruto
+        description: >
+          Autodeclaração de pessoa com deficiência, texto livre da planilha
+          (variações de 'sim'/'não'/vazio). Vira booleano só na silver.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: indigena_bruto
+        description: >
+          Autodeclaração indígena. SEMPRE NULL neste modelo — a fonte LPG não
+          coleta o campo; ele só existe no PNAB (ver stg_agentes_pnab_pf).
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: quilombola_bruto
+        description: >
+          Autodeclaração quilombola. SEMPRE NULL neste modelo, mesma razão de
+          indigena_bruto — campo exclusivo do PNAB.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: cep
+        description: CEP declarado pelo agente, texto livre e sem validação de formato.
+        data_type: text
+
+      - name: cidade
+        description: >
+          Município do agente em texto livre, sem código IBGE. É o insumo da
+          4ª cota (território vulnerabilizado), casado por nome em
+          territorio_municipio — join imperfeito por natureza.
+        data_type: text
+
+      - name: uf
+        description: >
+          UF do agente, normalmente a sigla ('RO'). O crosswalk do IBGE traz a UF
+          por extenso, daí o mapeamento sigla↔nome em territorio_municipio.
+        data_type: text
+
+      - name: origem_tabela
+        description: >
+          Qual das 3 abas/tabelas de origem produziu a linha (base, audiovisual
+          ou multicultural). Serve para rastrear de onde veio cada registro
+          depois do UNION ALL.
+        data_type: text
+
+      - name: nome_programa
+        description: Rótulo do programa para leitura humana. Constante 'LPG' aqui.
+        data_type: text
+
   - name: stg_agentes_pj
     description: >
       Perfil LPG Pessoa Jurídica — une 3 fontes (base + variantes audiovisual e
       multicultural) via UNION ALL. Demografia = raça/PCD do corpo diretivo da PJ
       (não de um indivíduo isolado). Documento normalizado via normaliza_documento;
       linhas sem documento válido são descartadas.
+
     config:
-      tags: [bronze, cotas]
+      tags: [bronze, cotas, lpg]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: identificador_unico
+        description: >
+          CNPJ da organização normalizado por normaliza_documento (só dígitos).
+          Chave de ligação com contemplados e pagamentos.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+
+      - name: tipo_proponente
+        description: Natureza do proponente. Sempre pessoa jurídica aqui.
+        data_type: text
+
+      - name: origem
+        description: Política que originou o registro. Constante 'lpg'.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['lpg']
+
+      - name: raca_bruto
+        description: >
+          Raça/cor do CORPO DIRETIVO da PJ, autodeclarada em texto livre — não é
+          a raça de um indivíduo. Ler como característica da organização.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: pcd_bruto
+        description: Declaração de PCD referida ao corpo diretivo, texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: indigena_bruto
+        description: SEMPRE NULL — campo inexistente na fonte LPG.
+        data_type: text
+
+      - name: quilombola_bruto
+        description: SEMPRE NULL — campo inexistente na fonte LPG.
+        data_type: text
+
+      - name: cep
+        description: CEP declarado da organização, texto livre.
+        data_type: text
+
+      - name: cidade
+        description: Município da organização em texto livre, insumo da cota territorial.
+        data_type: text
+
+      - name: uf
+        description: UF da organização, normalmente sigla.
+        data_type: text
+
+      - name: origem_tabela
+        description: Aba/tabela de origem da linha após o UNION ALL das 3 fontes.
+        data_type: text
+
+      - name: nome_programa
+        description: Rótulo do programa. Constante 'LPG'.
+        data_type: text
+
   - name: stg_agentes_coletivos
     description: >
       Perfil LPG Coletivos/Grupos — une 4 fontes (base + variantes grupo_coletivo,
@@ -37,14 +206,86 @@ models:
       normaliza_documento (só dígitos, vazio → NULL); linhas sem documento
       válido são descartadas. indigena_bruto e quilombola_bruto não existem
       na fonte LPG — ficam sempre NULL (só preenchidos no PNAB).
+
     config:
-      tags: [bronze, cotas]
+      tags: [bronze, cotas, lpg]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: identificador_unico
+        description: >
+          Documento do coletivo (CPF do representante ou CNPJ) normalizado por
+          normaliza_documento.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+
+      - name: tipo_proponente
+        description: Natureza do proponente. Coletivo/grupo aqui.
+        data_type: text
+
+      - name: origem
+        description: Política que originou o registro. Constante 'lpg'.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['lpg']
+
+      - name: raca_bruto
+        description: >
+          Raça/cor da MAIORIA do grupo/coletivo, autodeclarada em texto livre —
+          característica coletiva, não individual.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: pcd_bruto
+        description: Declaração de PCD referida à maioria do grupo, texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: indigena_bruto
+        description: SEMPRE NULL — campo inexistente na fonte LPG.
+        data_type: text
+
+      - name: quilombola_bruto
+        description: SEMPRE NULL — campo inexistente na fonte LPG.
+        data_type: text
+
+      - name: cep
+        description: CEP declarado do coletivo, texto livre.
+        data_type: text
+
+      - name: cidade
+        description: Município do coletivo em texto livre, insumo da cota territorial.
+        data_type: text
+
+      - name: uf
+        description: UF do coletivo, normalmente sigla.
+        data_type: text
+
+      - name: origem_tabela
+        description: Aba/tabela de origem da linha após o UNION ALL das 4 fontes.
+        data_type: text
+
+      - name: nome_programa
+        description: Rótulo do programa. Constante 'LPG'.
+        data_type: text
+
   - name: stg_agentes_pnab_pf
     description: >
       Perfil PNAB Pessoa Física (fonte pnab_pessoas) — CPF real (não mascarado) +
@@ -52,28 +293,424 @@ models:
       demográficas para o PNAB que antes eram impossíveis de calcular (LPG não
       traz indígena/quilombola). Documento normalizado via normaliza_documento;
       linhas sem documento válido são descartadas.
+
     config:
-      tags: [bronze, cotas]
+      tags: [bronze, cotas, pnab]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: identificador_unico
+        description: >
+          CPF REAL do agente (a fonte PNAB não mascara), normalizado por
+          normaliza_documento. É o que permite casar perfil e pagamento no PNAB.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+
+      - name: tipo_proponente
+        description: Natureza do proponente. Pessoa física aqui.
+        data_type: text
+
+      - name: origem
+        description: Política que originou o registro. Constante 'pnab'.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pnab']
+
+      - name: raca_bruto
+        description: >
+          Raça/cor autodeclarada DO PRÓPRIO INDIVÍDUO, em texto livre. Diferente
+          da LPG PJ/coletivos, aqui a demografia é individual.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: pcd_bruto
+        description: Autodeclaração de deficiência do indivíduo, texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: indigena_bruto
+        description: >
+          Autodeclaração indígena — PREENCHIDO neste modelo (exclusivo do PNAB).
+          Alimenta flag_indigena na silver mesmo quando raca_bruto não diz
+          'indígena', por isso a flag é um OR entre raça normalizada e este campo.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: quilombola_bruto
+        description: >
+          Autodeclaração quilombola — PREENCHIDO neste modelo (exclusivo do PNAB).
+          Hoje é coletado e preservado, mas ainda não vira cota própria.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: cep
+        description: CEP declarado. Na prática vem vazio no PNAB.
+        data_type: text
+
+      - name: cidade
+        description: >
+          Município do agente. O PNAB NÃO traz localização do agente — na prática
+          fica NULL, e é por isso que a cota territorial só se aplica à LPG.
+        data_type: text
+
+      - name: uf
+        description: UF do agente. Vazia no PNAB, mesma razão de cidade.
+        data_type: text
+
+      - name: origem_tabela
+        description: Tabela de origem. Constante 'pnab_pessoas' aqui.
+        data_type: text
+
+      - name: nome_programa
+        description: Rótulo do programa. Constante 'PNAB'.
+        data_type: text
+
   - name: stg_agentes_pnab_pj
     description: >
       Perfil PNAB Organizações (fonte pnab_organizacoes) — CNPJ real + raça/PCD/
       indígena/quilombola do representante legal da organização. Documento
       normalizado via normaliza_documento; linhas sem documento válido são
       descartadas.
+
     config:
-      tags: [bronze, cotas]
+      tags: [bronze, cotas, pnab]
       meta:
         status: Active
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: identificador_unico
+        description: CNPJ real da organização, normalizado por normaliza_documento.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+
+      - name: tipo_proponente
+        description: Natureza do proponente. Pessoa jurídica aqui.
+        data_type: text
+
+      - name: origem
+        description: Política que originou o registro. Constante 'pnab'.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pnab']
+
+      - name: raca_bruto
+        description: >
+          Raça/cor autodeclarada DO REPRESENTANTE LEGAL da organização — não da
+          organização nem do corpo diretivo inteiro. Semântica diferente da
+          LPG PJ, cuidado ao somar os dois programas.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: pcd_bruto
+        description: Autodeclaração de deficiência do representante legal.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: indigena_bruto
+        description: Autodeclaração indígena do representante legal. Preenchido no PNAB.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: quilombola_bruto
+        description: Autodeclaração quilombola do representante legal. Preenchido no PNAB.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: cep
+        description: CEP declarado. Vazio no PNAB na prática.
+        data_type: text
+
+      - name: cidade
+        description: Município. NULL no PNAB — sem localização do agente.
+        data_type: text
+
+      - name: uf
+        description: UF. NULL no PNAB.
+        data_type: text
+
+      - name: origem_tabela
+        description: Tabela de origem. Constante 'pnab_organizacoes'.
+        data_type: text
+
+      - name: nome_programa
+        description: Rótulo do programa. Constante 'PNAB'.
+        data_type: text
+
+  # ---------------------------------------------------------------------------
+  # LADO-VALOR — contemplados e editais
+  # ---------------------------------------------------------------------------
+  - name: stg_contemplados_lpg
+    description: >
+      Contemplados LPG (lado-valor) — colunas duplicadas por schema-drift na
+      ingestão de planilhas são resolvidas via coalesce_por_nome (lê pelo nome
+      real da coluna, imune a espaço/trailing). Extrai anexo_id do id_anexo da
+      fonte. Documento mascarado (contém '*') não vira chave casável
+      (identificador_unico = NULL), mas o valor é preservado e a linha é marcada
+      via chave_anonimizada. Valor monetário convertido por parse_valor, com
+      teto padrão de R$10M (valores acima disso viram NULL em valor_pago_num,
+      mas ficam preservados em valor_bruto_num para diagnóstico).
+
+    config:
+      tags: [bronze, cotas, lpg]
+      meta:
+        status: Active
+        openmetadata:
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: anexo_id
+        description: >
+          Identificador do anexo (planilha) do relatório de gestão que originou
+          a linha. É a chave que liga o pagamento ao ano do edital derivado em
+          edital_ano_por_anexo / edital_ano_por_arquivo.
+        data_type: text
+
+      - name: identificador_unico
+        description: >
+          CPF/CNPJ do contemplado normalizado. NULL quando o documento veio
+          mascarado na planilha — nesse caso a linha NÃO casa com perfil, mas
+          continua contando no denominador de valor.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+
+      - name: chave_anonimizada
+        description: >
+          True quando o documento de origem estava mascarado (contém '*'). Marca
+          explicitamente por que identificador_unico é NULL, separando "dado
+          ausente" de "dado protegido".
+        data_type: boolean
+
+      - name: valor_pago_num
+        description: >
+          Valor pago convertido para número por parse_valor, com teto de R$10M.
+          Acima do teto vira NULL (sai do denominador) — o valor original fica
+          em valor_bruto_num. É a coluna que soma no cálculo das cotas.
+        data_type: numeric
+        meta:
+          openmetadata: {}
+
+      - name: valor_bruto_num
+        description: >
+          Valor convertido SEM aplicar o teto de R$10M. Existe para auditar o
+          que o teto cortou (ver diag_valores_cortados) — não use para somar.
+        data_type: numeric
+
+      - name: nome_edital
+        description: >
+          Nome do edital como veio na planilha. 1ª fonte da cascata de datação
+          (padrão "NN/AAAA"). Também é o campo usado na silver para descartar
+          linhas-fantasma (rodapé de subtotal e texto de template).
+        data_type: text
+        meta:
+          openmetadata:
+
+      - name: link
+        description: URL do edital ou do documento de origem, quando a planilha traz.
+        data_type: text
+
+      - name: nome_arquivo
+        description: >
+          Nome do arquivo xlsx de origem. 3ª fonte da cascata de datação — o
+          nome costuma carregar o ano (ex.: "Contemplados 2024.xlsx").
+        data_type: text
+
+      - name: nome_programa
+        description: Rótulo do programa. Constante 'LPG'.
+        data_type: text
+
+      - name: origem
+        description: Política de origem. Constante 'lpg'.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['lpg']
+
+  - name: stg_contemplados_pnab
+    description: >
+      Contemplados PNAB (lado-valor) — une as listas geral + pncv via
+      coalesce_por_nome (mesma técnica de stg_contemplados_lpg). Chave =
+      CNPJ real (sempre casável) ou CPF real do PNCV; CPF anonimizado
+      (***XXXXXX**) da lista geral não vira chave (fica NULL, flagado por
+      chave_anonimizada), mas o valor é preservado. anexo_id liga este modelo
+      ao ano do edital derivado por anexo (edital_ano_por_anexo /
+      edital_ano_por_arquivo). Valor monetário convertido por parse_valor
+      (mesmo teto de R$10M).
+
+    config:
+      tags: [bronze, cotas, pnab]
+      meta:
+        status: Active
+        openmetadata:
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: anexo_id
+        description: >
+          Identificador do anexo do relatório de gestão que originou a linha.
+          Chave para derivar o ano do edital por anexo.
+        data_type: text
+
+      - name: identificador_unico
+        description: >
+          CNPJ real (lista geral) ou CPF real (PNCV) normalizado. NULL quando o
+          CPF da lista geral veio anonimizado no padrão ***XXXXXX**.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+
+      - name: chave_anonimizada
+        description: True quando o documento de origem estava mascarado.
+        data_type: boolean
+
+      - name: valor_pago_num
+        description: >
+          Valor pago convertido por parse_valor com teto de R$10M. ATENÇÃO: no
+          PNAB este valor mede o RECEBIDO pelos entes (repasse), não o pago à
+          pessoa — ver a ressalva do Diagnóstico 4 em distribuicao_cotas_pnab.
+        data_type: numeric
+        meta:
+          openmetadata:
+
+      - name: valor_bruto_num
+        description: Valor sem o teto de R$10M, só para auditoria do corte.
+        data_type: numeric
+
+      - name: nome_edital
+        description: >
+          Nome do edital como veio na planilha. 1ª fonte de datação e campo de
+          corte das linhas-fantasma na silver. 'nan' aqui NÃO é lixo — é
+          pagamento real sem edital identificado.
+        data_type: text
+        meta:
+          openmetadata:
+
+      - name: link
+        description: URL do edital ou documento de origem, quando presente.
+        data_type: text
+
+      - name: nome_arquivo
+        description: Nome do xlsx de origem, 3ª fonte da cascata de datação.
+        data_type: text
+
+      - name: nome_programa
+        description: Rótulo do programa. Constante 'PNAB'.
+        data_type: text
+
+      - name: origem
+        description: Política de origem. Constante 'pnab'.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pnab']
+
+  - name: stg_editais
+    description: >
+      Editais LPG — une lpg_editais + 4 tabelas de instrumentos via UNION ALL;
+      resolve colunas duplicadas (ex.: "valor total do edital" aparece repetida
+      em lpg_editais) via coalesce_por_nome. Base de denominador e de derivação
+      de ano (nome/número do edital) para o reconciliador editais_unif — não é
+      o caminho de ano efetivamente usado pelo fluxo principal das cotas (ver
+      contemplados_unif).
+
+    config:
+      tags: [bronze, cotas, lpg]
+      meta:
+        status: Active
+        openmetadata:
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: nome_edital
+        description: Nome do edital em texto livre, como veio da planilha de definição.
+        data_type: text
+        meta:
+          openmetadata:
+
+      - name: numero_edital
+        description: >
+          Número do edital, normalmente no padrão "NN/AAAA" — é dele que
+          editais_unif deriva o ano, com fallback para nome_edital.
+        data_type: text
+
+      - name: valor_total
+        description: >
+          Valor total do edital, já resolvido por coalesce_por_nome (a coluna
+          aparece duplicada na origem). Base de denominador para reconciliação.
+        data_type: numeric
+
+      - name: nome_arquivo
+        description: Nome do xlsx de origem da linha.
+        data_type: text
+
+      - name: nome_programa
+        description: Rótulo do programa. Constante 'LPG'.
+        data_type: text
+
+  # ---------------------------------------------------------------------------
+  # DESABILITADO — aguarda a extração bbágil
+  # ---------------------------------------------------------------------------
   - name: stg_bbagil
     description: >
       [MODELO DESABILITADO — config(enabled=false)] Aguarda a DAG
@@ -93,75 +730,55 @@ models:
       normalizado pela mesma macro normaliza_documento usada em
       perfil_agentes_normalizado, garantindo join direto e consistente entre as
       duas bases.
+
     config:
-      tags: [bronze, cotas]
+      tags: [bronze, cotas, pnab, bbagil]
       meta:
         status: Disabled
         openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
-  - name: stg_contemplados_lpg
-    description: >
-      Contemplados LPG (lado-valor) — colunas duplicadas por schema-drift na
-      ingestão de planilhas são resolvidas via coalesce_por_nome (lê pelo nome
-      real da coluna, imune a espaço/trailing). Extrai anexo_id do id_anexo da
-      fonte. Documento mascarado (contém '*') não vira chave casável
-      (identificador_unico = NULL), mas o valor é preservado e a linha é marcada
-      via chave_anonimizada. Valor monetário convertido por parse_valor, com
-      teto padrão de R$10M (valores acima disso viram NULL em valor_pago_num,
-      mas ficam preservados em valor_bruto_num para diagnóstico).
-    config:
-      tags: [bronze, cotas]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
+          tier: "Tier.Tier3"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Bronze", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
     columns:
-      - name: origem
-        tests:
-          - accepted_values:
-              arguments:
-                values: ['lpg']
-  - name: stg_contemplados_pnab
-    description: >
-      Contemplados PNAB (lado-valor) — une as listas geral + pncv via
-      coalesce_por_nome (mesma técnica de stg_contemplados_lpg). Chave =
-      CNPJ real (sempre casável) ou CPF real do PNCV; CPF anonimizado
-      (***XXXXXX**) da lista geral não vira chave (fica NULL, flagado por
-      chave_anonimizada), mas o valor é preservado. anexo_id liga este modelo
-      ao ano do edital derivado por anexo (edital_ano_por_anexo /
-      edital_ano_por_arquivo). Valor monetário convertido por parse_valor
-      (mesmo teto de R$10M).
-    config:
-      tags: [bronze, cotas]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
-    columns:
-      - name: origem
-        tests:
-          - accepted_values:
-              arguments:
-                values: ['pnab']
-  - name: stg_editais
-    description: >
-      Editais LPG — une lpg_editais + 4 tabelas de instrumentos via UNION ALL;
-      resolve colunas duplicadas (ex.: "valor total do edital" aparece repetida
-      em lpg_editais) via coalesce_por_nome. Base de denominador e de derivação
-      de ano (nome/número do edital) para o reconciliador editais_unif — não é
-      o caminho de ano efetivamente usado pelo fluxo principal das cotas (ver
-      contemplados_unif).
-    config:
-      tags: [bronze, cotas]
-      meta:
-        status: Active
-        openmetadata:
-          domain: Cultura.Fomento Direto
-          tier: Tier.Tier3
-          owner: minc-data-engineering
+      - name: ente_bbagil
+        description: >
+          Ente federado (município/estado) titular da conta no BB Gestão Ágil.
+          Chave de junção com bbagil_ente_ano, que traz ano e código IBGE.
+        data_type: text
+
+      - name: identificador_unico
+        description: >
+          CPF/CNPJ do beneficiário final normalizado por normaliza_documento —
+          a MESMA macro usada em perfil_agentes_normalizado, o que garante
+          casamento maçã com maçã entre extrato bancário e perfil.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+
+      - name: documento_raw
+        description: >
+          Documento do beneficiário exatamente como veio do extrato, antes da
+          normalização. Preservado para auditoria do casamento.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: chave_anonimizada
+        description: True quando o documento do extrato contém máscara ('*').
+        data_type: boolean
+
+      - name: valor_pago_num
+        description: >
+          Valor da transação convertido por parse_valor. Diferente do lado das
+          listas, aqui é o valor EFETIVAMENTE PAGO à pessoa — o denominador
+          correto para as cotas quando o modelo for reativado.
+        data_type: numeric
+        meta:
+          openmetadata:
