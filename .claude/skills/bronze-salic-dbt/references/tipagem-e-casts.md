@@ -10,7 +10,7 @@ Medição de 2026-09-01, sobre as 571 tabelas do escopo:
 
 | rota | tabelas | de onde vem o tipo |
 |---|---|---|
-| dicionário | **279** | descrição das colunas em `dbt/minc/models/salic_bronze/sources_*.yml` |
+| dicionário | **279** | descrição das colunas em `dbt/minc/models/salic_dbt/bronze/sources_*.yml` |
 | inferência | **292** | só olhando o dado |
 
 **Nenhuma das 132 views tem dicionário** — o SchemaSpy documentou só tabelas

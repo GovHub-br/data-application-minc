@@ -4,7 +4,7 @@ EXPLAIN planeja sem executar: pega nome de coluna errado, cast invalido e
 sintaxe quebrada, sem ler uma linha das 157 milhoes nem materializar nada.
 E a checagem mais barata que existe antes de um `dbt run` de verdade.
 
-Rode depois de `dbt compile --select path:models/salic_bronze`.
+Rode depois de `dbt compile --select path:models/salic_dbt/bronze`.
 
 Uso:
     /tmp/dbtvenv/bin/python .claude/skills/bronze-salic-dbt/scripts/validar_sql.py
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import psycopg2
 
-COMPILADOS = Path("dbt/minc/target/compiled/minc/models/salic_bronze")
+COMPILADOS = Path("dbt/minc/target/compiled/minc/models/salic_dbt/bronze")
 SAIDA = Path("/tmp/salic_validacao.json")
 
 

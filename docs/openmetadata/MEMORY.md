@@ -48,7 +48,7 @@ vem depois dela.
 
 ## 1. Estado atual
 
-**Última atualização: 2026-09-02 19:40 -03 · Claude (F2, F3 e F4 fechadas)**
+**Última atualização: 2026-09-02 20:20 -03 · Claude (F16 feita; lacunas da silver em §17)**
 
 | Item | Situação |
 |---|---|
@@ -386,7 +386,7 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | F13 | Meta 3 — perfil temporal do agente e fato de pagamento | minc | 🟢 LIVRE — depende do gate A0 e do mestre de Agentes |
 | F14 | Meta 4 — IBGE, capitais, vulnerabilidade e bridge de execução | minc | 🟢 LIVRE — depende de `map_chave_projeto_rouanet` medido em banco |
 | F15 | Meta 5 — histórico do proponente e golds de primeiro acesso | minc | 🟢 LIVRE — depende de `fct_evento_acesso_rouanet` e da chave HMAC |
-| F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | 🟢 LIVRE — decidido; detalhe abaixo |
+| F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | ✅ FEITO · Claude · 2026-09-02 20:20 -03 |
 
 ### F1 — Credencial (cidades) 🔴
 **Arquivos/refs:** HEAD e histórico de
@@ -465,6 +465,9 @@ senão a linhagem aponta para tabela que não existe.
 **Arquivos:** `dbt/minc/models/salic_bronze/**` (571 SQL + 6 `schema.yml` + 6
 `sources_*.yml`), `dbt/minc/models/salic_dbt/**`, `dbt/minc/dbt_project.yml`,
 `dbt/minc/manifest.json`.
+**FEITA em 2026-09-02 20:20 -03.** O resultado está em §16; o texto abaixo é o
+enunciado original da frente, preservado.
+
 **Decisão (Lucas, 2026-09-02):** as duas pastas têm que virar **um grupo de
 modelos só**. Hoje o SALIC é o único domínio do projeto que quebra a convenção
 dos outros dois — `agentes_dbt` e `cotas_dbt` são uma pasta por domínio com as
@@ -1529,3 +1532,125 @@ de `DisplayName-Deny` registrado em §7.
 **Próximo passo.** F16 (unificar `salic_bronze` e `salic_dbt`) é a única frente
 grande ainda offline. As Metas 3, 4 e 5 (F13–F15) continuam esperando o gate A0
 e a auditoria live.
+
+---
+
+## 16. Um domínio dbt só para o SALIC — entrega da F16
+
+### 2026-09-02 · Claude · `salic_bronze` vira `salic_dbt/bronze`
+
+`git mv` dos 571 modelos e 6 `sources_*.yml`, e os dois blocos do
+`dbt_project.yml` colapsados em um. O SALIC deixa de ser o único domínio do
+projeto com duas pastas de topo: agora é uma pasta por domínio com as camadas
+como subpasta, igual a `agentes_dbt` e `cotas_dbt`.
+
+**Configuração preservada e conferida no manifest**, não presumida:
+
+| Camada | Modelos | `materialized` | `schema` |
+|---|---|---|---|
+| `salic_dbt/bronze` | 571 | `view` | `salic` |
+| `salic_dbt/core` | 6 | `table` | `salic` |
+
+**Nenhum FQN do OpenMetadata muda**, que era a premissa da decisão: o catálogo
+é `database.schema.tabela`, e nem o schema (`salic`) nem o nome das relações se
+mexeram. Não há reingestão a fazer, e as três recipes seguem intocadas.
+
+**Onze arquivos fora do dbt citavam o caminho antigo** e foram corrigidos no
+mesmo commit, que é exatamente o critério do `CLAUDE.md` para a skill morar
+aqui: a skill `bronze-salic-dbt` (SKILL.md, três scripts e uma referência),
+`plugins/trino_bronze.py`, três scripts de geração, dois estágios de
+`scripts/salic_docs/`, a docstring de `salic_ingestion_trino` e os cinco
+catálogos do Trino. As menções ao caminho antigo **no diário desta memória
+ficaram como estão** — são observação datada, e §0 proíbe reescrevê-las.
+
+**A unificação quebrou um guarda meu, e isso foi útil.**
+`tests/test_salic_silver_governance.py` varria `models/salic_dbt` inteiro; com a
+bronze lá dentro, os 571 modelos gerados passaram a ser cobrados pelo contrato
+da silver — 1.549 falhas. O escopo agora exclui **por camada**
+(`CAMADAS_NAO_SILVER`), e não por lista de pastas, de modo que `meta3`, `meta4`
+e `gold` entrem sozinhas quando existirem. A suíte voltou a 165 passed.
+
+**Acervo do site recoletado** (`make docs-collect`), como o `CLAUDE.md` exige.
+O diff é grande porque a última coleta era anterior às bronzes do SALIC e das
+APIs; os seis modelos novos aparecem com o caminho novo.
+
+---
+
+## 17. O que falta para a silver do SALIC estar completa
+
+*(levantamento pedido em 2026-09-02; é a foto de hoje, não um plano novo — o
+plano continua sendo §13)*
+
+### 17.1 Modelos: 6 de 14
+
+Dos 13 contratos canônicos de §13, **5 estão implementados**; o
+`map_chave_projeto_rouanet` foi acrescentado no caminho, então são 6 modelos
+existentes e **8 faltando**.
+
+| # | Modelo que falta | O que o bloqueia | Natureza do bloqueio |
+|---|---|---|---|
+| 1 | `dim_agente_perfil_rouanet_scd` | mestre de Agentes não ingerido; `agentes__vperfil` sem semântica verificada; origem provavelmente sem histórico | **fonte** |
+| 2 | `fct_pagamento_profissional_rouanet` | fonte existe (`sac__vwpagamentodefornecedordoprojetoporitemdetalhado`), grão não medido; falta A0 item 1 (`tipo_valor`) | **medição + regra** |
+| 3 | `dim_municipio_ibge` | não há base versionada de municípios nem de capitais; `ibge_sidra_bronze.localidades` é por agregado e a carga atual é nível UF | **fonte externa** |
+| 4 | `brg_projeto_local_execucao` | `sac__abrangencia` só tem `idprojeto`; depende da cobertura de `map_chave_projeto_rouanet`, que é o número não medido | **medição** |
+| 5 | `brg_territorio_classificacao` | não há critério homologado de vulnerabilidade para a Rouanet; o termo atual herda semântica de FCU, que é da LPG | **regra** |
+| 6 | `fct_execucao_municipal_rouanet` | depende de 2, 3 e 4, mais a regra de projeto multicidade (A0 item 5) | **cadeia** |
+| 7 | `fct_proponente_ano_rouanet` | depende de 1 e da chave HMAC, cujo segredo não existe | **cadeia + infra** |
+| 8 | `dim_meta_alvo_rouanet` | falta base legal e vigência dos alvos; o board traz o territorial como `x%` | **regra** |
+
+Nenhum dos oito está bloqueado por falta de tempo de implementação. **Sete dos
+oito esperam uma decisão de negócio ou uma fonte que não está no banco** — e é
+por isso que continuar codando agora produziria modelo que a primeira validação
+derruba.
+
+### 17.2 Fora dos modelos
+
+1. **Gate A0.** As 11 decisões de §13 não foram tomadas. Sem elas nenhum dos
+   sete KPIs pode ser escrito sem inventar regra — e regra inventada em gold é
+   a coisa mais cara de desfazer depois que um painel publicou o número.
+2. **Auditoria live (Onda 0).** Nada foi medido contra banco em nenhuma sessão
+   até aqui. As cinco medições estão listadas em §11 e §14.
+3. **Fontes do FigJam ausentes da ingestão:** `Projetos` da v2, `PreProjeto`,
+   `Situacao`, `tbApiIncentivos`, `tbApiComprovacoes`, `Agentes`,
+   `tbAgenteFisico`, `EnderecoNacional`, `tbCompPagXPlanilha`,
+   `tbComprovantePagamento`, `tbEncaminhamentoPrestContas`,
+   `tbSituacaoEncPrestContas`, `tbAlteracaoNomeProponente`, `Municipios` e
+   `PopulacaoMunicipio`. O BDCorporativo carregado só tem `sysdiagrams`.
+4. **Tabelas de domínio não localizadas.** Achado desta implementação: mecanismo,
+   enquadramento, situação, tipo de apoio e tipo de aprovação estão expostos
+   como **código sem descrição** nos seis modelos, porque a tabela de domínio de
+   cada um não foi encontrada na bronze v2. Isso é dívida visível no catálogo:
+   um painel que mostre `codigo_situacao` não é legível por humano.
+5. **Segredo do HMAC-SHA256** para a chave de identidade entre bases. Sem ele a
+   Meta 5 não cruza SALIC com LPG/PNAB/BB Ágil, e hash simples de CPF/CNPJ está
+   descartado por ser enumerável.
+6. **Reconciliação e aposentadoria da bronze v1.** `eventos_fomento_rouanet` lê
+   o schema `bronze` e `fct_captacao_rouanet` lê o `salic_bronze`. Os dois
+   convivem hoje; falta o gate G3 e um plano de migração declarado.
+7. **Certificação.** Os seis modelos estão `Disabled`, sem
+   `Certification.Silver`, e assim continuam até G1–G5.
+8. **Golds e exposures.** Os sete KPIs e seus `exposure` de dashboard não
+   existem. Dependem inteiramente do A0.
+9. **Camada REST de governança (F6).** `status`, certificação, produto e
+   classificação de `Uso` **não são ingeridos pelo conector dbt** — hoje eles
+   vivem só no `schema.yml` e no teste. Sem o overlay, o catálogo não sabe que
+   os modelos estão `Disabled`.
+10. **Exportador RAG fail-closed.** Não existe neste repositório. A política
+    está escrita e testada offline; quem a aplica ainda não foi escrito.
+
+### 17.3 O caminho mais curto
+
+Se a pergunta for "o que destrava mais coisa por menos esforço", a ordem é:
+
+1. **VPN + `.env` e rodar `dbt build --select salic_dbt.core`.** Materializa os
+   seis, e a primeira execução responde sozinha três das cinco medições
+   pendentes — inclusive a cobertura de `map_chave_projeto_rouanet`, que decide
+   se a Meta 4 sai pela abrangência ou precisa da view de itens comprovados.
+2. **A0 em uma sessão com quem responde pelo indicador.** É decisão, não
+   trabalho técnico, e é o gargalo de 7 dos 8 modelos que faltam.
+3. **Base de capitais e municípios IBGE versionada.** É a única fonte externa
+   pequena o bastante para entrar sem projeto: 27 capitais e ~5.570 municípios.
+   Destrava `dim_municipio_ibge` e metade da Meta 4.
+4. **F6 (overlay REST)**, para que `Disabled` e certificação signifiquem algo no
+   catálogo — hoje eles são verdade só no repositório.
+

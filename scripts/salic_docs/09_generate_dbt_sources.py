@@ -1,7 +1,7 @@
 """Gera as declarações dbt `sources:` (formato dbt 1.12 + meta OpenMetadata)
 para o schema bronze do SALIC, a partir de output/merged.json — um arquivo
 por schema de origem (sac/tabelas/agentes/controledeacesso/bdcorporativo),
-em dbt/minc/models/salic_bronze/, para o conector dbt do OpenMetadata
+em dbt/minc/models/salic_dbt/bronze/, para o conector dbt do OpenMetadata
 reconhecer descrições, tags e tier dessas tabelas.
 
 Cada schema vira um `source` dbt com nome próprio (bronze_sac, bronze_tabelas,

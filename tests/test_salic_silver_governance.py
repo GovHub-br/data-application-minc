@@ -17,8 +17,20 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SILVER_DIR = REPO_ROOT / "dbt/minc/models/salic_dbt"
+SALIC_DIR = REPO_ROOT / "dbt/minc/models/salic_dbt"
 GLOSSARIO_CSV = REPO_ROOT / "helpers/openmetadata/glossaries/minc.csv"
+
+# A bronze mora no mesmo grupo de modelos desde a unificacao, e ela tem outro
+# contrato: 571 modelos gerados, documentados a partir do dicionario do SALIC,
+# com o marcador `[NAO VERIFICADO]` onde o dicionario cala. Estas guardas sao
+# do que e escrito a mao aqui -- por isso a exclusao e por camada, e nao uma
+# lista de pastas: `meta3`, `meta4` e `gold` entram sozinhas quando existirem.
+CAMADAS_NAO_SILVER = {"bronze"}
+
+
+def _e_silver(caminho: Path) -> bool:
+    return caminho.relative_to(SALIC_DIR).parts[0] not in CAMADAS_NAO_SILVER
+
 
 DOMINIO_ESPERADO = "Cultura.Incentivo Fiscal"
 DONO_ESPERADO = "minc-data-engineering"
@@ -44,7 +56,9 @@ TAGS_PII = {"PII.Sensitive", "PII.NonSensitive"}
 def _modelos_documentados() -> dict[str, dict]:
     """Todo bloco `models:` dos schema.yml da silver, indexado por nome."""
     modelos: dict[str, dict] = {}
-    for caminho in SILVER_DIR.rglob("*.yml"):
+    for caminho in sorted(SALIC_DIR.rglob("*.yml")):
+        if not _e_silver(caminho):
+            continue
         conteudo = yaml.safe_load(caminho.read_text(encoding="utf-8")) or {}
         for modelo in conteudo.get("models") or []:
             nome = modelo["name"]
@@ -54,7 +68,7 @@ def _modelos_documentados() -> dict[str, dict]:
 
 
 def _sqls_da_silver() -> list[Path]:
-    return sorted(SILVER_DIR.rglob("*.sql"))
+    return sorted(c for c in SALIC_DIR.rglob("*.sql") if _e_silver(c))
 
 
 def _governanca(modelo: dict) -> dict:
@@ -76,7 +90,10 @@ NOMES_SQL = [caminho.stem for caminho in SQLS]
 
 def test_ha_modelos_para_verificar() -> None:
     """Guarda do proprio arquivo: teste que nao coleta nada passa por engano."""
-    assert SQLS, "nenhum .sql encontrado em models/salic_dbt"
+    assert SQLS, "nenhum .sql de silver encontrado em models/salic_dbt"
+    assert not any(
+        "bronze" in c.parts for c in SQLS
+    ), "a bronze entrou no escopo destas guardas; ela tem contrato proprio"
 
 
 @pytest.mark.parametrize("nome", NOMES_SQL)

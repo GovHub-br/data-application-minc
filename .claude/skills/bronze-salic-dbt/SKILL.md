@@ -37,7 +37,7 @@ descarte do que não se usa.
 | `bronze` | 465 | 86,5 M | 1 de 465 | saída da ingestão v1, **legada** |
 | `salic_bronze` | 656 | 157,7 M | **656 de 656** | ingestão v2 via Trino, **oficial** |
 
-As 561 sources em `dbt/minc/models/salic_bronze/*.yml` declaram
+As 561 sources em `dbt/minc/models/salic_dbt/bronze/*.yml` declaram
 `schema: bronze` — o legado. A causa está em
 `dags/data_ingest/salic/salic_ingestion_trino.py`: o destino vem da Variable
 `salic_trino_bronze_schema`, cujo default é `bronze`, sobrescrita no ambiente
@@ -81,7 +81,7 @@ Duas consequências:
   nos totais escritos aqui como se fossem o presente.
 
 Para saber o que já foi feito, compare os modelos existentes em
-`dbt/minc/models/salic_bronze/` com o inventário. É a fonte da verdade do
+`dbt/minc/models/salic_dbt/bronze/` com o inventário. É a fonte da verdade do
 progresso — não uma lista sua em memória.
 
 ## A VPN cai
@@ -126,7 +126,7 @@ nunca entra em arquivo versionado — o `.env` está no `.gitignore` e continua 
   da ingestão por fatias (ver ADR 0005).
 - **Um arquivo `schema.yml` por origem** (`sac`, `tabelas`, `agentes`,
   `controledeacesso`, `bdcorporativo`), espelhando a divisão que já existe em
-  `dbt/minc/models/salic_bronze/sources_*.yml`.
+  `dbt/minc/models/salic_dbt/bronze/sources_*.yml`.
 
 ## Depois de cada lote
 

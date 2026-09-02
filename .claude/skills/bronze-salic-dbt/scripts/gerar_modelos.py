@@ -2,7 +2,7 @@
 
 Le /tmp/salic_perfil.json (colunas reais + amostra de 200 linhas por tabela) e
 os tipos originais do SQL Server que ja estao nas descricoes das sources, e
-escreve um modelo por tabela em dbt/minc/models/salic_bronze/<origem>/.
+escreve um modelo por tabela em dbt/minc/models/salic_dbt/bronze/<origem>/.
 
 A REGRA CENTRAL: o dicionario diz a INTENCAO da origem, a amostra diz a
 REALIDADE do texto gravado. Quando divergem, a amostra veta -- a coluna fica
@@ -29,8 +29,8 @@ from pathlib import Path
 
 PERFIL = Path("/tmp/salic_perfil.json")
 INVENTARIO = Path("/tmp/salic_inventario.json")
-DESTINO = Path("dbt/minc/models/salic_bronze")
-SOURCES = "dbt/minc/models/salic_bronze/sources_*.yml"
+DESTINO = Path("dbt/minc/models/salic_dbt/bronze")
+SOURCES = "dbt/minc/models/salic_dbt/bronze/sources_*.yml"
 
 # Quantos valores nao-nulos a amostra precisa ter para que o dado possa,
 # sozinho, decidir um tipo. Abaixo disso a amostra so serve para vetar.

@@ -55,7 +55,7 @@ def modelos_existentes() -> set[str]:
     """Modelos bronze ja escritos -- e a fonte da verdade do progresso."""
     return {
         Path(p).stem
-        for p in glob.glob("dbt/minc/models/salic_bronze/**/*.sql", recursive=True)
+        for p in glob.glob("dbt/minc/models/salic_dbt/bronze/**/*.sql", recursive=True)
     }
 
 

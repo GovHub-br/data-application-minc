@@ -1,7 +1,7 @@
 """Orquestra o pipeline completo de documentação do SALIC, do parse do
 dicionário original até os artefatos finais: YAML semântico, DOCX + HTML
 (técnico e gestor), e as declarações dbt `sources:` (schema.yml + meta
-OpenMetadata) em dbt/minc/models/salic_bronze/.
+OpenMetadata) em dbt/minc/models/salic_dbt/bronze/.
 
 Cada etapa é um script independente (podem ser rodados avulsos para
 depuração); este script só os executa em sequência, na ordem certa, parando

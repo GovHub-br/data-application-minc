@@ -53,7 +53,7 @@ def quote_pg_ident(name: str) -> str:
     """Quota um identificador para o PostgreSQL, já em minúsculas.
 
     A bronze é toda minúscula — é o que a v1 gravava e o que as 561 fontes em
-    ``dbt/minc/models/salic_bronze/`` declaram.
+    ``dbt/minc/models/salic_dbt/bronze/`` declaram.
     """
     return '"' + name.lower().replace('"', '""') + '"'
 
