@@ -1,0 +1,48 @@
+-- Bronze transferegov — programa_minc.
+-- Origem: transferegov.programa_minc, onde tudo chega como text da ingestão via API.
+-- Tipar é o trabalho desta camada.
+-- 40 colunas: 11 tipadas, 29 mantidas como texto.
+-- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
+-- não do nome da coluna: exige 100% dos valores preenchidos casando.
+select
+    {{ bronze_texto("sigla") }} as sigla,
+    {{ bronze_timestamp("dt_ingest") }} as dt_ingest,
+    {{ bronze_inteiro("id_programa") }} as id_programa,
+    {{ bronze_inteiro("ano_programa") }} as ano_programa,
+    {{ bronze_texto("url_consulta") }} as url_consulta,
+    {{ bronze_texto("nome_programa") }} as nome_programa,
+    {{ bronze_inteiro("codigo_programa") }} as codigo_programa,
+    {{ bronze_texto("politica_publica") }} as politica_publica,
+    {{ bronze_inteiro("id_fundo_programa") }} as id_fundo_programa,
+    {{ bronze_texto("objetivo_programa") }} as objetivo_programa,
+    {{ bronze_texto("situacao_programa") }} as situacao_programa,
+    {{ bronze_texto("uf_fundo_programa") }} as uf_fundo_programa,
+    {{ bronze_texto("descricao_programa") }} as descricao_programa,
+    {{ bronze_texto("cnpj_fundo_programa") }} as cnpj_fundo_programa,
+    {{ bronze_texto("modalidade_programa") }} as modalidade_programa,
+    {{ bronze_texto("nome_fundo_programa") }} as nome_fundo_programa,
+    {{ bronze_numerico("valor_global_programa") }} as valor_global_programa,
+    {{ bronze_texto("municipio_fundo_programa") }} as municipio_fundo_programa,
+    {{ bronze_texto("nome_gestao_agil_programa") }} as nome_gestao_agil_programa,
+    {{ bronze_texto("codigo_ibge_fundo_programa") }} as codigo_ibge_fundo_programa,
+    {{ bronze_texto("id_orgao_superior_programa") }} as id_orgao_superior_programa,
+    {{ bronze_inteiro("id_unidade_gestora_programa") }} as id_unidade_gestora_programa,
+    {{ bronze_texto("nome_institucional_programa") }} as nome_institucional_programa,
+    {{ bronze_texto("cnpj_orgao_superior_programa") }} as cnpj_orgao_superior_programa,
+    {{ bronze_texto("nome_orgao_superior_programa") }} as nome_orgao_superior_programa,
+    {{ bronze_inteiro("quantidade_parcelas_programa") }} as quantidade_parcelas_programa,
+    {{ bronze_texto("sigla_orgao_superior_programa") }} as sigla_orgao_superior_programa,
+    {{ bronze_texto("grupo_natureza_despesa_programa") }} as grupo_natureza_despesa_programa,
+    {{ bronze_numerico("valor_acao_orcamentaria_programa") }} as valor_acao_orcamentaria_programa,
+    {{ bronze_texto("descricao_acao_orcamentaria_programa") }} as descricao_acao_orcamentaria_programa,
+    {{ bronze_texto("codigo_descricao_orcamentaria_programa") }} as codigo_descricao_orcamentaria_programa,
+    {{ bronze_texto("permite_transferencia_sem_fundo_programa") }} as permite_transferencia_sem_fundo_programa,
+    {{ bronze_texto("data_fim_recebimento_planos_acao_beneficiarios_emendas") }} as data_fim_recebimento_planos_acao_beneficiarios_emendas,
+    {{ bronze_texto("data_inicio_recebimento_planos_acao_beneficiarios_emendas") }} as data_inicio_recebimento_planos_acao_beneficiarios_emendas,
+    {{ bronze_data("data_fim_recebimento_planos_acao_beneficiarios_especificos") }} as data_fim_recebimento_planos_acao_beneficiarios_especificos,
+    {{ bronze_texto("data_fim_recebimento_planos_acao_beneficiarios_voluntarios") }} as data_fim_recebimento_planos_acao_beneficiarios_voluntarios,
+    {{ bronze_data("data_inicio_recebimento_planos_acao_beneficiarios_especificos") }} as data_inicio_recebimento_planos_acao_beneficiarios_especificos,
+    {{ bronze_texto("data_inicio_recebimento_planos_acao_beneficiarios_voluntarios") }} as data_inicio_recebimento_planos_acao_beneficiarios_voluntarios,
+    {{ bronze_texto("programa_natureza_despesa") }} as programa_natureza_despesa,
+    {{ bronze_texto("programa_acao_orcamentaria") }} as programa_acao_orcamentaria
+from {{ source("transferegov", "programa_minc") }}

@@ -51,3 +51,28 @@ models:
       # de linhas para por uma view no lugar. Segue o padrao de agentes/cotas:
       # um schema por dominio, as camadas separadas por pasta.
       +schema: salic
+
+    # Fontes de API (TransfereGov, SIDRA/IBGE, SGS/Bacen). Chegam 100% como
+    # `text`, entao precisam da mesma camada de tipagem do SALIC -- as macros
+    # bronze_* sao as mesmas, e o cast de cada coluna foi decidido pelo padrao
+    # medido no dado, nao pelo nome (scripts/perfilar_padroes.py).
+    #
+    # Aqui o schema de destino repete o nome da PASTA, e nao o dominio, pelo
+    # mesmo motivo explicado acima no salic_bronze -- so que invertido: la o
+    # raw e `salic_bronze` e sobra o nome limpo `salic`; aqui o raw ja ocupa o
+    # nome limpo (`transferegov`), entao `+schema: transferegov` faria a view
+    # colidir com a tabela de origem.
+    #
+    # View pelo mesmo motivo do salic_bronze: a camada so aplica cast.
+    transferegov_bronze:
+      +materialized: view
+      +schema: transferegov_bronze
+    ibge_sidra_bronze:
+      +materialized: view
+      +schema: ibge_sidra_bronze
+    bacen_bronze:
+      +materialized: view
+      +schema: bacen_bronze
+    bbagil_bronze:
+      +materialized: view
+      +schema: bbagil_bronze
