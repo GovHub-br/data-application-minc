@@ -5,7 +5,8 @@
 -- POR QUE ESTE MODELO EXISTE. O SALIC identifica o mesmo projeto de tres
 -- jeitos, e nenhuma tabela da bronze v2 carrega os tres juntos:
 --
--- * `pronac`    -- chave de negocio, 7 posicoes (ano + sequencial);
+-- * `pronac`    -- chave de negocio, ano com 2 posicoes + sequencial sem
+-- padding artificial (5 a 7 posicoes no dado observado);
 -- * `idpronac`  -- surrogate inteiro, usado pelas tabelas de analise;
 -- * `idprojeto` -- surrogate mais antigo, e a chave de `sac__abrangencia`,
 -- que e a unica fonte de local de realizacao do projeto.
@@ -27,7 +28,7 @@ with
 
     observado as (
 
-        select
+        select distinct
             {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} as pronac,
             idpronac,
             cast(null as integer) as idprojeto,
@@ -36,7 +37,7 @@ with
 
         union all
 
-        select
+        select distinct
             {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} as pronac,
             idpronac,
             cast(null as integer) as idprojeto,
@@ -46,7 +47,7 @@ with
         union all
 
         -- a unica tabela transacional com as tres chaves na mesma linha
-        select
+        select distinct
             {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} as pronac,
             idpronac,
             nullif(idprojeto, 0) as idprojeto,
@@ -55,7 +56,7 @@ with
 
         union all
 
-        select
+        select distinct
             {{ pronac_normalizado("pronac") }} as pronac,
             idpronac,
             nullif(idprojeto, 0) as idprojeto,
@@ -64,7 +65,7 @@ with
 
         union all
 
-        select
+        select distinct
             {{ pronac_normalizado("pronac") }} as pronac,
             idpronac,
             cast(null as integer) as idprojeto,
@@ -73,7 +74,7 @@ with
 
         union all
 
-        select
+        select distinct
             {{ pronac_normalizado("pronac") }} as pronac,
             idpronac,
             cast(null as integer) as idprojeto,
@@ -84,7 +85,7 @@ with
 
         -- `captacao.idprojeto` e 0 na maior parte das linhas. Sem o `nullif` esse
         -- zero viraria um "projeto 0" compartilhado por meio SALIC.
-        select
+        select distinct
             {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} as pronac,
             cast(null as integer) as idpronac,
             nullif(idprojeto, 0) as idprojeto,
@@ -104,14 +105,45 @@ with
         from observado
         where pronac is not null
         group by pronac
+    ),
+
+    id_pronac_inverso as (
+        select idpronac, count(distinct pronac) as qt_pronac_por_id_pronac
+        from observado
+        where pronac is not null and idpronac is not null
+        group by idpronac
+    ),
+
+    id_projeto_inverso as (
+        select idprojeto, count(distinct pronac) as qt_pronac_por_id_projeto
+        from observado
+        where pronac is not null and idprojeto is not null
+        group by idprojeto
     )
 
 select
-    pronac,
-    {{ ano_do_pronac("pronac") }} as ano_pronac,
-    case when qt_id_pronac_distintos <= 1 then id_pronac_observado end as id_pronac,
-    case when qt_id_projeto_distintos <= 1 then id_projeto_observado end as id_projeto,
-    qt_id_pronac_distintos > 1 as id_pronac_ambiguo,
-    qt_id_projeto_distintos > 1 as id_projeto_ambiguo,
-    qt_tabelas_origem
-from consolidado
+    c.pronac,
+    {{ ano_do_pronac("c.pronac") }} as ano_pronac,
+    case
+        when
+            c.qt_id_pronac_distintos <= 1 and coalesce(ip.qt_pronac_por_id_pronac, 0) <= 1
+        then c.id_pronac_observado
+    end as id_pronac,
+    case
+        when
+            c.qt_id_projeto_distintos <= 1
+            and coalesce(ipro.qt_pronac_por_id_projeto, 0) <= 1
+        then c.id_projeto_observado
+    end as id_projeto,
+    (
+        c.qt_id_pronac_distintos > 1 or coalesce(ip.qt_pronac_por_id_pronac, 0) > 1
+    ) as id_pronac_ambiguo,
+    (
+        c.qt_id_projeto_distintos > 1 or coalesce(ipro.qt_pronac_por_id_projeto, 0) > 1
+    ) as id_projeto_ambiguo,
+    coalesce(ip.qt_pronac_por_id_pronac, 0) as qt_pronac_por_id_pronac,
+    coalesce(ipro.qt_pronac_por_id_projeto, 0) as qt_pronac_por_id_projeto,
+    c.qt_tabelas_origem
+from consolidado as c
+left join id_pronac_inverso as ip on c.id_pronac_observado = ip.idpronac
+left join id_projeto_inverso as ipro on c.id_projeto_observado = ipro.idprojeto

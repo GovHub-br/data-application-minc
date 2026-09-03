@@ -48,7 +48,7 @@ vem depois dela.
 
 ## 1. Estado atual
 
-**Última atualização: 2026-09-02 20:20 -03 · Claude (F16 feita; lacunas da silver em §17)**
+**Última atualização: 2026-09-03 00:40 -03 · Codex (F13/F14 parciais; auditoria live em §18)**
 
 | Item | Situação |
 |---|---|
@@ -69,9 +69,9 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — bronze | ✅ 571 modelos SQL tipados/documentados na `main@d404531` |
-| SALIC — silver núcleo | ✅ **6 modelos em `dbt/minc/models/salic_dbt/core/`**, na `feat/dbt-salic-silver`. Documentação completa, governança declarada, `status: Disabled` até os gates live. Ver §14 |
-| SALIC — silvers M3/M4/M5 | ⏳ Ondas 2 e 3 do plano (§13), bloqueadas pelo gate A0 e pela auditoria live |
-| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py`, 68 casos, todos offline |
+| SALIC — silver núcleo | ✅ **6 modelos em `dbt/minc/models/salic_dbt/core/`**, na `feat/dbt-salic-silver`. A normalização de PRONAC foi corrigida após auditoria live; `status: Disabled` até o run da DAG. Ver §14 e §18 |
+| SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
+| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py`, 90 casos; suíte completa 187 passed, 3 skipped |
 
 **Direção do fluxo histórico:** Cidades (`origin/refactor/openmetadata`, 2026-08-18)
 → MinC portou e evoluiu → Cidades recuperou de volta em `fixture/ajustes-conjuntura`.
@@ -383,8 +383,8 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | F10 | Validar o levantamento, comparar os commits atuais e detalhar o próximo recorte | ambos | ✅ FEITO · Codex · 17:47 -03 |
 | F11 | Planejar silvers SALIC do FigJam + documentação OpenMetadata e dividir entre agentes | minc | ✅ FEITO · Codex + 3 agentes · 2026-09-02 16:10 -03 · plano em §13 |
 | F12 | Implementar o núcleo silver do SALIC (Onda 1, papel do Agente A) | minc | ✅ FEITO · Claude · 2026-09-02 18:30 -03 · entrega em §14 |
-| F13 | Meta 3 — perfil temporal do agente e fato de pagamento | minc | 🟢 LIVRE — depende do gate A0 e do mestre de Agentes |
-| F14 | Meta 4 — IBGE, capitais, vulnerabilidade e bridge de execução | minc | 🟢 LIVRE — depende de `map_chave_projeto_rouanet` medido em banco |
+| F13 | Meta 3 — perfil temporal do agente e fato de pagamento | minc | 🟠 PARCIAL · Codex · 2026-09-03 — fato de pagamento entregue; perfil temporal e gold bloqueados pela fonte/regra |
+| F14 | Meta 4 — IBGE, capitais, vulnerabilidade e bridge de execução | minc | 🟠 PARCIAL · Codex · 2026-09-03 — bridge entregue como `Disabled`; cobertura de PRONAC é só 4.269 projetos |
 | F15 | Meta 5 — histórico do proponente e golds de primeiro acesso | minc | 🟢 LIVRE — depende de `fct_evento_acesso_rouanet` e da chave HMAC |
 | F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | ✅ FEITO · Claude · 2026-09-02 20:20 -03 |
 
@@ -1654,3 +1654,49 @@ Se a pergunta for "o que destrava mais coisa por menos esforço", a ordem é:
 4. **F6 (overlay REST)**, para que `Disabled` e certificação signifiquem algo no
    catálogo — hoje eles são verdade só no repositório.
 
+---
+
+## 18. Auditoria live e continuação das silvers SALIC
+
+### 2026-09-03 · Codex · F13/F14 parciais e correção da chave PRONAC
+
+**Fontes confrontadas.** FigJam raiz `0:1`, `gate-a0-fontes.md`, relatório
+FGV/OEI/MinC de 2024, IN MinC nº 10/2023 e IN MinC nº 29/2026. A IN nº 10 é da
+PNAB: suas 13 categorias territoriais foram aceitas como taxonomia de
+referência solicitada pelo produto, mas suas cotas de vagas não foram
+transportadas como metas normativas da Rouanet. A decisão ficou registrada na
+ADR 0006.
+
+**Defeito corrigido no núcleo.** A macro preenchia o sequencial do PRONAC até
+cinco posições. A auditoria mostrou `anoprojeto=08`, `sequencial=7079` e PRONAC
+textual `087079`; a regra antiga produzia `0807079`. Na série observada há
+PRONACs de 5, 6 e 7 dígitos. A chave agora concatena ano de duas posições com o
+sequencial como registrado e ganhou o teste singular `test_pronac_macros`.
+`map_chave_projeto_rouanet` também passou a falhar fechado nos dois sentidos da
+relação e a deduplicar cada fonte antes das agregações. Foi corrigida ainda a
+referência inexistente `ap.projeto_aprovado` em `dim_projeto_rouanet`.
+
+**Modelos acrescentados.** `fct_pagamento_profissional_rouanet` preserva o
+valor pago e a identidade necessária ao futuro join de perfil; é restrito,
+proibido para RAG e continua `Disabled`. `brg_projeto_local_execucao` preserva
+o local de realização sem replicar/ratear valor nem classificar
+vulnerabilidade; também continua `Disabled`.
+
+**Medições somente leitura.** A view detalhada tem 4.182.025 pagamentos e todos
+recuperam PRONAC pela ponte `idpronac` auditada. O recorte bruto de 2024 tem
+602.515 linhas e R$ 2.977.665.843,84, acima dos cerca de 567 mil/R$ 2,8 bilhões
+da FGV; o gold precisa do recorte metodológico. `sac__abrangencia` tem 860.304
+linhas/ids, mas a ponte atual recupera PRONAC para 45.022 linhas e somente
+4.269 projetos; cobertura insuficiente para a Meta 4.
+
+**Validação.** `dbt compile` passou; `test_pronac_macros` passou no banco;
+`sqlfmt` e `sqlfluff` passaram nos SQLs alterados; suíte completa: 187 passed,
+3 skipped. O manifest foi regenerado com dbt 1.10.22 (627 modelos) e
+`make docs-collect` atualizou o acervo.
+
+**Materialização pendente.** O usuário do `.env` possui leitura, mas recebeu
+`permission denied for schema salic` no `dbt build`. A escrita é da DAG. Depois
+do deploy desta branch, disparar `minc_cosmos_dag`; manter os oito modelos
+`Disabled` até revisar resultados, cobertura, duplicidades e reconciliações do
+run. F13 ainda precisa do mestre/perfil temporal e F14 precisa de município
+oficial, ponte ampla de projeto, fontes de vulnerabilidade e regra multicidade.

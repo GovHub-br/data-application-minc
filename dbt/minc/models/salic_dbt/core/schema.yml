@@ -48,10 +48,11 @@ models:
     columns:
       - name: pronac
         description: >
-          Chave de negócio do projeto na Rouanet, com 7 posições — dois dígitos
-          de ano seguidos de cinco de sequencial, com zeros à esquerda
-          preservados. Normalizado pela macro `pronac_normalizado` ou montado
-          por `pronac_de_ano_sequencial`, conforme a forma da origem.
+          Chave de negócio do projeto na Rouanet: dois dígitos de ano seguidos
+          do sequencial como registrado, com 5 a 7 posições na série observada.
+          Não há padding do sequencial: fazê-lo mudaria a chave. Normalizado
+          pela macro `pronac_normalizado` ou montado por
+          `pronac_de_ano_sequencial`, conforme a forma da origem.
         data_type: text
         meta:
           openmetadata:
@@ -89,6 +90,22 @@ models:
           `true` quando a origem associa mais de um `id_projeto` ao mesmo
           PRONAC. Nesses casos `id_projeto` é NULL de propósito.
         data_type: boolean
+        tests:
+          - not_null
+      - name: qt_pronac_por_id_pronac
+        description: >
+          Quantos PRONAC distintos foram observados para o `id_pronac`
+          candidato. Valor maior que um invalida o id e ativa
+          `id_pronac_ambiguo`, cobrindo a ambiguidade no sentido inverso.
+        data_type: integer
+        tests:
+          - not_null
+      - name: qt_pronac_por_id_projeto
+        description: >
+          Quantos PRONAC distintos foram observados para o `id_projeto`
+          candidato. Valor maior que um invalida o id e ativa
+          `id_projeto_ambiguo`, cobrindo a ambiguidade no sentido inverso.
+        data_type: integer
         tests:
           - not_null
       - name: qt_tabelas_origem
@@ -161,8 +178,9 @@ models:
     columns:
       - name: pronac
         description: >
-          Chave de negócio do projeto, 7 posições com zeros à esquerda
-          preservados. Chave primária desta dimensão.
+          Chave de negócio do projeto, com 5 a 7 posições na série observada:
+          ano de dois dígitos seguido do sequencial sem padding artificial.
+          Chave primária desta dimensão.
         data_type: text
         meta:
           openmetadata:
@@ -372,7 +390,7 @@ models:
           - not_null
           - unique
       - name: pronac
-        description: PRONAC do projeto, 7 posições. Casa com `dim_projeto_rouanet`.
+        description: PRONAC do projeto, preservado sem padding artificial. Casa com `dim_projeto_rouanet`.
         data_type: text
         meta:
           openmetadata:
@@ -520,7 +538,7 @@ models:
           - not_null
           - unique
       - name: pronac
-        description: PRONAC do projeto que captou, 7 posições.
+        description: PRONAC do projeto que captou, preservado sem padding artificial.
         data_type: text
         meta:
           openmetadata:
@@ -652,7 +670,7 @@ models:
           - not_null
           - unique
       - name: pronac
-        description: PRONAC do projeto aprovado, 7 posições.
+        description: PRONAC do projeto aprovado, preservado sem padding artificial.
         data_type: text
         meta:
           openmetadata:

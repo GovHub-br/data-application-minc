@@ -1,6 +1,7 @@
 -- Silver SALIC / core -- dimensao do projeto cultural na Lei Rouanet.
 --
--- GRAO: 1 linha por PRONAC. A chave e `pronac`, texto de 7 posicoes.
+-- GRAO: 1 linha por PRONAC. A chave e `pronac`, texto de 5 a 7 posicoes na
+-- serie observada (ano com 2 posicoes + sequencial sem padding artificial).
 --
 -- UNIVERSO: todo PRONAC observado em qualquer tabela da bronze v2 que carregue
 -- a chave (via `map_chave_projeto_rouanet`), e nao apenas os projetos que o
@@ -126,7 +127,8 @@ with
         select
             pronac,
             count(*) as qt_aprovacoes,
-            min(dtaprovacao)::date as data_primeira_aprovacao
+            min(dtaprovacao)::date as data_primeira_aprovacao,
+            count(*) > 0 as projeto_aprovado
         from aprovacao_bruta
         where pronac is not null
         group by pronac

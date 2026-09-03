@@ -6,7 +6,7 @@
 
     - `anoprojeto` (char 2) + `sequencial` (varchar 5), nas tabelas
       transacionais -- `sac__captacao`, `sac__aprovacao`, `sac__enquadramento`;
-    - `pronac`, texto de 7 posicoes, na maioria das views;
+    - `pronac`, texto de 5 a 7 posicoes, na maioria das views;
     - `pronac`, inteiro, em algumas views (ex.:
       `sac__vwpagamentodefornecedordoprojetoporitemdetalhado`) -- e ai o zero a
       esquerda ja se perdeu na origem.
@@ -24,13 +24,15 @@
 
 
 {% macro pronac_normalizado(col) -%}
-    {#- 7 posicoes, zeros a esquerda restaurados. Mais de 7 digitos, ou so
-        zeros, nao identifica projeto nenhum: vira NULL. -#}
+    {#- O PRONAC nao tem largura fixa no dado: ano (2 posicoes) + sequencial
+        como registrado (3 a 5 posicoes na serie observada). A origem textual
+        preserva o zero do ano; preencher ate 7 deslocaria a fronteira entre
+        ano e sequencial e criaria outra chave. -#}
     case
         when
-            {{ pronac_digitos(col) }} ~ '^[0-9]{1,7}$'
+            {{ pronac_digitos(col) }} ~ '^[0-9]{5,7}$'
             and {{ pronac_digitos(col) }} !~ '^0+$'
-        then lpad({{ pronac_digitos(col) }}, 7, '0')
+        then {{ pronac_digitos(col) }}
     end
 {%- endmacro %}
 
@@ -41,7 +43,7 @@
         guarda de regex vem antes, e nao depois. -#}
     case
         when trim({{ ano }}) ~ '^[0-9]{1,2}$' and trim({{ sequencial }}) ~ '^[0-9]{1,5}$'
-        then lpad(trim({{ ano }}), 2, '0') || lpad(trim({{ sequencial }}), 5, '0')
+        then lpad(trim({{ ano }}), 2, '0') || trim({{ sequencial }})
     end
 {%- endmacro %}
 

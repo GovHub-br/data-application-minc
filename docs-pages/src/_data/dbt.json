@@ -37254,7 +37254,7 @@
         },
         {
           "nome": "pronac",
-          "descricao": "PRONAC do projeto, 7 posições. Casa com `dim_projeto_rouanet`."
+          "descricao": "PRONAC do projeto, preservado sem padding artificial. Casa com `dim_projeto_rouanet`."
         },
         {
           "nome": "id_agente",
@@ -37303,7 +37303,7 @@
       "colunas": [
         {
           "nome": "pronac",
-          "descricao": "Chave de negócio do projeto, 7 posições com zeros à esquerda preservados. Chave primária desta dimensão."
+          "descricao": "Chave de negócio do projeto, com 5 a 7 posições na série observada: ano de dois dígitos seguido do sequencial sem padding artificial. Chave primária desta dimensão."
         },
         {
           "nome": "ano_pronac",
@@ -37415,7 +37415,7 @@
         "sac__vwalterarprojeto"
       ],
       "sources": [],
-      "linhas_sql": 192
+      "linhas_sql": 194
     },
     {
       "nome": "fct_aprovacao_rouanet",
@@ -37430,7 +37430,7 @@
         },
         {
           "nome": "pronac",
-          "descricao": "PRONAC do projeto aprovado, 7 posições."
+          "descricao": "PRONAC do projeto aprovado, preservado sem padding artificial."
         },
         {
           "nome": "id_pronac",
@@ -37531,7 +37531,7 @@
         },
         {
           "nome": "pronac",
-          "descricao": "PRONAC do projeto que captou, 7 posições."
+          "descricao": "PRONAC do projeto que captou, preservado sem padding artificial."
         },
         {
           "nome": "numero_recibo",
@@ -37650,7 +37650,7 @@
       "colunas": [
         {
           "nome": "pronac",
-          "descricao": "Chave de negócio do projeto na Rouanet, com 7 posições — dois dígitos de ano seguidos de cinco de sequencial, com zeros à esquerda preservados. Normalizado pela macro `pronac_normalizado` ou montado por `pronac_de_ano_sequencial`, conforme a forma da origem."
+          "descricao": "Chave de negócio do projeto na Rouanet: dois dígitos de ano seguidos do sequencial como registrado, com 5 a 7 posições na série observada. Não há padding do sequencial: fazê-lo mudaria a chave. Normalizado pela macro `pronac_normalizado` ou montado por `pronac_de_ano_sequencial`, conforme a forma da origem."
         },
         {
           "nome": "ano_pronac",
@@ -37673,12 +37673,20 @@
           "descricao": "`true` quando a origem associa mais de um `id_projeto` ao mesmo PRONAC. Nesses casos `id_projeto` é NULL de propósito."
         },
         {
+          "nome": "qt_pronac_por_id_pronac",
+          "descricao": "Quantos PRONAC distintos foram observados para o `id_pronac` candidato. Valor maior que um invalida o id e ativa `id_pronac_ambiguo`, cobrindo a ambiguidade no sentido inverso."
+        },
+        {
+          "nome": "qt_pronac_por_id_projeto",
+          "descricao": "Quantos PRONAC distintos foram observados para o `id_projeto` candidato. Valor maior que um invalida o id e ativa `id_projeto_ambiguo`, cobrindo a ambiguidade no sentido inverso."
+        },
+        {
           "nome": "qt_tabelas_origem",
           "descricao": "Quantas das sete tabelas de origem observaram este PRONAC. É a medida de confiança da chave: PRONAC visto em uma tabela só pode ser resíduo de carga, e o valor permite medir isso sem abrir o modelo."
         }
       ],
-      "colunas_descritas": 7,
-      "testes": 5,
+      "colunas_descritas": 9,
+      "testes": 7,
       "materializacao": "",
       "depende_de": [
         "sac__aprovacao",
@@ -37690,7 +37698,167 @@
         "sac__vwprojetositinerantes"
       ],
       "sources": [],
-      "linhas_sql": 118
+      "linhas_sql": 150
+    },
+    {
+      "nome": "fct_pagamento_profissional_rouanet",
+      "dominio": "salic",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_dbt/meta3/fct_pagamento_profissional_rouanet.sql",
+      "descricao": "Camada Silver restrita da Meta 3. Preserva os registros de pagamentos a fornecedores e profissionais devolvidos pela view detalhada do SALIC. GRÃO PROVISÓRIO: uma linha por registro da origem; a combinação projeto, item, comprovante, prestador, data e valor é uma chave candidata, e `ocorrencia_chave_candidata` evidencia repetições sem descartá-las. MEDIDA: valor efetivamente pago em reais nominais; não é valor captado, aprovado ou apenas comprovado. O ano é o da data de pagamento, em linha com o recorte de execução do estudo FGV para 2024. Valores nulos, zero, negativos e estornos não são filtrados na silver. IDENTIDADE: documento e nome do prestador tornam o modelo inteiro restrito e proibido para RAG. O texto livre de justificativa da origem é deliberadamente excluído. LIMITAÇÕES: o grão e a reconciliação financeira aguardam a execução pela DAG com permissão de escrita; a ligação com perfil demográfico e o filtro temporal de prestação de contas ainda não têm fonte homologada.",
+      "colunas": [
+        {
+          "nome": "chave_candidata_pagamento",
+          "descricao": "Hash técnico da combinação candidata a identificar o pagamento. É linkável e derivado também do documento do prestador, portanto PII."
+        },
+        {
+          "nome": "ocorrencia_chave_candidata",
+          "descricao": "Ordem da linha dentro de uma chave candidata repetida. Valor maior que um sinaliza duplicidade a investigar, sem apagar o registro."
+        },
+        {
+          "nome": "id_pronac",
+          "descricao": "Identificador técnico do projeto informado pela view de pagamentos."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "Chave de negócio do projeto, recuperada preferencialmente pelo mapa conformado e, quando possível, pelo número informado na própria view."
+        },
+        {
+          "nome": "pronac_resolvido_por_mapa",
+          "descricao": "Verdadeiro quando o PRONAC veio de uma associação unívoca com `id_pronac`; falso indica uso do fallback numérico ou ausência."
+        },
+        {
+          "nome": "documento_prestador",
+          "descricao": "CPF ou CNPJ do prestador, normalizado para somente dígitos."
+        },
+        {
+          "nome": "tipo_pessoa_prestador",
+          "descricao": "Tipo PF ou PJ derivado apenas do comprimento do documento; nulo para documento ausente ou com quantidade de dígitos inválida."
+        },
+        {
+          "nome": "nome_prestador",
+          "descricao": "Nome do fornecedor ou profissional registrado no comprovante."
+        },
+        {
+          "nome": "id_item_planilha",
+          "descricao": "Identificador técnico do item orçamentário pago no projeto."
+        },
+        {
+          "nome": "nome_item",
+          "descricao": "Descrição do item orçamentário ao qual o pagamento foi associado."
+        },
+        {
+          "nome": "numero_comprovante",
+          "descricao": "Número do comprovante dentro dos registros de execução do projeto."
+        },
+        {
+          "nome": "data_emissao",
+          "descricao": "Data de emissão do documento fiscal ou comprovante apresentado."
+        },
+        {
+          "nome": "tipo_documento_comprovante",
+          "descricao": "Código textual do tipo de documento fiscal ou comprovante."
+        },
+        {
+          "nome": "data_pagamento",
+          "descricao": "Data em que o pagamento ao fornecedor ou profissional foi realizado."
+        },
+        {
+          "nome": "ano_pagamento",
+          "descricao": "Ano civil derivado de `data_pagamento`, referência temporal do fato."
+        },
+        {
+          "nome": "tipo_forma_pagamento",
+          "descricao": "Código textual da forma de pagamento registrada na origem."
+        },
+        {
+          "nome": "numero_documento_pagamento",
+          "descricao": "Número do documento da transação de pagamento. É mantido apenas para auditoria no ambiente restrito e não pode ser publicado."
+        },
+        {
+          "nome": "valor_pago_reais",
+          "descricao": "Valor efetivamente pago, em reais nominais. Nulos, zeros e valores negativos são preservados para reconciliação e tratamento no gold."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [
+        "map_chave_projeto_rouanet",
+        "sac__vwpagamentodefornecedordoprojetoporitemdetalhado"
+      ],
+      "sources": [],
+      "linhas_sql": 102
+    },
+    {
+      "nome": "brg_projeto_local_execucao",
+      "dominio": "salic",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_dbt/meta4/brg_projeto_local_execucao.sql",
+      "descricao": "Camada Silver territorial da Meta 4. Relaciona o registro de abrangência do SALIC ao PRONAC sem carregar valores financeiros. GRÃO: uma linha por `id_abrangencia`. PAPEL GEOGRÁFICO: local declarado de realização, nunca residência do proponente ou do prestador. O art. 15, § 2º, da IN MinC 10/2023 fundamenta essa distinção para a aferição territorial da PNAB, mas não é tratado como obrigação jurídica da Rouanet. MULTICIDADE: não há rateio nem replicação nesta bridge; essa regra permanece bloqueada para o fato/gold. DESCONHECIDOS: projeto ou município não resolvido permanece nulo e recebe flag de cobertura; nunca é classificado como não vulnerável. LIMITAÇÕES: os códigos territoriais da origem ainda precisam casar com a dimensão oficial do IBGE, e as 13 categorias do art. 15 precisam de fontes e limiares operacionais antes da classificação de vulnerabilidade.",
+      "colunas": [
+        {
+          "nome": "id_abrangencia",
+          "descricao": "Identificador do registro territorial na tabela de abrangência do SALIC."
+        },
+        {
+          "nome": "id_projeto",
+          "descricao": "Identificador antigo do projeto usado pela tabela de abrangência."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "Chave de negócio do projeto quando `id_projeto` possui associação unívoca no mapa conformado; nula em caso de ausência ou ambiguidade."
+        },
+        {
+          "nome": "pronac_resolvido",
+          "descricao": "Verdadeiro quando o local pôde ser ligado sem ambiguidade a um PRONAC."
+        },
+        {
+          "nome": "id_pais_origem",
+          "descricao": "Identificador de país conforme o domínio interno do SALIC."
+        },
+        {
+          "nome": "id_uf_origem",
+          "descricao": "Identificador de unidade federativa conforme o domínio interno do SALIC."
+        },
+        {
+          "nome": "codigo_municipio_ibge_origem",
+          "descricao": "Código municipal informado pela origem. É preservado como recebido e não recebe zeros artificiais antes do casamento com base oficial."
+        },
+        {
+          "nome": "registro_ativo",
+          "descricao": "Indicador do SALIC de que o registro de abrangência está ativo."
+        },
+        {
+          "nome": "codigo_realizacao",
+          "descricao": "Código original de realização: 0 sem informação, 1 não e 2 sim."
+        },
+        {
+          "nome": "local_realizado",
+          "descricao": "Indicador triestado derivado: verdadeiro para código 2, falso para 1 e nulo para ausência, sem informação ou código desconhecido."
+        },
+        {
+          "nome": "situacao_realizacao",
+          "descricao": "Rótulo controlado derivado do código: SEM_INFORMACAO, NAO_REALIZADO, REALIZADO ou CODIGO_DESCONHECIDO."
+        },
+        {
+          "nome": "data_inicio_realizacao",
+          "descricao": "Data inicial declarada para a realização na localidade."
+        },
+        {
+          "nome": "data_fim_realizacao",
+          "descricao": "Data final declarada para a realização na localidade."
+        }
+      ],
+      "colunas_descritas": 13,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "map_chave_projeto_rouanet",
+        "sac__abrangencia"
+      ],
+      "sources": [],
+      "linhas_sql": 54
     },
     {
       "nome": "anexos_relatorios",
@@ -38494,11 +38662,11 @@
       }
     },
     "salic": {
-      "modelos": 577,
-      "testes": 4763,
+      "modelos": 579,
+      "testes": 4771,
       "camadas": {
         "bronze": 571,
-        "outros": 6
+        "outros": 8
       }
     },
     "transferegov_bronze": {
@@ -38911,9 +39079,9 @@
     }
   ],
   "totais": {
-    "modelos": 631,
-    "testes": 4878,
-    "com_descricao": 630,
+    "modelos": 633,
+    "testes": 4886,
+    "com_descricao": 632,
     "sources": 79
   }
 }
