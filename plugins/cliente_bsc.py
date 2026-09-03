@@ -63,6 +63,22 @@ def is_empty_extrato_response(exc: BscRequestError) -> bool:
     )
 
 
+def is_conta_invalida_response(exc: BscRequestError) -> bool:
+    """Distingue 'essa conta nao existe no BB' de uma falha transitoria.
+
+    E um 400 permanente -- a conta esta encerrada ou foi cadastrada no
+    Transferegov sem corresponder a uma conta corrente real. Quem chama usa
+    isso para gravar o resultado no checkpoint: sem isso a combinacao fica
+    como 'erro', que nao entra no conjunto de feitas, e a mesma conta invalida
+    e rechamada em toda execucao contra um servico que bloqueia por uso
+    sustentado."""
+    return (
+        exc.status_code == 400
+        and bool(exc.response_text)
+        and settings.INVALID_ACCOUNT_ERROR_MESSAGE in (exc.response_text or "")
+    )
+
+
 class AsyncBscClient:
     def __init__(
         self,
@@ -194,9 +210,7 @@ class AsyncBscClient:
         )
 
     async def cadunico_cpf(self, cpf: str) -> Any:
-        return await self._post(
-            "/api/cadunico/cpf", payloads.build_payload_cadunico(cpf)
-        )
+        return await self._post("/api/cadunico/cpf", payloads.build_payload_cadunico(cpf))
 
     async def beneficio_prestacao_continuada(self, cpf: str) -> Any:
         return await self._post(
