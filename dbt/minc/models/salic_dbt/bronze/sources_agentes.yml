@@ -10,6 +10,95 @@ sources:
       com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo
       (YAML semântico, dicionário e catálogo em DOCX/HTML).
     tables:
+      - name: agentes__municipios
+        description: >
+          Municípios brasileiros com código IBGE, unidade federativa, mesorregião e
+          microrregião. 5.568 linhas. Ingerida em 2026-09-04. Fonte de
+          `dim_municipio_ibge`.
+
+          ATENÇÃO AO CÓDIGO: `idmunicipioibge` é `varchar(6)` e todas as 5.568 linhas
+          têm exatamente 6 caracteres — é o código IBGE SEM o dígito verificador. O
+          código completo do IBGE tem 7 posições, e é a forma usada pelo
+          `transferegov`. Cruzar as duas sem tratar o tamanho não casa nenhuma linha,
+          e falha em silêncio: o join não dá erro, só não devolve resultado.
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idmunicipioibge
+            description: >
+              Código IBGE do município sem o dígito verificador, 6 posições. Ver a
+              observação na descrição da tabela antes de usar em junção.
+            data_type: text
+          - name: idufibge
+            description: Código IBGE da unidade federativa. Junta com `agentes__uf.iduf`.
+            data_type: text
+          - name: idmeso
+            description: Código da mesorregião, 4 posições na origem.
+            data_type: text
+          - name: idmicro
+            description: Código da microrregião, 5 posições na origem.
+            data_type: text
+          - name: descricao
+            description: Nome do município.
+            data_type: text
+      - name: agentes__populacaomunicipio
+        description: >
+          População por município. 5.563 linhas. Ingerida em 2026-09-04.
+
+          É a ponte entre os dois formatos de código IBGE que circulam no
+          projeto: carrega `idmunicipio` com 6 posições, que é a forma do
+          SALIC, e `idmunicipio7` com 7, que é a forma oficial do IBGE e a que
+          o `transferegov` usa. Com ela o cruzamento entre as duas bases
+          dispensa cálculo de dígito verificador.
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idmunicipio
+            description: Código IBGE do município com 6 posições, sem o dígito verificador.
+            data_type: text
+          - name: idmunicipio7
+            description: >
+              Código IBGE do município com 7 posições, com o dígito verificador.
+              É a forma oficial e a usada pelo `transferegov`.
+            data_type: text
+          - name: populacao
+            description: População do município como registrada na origem.
+            data_type: text
+      - name: agentes__uf
+        description: >
+          Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04.
+          Complementa `agentes__municipios` em `dim_municipio_ibge` — é onde estão a
+          sigla e a região, que a tabela de municípios não carrega.
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: iduf
+            description: Código IBGE da unidade federativa.
+            data_type: text
+          - name: sigla
+            description: Sigla de duas letras.
+            data_type: text
+          - name: descricao
+            description: Nome da unidade federativa.
+            data_type: text
+          - name: regiao
+            description: Região geográfica.
+            data_type: text
       - name: agentes__vpais
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original

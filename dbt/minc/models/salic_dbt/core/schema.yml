@@ -117,6 +117,110 @@ models:
         tests:
           - not_null
 
+  - name: dim_municipio_ibge
+    description: >
+      Camada Silver / núcleo SALIC. Dimensão territorial de referência: os
+      municípios brasileiros com os dois formatos de código IBGE, unidade
+      federativa, região, mesorregião, microrregião e população.
+
+      GRÃO: um município. UNIVERSO: os 5.568 municípios de
+      `agentes__municipios`, sem exclusão por porte, situação ou qualquer outro
+      critério.
+
+      PARA QUE SERVE: é a dimensão contra a qual `brg_projeto_local_execucao`
+      resolve o local de execução, e é pré-requisito dos três indicadores da
+      Meta 4 — o percentual executado fora das capitais, o executado no Norte,
+      Nordeste e Centro-Oeste, e o captado em território vulnerabilizado.
+
+      DUAS FORMAS DE CÓDIGO IBGE, E POR QUE AS DUAS. O SALIC identifica o
+      município por um código de 6 posições, sem o dígito verificador; o IBGE e
+      o `transferegov` usam o de 7. Cruzar as duas formas sem tratar não casa
+      nenhuma linha e não levanta erro — junção que não encontra devolve vazio.
+      A dimensão expõe as duas colunas, e a correspondência NÃO é calculada:
+      vem de `agentes__populacaomunicipio`, que carrega os dois formatos na
+      mesma linha. Derivar o dígito verificador seria uma regra a mais para
+      manter, e erraria em silêncio se a regra do IBGE mudasse.
+
+      DESCONHECIDOS: município sem UF correspondente, ou sem linha na tabela de
+      população, permanece na dimensão com esses campos nulos. São 5.568
+      municípios contra 5.563 com população — a diferença de cinco é esperada e
+      precisa ficar visível, não ser descartada por um join interno.
+
+      CAPITAL É ASSUNTO DO GOLD. O indicador P1 da Meta 4 compara execução
+      dentro e fora das capitais, mas a marcação não mora aqui: o desenho
+      declara a lista de capitais como base externa, casada no modelo do
+      indicador. A dimensão entrega o município identificado; quem classifica é
+      quem calcula o percentual.
+
+      ATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.
+    config:
+      tags: [silver, salic, rouanet, core, territorio]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Dimensão territorial de referência — base dos três indicadores da Meta 4'
+        origem_dados: 'salic_bronze (agentes) — municipios, uf e populacaomunicipio'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: publico
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Territorio.Municipio
+    columns:
+      - name: codigo_ibge_6
+        description: >
+          Código IBGE do município com seis posições, sem o dígito verificador,
+          como o SALIC o registra. Chave da dimensão.
+        data_type: text
+        tests:
+          - not_null
+          - unique
+      - name: codigo_ibge_7
+        description: >
+          Código IBGE do município com sete posições, com o dígito verificador.
+          É a forma oficial e a usada pelo `transferegov`. Nulo para os
+          municípios sem linha na tabela de população.
+        data_type: text
+      - name: nome_municipio
+        description: Nome do município como registrado na origem, sem normalização.
+        data_type: text
+        tests:
+          - not_null
+      - name: id_uf_ibge
+        description: Código IBGE da unidade federativa. Chave de junção com a dimensão de UF.
+        data_type: integer
+      - name: sigla_uf
+        description: >
+          Sigla de duas letras da unidade federativa. Nulo quando o município
+          não encontra UF correspondente — condição que deve permanecer
+          visível, não corrigida em silêncio.
+        data_type: text
+      - name: nome_uf
+        description: Nome da unidade federativa. Nulo nas mesmas condições da sigla.
+        data_type: text
+      - name: regiao
+        description: >
+          Região geográfica da unidade federativa. É o campo que sustenta o
+          indicador P2 da Meta 4 pela cadeia territorial do IBGE. O SALIC também
+          grava região direto em `tbApiComprovacoes.dsRegiao`; as duas fontes
+          são independentes e podem divergir, e qual delas prevalece é decisão
+          ainda não tomada.
+        data_type: text
+      - name: codigo_mesorregiao
+        description: Código da mesorregião do IBGE, como vem da origem.
+        data_type: text
+      - name: codigo_microrregiao
+        description: Código da microrregião do IBGE, como vem da origem.
+        data_type: text
+      - name: populacao
+        description: >
+          População do município como registrada na origem. Nulo para os cinco
+          municípios sem linha na tabela de população.
+        data_type: integer
+
   - name: dim_projeto_rouanet
     description: >
       Camada Silver / núcleo SALIC. Dimensão do projeto cultural na Lei

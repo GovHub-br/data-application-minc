@@ -1,0 +1,121 @@
+version: 2
+
+models:
+  - name: fct_proponente_ano_rouanet
+    description: >
+      Camada Silver / Meta 5 do SALIC. Acesso a fomento por proponente e ano,
+      medido por pagamento.
+
+      GRÃO: um proponente por ano em que houve pagamento em projeto ao qual ele
+      está ligado. UNIVERSO: todos os agentes que a ponte
+      `brg_projeto_proponente_rouanet` associa a um PRONAC com ao menos uma
+      comprovação de pagamento com ano preenchido.
+
+      PARA QUE SERVE: é a base do indicador de primeiro acesso da Meta 5. A
+      coluna `eh_primeiro_ano` marca a linha do primeiro ano de cada
+      proponente, então a mesma tabela serve para a série anual e para a
+      contagem de novos entrantes.
+
+      PRIMEIRO ACESSO É O PRIMEIRO PAGAMENTO. Decidido em 2026-09-04, e não é
+      neutro: pagamento no SALIC é o projeto pagando terceiros, então o
+      indicador mede o ano em que o projeto do proponente começou a executar, e
+      não o ano em que ele conseguiu recurso. Captação e pagamento são medidas
+      distintas pela decisão 1 da ADR 0006, e trocar uma pela outra muda o
+      indicador.
+
+      POR QUE NÃO HÁ VALOR: a ponte de proponente tem grão PRONAC x agente, e
+      um projeto pode ter mais de um agente ligado. Somar valor pago por
+      proponente contaria o mesmo dinheiro uma vez para cada agente, e o total
+      ficaria acima do real — é a mesma questão de rateio que continua aberta
+      para a Meta 4. Contagem de distintos e ano mínimo não sofrem disso, e é
+      por isso que este fato carrega quando e quantas vezes, nunca quanto.
+
+      DESCONHECIDOS: comprovação com ano não numérico na origem fica de fora.
+      Atribuí-la a algum ano seria invenção, e mantê-la criaria uma categoria
+      "sem ano" que nenhum indicador pediu. O volume dessas linhas deve ser
+      medido no gate G1.
+
+      LIMITAÇÃO HERDADA DA PONTE, e é a mais séria: a ponte documenta que "que
+      todo agente listado seja proponente, e não outro papel, é hipótese a
+      confirmar". Enquanto isso não for confirmado, este fato conta agentes
+      ligados ao projeto, que podem incluir procurador ou outro vínculo. Contar
+      "proponentes" a partir daqui exige fechar essa questão antes.
+
+      ZONA RESTRITA. Lê a ponte de proponente, que carrega documento e nome.
+      A anonimização e a disponibilização são responsabilidade do Apache
+      Ranger, no momento do acesso — decidido em 2026-09-04, e é por isso que
+      não há pseudonimização no pipeline.
+
+      ATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.
+    config:
+      tags: [silver, salic, rouanet, meta5]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Meta 5 — primeiro acesso a fomento por proponente e ano'
+        origem_dados: 'salic_dbt (bronze sac) + brg_projeto_proponente_rouanet'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Politicas.Rouanet
+    columns:
+      - name: id_agente
+        description: >
+          Identificador do agente no cadastro do SALIC. Chave do proponente
+          nesta tabela.
+        data_type: integer
+        tests:
+          - not_null
+      - name: documento_proponente
+        description: >
+          CPF ou CNPJ do proponente, normalizado sem pontuação, como vem da
+          ponte. Dado pessoal — o mascaramento é aplicado pelo Ranger no
+          acesso, não aqui.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: tipo_pessoa_proponente
+        description: >
+          Se o proponente é pessoa física ou jurídica, derivado do comprimento
+          do documento.
+        data_type: text
+      - name: ano
+        description: >
+          Ano da comprovação de pagamento. Comprovação sem ano numérico na
+          origem não gera linha.
+        data_type: integer
+        tests:
+          - not_null
+      - name: projetos_com_pagamento
+        description: >
+          Quantos projetos distintos do proponente tiveram pagamento naquele
+          ano.
+        data_type: integer
+      - name: comprovacoes
+        description: >
+          Quantas comprovações de pagamento distintas houve naquele ano nos
+          projetos do proponente. É contagem de registros, não de valor.
+        data_type: integer
+      - name: ano_primeiro_pagamento
+        description: >
+          Menor ano com pagamento observado para aquele proponente em toda a
+          série. Repetido em todas as linhas dele, para dispensar subconsulta
+          em quem consome.
+        data_type: integer
+        tests:
+          - not_null
+      - name: eh_primeiro_ano
+        description: >
+          Verdadeiro na linha do primeiro ano do proponente. É o campo que
+          responde à Meta 5 — contar novos entrantes é somar esta coluna por
+          ano.
+        data_type: boolean
+        tests:
+          - not_null

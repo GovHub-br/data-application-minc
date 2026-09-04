@@ -11,6 +11,65 @@ sources:
       SchemaSpy) cruzado com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/
       para o catálogo completo (YAML semântico, dicionário e catálogo em DOCX/HTML).
     tables:
+      - name: sac__tbapicomprovacoes
+        description: >
+          Comprovações de pagamento dos projetos da Lei Rouanet: um registro por
+          item comprovado, com fornecedor, documento, valor e localidade.
+          2.620.988 linhas. Ingerida em 2026-09-04.
+
+          É a fonte do indicador de primeiro acesso da Meta 5 e dos indicadores
+          territoriais da Meta 4 — carrega `sguf`, `nmmunicipio` e `dsregiao` no
+          próprio registro, além do PRONAC em `nrpronac`.
+        config:
+          tags: [bronze, salic, sac]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idapicomprovacoes
+            description: Identificador do registro de comprovação.
+            data_type: text
+          - name: idpronac
+            description: Surrogate do projeto nas tabelas de análise.
+            data_type: text
+          - name: nrpronac
+            description: PRONAC do projeto, a chave de negócio.
+            data_type: text
+          - name: nmprojeto
+            description: Nome do projeto.
+            data_type: text
+          - name: nmfornecedor
+            description: >
+              Nome do fornecedor pago. Dado pessoal quando o fornecedor é pessoa
+              física.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: aaanocomprovacao
+            description: Ano da comprovação, como texto na origem.
+            data_type: text
+          - name: mmmescomprovacao
+            description: Mês da comprovação, como texto na origem.
+            data_type: text
+          - name: vlpagamento
+            description: Valor pago no item comprovado.
+            data_type: text
+          - name: sguf
+            description: Sigla da unidade federativa onde a despesa foi realizada.
+            data_type: text
+          - name: nmmunicipio
+            description: Nome do município onde a despesa foi realizada.
+            data_type: text
+          - name: dsregiao
+            description: >
+              Região gravada no próprio registro de comprovação. É fonte
+              independente da cadeia territorial do IBGE, e as duas podem
+              divergir.
+            data_type: text
       - name: sac__aberturadecontabancaria
         description: >
           Tabela responsável por armazenar informações sobre a abertura de contas bancárias
