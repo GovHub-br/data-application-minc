@@ -5,11 +5,17 @@
 -- governança verifica isso com busca literal no arquivo, então nem em
 -- comentário se escreve a outra forma.
 --
--- DUAS FORMAS DE CÓDIGO IBGE. O SALIC usa 6 posições, sem dígito verificador;
--- o IBGE e o transferegov usam 7. A dimensão expõe as duas, e a
--- correspondência não é calculada: vem de `agentes__populacaomunicipio`, que
--- carrega os dois formatos na mesma linha. Calcular o dígito seria regra a
--- mais para manter, e erraria em silêncio se a regra mudasse.
+-- DUAS FORMAS DE CÓDIGO IBGE. O SALIC identifica o município por um código de
+-- 6 posições, sem o dígito verificador; o IBGE e o transferegov usam o de 7. A
+-- dimensão expõe as duas, e a correspondência não é calculada: vem de
+-- `agentes__populacaomunicipio`, que carrega os dois formatos na mesma linha.
+-- Derivar o dígito seria regra a mais para manter, e erraria em silêncio se a
+-- regra do IBGE mudasse.
+--
+-- Os dois chegam da bronze como INTEIRO. Para códigos do IBGE isso é inócuo,
+-- porque nenhum começa com zero — o primeiro par identifica a UF, de 11 a 53.
+-- Mas o `transferegov` traz o código de 7 posições como texto, então cruzar
+-- com ele exige cast explícito de um dos lados.
 with municipios as (
     select
         idmunicipioibge as codigo_ibge_6,

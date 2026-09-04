@@ -173,8 +173,10 @@ models:
       - name: codigo_ibge_6
         description: >
           Código IBGE do município com seis posições, sem o dígito verificador,
-          como o SALIC o registra. Chave da dimensão.
-        data_type: text
+          como o SALIC o registra. Chave da dimensão. Chega da bronze como
+          inteiro — inócuo para código do IBGE, que nunca começa com zero, mas
+          exige cast ao cruzar com fonte que traga o código como texto.
+        data_type: integer
         tests:
           - not_null
           - unique
@@ -182,8 +184,10 @@ models:
         description: >
           Código IBGE do município com sete posições, com o dígito verificador.
           É a forma oficial e a usada pelo `transferegov`. Nulo para os
-          municípios sem linha na tabela de população.
-        data_type: text
+          municípios sem linha na tabela de população. Chega como inteiro,
+          enquanto o `transferegov` traz o mesmo código como texto — cruzar as
+          duas fontes exige cast explícito de um dos lados.
+        data_type: integer
       - name: nome_municipio
         description: Nome do município como registrado na origem, sem normalização.
         data_type: text
@@ -211,10 +215,10 @@ models:
         data_type: text
       - name: codigo_mesorregiao
         description: Código da mesorregião do IBGE, como vem da origem.
-        data_type: text
+        data_type: integer
       - name: codigo_microrregiao
         description: Código da microrregião do IBGE, como vem da origem.
-        data_type: text
+        data_type: integer
       - name: populacao
         description: >
           População do município como registrada na origem. Nulo para os cinco

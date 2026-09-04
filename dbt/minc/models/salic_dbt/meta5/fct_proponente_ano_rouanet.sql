@@ -26,14 +26,14 @@ with
 
 pagamentos as (
     select
-        pronac,
-        ano_comprovacao as ano,
-        id_comprovacao
+        {{ pronac_normalizado("nrpronac") }} as pronac,
+        aaanocomprovacao as ano,
+        idapicomprovacoes as id_comprovacao
     from {{ ref('sac__tbapicomprovacoes') }}
     -- ano nulo é comprovação sem ano utilizável na origem. Fica de fora do
     -- fato porque não há a que ano atribuí-la, e mantê-la criaria uma
     -- categoria "sem ano" que ninguém pediu.
-    where ano_comprovacao is not null
+    where aaanocomprovacao is not null
 ),
 
 proponentes as (

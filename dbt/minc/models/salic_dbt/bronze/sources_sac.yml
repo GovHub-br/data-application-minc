@@ -18181,3 +18181,426 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
+
+      - name: sac__projetos
+        description: >
+          Uma linha por projeto cultural (PRONAC) submetido ao mecanismo de
+          incentivo fiscal (Lei Rouanet). Núcleo do domínio SAC: liga proponente,
+          situação, valores solicitados e datas de tramitação. Camada bronze
+          (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, sac]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idpronac
+            description: Identificador interno do PRONAC. Chave do projeto.
+            data_type: text
+          - name: anoprojeto
+            description: Ano do projeto em 2 dígitos ('00'=2000, '08'=2008). Mantido text para preservar o zero à esquerda.
+            data_type: text
+          - name: sequencial
+            description: Sequencial do projeto no ano, 4 dígitos com zero à esquerda.
+            data_type: text
+          - name: ufprojeto
+            description: Sigla da UF do projeto.
+            data_type: text
+          - name: area
+            description: Código da área cultural.
+            data_type: text
+          - name: segmento
+            description: Código do segmento cultural.
+            data_type: text
+          - name: mecanismo
+            description: Código do mecanismo de incentivo.
+            data_type: text
+          - name: nomeprojeto
+            description: Nome do projeto cultural.
+            data_type: text
+          - name: processo
+            description: Número do processo administrativo (15 dígitos). Identificador, mantido text.
+            data_type: text
+          - name: cgccpf
+            description: CNPJ/CPF do proponente. Dado pessoal; mantido text (zero à esquerda).
+            data_type: text
+          - name: situacao
+            description: Código da situação do projeto. Aponta para sac__situacao.codigo.
+            data_type: text
+          - name: dtprotocolo
+            description: Data de protocolo do projeto.
+            data_type: text
+          - name: dtanalise
+            description: Data de análise.
+            data_type: text
+          - name: modalidade
+            description: Código da modalidade. Preenchida em ~21% das linhas.
+            data_type: text
+          - name: orgaoorigem
+            description: Código do órgão de origem.
+            data_type: text
+          - name: orgao
+            description: Código do órgão responsável.
+            data_type: text
+          - name: dtsaida
+            description: Data de saída para análise externa. Parcialmente preenchida.
+            data_type: text
+          - name: dtretorno
+            description: Data de retorno da análise externa. Parcialmente preenchida.
+            data_type: text
+          - name: unidadeanalise
+            description: Unidade responsável pela análise. ~56% preenchida.
+            data_type: text
+          - name: analista
+            description: Nome do analista. Dado pessoal de servidor.
+            data_type: text
+          - name: dtsituacao
+            description: Data da última mudança de situação.
+            data_type: text
+          - name: resumoprojeto
+            description: Resumo textual do projeto.
+            data_type: text
+          - name: providenciatomada
+            description: Providência administrativa registrada.
+            data_type: text
+          - name: localizacao
+            description: Localização física do processo. ~18% preenchida.
+            data_type: text
+          - name: dtinicioexecucao
+            description: Data de início da execução. Preenchida em poucas linhas.
+            data_type: text
+          - name: dtfimexecucao
+            description: Data de fim da execução. Preenchida em poucas linhas.
+            data_type: text
+          - name: solicitadoufir
+            description: Valor solicitado em UFIR.
+            data_type: text
+          - name: solicitadoreal
+            description: Valor solicitado em reais.
+            data_type: text
+          - name: solicitadocusteioufir
+            description: Valor de custeio solicitado em UFIR.
+            data_type: text
+          - name: solicitadocusteioreal
+            description: Valor de custeio solicitado em reais.
+            data_type: text
+          - name: solicitadocapitalufir
+            description: Valor de capital solicitado em UFIR.
+            data_type: text
+          - name: solicitadocapitalreal
+            description: Valor de capital solicitado em reais.
+            data_type: text
+          - name: logon
+            description: Identificador do usuário que registrou.
+            data_type: text
+          - name: idprojeto
+            description: '[VAZIA EM 100% DAS LINHAS] Sem valor na origem.'
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: sac__situacao
+        description: >
+          Tabela de domínio das situações de tramitação de um projeto: o código
+          (A01, K00, ...) e sua descrição. É a ponta de sac__projetos.situacao.
+          Camada bronze (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, sac]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: codigo
+            description: Código da situação (3 caracteres, ex. A01). Chave da tabela.
+            data_type: text
+          - name: descricao
+            description: Descrição da situação.
+            data_type: text
+          - name: areaatuacao
+            description: Letra da área de atuação. ~55% preenchida.
+            data_type: text
+          - name: statusprojeto
+            description: Flag de status (bit 0/1).
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: sac__preprojeto
+        description: >
+          Uma linha por pré-projeto (proposta antes de virar PRONAC): descreve a
+          proposta, seus textos longos em HTML (justificativa, objetivos, sinopse,
+          ficha técnica) e o ciclo de aceite/arquivamento. Camada bronze (raw do
+          SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, sac]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idpreprojeto
+            description: Identificador do pré-projeto. Chave da tabela.
+            data_type: text
+          - name: idagente
+            description: Agente proponente. Aponta para agentes__agentes.idagente.
+            data_type: text
+          - name: nomeprojeto
+            description: Nome da proposta.
+            data_type: text
+          - name: mecanismo
+            description: Código do mecanismo de incentivo.
+            data_type: text
+          - name: agenciabancaria
+            description: Código da agência bancária. Pode conter dígito não numérico (ex. '6856X').
+            data_type: text
+          - name: areaabrangencia
+            description: Flag de abrangência (bit True/False).
+            data_type: text
+          - name: dtiniciodeexecucao
+            description: Data de início prevista de execução.
+            data_type: text
+          - name: dtfinaldeexecucao
+            description: Data de fim prevista de execução.
+            data_type: text
+          - name: justificativa
+            description: Justificativa da proposta. Texto longo em HTML.
+            data_type: text
+          - name: nratotombamento
+            description: Número do ato de tombamento. Preenchida em ~1% das linhas.
+            data_type: text
+          - name: dtatotombamento
+            description: Data do ato de tombamento. Muitos valores são o sentinela '1900-01-01'.
+            data_type: text
+          - name: esferatombamento
+            description: Código da esfera do tombamento.
+            data_type: text
+          - name: resumodoprojeto
+            description: Resumo da proposta.
+            data_type: text
+          - name: objetivos
+            description: Objetivos da proposta. Texto longo em HTML.
+            data_type: text
+          - name: acessibilidade
+            description: Descrição de acessibilidade. Texto longo em HTML.
+            data_type: text
+          - name: democratizacaodeacesso
+            description: Democratização de acesso. Texto longo em HTML.
+            data_type: text
+          - name: etapadetrabalho
+            description: Etapas de trabalho. Texto longo em HTML.
+            data_type: text
+          - name: fichatecnica
+            description: Ficha técnica. Texto longo em HTML.
+            data_type: text
+          - name: sinopse
+            description: Sinopse. Texto longo em HTML.
+            data_type: text
+          - name: impactoambiental
+            description: Impacto ambiental. Texto em HTML, ~30% preenchida.
+            data_type: text
+          - name: especificacaotecnica
+            description: Especificação técnica. Texto longo em HTML.
+            data_type: text
+          - name: estrategiadeexecucao
+            description: Estratégia de execução. Texto longo em HTML.
+            data_type: text
+          - name: dtaceite
+            description: Data de aceite da proposta.
+            data_type: text
+          - name: dtarquivamento
+            description: Data de arquivamento. ~18% preenchida.
+            data_type: text
+          - name: stestado
+            description: Flag de estado (bit True/False).
+            data_type: text
+          - name: stdatafixa
+            description: Flag de data fixa (bit True/False).
+            data_type: text
+          - name: stplanoanual
+            description: Flag de plano anual (bit True/False).
+            data_type: text
+          - name: idusuario
+            description: Identificador do usuário.
+            data_type: text
+          - name: sttipodemanda
+            description: Tipo de demanda (ex. NA, ED).
+            data_type: text
+          - name: idedital
+            description: Identificador do edital, quando aplicável. ~25% preenchida.
+            data_type: text
+          - name: stproposta
+            description: Código do status da proposta. ~40% preenchida.
+            data_type: text
+          - name: tpprorrogacao
+            description: Flag de prorrogação (bit True/False). ~40% preenchida.
+            data_type: text
+          - name: descricaoatividade
+            description: Descrição de atividade. Texto em HTML, ~15% preenchida.
+            data_type: text
+          - name: tptipicidade
+            description: Código de tipicidade. ~32% preenchida.
+            data_type: text
+          - name: tptipologia
+            description: Código de tipologia. ~32% preenchida.
+            data_type: text
+          - name: idpronaccontinuacao
+            description: '[VAZIA EM 100% DAS LINHAS] PRONAC de continuação; sem valor na origem.'
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: sac__tbapiincentivos
+        description: >
+          Uma linha por aporte de incentivo (captação) publicado pela API pública
+          do SALIC: quem incentivou, quanto e quando, por projeto. Camada bronze
+          (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, sac]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idcaptacao
+            description: Identificador da captação. Chave da tabela.
+            data_type: text
+          - name: idpronac
+            description: Identificador interno do PRONAC.
+            data_type: text
+          - name: nrpronac
+            description: Número PRONAC (6 dígitos, zero à esquerda).
+            data_type: text
+          - name: nmprojeto
+            description: Nome do projeto.
+            data_type: text
+          - name: nrcnpjcpfproponente
+            description: CNPJ/CPF do proponente. Dado pessoal; text.
+            data_type: text
+          - name: nmproponente
+            description: Nome do proponente.
+            data_type: text
+          - name: nrcnpjcpfincentivador
+            description: CNPJ/CPF do incentivador. Dado pessoal; text.
+            data_type: text
+          - name: nmincentivador
+            description: Nome do incentivador.
+            data_type: text
+          - name: nmmunicipioincentivador
+            description: Município do incentivador.
+            data_type: text
+          - name: sgufincentivador
+            description: Sigla da UF do incentivador.
+            data_type: text
+          - name: tppessoa
+            description: Tipo de pessoa do incentivador (Pessoa Física/Jurídica).
+            data_type: text
+          - name: nrlote
+            description: Número do lote (5 dígitos, zero à esquerda).
+            data_type: text
+          - name: aaincentivo
+            description: Ano do incentivo.
+            data_type: text
+          - name: mmincentivo
+            description: Mês do incentivo.
+            data_type: text
+          - name: dtincentivo
+            description: Data do incentivo (AAAA-MM-DD).
+            data_type: text
+          - name: vlcaptado
+            description: Valor captado, em reais.
+            data_type: text
+          - name: dstransferenciarecurso
+            description: '[VAZIA EM 100% DAS LINHAS]'
+            data_type: text
+          - name: dttransferenciarecurso
+            description: '[VAZIA EM 100% DAS LINHAS]'
+            data_type: text
+          - name: dsbemservico
+            description: "[CONSTANTE 'Aporte em conta'] Descrição do bem/serviço."
+            data_type: text
+          - name: hashregistro
+            description: Hash SHA (hex) do registro na API, controle de integridade.
+            data_type: text
+          - name: dtatualizacao
+            description: Instante da carga do registro pela API (constante por lote).
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: sac__tbapiaprovacoes
+        description: >
+          Uma linha por aprovação/prorrogação do projeto, publicada pela API
+          pública do SALIC: portaria, datas de captação e valor aprovado. Camada
+          bronze (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, sac]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: id
+            description: Identificador da linha na API. Chave da tabela.
+            data_type: text
+          - name: idaprovacao
+            description: Identificador da aprovação.
+            data_type: text
+          - name: idpronac
+            description: Identificador interno do PRONAC.
+            data_type: text
+          - name: nrpronac
+            description: Número PRONAC (zero à esquerda).
+            data_type: text
+          - name: nmprojeto
+            description: Nome do projeto.
+            data_type: text
+          - name: dsarea
+            description: Área cultural (descrição).
+            data_type: text
+          - name: dssegmento
+            description: Segmento cultural (descrição).
+            data_type: text
+          - name: tpaprovacao
+            description: Tipo de aprovação (Aprovação Inicial, Prorrogação, ...).
+            data_type: text
+          - name: resumoaprovacao
+            description: Resumo/parecer da aprovação. Texto longo.
+            data_type: text
+          - name: portariaaprovacao
+            description: Número da portaria de aprovação (ex. 0004/11).
+            data_type: text
+          - name: dtportariaaprovacao
+            description: Data da portaria (AAAA-MM-DD).
+            data_type: text
+          - name: dtpublicacaoaprovacao
+            description: Data de publicação da portaria (AAAA-MM-DD).
+            data_type: text
+          - name: dtiniciocaptacao
+            description: Início do período de captação. ~96% preenchida.
+            data_type: text
+          - name: dtfimcaptacao
+            description: Fim do período de captação. ~96% preenchida.
+            data_type: text
+          - name: vlaprovado
+            description: Valor aprovado, em reais.
+            data_type: text
+          - name: hashregistro
+            description: Hash SHA (hex) do registro na API.
+            data_type: text
+          - name: dtatualizacao
+            description: Instante da carga do registro pela API.
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
