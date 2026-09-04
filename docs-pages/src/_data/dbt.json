@@ -608,7 +608,7 @@
         },
         {
           "nome": "id_plano_acao_dado_bancario",
-          "descricao": "Conta bancaria consultada, parte da chave do checkpoint. Acrescentada pela migracao 2026-09-03_bbagil_chave_por_conta.sql."
+          "descricao": "Conta bancaria consultada, parte da chave do checkpoint. Acrescentada junto com a mudanca de chave de 03/09/2026."
         },
         {
           "nome": "periodo_inicial",
@@ -653,7 +653,7 @@
         },
         {
           "nome": "id_plano_acao_dado_bancario",
-          "descricao": "Conta bancaria consultada, parte da chave do checkpoint. Acrescentada pela migracao 2026-09-03_bbagil_chave_por_conta.sql."
+          "descricao": "Conta bancaria consultada, parte da chave do checkpoint. Acrescentada junto com a mudanca de chave de 03/09/2026."
         },
         {
           "nome": "id_transacao_pai",
@@ -2497,6 +2497,394 @@
       "linhas_sql": 21
     },
     {
+      "nome": "agentes__agentes",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/agentes/agentes__agentes.sql",
+      "descricao": "Uma linha por agente cultural — proponente, incentivador ou fornecedor — identificado por idagente e por cnpjcpf. ~998 mil linhas. Camada bronze tipada a partir de salic_bronze.agentes__agentes. É a raiz do domínio Agentes: agentes__tbagentefisico, agentes__perfil e agentes__endereconacional referenciam idagente. Armadilha: `tipopessoa` é um bit da origem (True/False) e a semântica física/jurídica NÃO foi confirmada; `cnpjcpfsuperior` chega constante zero.",
+      "colunas": [
+        {
+          "nome": "idagente",
+          "descricao": "Identificador do agente. Chave da tabela."
+        },
+        {
+          "nome": "cnpjcpf",
+          "descricao": "CNPJ (14) ou CPF (11) do agente, sem máscara. Dado pessoal; mantido text para preservar o zero à esquerda."
+        },
+        {
+          "nome": "cnpjcpfsuperior",
+          "descricao": "CNPJ/CPF da entidade superior. Medido constante '00000000000000' na amostra (sem entidade superior)."
+        },
+        {
+          "nome": "tipopessoa",
+          "descricao": "Bit da origem (True/False). [NÃO VERIFICADO] a correspondência com pessoa física/jurídica; não assumir sem checar."
+        },
+        {
+          "nome": "dtcadastro",
+          "descricao": "Data/hora de cadastro do agente."
+        },
+        {
+          "nome": "dtatualizacao",
+          "descricao": "Data/hora da última atualização do cadastro."
+        },
+        {
+          "nome": "dtvalidade",
+          "descricao": "Data/hora de validade do cadastro."
+        },
+        {
+          "nome": "status",
+          "descricao": "Flag de status do agente (bit 0/1)."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Identificador/flag do usuário (valores 0/1 na amostra)."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_agentes.agentes__agentes"
+      ],
+      "linhas_sql": 19
+    },
+    {
+      "nome": "agentes__endereconacional",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/agentes/agentes__endereconacional.sql",
+      "descricao": "Uma linha por endereço nacional de agente. ~956 mil linhas. Camada bronze tipada a partir de salic_bronze.agentes__endereconacional. Liga a agentes__agentes por idagente; `cidade` casa com agentes__municipios por código IBGE. DADO PESSOAL (endereço). Armadilha: `cep` fica text (zero à esquerda); `cidade`/`uf` são códigos IBGE, não nomes.",
+      "colunas": [
+        {
+          "nome": "idendereco",
+          "descricao": "Identificador do endereço. Chave da tabela."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Agente dono do endereço. Chave estrangeira lógica para agentes__agentes.idagente."
+        },
+        {
+          "nome": "tipoendereco",
+          "descricao": "Código do tipo de endereço."
+        },
+        {
+          "nome": "tipologradouro",
+          "descricao": "Código do tipo de logradouro."
+        },
+        {
+          "nome": "logradouro",
+          "descricao": "Nome do logradouro. Dado pessoal."
+        },
+        {
+          "nome": "numero",
+          "descricao": "Número do endereço (mantido text; pode conter S/N). Dado pessoal."
+        },
+        {
+          "nome": "bairro",
+          "descricao": "Bairro. Dado pessoal."
+        },
+        {
+          "nome": "complemento",
+          "descricao": "Complemento do endereço. ~22% preenchida."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Código IBGE do município (6 dígitos). Casa com agentes__municipios.idmunicipioibge."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Código da UF (2 dígitos IBGE)."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP (8 dígitos). Mantido text (zero à esquerda). Dado pessoal."
+        },
+        {
+          "nome": "municipio",
+          "descricao": "Nome do município. Origem char com espaços à direita — o cast já apara. ~98,5% preenchida."
+        },
+        {
+          "nome": "ufdescricao",
+          "descricao": "Nome da UF. ~98,5% preenchida."
+        },
+        {
+          "nome": "status",
+          "descricao": "Flag de status (bit True/False)."
+        },
+        {
+          "nome": "divulgar",
+          "descricao": "Flag de autorização de divulgação do endereço (bit True/False)."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Identificador do usuário que registrou."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 17,
+      "testes": 12,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_agentes.agentes__endereconacional"
+      ],
+      "linhas_sql": 25
+    },
+    {
+      "nome": "agentes__municipios",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/agentes/agentes__municipios.sql",
+      "descricao": "Tabela de domínio geográfico: o município IBGE, sua UF, mesorregião e microrregião. 5.568 linhas. Camada bronze tipada a partir de salic_bronze.agentes__municipios.",
+      "colunas": [
+        {
+          "nome": "idmunicipioibge",
+          "descricao": "Código IBGE do município (6 dígitos). Chave da tabela."
+        },
+        {
+          "nome": "idufibge",
+          "descricao": "Código IBGE da UF (2 dígitos)."
+        },
+        {
+          "nome": "idmeso",
+          "descricao": "Código da mesorregião."
+        },
+        {
+          "nome": "idmicro",
+          "descricao": "Código da microrregião."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Nome do município."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_agentes.agentes__municipios"
+      ],
+      "linhas_sql": 13
+    },
+    {
+      "nome": "agentes__perfil",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/agentes/agentes__perfil.sql",
+      "descricao": "Liga o agente a um perfil e uma característica de acesso ao sistema. ~8 mil linhas. Camada bronze tipada a partir de salic_bronze.agentes__perfil. Armadilha: `perfil` e `caracteristica` são códigos de bitmask da origem (medidos constantes 48 e 64 na amostra) — não são contagens.",
+      "colunas": [
+        {
+          "nome": "idperfil",
+          "descricao": "Identificador do vínculo de perfil. Chave da tabela."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Agente. Chave estrangeira lógica para agentes__agentes.idagente."
+        },
+        {
+          "nome": "perfil",
+          "descricao": "Código de perfil (bitmask da origem)."
+        },
+        {
+          "nome": "caracteristica",
+          "descricao": "Código de característica (bitmask da origem)."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Identificador do usuário que registrou."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_agentes.agentes__perfil"
+      ],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "agentes__populacaomunicipio",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/agentes/agentes__populacaomunicipio.sql",
+      "descricao": "População por município. 5.563 linhas. Camada bronze tipada a partir de salic_bronze.agentes__populacaomunicipio. Dois códigos IBGE: `idmunicipio` (6 dígitos, casa com agentes__municipios.idmunicipioibge) e `idmunicipio7` (7 dígitos, com dígito verificador).",
+      "colunas": [
+        {
+          "nome": "idmunicipio",
+          "descricao": "Código IBGE do município (6 dígitos). Chave da tabela."
+        },
+        {
+          "nome": "idmunicipio7",
+          "descricao": "Código IBGE do município (7 dígitos, com dígito verificador)."
+        },
+        {
+          "nome": "populacao",
+          "descricao": "População do município (contagem de habitantes)."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_agentes.agentes__populacaomunicipio"
+      ],
+      "linhas_sql": 12
+    },
+    {
+      "nome": "agentes__tbagentefisico",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/agentes/agentes__tbagentefisico.sql",
+      "descricao": "Uma linha por agente pessoa física, com atributos pessoais. ~137 mil linhas. Camada bronze tipada a partir de salic_bronze.agentes__tbagentefisico. Liga a agentes__agentes por idagente. DADO SENSÍVEL: nome dos pais, cor/raça (stcorraca) e necessidade especial (stnecessidadeespecial). Uso exige base legal; não expor em painel aberto.",
+      "colunas": [
+        {
+          "nome": "idagente",
+          "descricao": "Agente pessoa física. Chave, aponta para agentes__agentes.idagente."
+        },
+        {
+          "nome": "stsexo",
+          "descricao": "Sexo declarado (M/F)."
+        },
+        {
+          "nome": "stestadocivil",
+          "descricao": "Estado civil, código de 2 letras (SJ, DI, CA, ...)."
+        },
+        {
+          "nome": "stnecessidadeespecial",
+          "descricao": "Necessidade especial (N/S). Dado sensível de deficiência. Medido majoritariamente 'N' na amostra."
+        },
+        {
+          "nome": "nmmae",
+          "descricao": "Nome da mãe. Dado pessoal. Origem char(100) com espaços à direita — o cast (bronze_texto) já apara e transforma vazio em NULL."
+        },
+        {
+          "nome": "nmpai",
+          "descricao": "Nome do pai. Dado pessoal. Origem char(100) com espaços à direita."
+        },
+        {
+          "nome": "dtnascimento",
+          "descricao": "Data de nascimento. Dado pessoal."
+        },
+        {
+          "nome": "stcorraca",
+          "descricao": "Código de cor/raça autodeclarada. Dado sensível. Preenchida em apenas ~2,5% das linhas — a ausência é a regra, não a exceção."
+        },
+        {
+          "nome": "nridentificadorprocessual",
+          "descricao": "[VAZIA EM 100% DAS LINHAS]"
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_agentes.agentes__tbagentefisico"
+      ],
+      "linhas_sql": 19
+    },
+    {
+      "nome": "agentes__uf",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/agentes/agentes__uf.sql",
+      "descricao": "Tabela de domínio: as 27 unidades da federação, com sigla, nome e região. 27 linhas. Camada bronze tipada a partir de salic_bronze.agentes__uf.",
+      "colunas": [
+        {
+          "nome": "iduf",
+          "descricao": "Código da UF (2 dígitos IBGE). Chave da tabela."
+        },
+        {
+          "nome": "sigla",
+          "descricao": "Sigla da UF (ex. RO, SP)."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Nome da UF."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Região (Norte, Nordeste, Sudeste, Sul, Centro-Oeste)."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_agentes.agentes__uf"
+      ],
+      "linhas_sql": 12
+    },
+    {
+      "nome": "agentes__verificacao",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/agentes/agentes__verificacao.sql",
+      "descricao": "Tabela de domínio dos valores de \"verificação\" de um agente (natureza jurídica, esfera administrativa etc.), agrupados por idtipo. 293 linhas. Camada bronze tipada a partir de salic_bronze.agentes__verificacao.",
+      "colunas": [
+        {
+          "nome": "idverificacao",
+          "descricao": "Identificador do valor de verificação. Chave da tabela."
+        },
+        {
+          "nome": "idtipo",
+          "descricao": "Tipo/grupo do valor de verificação."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Descrição do valor (ex. Público, Privado com fins lucrativos, Municipal)."
+        },
+        {
+          "nome": "sistema",
+          "descricao": "Código do sistema de origem."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_agentes.agentes__verificacao"
+      ],
+      "linhas_sql": 13
+    },
+    {
       "nome": "agentes__vpais",
       "dominio": "salic_bronze",
       "camada": "outros",
@@ -3295,6 +3683,226 @@
         "bronze_bdcorporativo.bdcorporativo__sysdiagrams"
       ],
       "linhas_sql": 15
+    },
+    {
+      "nome": "bdcorporativo__tbalteracaonomeproponente",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/bdcorporativo/bdcorporativo__tbalteracaonomeproponente.sql",
+      "descricao": "Pedidos de alteração do nome do proponente de um projeto. Origem no schema scsac do banco corporativo. Camada bronze tipada a partir de salic_bronze.bdcorporativo__tbalteracaonomeproponente.",
+      "colunas": [
+        {
+          "nome": "idpedidoalteracao",
+          "descricao": "Identificador do pedido de alteração. Chave da tabela."
+        },
+        {
+          "nome": "nrcnpjcpf",
+          "descricao": "CNPJ/CPF do proponente, sem máscara. Dado pessoal; mantido text para preservar o zero à esquerda."
+        },
+        {
+          "nome": "nmproponente",
+          "descricao": "Novo nome do proponente solicitado no pedido."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_bdcorporativo.bdcorporativo__tbalteracaonomeproponente"
+      ],
+      "linhas_sql": 12
+    },
+    {
+      "nome": "bdcorporativo__tbcomprovantepagamento",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/bdcorporativo/bdcorporativo__tbcomprovantepagamento.sql",
+      "descricao": "Uma linha por comprovante de pagamento da execução do projeto. É a maior tabela do domínio corporativo (~4,2 M linhas), do schema scsac. Camada bronze tipada a partir de salic_bronze.bdcorporativo__tbcomprovantepagamento. Armadilha: `idfornecedorexterior`, `dsoutrasfontes` e a coluna homônima `tbcomprovantepagamento` chegam 100% vazias; números de comprovante e de documento ficam text (são identificadores, não quantidades).",
+      "colunas": [
+        {
+          "nome": "tpdocumento",
+          "descricao": "Código do tipo de documento comprobatório."
+        },
+        {
+          "nome": "nrcomprovante",
+          "descricao": "Número do comprovante. Identificador, mantido text."
+        },
+        {
+          "nome": "nrserie",
+          "descricao": "Série do documento. Pode vir '-' (sem série). ~80% preenchida."
+        },
+        {
+          "nome": "idcomprovantepagamento",
+          "descricao": "Identificador do comprovante de pagamento. Chave da tabela."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa/descrição do pagamento. ~63% preenchida."
+        },
+        {
+          "nome": "vlcomprovacao",
+          "descricao": "Valor comprovado, em reais."
+        },
+        {
+          "nome": "dtemissao",
+          "descricao": "Data de emissão do documento comprobatório."
+        },
+        {
+          "nome": "dtpagamento",
+          "descricao": "Data do pagamento."
+        },
+        {
+          "nome": "idfornecedor",
+          "descricao": "Identificador do fornecedor nacional."
+        },
+        {
+          "nome": "idfornecedorexterior",
+          "descricao": "[VAZIA EM 100% DAS LINHAS] Fornecedor no exterior; sem valor na origem."
+        },
+        {
+          "nome": "idarquivo",
+          "descricao": "Identificador do arquivo anexado (comprovante digitalizado)."
+        },
+        {
+          "nome": "dsoutrasfontes",
+          "descricao": "[VAZIA EM 100% DAS LINHAS]"
+        },
+        {
+          "nome": "tpformadepagamento",
+          "descricao": "Código da forma de pagamento."
+        },
+        {
+          "nome": "nrdocumentodepagamento",
+          "descricao": "Número do documento de pagamento. Identificador, mantido text."
+        },
+        {
+          "nome": "tbcomprovantepagamento",
+          "descricao": "[VAZIA EM 100% DAS LINHAS] Coluna homônima da tabela, sem valor na origem."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 16,
+      "testes": 11,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_bdcorporativo.bdcorporativo__tbcomprovantepagamento"
+      ],
+      "linhas_sql": 24
+    },
+    {
+      "nome": "bdcorporativo__tbencaminhamentoprestacaocontas",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/bdcorporativo/bdcorporativo__tbencaminhamentoprestacaocontas.sql",
+      "descricao": "Uma linha por encaminhamento de prestação de contas de um projeto entre órgãos/agentes: quem enviou, para quem, quando e em que situação. ~8 mil linhas, do schema scsac. Camada bronze tipada a partir de salic_bronze.bdcorporativo__tbencaminhamentoprestacaocontas. Cruza com o projeto por idpronac e com bdcorporativo__tbsituacaoencaminhamentoprestacaocontas por idsituacaoencprestcontas.",
+      "colunas": [
+        {
+          "nome": "idencprestcontas",
+          "descricao": "Identificador do encaminhamento. Chave da tabela."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Projeto (PRONAC) da prestação de contas encaminhada."
+        },
+        {
+          "nome": "idagenteorigem",
+          "descricao": "Agente de origem do encaminhamento."
+        },
+        {
+          "nome": "dtinicioencaminhamento",
+          "descricao": "Data/hora de início do encaminhamento."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa do encaminhamento. Frequentemente preenchida apenas com '.' (placeholder), embora 100% não-nula."
+        },
+        {
+          "nome": "idorgaodestino",
+          "descricao": "Órgão de destino do encaminhamento."
+        },
+        {
+          "nome": "idorgaoorigem",
+          "descricao": "Órgão de origem do encaminhamento."
+        },
+        {
+          "nome": "idagentedestino",
+          "descricao": "Agente de destino do encaminhamento."
+        },
+        {
+          "nome": "cdgruposdestino",
+          "descricao": "Código do grupo de destino."
+        },
+        {
+          "nome": "cdgruposorigem",
+          "descricao": "Código do grupo de origem."
+        },
+        {
+          "nome": "dtfimencaminhamento",
+          "descricao": "Data/hora de fim do encaminhamento. ~98% preenchida."
+        },
+        {
+          "nome": "idsituacaoencprestcontas",
+          "descricao": "Situação do encaminhamento. Chave estrangeira lógica para bdcorporativo__tbsituacaoencaminhamentoprestacaocontas.idsituacaoencprestcontas."
+        },
+        {
+          "nome": "idsituacao",
+          "descricao": "Código textual de situação do projeto (ex. E27)."
+        },
+        {
+          "nome": "stativo",
+          "descricao": "Flag de registro ativo (bit 0/1)."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 15,
+      "testes": 14,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_bdcorporativo.bdcorporativo__tbencaminhamentoprestacaocontas"
+      ],
+      "linhas_sql": 24
+    },
+    {
+      "nome": "bdcorporativo__tbsituacaoencaminhamentoprestacaocontas",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/bdcorporativo/bdcorporativo__tbsituacaoencaminhamentoprestacaocontas.sql",
+      "descricao": "Tabela de domínio: as situações possíveis de um encaminhamento de prestação de contas (Aguardando Análise, Em Análise, Analisado, Consultoria AECI, Consultoria CONJUR). 5 linhas, do schema scsac. Camada bronze tipada a partir de salic_bronze.bdcorporativo__tbsituacaoencaminhamentoprestacaocontas. É a ponta de bdcorporativo__tbencaminhamentoprestacaocontas.idsituacaoencprestcontas.",
+      "colunas": [
+        {
+          "nome": "idsituacaoencprestcontas",
+          "descricao": "Identificador da situação. Chave da tabela."
+        },
+        {
+          "nome": "dssituacaoencprestcontas",
+          "descricao": "Descrição legível da situação."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_bdcorporativo.bdcorporativo__tbsituacaoencaminhamentoprestacaocontas"
+      ],
+      "linhas_sql": 12
     },
     {
       "nome": "controledeacesso__sgcacesso",
@@ -10595,6 +11203,672 @@
         "bronze_sac.sac__kitentregue"
       ],
       "linhas_sql": 17
+    },
+    {
+      "nome": "sac__preprojeto",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/sac/sac__preprojeto.sql",
+      "descricao": "Uma linha por pré-projeto — a proposta cultural antes de virar PRONAC. Guarda os textos longos da proposta (justificativa, objetivos, sinopse, ficha técnica) em HTML da origem, e o ciclo de aceite/arquivamento. ~450 mil linhas. Camada bronze tipada a partir de salic_bronze.sac__preprojeto. Cruza com agentes__agentes por idagente. Armadilha: `dtatotombamento` traz muito o sentinela '1900-01-01' (equivale a \"sem data\"); `idpronaccontinuacao` chega 100% vazia.",
+      "colunas": [
+        {
+          "nome": "idpreprojeto",
+          "descricao": "Identificador do pré-projeto. Chave da tabela."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Agente proponente. Chave estrangeira lógica para agentes__agentes.idagente."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome da proposta."
+        },
+        {
+          "nome": "mecanismo",
+          "descricao": "Código do mecanismo de incentivo."
+        },
+        {
+          "nome": "agenciabancaria",
+          "descricao": "Código da agência bancária. Mantido text: ~75% preenchida e pode conter dígito verificador não numérico (ex. '6856X')."
+        },
+        {
+          "nome": "areaabrangencia",
+          "descricao": "Flag de abrangência (bit True/False)."
+        },
+        {
+          "nome": "dtiniciodeexecucao",
+          "descricao": "Início previsto de execução. ~75% preenchida."
+        },
+        {
+          "nome": "dtfinaldeexecucao",
+          "descricao": "Fim previsto de execução. ~75% preenchida."
+        },
+        {
+          "nome": "justificativa",
+          "descricao": "Justificativa da proposta. Texto longo em HTML (não higienizado)."
+        },
+        {
+          "nome": "nratotombamento",
+          "descricao": "Número do ato de tombamento. Preenchida em ~1% das linhas."
+        },
+        {
+          "nome": "dtatotombamento",
+          "descricao": "Data do ato de tombamento. ~3,5% preenchida e boa parte é o sentinela '1900-01-01' do SQL Server, que significa \"sem data\", não uma data real."
+        },
+        {
+          "nome": "esferatombamento",
+          "descricao": "Código da esfera do tombamento (federal/estadual/municipal)."
+        },
+        {
+          "nome": "resumodoprojeto",
+          "descricao": "Resumo da proposta. ~97% preenchida."
+        },
+        {
+          "nome": "objetivos",
+          "descricao": "Objetivos da proposta. Texto longo em HTML."
+        },
+        {
+          "nome": "acessibilidade",
+          "descricao": "Medidas de acessibilidade. Texto longo em HTML."
+        },
+        {
+          "nome": "democratizacaodeacesso",
+          "descricao": "Democratização de acesso. Texto longo em HTML."
+        },
+        {
+          "nome": "etapadetrabalho",
+          "descricao": "Etapas de trabalho. Texto longo em HTML."
+        },
+        {
+          "nome": "fichatecnica",
+          "descricao": "Ficha técnica. Texto longo em HTML."
+        },
+        {
+          "nome": "sinopse",
+          "descricao": "Sinopse da proposta. Texto longo em HTML."
+        },
+        {
+          "nome": "impactoambiental",
+          "descricao": "Impacto ambiental. Texto em HTML, ~30% preenchida."
+        },
+        {
+          "nome": "especificacaotecnica",
+          "descricao": "Especificação técnica. Texto longo em HTML."
+        },
+        {
+          "nome": "estrategiadeexecucao",
+          "descricao": "Estratégia de execução. Texto longo em HTML."
+        },
+        {
+          "nome": "dtaceite",
+          "descricao": "Data de aceite da proposta. ~88% preenchida."
+        },
+        {
+          "nome": "dtarquivamento",
+          "descricao": "Data de arquivamento. ~18% preenchida."
+        },
+        {
+          "nome": "stestado",
+          "descricao": "Flag de estado da proposta (bit True/False)."
+        },
+        {
+          "nome": "stdatafixa",
+          "descricao": "Flag de data fixa (bit True/False)."
+        },
+        {
+          "nome": "stplanoanual",
+          "descricao": "Flag de plano anual (bit True/False)."
+        },
+        {
+          "nome": "idusuario",
+          "descricao": "Identificador do usuário."
+        },
+        {
+          "nome": "sttipodemanda",
+          "descricao": "Tipo de demanda (ex. NA = não-edital, ED = edital)."
+        },
+        {
+          "nome": "idedital",
+          "descricao": "Identificador do edital, quando aplicável. ~25% preenchida."
+        },
+        {
+          "nome": "stproposta",
+          "descricao": "Código do status da proposta. ~40% preenchida."
+        },
+        {
+          "nome": "tpprorrogacao",
+          "descricao": "Flag de prorrogação (bit True/False). ~40% preenchida."
+        },
+        {
+          "nome": "descricaoatividade",
+          "descricao": "Descrição de atividade. Texto em HTML, ~15% preenchida."
+        },
+        {
+          "nome": "tptipicidade",
+          "descricao": "Código de tipicidade. ~32% preenchida."
+        },
+        {
+          "nome": "tptipologia",
+          "descricao": "Código de tipologia. ~32% preenchida."
+        },
+        {
+          "nome": "idpronaccontinuacao",
+          "descricao": "[VAZIA EM 100% DAS LINHAS] PRONAC de continuação; sem valor na origem."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 37,
+      "testes": 12,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_sac.sac__preprojeto"
+      ],
+      "linhas_sql": 46
+    },
+    {
+      "nome": "sac__projetos",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/sac/sac__projetos.sql",
+      "descricao": "Uma linha por projeto cultural do mecanismo de incentivo fiscal (Lei Rouanet), identificado pelo PRONAC. É a tabela-núcleo do domínio SAC: liga proponente (cgccpf), situação, órgão, valores solicitados e as datas de tramitação. ~277 mil linhas. Camada bronze tipada a partir de salic_bronze.sac__projetos. Cruza com sac__situacao por `situacao` = codigo e com sac__tbapiaprovacoes/sac__tbapiincentivos por idpronac. Armadilha: a coluna `idprojeto` chega 100% vazia; use `idpronac` como chave.",
+      "colunas": [
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do PRONAC. Chave do projeto, preenchida em 100% das linhas."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do projeto em 2 dígitos ('00'=2000, '08'=2008). Mantido text para não perder o zero à esquerda."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do projeto no ano, 4 dígitos com zero à esquerda."
+        },
+        {
+          "nome": "ufprojeto",
+          "descricao": "Sigla da UF do projeto."
+        },
+        {
+          "nome": "area",
+          "descricao": "Código da área cultural."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Código do segmento cultural."
+        },
+        {
+          "nome": "mecanismo",
+          "descricao": "Código do mecanismo de incentivo."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "processo",
+          "descricao": "Número do processo administrativo (15 dígitos). Identificador, mantido text (não é quantidade)."
+        },
+        {
+          "nome": "cgccpf",
+          "descricao": "CNPJ (14) ou CPF (11) do proponente, sem máscara. Dado pessoal; mantido text para preservar o zero à esquerda. Não interpretar como número."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Código da situação de tramitação (3 caracteres). Chave estrangeira lógica para sac__situacao.codigo."
+        },
+        {
+          "nome": "dtprotocolo",
+          "descricao": "Data de protocolo do projeto."
+        },
+        {
+          "nome": "dtanalise",
+          "descricao": "Data de análise."
+        },
+        {
+          "nome": "modalidade",
+          "descricao": "Código da modalidade. Preenchida em ~21% das linhas."
+        },
+        {
+          "nome": "orgaoorigem",
+          "descricao": "Código do órgão de origem."
+        },
+        {
+          "nome": "orgao",
+          "descricao": "Código do órgão responsável."
+        },
+        {
+          "nome": "dtsaida",
+          "descricao": "Data de saída para análise externa. Preenchida em ~77% das linhas."
+        },
+        {
+          "nome": "dtretorno",
+          "descricao": "Data de retorno da análise externa. Preenchida em ~75% das linhas."
+        },
+        {
+          "nome": "unidadeanalise",
+          "descricao": "Unidade responsável pela análise. ~56% preenchida."
+        },
+        {
+          "nome": "analista",
+          "descricao": "Nome do analista responsável (servidor). Dado pessoal."
+        },
+        {
+          "nome": "dtsituacao",
+          "descricao": "Data da situação atual. A origem mistura precisões (só data e data-hora com milissegundos); o cast normaliza ambas para timestamp."
+        },
+        {
+          "nome": "resumoprojeto",
+          "descricao": "Resumo textual do projeto."
+        },
+        {
+          "nome": "providenciatomada",
+          "descricao": "Providência administrativa registrada."
+        },
+        {
+          "nome": "localizacao",
+          "descricao": "Localização física do processo. ~18% preenchida."
+        },
+        {
+          "nome": "dtinicioexecucao",
+          "descricao": "Data de início da execução. Preenchida em ~5% das linhas."
+        },
+        {
+          "nome": "dtfimexecucao",
+          "descricao": "Data de fim da execução. Preenchida em ~5% das linhas."
+        },
+        {
+          "nome": "solicitadoufir",
+          "descricao": "Valor total solicitado, em UFIR."
+        },
+        {
+          "nome": "solicitadoreal",
+          "descricao": "Valor total solicitado, em reais."
+        },
+        {
+          "nome": "solicitadocusteioufir",
+          "descricao": "Valor de custeio solicitado, em UFIR."
+        },
+        {
+          "nome": "solicitadocusteioreal",
+          "descricao": "Valor de custeio solicitado, em reais."
+        },
+        {
+          "nome": "solicitadocapitalufir",
+          "descricao": "Valor de capital solicitado, em UFIR. Quase sempre 0."
+        },
+        {
+          "nome": "solicitadocapitalreal",
+          "descricao": "Valor de capital solicitado, em reais. Quase sempre 0."
+        },
+        {
+          "nome": "logon",
+          "descricao": "Identificador do usuário que registrou."
+        },
+        {
+          "nome": "idprojeto",
+          "descricao": "[VAZIA EM 100% DAS LINHAS] Sem valor na origem; não é a chave. Use idpronac."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 35,
+      "testes": 10,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_sac.sac__projetos"
+      ],
+      "linhas_sql": 44
+    },
+    {
+      "nome": "sac__situacao",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/sac/sac__situacao.sql",
+      "descricao": "Tabela de domínio das situações de tramitação de projeto: o código de 3 caracteres (A01, K00, ...) e sua descrição. 296 linhas. Camada bronze tipada a partir de salic_bronze.sac__situacao. É a ponta de sac__projetos.situacao.",
+      "colunas": [
+        {
+          "nome": "codigo",
+          "descricao": "Código da situação (3 caracteres). Chave da tabela."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Descrição legível da situação."
+        },
+        {
+          "nome": "areaatuacao",
+          "descricao": "Letra da área de atuação. Preenchida em ~55% das linhas."
+        },
+        {
+          "nome": "statusprojeto",
+          "descricao": "Flag de status do projeto (bit 0/1) associado à situação."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_sac.sac__situacao"
+      ],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "sac__tbapiaprovacoes",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/sac/sac__tbapiaprovacoes.sql",
+      "descricao": "Uma linha por aprovação/prorrogação do projeto, publicada pela API pública do SALIC: portaria, período de captação autorizado e valor aprovado. ~446 mil linhas. Camada bronze tipada a partir de salic_bronze.sac__tbapiaprovacoes. Cruza com sac__projetos por idpronac. Armadilha: `dtatualizacao` é o instante da carga da API, não data de negócio.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Identificador da linha na API. Chave da tabela."
+        },
+        {
+          "nome": "idaprovacao",
+          "descricao": "Identificador da aprovação no SALIC."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do PRONAC."
+        },
+        {
+          "nome": "nrpronac",
+          "descricao": "Número PRONAC (zero à esquerda). Mantido text."
+        },
+        {
+          "nome": "nmprojeto",
+          "descricao": "Nome do projeto."
+        },
+        {
+          "nome": "dsarea",
+          "descricao": "Área cultural (descrição)."
+        },
+        {
+          "nome": "dssegmento",
+          "descricao": "Segmento cultural (descrição)."
+        },
+        {
+          "nome": "tpaprovacao",
+          "descricao": "Tipo de aprovação (Aprovação Inicial, Prorrogação, ...)."
+        },
+        {
+          "nome": "resumoaprovacao",
+          "descricao": "Resumo/parecer da aprovação. Texto longo."
+        },
+        {
+          "nome": "portariaaprovacao",
+          "descricao": "Número da portaria de aprovação (ex. 0004/11)."
+        },
+        {
+          "nome": "dtportariaaprovacao",
+          "descricao": "Data da portaria (AAAA-MM-DD)."
+        },
+        {
+          "nome": "dtpublicacaoaprovacao",
+          "descricao": "Data de publicação da portaria (AAAA-MM-DD)."
+        },
+        {
+          "nome": "dtiniciocaptacao",
+          "descricao": "Início do período de captação autorizado. ~96% preenchida."
+        },
+        {
+          "nome": "dtfimcaptacao",
+          "descricao": "Fim do período de captação autorizado. ~96% preenchida."
+        },
+        {
+          "nome": "vlaprovado",
+          "descricao": "Valor aprovado para captação, em reais."
+        },
+        {
+          "nome": "hashregistro",
+          "descricao": "Hash SHA (hex, 64 caracteres) do registro na API."
+        },
+        {
+          "nome": "dtatualizacao",
+          "descricao": "Instante da carga do registro pela API. Não é data de negócio."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 14,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_sac.sac__tbapiaprovacoes"
+      ],
+      "linhas_sql": 27
+    },
+    {
+      "nome": "sac__tbapicomprovacoes",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/sac/sac__tbapicomprovacoes.sql",
+      "descricao": "Uma linha por comprovante de pagamento da execução do projeto, publicado pela API pública do SALIC. É a maior tabela deste lote (~2,6 M linhas). Camada bronze tipada a partir de salic_bronze.sac__tbapicomprovacoes. Cruza com sac__projetos por idpronac. Armadilha: a coluna `sguf` NÃO contém sigla de UF (valores medidos como 'Mi', 'Ri'); não usar como UF sem checagem. `dtatualizacao` é o instante da carga da API, não data de negócio.",
+      "colunas": [
+        {
+          "nome": "idapicomprovacoes",
+          "descricao": "Identificador do comprovante. Chave da tabela."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do PRONAC."
+        },
+        {
+          "nome": "nrpronac",
+          "descricao": "Número PRONAC (zero à esquerda). Mantido text."
+        },
+        {
+          "nome": "nmprojeto",
+          "descricao": "Nome do projeto."
+        },
+        {
+          "nome": "nmitem",
+          "descricao": "Nome do item comprovado."
+        },
+        {
+          "nome": "nmfornecedor",
+          "descricao": "Nome do fornecedor."
+        },
+        {
+          "nome": "tpfornecedor",
+          "descricao": "Tipo do fornecedor (medido constante 'Nacional')."
+        },
+        {
+          "nome": "dsregiao",
+          "descricao": "Região do fornecedor (Sudeste, Nordeste, ...)."
+        },
+        {
+          "nome": "sguf",
+          "descricao": "[NÃO VERIFICADO] Deveria ser a sigla da UF, mas os valores medidos ('Mi', 'Ri') têm 2 letras que não formam sigla de UF válida — parecem truncamento de outro campo. Não usar como UF sem confirmar na origem."
+        },
+        {
+          "nome": "nmmunicipio",
+          "descricao": "Nome do município. ~99% preenchida."
+        },
+        {
+          "nome": "dtcomprovacao",
+          "descricao": "Data da comprovação (AAAA-MM-DD)."
+        },
+        {
+          "nome": "aaanocomprovacao",
+          "descricao": "Ano da comprovação."
+        },
+        {
+          "nome": "mmmescomprovacao",
+          "descricao": "Mês da comprovação (1 a 12)."
+        },
+        {
+          "nome": "tpdocumento",
+          "descricao": "Tipo do documento comprobatório (Nota Fiscal/Fatura, Guia de Recolhimento, ...)."
+        },
+        {
+          "nome": "nrcomprovante",
+          "descricao": "Número do comprovante."
+        },
+        {
+          "nome": "dtemissao",
+          "descricao": "Data de emissão do documento (AAAA-MM-DD)."
+        },
+        {
+          "nome": "tpformadepagamento",
+          "descricao": "Forma de pagamento (Transferência Bancária, ...)."
+        },
+        {
+          "nome": "nrdocumentodepagamento",
+          "descricao": "Número do documento de pagamento (ex. 2019OB0369)."
+        },
+        {
+          "nome": "vlpagamento",
+          "descricao": "Valor do pagamento, em reais."
+        },
+        {
+          "nome": "idarquivo",
+          "descricao": "Identificador do arquivo anexado."
+        },
+        {
+          "nome": "nmarquivo",
+          "descricao": "Nome do arquivo anexado (ex. NF_5521.pdf)."
+        },
+        {
+          "nome": "hashregistro",
+          "descricao": "Hash SHA (hex, 64 caracteres) do registro na API."
+        },
+        {
+          "nome": "dtatualizacao",
+          "descricao": "Instante da carga do registro pela API. Não é data de negócio."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 24,
+      "testes": 20,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_sac.sac__tbapicomprovacoes"
+      ],
+      "linhas_sql": 33
+    },
+    {
+      "nome": "sac__tbapiincentivos",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/sac/sac__tbapiincentivos.sql",
+      "descricao": "Uma linha por aporte de incentivo (captação) publicado pela API pública do SALIC: quem incentivou qual projeto, quanto e quando. ~669 mil linhas. Camada bronze tipada a partir de salic_bronze.sac__tbapiincentivos. Cruza com sac__projetos por idpronac. Armadilha: `dtatualizacao` não é data de negócio — é o instante da carga da API (constante por lote); `dstransferenciarecurso`/`dttransferenciarecurso` chegam vazias e `dsbemservico` é constante 'Aporte em conta'.",
+      "colunas": [
+        {
+          "nome": "idcaptacao",
+          "descricao": "Identificador da captação. Chave da tabela."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do PRONAC."
+        },
+        {
+          "nome": "nrpronac",
+          "descricao": "Número PRONAC (6 dígitos, zero à esquerda). Mantido text."
+        },
+        {
+          "nome": "nmprojeto",
+          "descricao": "Nome do projeto."
+        },
+        {
+          "nome": "nrcnpjcpfproponente",
+          "descricao": "CNPJ/CPF do proponente, sem máscara. Dado pessoal; text."
+        },
+        {
+          "nome": "nmproponente",
+          "descricao": "Nome do proponente."
+        },
+        {
+          "nome": "nrcnpjcpfincentivador",
+          "descricao": "CNPJ/CPF do incentivador, sem máscara. Dado pessoal; text."
+        },
+        {
+          "nome": "nmincentivador",
+          "descricao": "Nome do incentivador."
+        },
+        {
+          "nome": "nmmunicipioincentivador",
+          "descricao": "Município do incentivador (nome; pode vir 'Não Informado')."
+        },
+        {
+          "nome": "sgufincentivador",
+          "descricao": "Sigla da UF do incentivador."
+        },
+        {
+          "nome": "tppessoa",
+          "descricao": "Tipo de pessoa do incentivador (Pessoa Física/Jurídica)."
+        },
+        {
+          "nome": "nrlote",
+          "descricao": "Número do lote (5 dígitos, zero à esquerda). Mantido text."
+        },
+        {
+          "nome": "aaincentivo",
+          "descricao": "Ano do incentivo."
+        },
+        {
+          "nome": "mmincentivo",
+          "descricao": "Mês do incentivo (1 a 12)."
+        },
+        {
+          "nome": "dtincentivo",
+          "descricao": "Data do incentivo (AAAA-MM-DD)."
+        },
+        {
+          "nome": "vlcaptado",
+          "descricao": "Valor captado, em reais."
+        },
+        {
+          "nome": "dstransferenciarecurso",
+          "descricao": "[VAZIA EM 100% DAS LINHAS]"
+        },
+        {
+          "nome": "dttransferenciarecurso",
+          "descricao": "[VAZIA EM 100% DAS LINHAS]"
+        },
+        {
+          "nome": "dsbemservico",
+          "descricao": "[CONSTANTE 'Aporte em conta'] Descrição do bem/serviço."
+        },
+        {
+          "nome": "hashregistro",
+          "descricao": "Hash SHA (hex, 64 caracteres) do registro na API — controle de integridade."
+        },
+        {
+          "nome": "dtatualizacao",
+          "descricao": "Instante em que a API carregou o registro (constante por lote). Não é data de negócio."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 22,
+      "testes": 17,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_sac.sac__tbapiincentivos"
+      ],
+      "linhas_sql": 31
     },
     {
       "nome": "sac__tbcomplianceitemcomprovado",
@@ -38059,10 +39333,10 @@
       }
     },
     "salic_bronze": {
-      "modelos": 571,
-      "testes": 4724,
+      "modelos": 589,
+      "testes": 4883,
       "camadas": {
-        "outros": 571
+        "outros": 589
       }
     },
     "transferegov_bronze": {
@@ -38475,9 +39749,9 @@
     }
   ],
   "totais": {
-    "modelos": 625,
-    "testes": 4841,
-    "com_descricao": 624,
+    "modelos": 643,
+    "testes": 5000,
+    "com_descricao": 642,
     "sources": 79
   }
 }
