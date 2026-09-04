@@ -898,3 +898,380 @@ models:
           é campo de negócio.
         data_type: integer
 
+
+  - name: agentes__agentes
+    description: >
+      Uma linha por agente cultural — proponente, incentivador ou fornecedor —
+      identificado por idagente e por cnpjcpf. ~998 mil linhas. Camada bronze
+      tipada a partir de salic_bronze.agentes__agentes. É a raiz do domínio
+      Agentes: agentes__tbagentefisico, agentes__perfil e agentes__endereconacional
+      referenciam idagente.
+      Armadilha: `tipopessoa` é um bit da origem (True/False) e a semântica
+      física/jurídica NÃO foi confirmada; `cnpjcpfsuperior` chega constante zero.
+    columns:
+      - name: idagente
+        description: Identificador do agente. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: cnpjcpf
+        description: >
+          CNPJ (14) ou CPF (11) do agente, sem máscara. Dado pessoal; mantido text
+          para preservar o zero à esquerda.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: cnpjcpfsuperior
+        description: >
+          CNPJ/CPF da entidade superior. Medido constante '00000000000000' na
+          amostra (sem entidade superior).
+        data_type: text
+      - name: tipopessoa
+        description: >
+          Bit da origem (True/False). [NÃO VERIFICADO] a correspondência com
+          pessoa física/jurídica; não assumir sem checar.
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtcadastro
+        description: Data/hora de cadastro do agente.
+        data_type: timestamp
+      - name: dtatualizacao
+        description: Data/hora da última atualização do cadastro.
+        data_type: timestamp
+      - name: dtvalidade
+        description: Data/hora de validade do cadastro.
+        data_type: timestamp
+      - name: status
+        description: Flag de status do agente (bit 0/1).
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: usuario
+        description: Identificador/flag do usuário (valores 0/1 na amostra).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: agentes__tbagentefisico
+    description: >
+      Uma linha por agente pessoa física, com atributos pessoais. ~137 mil linhas.
+      Camada bronze tipada a partir de salic_bronze.agentes__tbagentefisico. Liga
+      a agentes__agentes por idagente.
+      DADO SENSÍVEL: nome dos pais, cor/raça (stcorraca) e necessidade especial
+      (stnecessidadeespecial). Uso exige base legal; não expor em painel aberto.
+    columns:
+      - name: idagente
+        description: Agente pessoa física. Chave, aponta para agentes__agentes.idagente.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: stsexo
+        description: Sexo declarado (M/F).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stestadocivil
+        description: Estado civil, código de 2 letras (SJ, DI, CA, ...).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stnecessidadeespecial
+        description: >
+          Necessidade especial (N/S). Dado sensível de deficiência. Medido
+          majoritariamente 'N' na amostra.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmmae
+        description: >
+          Nome da mãe. Dado pessoal. Origem char(100) com espaços à direita — o
+          cast (bronze_texto) já apara e transforma vazio em NULL.
+        data_type: text
+      - name: nmpai
+        description: >
+          Nome do pai. Dado pessoal. Origem char(100) com espaços à direita.
+        data_type: text
+      - name: dtnascimento
+        description: Data de nascimento. Dado pessoal.
+        data_type: timestamp
+      - name: stcorraca
+        description: >
+          Código de cor/raça autodeclarada. Dado sensível. Preenchida em apenas
+          ~2,5% das linhas — a ausência é a regra, não a exceção.
+        data_type: integer
+      - name: nridentificadorprocessual
+        description: '[VAZIA EM 100% DAS LINHAS]'
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: agentes__perfil
+    description: >
+      Liga o agente a um perfil e uma característica de acesso ao sistema. ~8 mil
+      linhas. Camada bronze tipada a partir de salic_bronze.agentes__perfil.
+      Armadilha: `perfil` e `caracteristica` são códigos de bitmask da origem
+      (medidos constantes 48 e 64 na amostra) — não são contagens.
+    columns:
+      - name: idperfil
+        description: Identificador do vínculo de perfil. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idagente
+        description: Agente. Chave estrangeira lógica para agentes__agentes.idagente.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: perfil
+        description: Código de perfil (bitmask da origem).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: caracteristica
+        description: Código de característica (bitmask da origem).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: usuario
+        description: Identificador do usuário que registrou.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: agentes__verificacao
+    description: >
+      Tabela de domínio dos valores de "verificação" de um agente (natureza
+      jurídica, esfera administrativa etc.), agrupados por idtipo. 293 linhas.
+      Camada bronze tipada a partir de salic_bronze.agentes__verificacao.
+    columns:
+      - name: idverificacao
+        description: Identificador do valor de verificação. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idtipo
+        description: Tipo/grupo do valor de verificação.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: descricao
+        description: Descrição do valor (ex. Público, Privado com fins lucrativos, Municipal).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sistema
+        description: Código do sistema de origem.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: agentes__endereconacional
+    description: >
+      Uma linha por endereço nacional de agente. ~956 mil linhas. Camada bronze
+      tipada a partir de salic_bronze.agentes__endereconacional. Liga a
+      agentes__agentes por idagente; `cidade` casa com agentes__municipios por
+      código IBGE. DADO PESSOAL (endereço).
+      Armadilha: `cep` fica text (zero à esquerda); `cidade`/`uf` são códigos
+      IBGE, não nomes.
+    columns:
+      - name: idendereco
+        description: Identificador do endereço. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idagente
+        description: Agente dono do endereço. Chave estrangeira lógica para agentes__agentes.idagente.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tipoendereco
+        description: Código do tipo de endereço.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tipologradouro
+        description: Código do tipo de logradouro.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: logradouro
+        description: Nome do logradouro. Dado pessoal.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: numero
+        description: Número do endereço (mantido text; pode conter S/N). Dado pessoal.
+        data_type: text
+      - name: bairro
+        description: Bairro. Dado pessoal.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: complemento
+        description: Complemento do endereço. ~22% preenchida.
+        data_type: text
+      - name: cidade
+        description: Código IBGE do município (6 dígitos). Casa com agentes__municipios.idmunicipioibge.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: uf
+        description: Código da UF (2 dígitos IBGE).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: cep
+        description: CEP (8 dígitos). Mantido text (zero à esquerda). Dado pessoal.
+        data_type: text
+      - name: municipio
+        description: >
+          Nome do município. Origem char com espaços à direita — o cast já apara.
+          ~98,5% preenchida.
+        data_type: text
+      - name: ufdescricao
+        description: Nome da UF. ~98,5% preenchida.
+        data_type: text
+      - name: status
+        description: Flag de status (bit True/False).
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: divulgar
+        description: Flag de autorização de divulgação do endereço (bit True/False).
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: usuario
+        description: Identificador do usuário que registrou.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: agentes__municipios
+    description: >
+      Tabela de domínio geográfico: o município IBGE, sua UF, mesorregião e
+      microrregião. 5.568 linhas. Camada bronze tipada a partir de
+      salic_bronze.agentes__municipios.
+    columns:
+      - name: idmunicipioibge
+        description: Código IBGE do município (6 dígitos). Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idufibge
+        description: Código IBGE da UF (2 dígitos).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idmeso
+        description: Código da mesorregião.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idmicro
+        description: Código da microrregião.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: descricao
+        description: Nome do município.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: agentes__uf
+    description: >
+      Tabela de domínio: as 27 unidades da federação, com sigla, nome e região.
+      27 linhas. Camada bronze tipada a partir de salic_bronze.agentes__uf.
+    columns:
+      - name: iduf
+        description: Código da UF (2 dígitos IBGE). Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: sigla
+        description: Sigla da UF (ex. RO, SP).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: descricao
+        description: Nome da UF.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: regiao
+        description: Região (Norte, Nordeste, Sudeste, Sul, Centro-Oeste).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: agentes__populacaomunicipio
+    description: >
+      População por município. 5.563 linhas. Camada bronze tipada a partir de
+      salic_bronze.agentes__populacaomunicipio. Dois códigos IBGE: `idmunicipio`
+      (6 dígitos, casa com agentes__municipios.idmunicipioibge) e `idmunicipio7`
+      (7 dígitos, com dígito verificador).
+    columns:
+      - name: idmunicipio
+        description: Código IBGE do município (6 dígitos). Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idmunicipio7
+        description: Código IBGE do município (7 dígitos, com dígito verificador).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: populacao
+        description: População do município (contagem de habitantes).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
