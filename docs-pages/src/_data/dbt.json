@@ -3669,6 +3669,226 @@
       "linhas_sql": 15
     },
     {
+      "nome": "bdcorporativo__tbalteracaonomeproponente",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/bdcorporativo/bdcorporativo__tbalteracaonomeproponente.sql",
+      "descricao": "Pedidos de alteração do nome do proponente de um projeto. Origem no schema scsac do banco corporativo. Camada bronze tipada a partir de salic_bronze.bdcorporativo__tbalteracaonomeproponente.",
+      "colunas": [
+        {
+          "nome": "idpedidoalteracao",
+          "descricao": "Identificador do pedido de alteração. Chave da tabela."
+        },
+        {
+          "nome": "nrcnpjcpf",
+          "descricao": "CNPJ/CPF do proponente, sem máscara. Dado pessoal; mantido text para preservar o zero à esquerda."
+        },
+        {
+          "nome": "nmproponente",
+          "descricao": "Novo nome do proponente solicitado no pedido."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_bdcorporativo.bdcorporativo__tbalteracaonomeproponente"
+      ],
+      "linhas_sql": 12
+    },
+    {
+      "nome": "bdcorporativo__tbcomprovantepagamento",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/bdcorporativo/bdcorporativo__tbcomprovantepagamento.sql",
+      "descricao": "Uma linha por comprovante de pagamento da execução do projeto. É a maior tabela do domínio corporativo (~4,2 M linhas), do schema scsac. Camada bronze tipada a partir de salic_bronze.bdcorporativo__tbcomprovantepagamento. Armadilha: `idfornecedorexterior`, `dsoutrasfontes` e a coluna homônima `tbcomprovantepagamento` chegam 100% vazias; números de comprovante e de documento ficam text (são identificadores, não quantidades).",
+      "colunas": [
+        {
+          "nome": "tpdocumento",
+          "descricao": "Código do tipo de documento comprobatório."
+        },
+        {
+          "nome": "nrcomprovante",
+          "descricao": "Número do comprovante. Identificador, mantido text."
+        },
+        {
+          "nome": "nrserie",
+          "descricao": "Série do documento. Pode vir '-' (sem série). ~80% preenchida."
+        },
+        {
+          "nome": "idcomprovantepagamento",
+          "descricao": "Identificador do comprovante de pagamento. Chave da tabela."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa/descrição do pagamento. ~63% preenchida."
+        },
+        {
+          "nome": "vlcomprovacao",
+          "descricao": "Valor comprovado, em reais."
+        },
+        {
+          "nome": "dtemissao",
+          "descricao": "Data de emissão do documento comprobatório."
+        },
+        {
+          "nome": "dtpagamento",
+          "descricao": "Data do pagamento."
+        },
+        {
+          "nome": "idfornecedor",
+          "descricao": "Identificador do fornecedor nacional."
+        },
+        {
+          "nome": "idfornecedorexterior",
+          "descricao": "[VAZIA EM 100% DAS LINHAS] Fornecedor no exterior; sem valor na origem."
+        },
+        {
+          "nome": "idarquivo",
+          "descricao": "Identificador do arquivo anexado (comprovante digitalizado)."
+        },
+        {
+          "nome": "dsoutrasfontes",
+          "descricao": "[VAZIA EM 100% DAS LINHAS]"
+        },
+        {
+          "nome": "tpformadepagamento",
+          "descricao": "Código da forma de pagamento."
+        },
+        {
+          "nome": "nrdocumentodepagamento",
+          "descricao": "Número do documento de pagamento. Identificador, mantido text."
+        },
+        {
+          "nome": "tbcomprovantepagamento",
+          "descricao": "[VAZIA EM 100% DAS LINHAS] Coluna homônima da tabela, sem valor na origem."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 16,
+      "testes": 11,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_bdcorporativo.bdcorporativo__tbcomprovantepagamento"
+      ],
+      "linhas_sql": 24
+    },
+    {
+      "nome": "bdcorporativo__tbencaminhamentoprestacaocontas",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/bdcorporativo/bdcorporativo__tbencaminhamentoprestacaocontas.sql",
+      "descricao": "Uma linha por encaminhamento de prestação de contas de um projeto entre órgãos/agentes: quem enviou, para quem, quando e em que situação. ~8 mil linhas, do schema scsac. Camada bronze tipada a partir de salic_bronze.bdcorporativo__tbencaminhamentoprestacaocontas. Cruza com o projeto por idpronac e com bdcorporativo__tbsituacaoencaminhamentoprestacaocontas por idsituacaoencprestcontas.",
+      "colunas": [
+        {
+          "nome": "idencprestcontas",
+          "descricao": "Identificador do encaminhamento. Chave da tabela."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Projeto (PRONAC) da prestação de contas encaminhada."
+        },
+        {
+          "nome": "idagenteorigem",
+          "descricao": "Agente de origem do encaminhamento."
+        },
+        {
+          "nome": "dtinicioencaminhamento",
+          "descricao": "Data/hora de início do encaminhamento."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa do encaminhamento. Frequentemente preenchida apenas com '.' (placeholder), embora 100% não-nula."
+        },
+        {
+          "nome": "idorgaodestino",
+          "descricao": "Órgão de destino do encaminhamento."
+        },
+        {
+          "nome": "idorgaoorigem",
+          "descricao": "Órgão de origem do encaminhamento."
+        },
+        {
+          "nome": "idagentedestino",
+          "descricao": "Agente de destino do encaminhamento."
+        },
+        {
+          "nome": "cdgruposdestino",
+          "descricao": "Código do grupo de destino."
+        },
+        {
+          "nome": "cdgruposorigem",
+          "descricao": "Código do grupo de origem."
+        },
+        {
+          "nome": "dtfimencaminhamento",
+          "descricao": "Data/hora de fim do encaminhamento. ~98% preenchida."
+        },
+        {
+          "nome": "idsituacaoencprestcontas",
+          "descricao": "Situação do encaminhamento. Chave estrangeira lógica para bdcorporativo__tbsituacaoencaminhamentoprestacaocontas.idsituacaoencprestcontas."
+        },
+        {
+          "nome": "idsituacao",
+          "descricao": "Código textual de situação do projeto (ex. E27)."
+        },
+        {
+          "nome": "stativo",
+          "descricao": "Flag de registro ativo (bit 0/1)."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 15,
+      "testes": 14,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_bdcorporativo.bdcorporativo__tbencaminhamentoprestacaocontas"
+      ],
+      "linhas_sql": 24
+    },
+    {
+      "nome": "bdcorporativo__tbsituacaoencaminhamentoprestacaocontas",
+      "dominio": "salic_bronze",
+      "camada": "outros",
+      "caminho": "dbt/minc/models/salic_bronze/bdcorporativo/bdcorporativo__tbsituacaoencaminhamentoprestacaocontas.sql",
+      "descricao": "Tabela de domínio: as situações possíveis de um encaminhamento de prestação de contas (Aguardando Análise, Em Análise, Analisado, Consultoria AECI, Consultoria CONJUR). 5 linhas, do schema scsac. Camada bronze tipada a partir de salic_bronze.bdcorporativo__tbsituacaoencaminhamentoprestacaocontas. É a ponta de bdcorporativo__tbencaminhamentoprestacaocontas.idsituacaoencprestcontas.",
+      "colunas": [
+        {
+          "nome": "idsituacaoencprestcontas",
+          "descricao": "Identificador da situação. Chave da tabela."
+        },
+        {
+          "nome": "dssituacaoencprestcontas",
+          "descricao": "Descrição legível da situação."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "bronze_bdcorporativo.bdcorporativo__tbsituacaoencaminhamentoprestacaocontas"
+      ],
+      "linhas_sql": 12
+    },
+    {
       "nome": "controledeacesso__sgcacesso",
       "dominio": "salic_bronze",
       "camada": "outros",
@@ -39097,10 +39317,10 @@
       }
     },
     "salic_bronze": {
-      "modelos": 585,
-      "testes": 4851,
+      "modelos": 589,
+      "testes": 4883,
       "camadas": {
-        "outros": 585
+        "outros": 589
       }
     },
     "transferegov_bronze": {
@@ -39513,9 +39733,9 @@
     }
   ],
   "totais": {
-    "modelos": 639,
-    "testes": 4966,
-    "com_descricao": 638,
+    "modelos": 643,
+    "testes": 4998,
+    "com_descricao": 642,
     "sources": 79
   }
 }
