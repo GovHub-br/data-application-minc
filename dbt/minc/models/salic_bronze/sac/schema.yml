@@ -35605,3 +35605,666 @@ models:
           é campo de negócio.
         data_type: integer
 
+
+  - name: sac__projetos
+    description: >
+      Uma linha por projeto cultural do mecanismo de incentivo fiscal (Lei
+      Rouanet), identificado pelo PRONAC. É a tabela-núcleo do domínio SAC: liga
+      proponente (cgccpf), situação, órgão, valores solicitados e as datas de
+      tramitação. ~277 mil linhas. Camada bronze tipada a partir de
+      salic_bronze.sac__projetos. Cruza com sac__situacao por `situacao` = codigo
+      e com sac__tbapiaprovacoes/sac__tbapiincentivos por idpronac.
+      Armadilha: a coluna `idprojeto` chega 100% vazia; use `idpronac` como chave.
+    columns:
+      - name: idpronac
+        description: Identificador interno do PRONAC. Chave do projeto, preenchida em 100% das linhas.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: anoprojeto
+        description: >
+          Ano do projeto em 2 dígitos ('00'=2000, '08'=2008). Mantido text para
+          não perder o zero à esquerda.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sequencial
+        description: Sequencial do projeto no ano, 4 dígitos com zero à esquerda.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: ufprojeto
+        description: Sigla da UF do projeto.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: area
+        description: Código da área cultural.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: segmento
+        description: Código do segmento cultural.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: mecanismo
+        description: Código do mecanismo de incentivo.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: Nome do projeto cultural.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: processo
+        description: >
+          Número do processo administrativo (15 dígitos). Identificador, mantido
+          text (não é quantidade).
+        data_type: text
+      - name: cgccpf
+        description: >
+          CNPJ (14) ou CPF (11) do proponente, sem máscara. Dado pessoal; mantido
+          text para preservar o zero à esquerda. Não interpretar como número.
+        data_type: text
+      - name: situacao
+        description: >
+          Código da situação de tramitação (3 caracteres). Chave estrangeira
+          lógica para sac__situacao.codigo.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtprotocolo
+        description: Data de protocolo do projeto.
+        data_type: timestamp
+      - name: dtanalise
+        description: Data de análise.
+        data_type: timestamp
+      - name: modalidade
+        description: Código da modalidade. Preenchida em ~21% das linhas.
+        data_type: integer
+      - name: orgaoorigem
+        description: Código do órgão de origem.
+        data_type: integer
+      - name: orgao
+        description: Código do órgão responsável.
+        data_type: integer
+      - name: dtsaida
+        description: Data de saída para análise externa. Preenchida em ~77% das linhas.
+        data_type: timestamp
+      - name: dtretorno
+        description: Data de retorno da análise externa. Preenchida em ~75% das linhas.
+        data_type: timestamp
+      - name: unidadeanalise
+        description: Unidade responsável pela análise. ~56% preenchida.
+        data_type: text
+      - name: analista
+        description: Nome do analista responsável (servidor). Dado pessoal.
+        data_type: text
+      - name: dtsituacao
+        description: >
+          Data da situação atual. A origem mistura precisões (só data e
+          data-hora com milissegundos); o cast normaliza ambas para timestamp.
+        data_type: timestamp
+      - name: resumoprojeto
+        description: Resumo textual do projeto.
+        data_type: text
+      - name: providenciatomada
+        description: Providência administrativa registrada.
+        data_type: text
+      - name: localizacao
+        description: Localização física do processo. ~18% preenchida.
+        data_type: text
+      - name: dtinicioexecucao
+        description: Data de início da execução. Preenchida em ~5% das linhas.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: Data de fim da execução. Preenchida em ~5% das linhas.
+        data_type: timestamp
+      - name: solicitadoufir
+        description: Valor total solicitado, em UFIR.
+        data_type: numeric
+      - name: solicitadoreal
+        description: Valor total solicitado, em reais.
+        data_type: numeric
+      - name: solicitadocusteioufir
+        description: Valor de custeio solicitado, em UFIR.
+        data_type: numeric
+      - name: solicitadocusteioreal
+        description: Valor de custeio solicitado, em reais.
+        data_type: numeric
+      - name: solicitadocapitalufir
+        description: Valor de capital solicitado, em UFIR. Quase sempre 0.
+        data_type: numeric
+      - name: solicitadocapitalreal
+        description: Valor de capital solicitado, em reais. Quase sempre 0.
+        data_type: numeric
+      - name: logon
+        description: Identificador do usuário que registrou.
+        data_type: integer
+      - name: idprojeto
+        description: '[VAZIA EM 100% DAS LINHAS] Sem valor na origem; não é a chave. Use idpronac.'
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: sac__situacao
+    description: >
+      Tabela de domínio das situações de tramitação de projeto: o código de 3
+      caracteres (A01, K00, ...) e sua descrição. 296 linhas. Camada bronze
+      tipada a partir de salic_bronze.sac__situacao. É a ponta de
+      sac__projetos.situacao.
+    columns:
+      - name: codigo
+        description: Código da situação (3 caracteres). Chave da tabela.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: descricao
+        description: Descrição legível da situação.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: areaatuacao
+        description: Letra da área de atuação. Preenchida em ~55% das linhas.
+        data_type: text
+      - name: statusprojeto
+        description: Flag de status do projeto (bit 0/1) associado à situação.
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: sac__preprojeto
+    description: >
+      Uma linha por pré-projeto — a proposta cultural antes de virar PRONAC.
+      Guarda os textos longos da proposta (justificativa, objetivos, sinopse,
+      ficha técnica) em HTML da origem, e o ciclo de aceite/arquivamento.
+      ~450 mil linhas. Camada bronze tipada a partir de salic_bronze.sac__preprojeto.
+      Cruza com agentes__agentes por idagente.
+      Armadilha: `dtatotombamento` traz muito o sentinela '1900-01-01'
+      (equivale a "sem data"); `idpronaccontinuacao` chega 100% vazia.
+    columns:
+      - name: idpreprojeto
+        description: Identificador do pré-projeto. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idagente
+        description: Agente proponente. Chave estrangeira lógica para agentes__agentes.idagente.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: Nome da proposta.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: mecanismo
+        description: Código do mecanismo de incentivo.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: agenciabancaria
+        description: >
+          Código da agência bancária. Mantido text: ~75% preenchida e pode conter
+          dígito verificador não numérico (ex. '6856X').
+        data_type: text
+      - name: areaabrangencia
+        description: Flag de abrangência (bit True/False).
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtiniciodeexecucao
+        description: Início previsto de execução. ~75% preenchida.
+        data_type: timestamp
+      - name: dtfinaldeexecucao
+        description: Fim previsto de execução. ~75% preenchida.
+        data_type: timestamp
+      - name: justificativa
+        description: Justificativa da proposta. Texto longo em HTML (não higienizado).
+        data_type: text
+      - name: nratotombamento
+        description: Número do ato de tombamento. Preenchida em ~1% das linhas.
+        data_type: integer
+      - name: dtatotombamento
+        description: >
+          Data do ato de tombamento. ~3,5% preenchida e boa parte é o sentinela
+          '1900-01-01' do SQL Server, que significa "sem data", não uma data real.
+        data_type: timestamp
+      - name: esferatombamento
+        description: Código da esfera do tombamento (federal/estadual/municipal).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: resumodoprojeto
+        description: Resumo da proposta. ~97% preenchida.
+        data_type: text
+      - name: objetivos
+        description: Objetivos da proposta. Texto longo em HTML.
+        data_type: text
+      - name: acessibilidade
+        description: Medidas de acessibilidade. Texto longo em HTML.
+        data_type: text
+      - name: democratizacaodeacesso
+        description: Democratização de acesso. Texto longo em HTML.
+        data_type: text
+      - name: etapadetrabalho
+        description: Etapas de trabalho. Texto longo em HTML.
+        data_type: text
+      - name: fichatecnica
+        description: Ficha técnica. Texto longo em HTML.
+        data_type: text
+      - name: sinopse
+        description: Sinopse da proposta. Texto longo em HTML.
+        data_type: text
+      - name: impactoambiental
+        description: Impacto ambiental. Texto em HTML, ~30% preenchida.
+        data_type: text
+      - name: especificacaotecnica
+        description: Especificação técnica. Texto longo em HTML.
+        data_type: text
+      - name: estrategiadeexecucao
+        description: Estratégia de execução. Texto longo em HTML.
+        data_type: text
+      - name: dtaceite
+        description: Data de aceite da proposta. ~88% preenchida.
+        data_type: timestamp
+      - name: dtarquivamento
+        description: Data de arquivamento. ~18% preenchida.
+        data_type: timestamp
+      - name: stestado
+        description: Flag de estado da proposta (bit True/False).
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stdatafixa
+        description: Flag de data fixa (bit True/False).
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stplanoanual
+        description: Flag de plano anual (bit True/False).
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idusuario
+        description: Identificador do usuário.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sttipodemanda
+        description: Tipo de demanda (ex. NA = não-edital, ED = edital).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idedital
+        description: Identificador do edital, quando aplicável. ~25% preenchida.
+        data_type: integer
+      - name: stproposta
+        description: Código do status da proposta. ~40% preenchida.
+        data_type: integer
+      - name: tpprorrogacao
+        description: Flag de prorrogação (bit True/False). ~40% preenchida.
+        data_type: boolean
+      - name: descricaoatividade
+        description: Descrição de atividade. Texto em HTML, ~15% preenchida.
+        data_type: text
+      - name: tptipicidade
+        description: Código de tipicidade. ~32% preenchida.
+        data_type: integer
+      - name: tptipologia
+        description: Código de tipologia. ~32% preenchida.
+        data_type: integer
+      - name: idpronaccontinuacao
+        description: '[VAZIA EM 100% DAS LINHAS] PRONAC de continuação; sem valor na origem.'
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: sac__tbapiincentivos
+    description: >
+      Uma linha por aporte de incentivo (captação) publicado pela API pública do
+      SALIC: quem incentivou qual projeto, quanto e quando. ~669 mil linhas.
+      Camada bronze tipada a partir de salic_bronze.sac__tbapiincentivos. Cruza
+      com sac__projetos por idpronac.
+      Armadilha: `dtatualizacao` não é data de negócio — é o instante da carga da
+      API (constante por lote); `dstransferenciarecurso`/`dttransferenciarecurso`
+      chegam vazias e `dsbemservico` é constante 'Aporte em conta'.
+    columns:
+      - name: idcaptacao
+        description: Identificador da captação. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpronac
+        description: Identificador interno do PRONAC.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrpronac
+        description: Número PRONAC (6 dígitos, zero à esquerda). Mantido text.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmprojeto
+        description: Nome do projeto.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrcnpjcpfproponente
+        description: CNPJ/CPF do proponente, sem máscara. Dado pessoal; text.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmproponente
+        description: Nome do proponente.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrcnpjcpfincentivador
+        description: CNPJ/CPF do incentivador, sem máscara. Dado pessoal; text.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmincentivador
+        description: Nome do incentivador.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmmunicipioincentivador
+        description: Município do incentivador (nome; pode vir 'Não Informado').
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sgufincentivador
+        description: Sigla da UF do incentivador.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tppessoa
+        description: Tipo de pessoa do incentivador (Pessoa Física/Jurídica).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrlote
+        description: Número do lote (5 dígitos, zero à esquerda). Mantido text.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: aaincentivo
+        description: Ano do incentivo.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: mmincentivo
+        description: Mês do incentivo (1 a 12).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtincentivo
+        description: Data do incentivo (AAAA-MM-DD).
+        data_type: date
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlcaptado
+        description: Valor captado, em reais.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dstransferenciarecurso
+        description: '[VAZIA EM 100% DAS LINHAS]'
+        data_type: text
+      - name: dttransferenciarecurso
+        description: '[VAZIA EM 100% DAS LINHAS]'
+        data_type: timestamp
+      - name: dsbemservico
+        description: "[CONSTANTE 'Aporte em conta'] Descrição do bem/serviço."
+        data_type: text
+      - name: hashregistro
+        description: Hash SHA (hex, 64 caracteres) do registro na API — controle de integridade.
+        data_type: text
+      - name: dtatualizacao
+        description: >
+          Instante em que a API carregou o registro (constante por lote). Não é
+          data de negócio.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: sac__tbapicomprovacoes
+    description: >
+      Uma linha por comprovante de pagamento da execução do projeto, publicado
+      pela API pública do SALIC. É a maior tabela deste lote (~2,6 M linhas).
+      Camada bronze tipada a partir de salic_bronze.sac__tbapicomprovacoes. Cruza
+      com sac__projetos por idpronac.
+      Armadilha: a coluna `sguf` NÃO contém sigla de UF (valores medidos como
+      'Mi', 'Ri'); não usar como UF sem checagem. `dtatualizacao` é o instante da
+      carga da API, não data de negócio.
+    columns:
+      - name: idapicomprovacoes
+        description: Identificador do comprovante. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpronac
+        description: Identificador interno do PRONAC.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrpronac
+        description: Número PRONAC (zero à esquerda). Mantido text.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmprojeto
+        description: Nome do projeto.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmitem
+        description: Nome do item comprovado.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmfornecedor
+        description: Nome do fornecedor.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tpfornecedor
+        description: "Tipo do fornecedor (medido constante 'Nacional')."
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsregiao
+        description: Região do fornecedor (Sudeste, Nordeste, ...).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sguf
+        description: >
+          [NÃO VERIFICADO] Deveria ser a sigla da UF, mas os valores medidos
+          ('Mi', 'Ri') têm 2 letras que não formam sigla de UF válida — parecem
+          truncamento de outro campo. Não usar como UF sem confirmar na origem.
+        data_type: text
+      - name: nmmunicipio
+        description: Nome do município. ~99% preenchida.
+        data_type: text
+      - name: dtcomprovacao
+        description: Data da comprovação (AAAA-MM-DD).
+        data_type: date
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: aaanocomprovacao
+        description: Ano da comprovação.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: mmmescomprovacao
+        description: Mês da comprovação (1 a 12).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tpdocumento
+        description: Tipo do documento comprobatório (Nota Fiscal/Fatura, Guia de Recolhimento, ...).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrcomprovante
+        description: Número do comprovante.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtemissao
+        description: Data de emissão do documento (AAAA-MM-DD).
+        data_type: date
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tpformadepagamento
+        description: Forma de pagamento (Transferência Bancária, ...).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrdocumentodepagamento
+        description: Número do documento de pagamento (ex. 2019OB0369).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlpagamento
+        description: Valor do pagamento, em reais.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idarquivo
+        description: Identificador do arquivo anexado.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmarquivo
+        description: Nome do arquivo anexado (ex. NF_5521.pdf).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: hashregistro
+        description: Hash SHA (hex, 64 caracteres) do registro na API.
+        data_type: text
+      - name: dtatualizacao
+        description: Instante da carga do registro pela API. Não é data de negócio.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: sac__tbapiaprovacoes
+    description: >
+      Uma linha por aprovação/prorrogação do projeto, publicada pela API pública
+      do SALIC: portaria, período de captação autorizado e valor aprovado.
+      ~446 mil linhas. Camada bronze tipada a partir de
+      salic_bronze.sac__tbapiaprovacoes. Cruza com sac__projetos por idpronac.
+      Armadilha: `dtatualizacao` é o instante da carga da API, não data de negócio.
+    columns:
+      - name: id
+        description: Identificador da linha na API. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idaprovacao
+        description: Identificador da aprovação no SALIC.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idpronac
+        description: Identificador interno do PRONAC.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrpronac
+        description: Número PRONAC (zero à esquerda). Mantido text.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmprojeto
+        description: Nome do projeto.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsarea
+        description: Área cultural (descrição).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dssegmento
+        description: Segmento cultural (descrição).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tpaprovacao
+        description: Tipo de aprovação (Aprovação Inicial, Prorrogação, ...).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: resumoaprovacao
+        description: Resumo/parecer da aprovação. Texto longo.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: portariaaprovacao
+        description: Número da portaria de aprovação (ex. 0004/11).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtportariaaprovacao
+        description: Data da portaria (AAAA-MM-DD).
+        data_type: date
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtpublicacaoaprovacao
+        description: Data de publicação da portaria (AAAA-MM-DD).
+        data_type: date
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtiniciocaptacao
+        description: Início do período de captação autorizado. ~96% preenchida.
+        data_type: date
+      - name: dtfimcaptacao
+        description: Fim do período de captação autorizado. ~96% preenchida.
+        data_type: date
+      - name: vlaprovado
+        description: Valor aprovado para captação, em reais.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: hashregistro
+        description: Hash SHA (hex, 64 caracteres) do registro na API.
+        data_type: text
+      - name: dtatualizacao
+        description: Instante da carga do registro pela API. Não é data de negócio.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
