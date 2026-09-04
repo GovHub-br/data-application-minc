@@ -3,8 +3,8 @@ version: 2
 models:
   - name: controle_extracao_bbagil_extrato
     description: >
-      Camada bronze tipada de bbagil.controle_extracao_bbagil_extrato. 6 colunas, 4 com cast
-      aplicado.
+      Camada bronze tipada de bbagil.controle_extracao_bbagil_extrato. 7 colunas, 5 com cast
+      aplicado. Uma linha por plano de acao + conta + periodo tentado.
     config:
       tags:
         - bronze
@@ -18,6 +18,11 @@ models:
       - name: id_plano_acao
         description: >
           Tipagem: 100% dos 931528 valores casam com inteiro.
+        data_type: integer
+      - name: id_plano_acao_dado_bancario
+        description: >
+          Conta bancaria consultada, parte da chave do checkpoint. Acrescentada
+          junto com a mudanca de chave de 03/09/2026.
         data_type: integer
       - name: periodo_inicial
         description: >
@@ -42,8 +47,8 @@ models:
 
   - name: controle_extracao_bbagil_subtransacoes
     description: >
-      Camada bronze tipada de bbagil.controle_extracao_bbagil_subtransacoes. 5 colunas, 0 com
-      cast aplicado.
+      Camada bronze tipada de bbagil.controle_extracao_bbagil_subtransacoes. 6 colunas, 0 com
+      cast aplicado. Uma linha por plano de acao + conta + transacao-mae tentada.
     config:
       tags:
         - bronze
@@ -58,6 +63,11 @@ models:
         description: >
           Tipagem: tabela sem permissao de leitura para esta role: o padrao do dado nao pode
           ser medido, entao nao se tipa.
+        data_type: text
+      - name: id_plano_acao_dado_bancario
+        description: >
+          Conta bancaria consultada, parte da chave do checkpoint. Acrescentada
+          junto com a mudanca de chave de 03/09/2026.
         data_type: text
       - name: id_transacao_pai
         description: >

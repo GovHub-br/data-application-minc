@@ -2059,7 +2059,10 @@ sources:
         description: >
           Uma linha por transacao do extrato bancario do BB Gestao Agil
           (orgao de controle), persistida por ``extracao_bbagil_dag`` direto
-          da resposta da API do BSC/SERPRO.
+          da resposta da API do BSC/SERPRO. O extrato e consultado por CONTA,
+          e um plano de acao tem mais de uma (os da LPG tem duas): a chave e
+          ``id_plano_acao`` + ``id_plano_acao_dado_bancario`` + ``id``, e todo
+          join com esta tabela precisa carregar a conta, senao duplica.
         meta:
           openmetadata:
             domain: Cultura.Repasse Federativo
@@ -2432,7 +2435,9 @@ sources:
         description: >
           Uma linha por sub-lancamento das transacoes com
           ``subtransactionquantity`` > 0, persistida por
-          ``extracao_bbagil_dag``.
+          ``extracao_bbagil_dag``. Chave: ``id_plano_acao`` +
+          ``id_plano_acao_dado_bancario`` + ``id_transacao_pai`` + ``id`` (o
+          ``id`` do sub-lancamento e sequencial por transacao-mae, nao global).
 
         meta:
           openmetadata:
@@ -2627,8 +2632,13 @@ sources:
             data_type: text
       - name: controle_extracao_bbagil_extrato
         description: >
-          [NÃO VERIFICADO] Tabela presente em bbagil e ainda sem descrição de negócio. 6
-          colunas.
+          Checkpoint do extrato: uma linha por ``id_plano_acao`` +
+          ``id_plano_acao_dado_bancario`` + periodo tentado, com status
+          ``ok``/``sem_dados``/``erro``. ``sem_dados`` cobre dois 400
+          permanentes do BSC, distinguidos por ``mensagem_erro``: periodo sem
+          lancamentos e conta corrente invalida. Nao entra em modelo nenhum;
+          serve a quem for auditar cobertura (o que foi consultado, e nao so o
+          que voltou com dado).
         meta:
           openmetadata:
             domain: Cultura.Repasse Federativo
@@ -2643,6 +2653,15 @@ sources:
             data_type: text
             tests:
               - not_null   # inferido do perfil do banco
+          - name: id_plano_acao_dado_bancario
+            description: >
+              Conta bancaria consultada, acrescentada junto com a mudanca de
+              chave de 03/09/2026: o extrato e consultado por conta, e um plano
+              tem mais de uma, entao sem ela o checkpoint de uma conta daria a
+              outra por consultada.
+            data_type: text
+            tests:
+              - not_null
           - name: periodo_inicial
             description: >
               45 valores distintos em 931.528 registros preenchidos de 931.528. Comprimento
@@ -2685,8 +2704,8 @@ sources:
             data_type: text
       - name: controle_extracao_bbagil_subtransacoes
         description: >
-          [NÃO VERIFICADO] Tabela presente em bbagil e ainda sem descrição de negócio. 5
-          colunas.
+          Checkpoint dos sub-lancamentos: uma linha por ``id_plano_acao`` +
+          ``id_plano_acao_dado_bancario`` + ``id_transacao_pai`` tentado.
         meta:
           openmetadata:
             domain: Cultura.Repasse Federativo
@@ -2698,6 +2717,15 @@ sources:
               [NÃO VERIFICADO] Coluna sem descrição na origem (fonte de API, sem dicionário
               de dados).
             data_type: text
+          - name: id_plano_acao_dado_bancario
+            description: >
+              Conta bancaria consultada, acrescentada junto com a mudanca de
+              chave de 03/09/2026: o extrato e consultado por conta, e um plano
+              tem mais de uma, entao sem ela o checkpoint de uma conta daria a
+              outra por consultada.
+            data_type: text
+            tests:
+              - not_null
           - name: id_transacao_pai
             description: >
               [NÃO VERIFICADO] Coluna sem descrição na origem (fonte de API, sem dicionário

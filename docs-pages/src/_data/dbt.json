@@ -9,11 +9,15 @@
       "colunas": [
         {
           "nome": "id_plano_acao",
-          "descricao": "Identificador do plano de ação (ente + programa) dono da conta bancária."
+          "descricao": "Identificador do plano de ação (ente + programa) dono das contas bancárias."
+        },
+        {
+          "nome": "id_plano_acao_dado_bancario",
+          "descricao": "Identificador da conta bancária no Transferegov. Um plano de ação tem mais de uma conta (os da LPG têm duas) e cada uma é consultada separadamente no BB Ágil — por isso a conta faz parte da chave da tabela raw, do join com as subtransações e da detecção de estorno."
         },
         {
           "nome": "id",
-          "descricao": "Identificador da transação no extrato (id_plano_acao + id é a chave da tabela raw). Usado por bbagil_subtransacoes_filtrado pra achar a transação-mãe (id_transacao_pai = id)."
+          "descricao": "Identificador da transação no extrato (id_plano_acao + id_plano_acao_dado_bancario + id é a chave da tabela raw). Usado por bbagil_subtransacoes_filtrado pra achar a transação-mãe (id_transacao_pai = id, dentro da mesma conta)."
         },
         {
           "nome": "programa_curto",
@@ -36,14 +40,14 @@
           "descricao": "Data do lançamento no extrato (bookingdate), convertida pra DATE."
         }
       ],
-      "colunas_descritas": 7,
-      "testes": 5,
+      "colunas_descritas": 8,
+      "testes": 6,
       "materializacao": "table",
       "depende_de": [],
       "sources": [
         "bbagil.extrato_bbagil"
       ],
-      "linhas_sql": 88
+      "linhas_sql": 97
     },
     {
       "nome": "bbagil_subtransacoes_filtrado",
@@ -57,8 +61,12 @@
           "descricao": "Identificador do plano de ação, herdado da transação-mãe."
         },
         {
+          "nome": "id_plano_acao_dado_bancario",
+          "descricao": "Identificador da conta bancária de onde saiu o sublançamento. Entra no join com a transação-mãe: o `id` da transação não é único entre as contas de um mesmo plano, então sem a conta o join duplicaria cada sublançamento."
+        },
+        {
           "nome": "programa_curto",
-          "descricao": "Código curto do programa (governmentprogramname), herdado da transação-mãe do extrato via id_plano_acao + id_transacao_pai = id."
+          "descricao": "Código curto do programa (governmentprogramname), herdado da transação-mãe do extrato via id_plano_acao + id_plano_acao_dado_bancario + id_transacao_pai = id."
         },
         {
           "nome": "beneficiario_documento",
@@ -77,15 +85,15 @@
           "descricao": "Data de pagamento do sublançamento (paymentdate), convertida pra DATE."
         }
       ],
-      "colunas_descritas": 6,
-      "testes": 4,
+      "colunas_descritas": 7,
+      "testes": 5,
       "materializacao": "table",
       "depende_de": [],
       "sources": [
         "bbagil.extrato_bbagil",
         "bbagil.subtransacao_bbagil"
       ],
-      "linhas_sql": 42
+      "linhas_sql": 49
     },
     {
       "nome": "identificadores_contemplados",
@@ -592,11 +600,15 @@
       "dominio": "bbagil_bronze",
       "camada": "outros",
       "caminho": "dbt/minc/models/bbagil_bronze/controle_extracao_bbagil_extrato.sql",
-      "descricao": "Camada bronze tipada de bbagil.controle_extracao_bbagil_extrato. 6 colunas, 4 com cast aplicado.",
+      "descricao": "Camada bronze tipada de bbagil.controle_extracao_bbagil_extrato. 7 colunas, 5 com cast aplicado. Uma linha por plano de acao + conta + periodo tentado.",
       "colunas": [
         {
           "nome": "id_plano_acao",
           "descricao": "Tipagem: 100% dos 931528 valores casam com inteiro."
+        },
+        {
+          "nome": "id_plano_acao_dado_bancario",
+          "descricao": "Conta bancaria consultada, parte da chave do checkpoint. Acrescentada junto com a mudanca de chave de 03/09/2026."
         },
         {
           "nome": "periodo_inicial",
@@ -619,25 +631,29 @@
           "descricao": "Tipagem: valores heterogeneos."
         }
       ],
-      "colunas_descritas": 6,
+      "colunas_descritas": 7,
       "testes": 0,
       "materializacao": "",
       "depende_de": [],
       "sources": [
         "bbagil.controle_extracao_bbagil_extrato"
       ],
-      "linhas_sql": 15
+      "linhas_sql": 16
     },
     {
       "nome": "controle_extracao_bbagil_subtransacoes",
       "dominio": "bbagil_bronze",
       "camada": "outros",
       "caminho": "dbt/minc/models/bbagil_bronze/controle_extracao_bbagil_subtransacoes.sql",
-      "descricao": "Camada bronze tipada de bbagil.controle_extracao_bbagil_subtransacoes. 5 colunas, 0 com cast aplicado.",
+      "descricao": "Camada bronze tipada de bbagil.controle_extracao_bbagil_subtransacoes. 6 colunas, 0 com cast aplicado. Uma linha por plano de acao + conta + transacao-mae tentada.",
       "colunas": [
         {
           "nome": "id_plano_acao",
           "descricao": "Tipagem: tabela sem permissao de leitura para esta role: o padrao do dado nao pode ser medido, entao nao se tipa."
+        },
+        {
+          "nome": "id_plano_acao_dado_bancario",
+          "descricao": "Conta bancaria consultada, parte da chave do checkpoint. Acrescentada junto com a mudanca de chave de 03/09/2026."
         },
         {
           "nome": "id_transacao_pai",
@@ -656,14 +672,14 @@
           "descricao": "Tipagem: tabela sem permissao de leitura para esta role: o padrao do dado nao pode ser medido, entao nao se tipa."
         }
       ],
-      "colunas_descritas": 5,
+      "colunas_descritas": 6,
       "testes": 0,
       "materializacao": "",
       "depende_de": [],
       "sources": [
         "bbagil.controle_extracao_bbagil_subtransacoes"
       ],
-      "linhas_sql": 14
+      "linhas_sql": 15
     },
     {
       "nome": "extrato_bbagil",
@@ -39265,7 +39281,7 @@
   "dominios": {
     "agentes": {
       "modelos": 12,
-      "testes": 84,
+      "testes": 86,
       "camadas": {
         "bronze": 3,
         "gold": 4,
@@ -39673,19 +39689,19 @@
         },
         {
           "nome": "extrato_bbagil",
-          "descricao": "Uma linha por transacao do extrato bancario do BB Gestao Agil (orgao de controle), persistida por ``extracao_bbagil_dag`` direto da resposta da API do BSC/SERPRO."
+          "descricao": "Uma linha por transacao do extrato bancario do BB Gestao Agil (orgao de controle), persistida por ``extracao_bbagil_dag`` direto da resposta da API do BSC/SERPRO. O extrato e consultado por CONTA, e um plano de acao tem mais de uma (os da LPG tem duas): a chave e ``id_plano_acao`` + ``id_plano_acao_dado_bancario`` + ``id``, e todo join com esta tabela precisa carregar a conta, senao duplica."
         },
         {
           "nome": "subtransacao_bbagil",
-          "descricao": "Uma linha por sub-lancamento das transacoes com ``subtransactionquantity`` > 0, persistida por ``extracao_bbagil_dag``."
+          "descricao": "Uma linha por sub-lancamento das transacoes com ``subtransactionquantity`` > 0, persistida por ``extracao_bbagil_dag``. Chave: ``id_plano_acao`` + ``id_plano_acao_dado_bancario`` + ``id_transacao_pai`` + ``id`` (o ``id`` do sub-lancamento e sequencial por transacao-mae, nao global)."
         },
         {
           "nome": "controle_extracao_bbagil_extrato",
-          "descricao": "[NÃO VERIFICADO] Tabela presente em bbagil e ainda sem descrição de negócio. 6 colunas."
+          "descricao": "Checkpoint do extrato: uma linha por ``id_plano_acao`` + ``id_plano_acao_dado_bancario`` + periodo tentado, com status ``ok``/``sem_dados``/``erro``. ``sem_dados`` cobre dois 400 permanentes do BSC, distinguidos por ``mensagem_erro``: periodo sem lancamentos e conta corrente invalida. Nao entra em modelo nenhum; serve a quem for auditar cobertura (o que foi consultado, e nao so o que voltou com dado)."
         },
         {
           "nome": "controle_extracao_bbagil_subtransacoes",
-          "descricao": "[NÃO VERIFICADO] Tabela presente em bbagil e ainda sem descrição de negócio. 5 colunas."
+          "descricao": "Checkpoint dos sub-lancamentos: uma linha por ``id_plano_acao`` + ``id_plano_acao_dado_bancario`` + ``id_transacao_pai`` tentado."
         }
       ]
     },
@@ -39734,7 +39750,7 @@
   ],
   "totais": {
     "modelos": 643,
-    "testes": 4998,
+    "testes": 5000,
     "com_descricao": 642,
     "sources": 79
   }
