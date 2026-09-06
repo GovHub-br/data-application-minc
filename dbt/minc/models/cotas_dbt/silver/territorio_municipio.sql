@@ -23,8 +23,8 @@ por_municipio as (
         max(cd_uf)                                      as cd_uf,
         max(nm_uf)                                      as nm_uf,
         -- um município está numa concentração urbana se tem ao menos um setor
-        -- com FCU preenchida (cd_fcu não nulo/vazio)
-        bool_or(cd_fcu is not null and btrim(cd_fcu) <> '') as em_concentracao_urbana
+        -- com FCU preenchida (cd_fcu não nulo)
+        bool_or(cd_fcu is not null) as em_concentracao_urbana
     from setores
     group by cd_mun
 ),
