@@ -131,7 +131,6 @@ nunca entra em arquivo versionado — o `.env` está no `.gitignore` e continua 
 ## Depois de cada lote
 
 ```bash
-make dbt-manifest    # manifest é versionado; o Cosmos lê ele, não `dbt ls`
 make docs-collect    # o site descreve o estado anterior até isto rodar
 python3 -m pytest tests/ -q
 ```

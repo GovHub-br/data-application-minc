@@ -253,10 +253,9 @@ Estão todas em `docs/openmetadata/MEMORY.md` §7. As que mais atrapalham aqui:
   configuração muda isso — falta `dbt run`, não recipe.
 - **`lpad` do Postgres trunca em silêncio.** `lpad('2023', 2, '0')` devolve `'20'`.
   Toda montagem de chave precisa do guarda de regex **antes** do `lpad`.
-- **O `manifest.json` é versionado e precisa nascer do dbt 1.10.** Um `dbt` de
-  outro ambiente gera artefato que `tests/test_dbt_manifest.py` rejeita — e o erro
-  fala de versão, não do modelo novo que motivou a regeração. Rode
-  `make dbt-manifest` e commite junto.
+- **O `manifest.json` não é mais versionado.** Desde 06/09/2026 o Cosmos monta a
+  DAG por `dbt ls` e os timeouts de parse sobem no `docker-compose.yml` — não há
+  mais `make dbt-manifest` nem artefato para commitar junto. Ver ADR 0007.
 - **A partir do dbt 1.10, `meta` no topo do modelo E em `config.meta` aborta o
   parse.** Em modelo vai sob `config`; em coluna e source segue no topo.
 - **Quem altera modelo ou DAG roda `make docs-collect`** e commita o acervo no

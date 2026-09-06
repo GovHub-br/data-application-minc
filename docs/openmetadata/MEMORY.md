@@ -329,12 +329,12 @@ Isto não bloqueia as outras frentes. Vale como frente **F1**, independente.
 - **`airflow_log_config.py` do Cidades está órfão.** Busca no repositório só o
   encontra no README; não conte como componente funcional/portável até estar
   configurado no Airflow.
-- **O `manifest.json` versionado precisa nascer do dbt 1.10.** O projeto pinja
-  `dbt-core >=1.10,<1.11`, e `tests/test_dbt_manifest.py` compara a versão que
-  gerou o artefato. Rodar `make dbt-manifest` com um `dbt` de outro ambiente
-  (1.12, por exemplo) gera um manifest que o guarda rejeita — e o erro fala de
-  versão, não do modelo novo que motivou a regeração. Sem container no ar, um
-  virtualenv descartável com o pin certo resolve.
+- **O `manifest.json` deixou de ser versionado em 06/09/2026.** O Cosmos passou a
+  montar a DAG por `dbt ls` (102s sem partial parse, 34s com; cacheado por
+  `enable_cache_dbt_ls`) e os
+  timeouts de parse subiram no `docker-compose.yml`. Sumiram `make dbt-manifest`,
+  `scripts/gerar_manifest_dbt.sh` e `tests/test_dbt_manifest.py`. Ver ADR 0007.
+  As menções ao manifest versionado abaixo são registro histórico.
 - **`lpad` do Postgres TRUNCA.** `lpad('2023', 2, '0')` devolve `'20'`, sem
   aviso. Toda montagem de PRONAC a partir de `anoprojeto`/`sequencial` precisa
   do guarda de regex ANTES do `lpad` — é o que a macro `pronac_de_ano_sequencial`
