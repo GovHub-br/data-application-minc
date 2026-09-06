@@ -76,8 +76,8 @@ COMMON_REPLACEMENTS = {
     "DB_DW_DBNAME": os.environ.get("DB_DW_DBNAME", "data_warehouse"),
     "AIRFLOW_HOST_PORT": os.environ.get("AIRFLOW_HOST_PORT", "http://localhost:8080"),
     "AIRFLOW_DB_HOST_PORT": os.environ.get("AIRFLOW_DB_HOST_PORT", "postgres:5432"),
-    "AIRFLOW_DB_USERNAME": os.environ.get("POSTGRES_USER", "postgres"),
-    "AIRFLOW_DB_PASSWORD": os.environ.get("POSTGRES_PASSWORD", "postgres"),
+    "AIRFLOW_DB_USERNAME": os.environ.get("AIRFLOW_DB_USERNAME", "postgres"),
+    "AIRFLOW_DB_PASSWORD": os.environ.get("AIRFLOW_DB_PASSWORD", "postgres"),
     "AIRFLOW_DB_DATABASE": os.environ.get("AIRFLOW_DB_DATABASE", "airflow"),
 }
 
