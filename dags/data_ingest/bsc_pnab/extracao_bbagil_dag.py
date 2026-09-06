@@ -7,7 +7,12 @@ from airflow.sdk import dag, task
 
 import schemas_minc as schemas
 from agencias_bbagil import gerar_periodos_mensais
-from cliente_bsc import AsyncBscClient, BscRequestError, is_empty_extrato_response
+from cliente_bsc import (
+    AsyncBscClient,
+    BscRequestError,
+    is_conta_invalida_response,
+    is_empty_extrato_response,
+)
 from cliente_postgres import ClientPostgresDB
 from execucao_assincrona_bsc import ResultadoItem, executar_lote
 from file_io_local import flatten_records
@@ -19,6 +24,36 @@ from schedule_loader import get_dynamic_schedule
 # itens (horas de execucao), sem isso qualquer interrupcao no meio perde o
 # trabalho inteiro e nao ha visibilidade de progresso ate o fim.
 TAMANHO_LOTE_PERSISTENCIA = 2000
+
+# Chaves das quatro tabelas do BB Agil. Todas carregam
+# ``id_plano_acao_dado_bancario`` porque o extrato e consultado por conta, e um
+# plano de acao tem mais de uma (os da LPG tem duas): sem a conta na chave, a
+# transacao de uma conta sobrescreveria a da outra no upsert, e o checkpoint de
+# uma daria a outra por consultada.
+#
+# Quem mudar estas listas tem que migrar a PK das tabelas ja existentes a mao,
+# direto no banco -- ``ClientPostgresDB.create_table_if_not_exists`` e um
+# CREATE TABLE IF NOT EXISTS, no-op silencioso em tabela que ja existe, entao a
+# chave nova nao chega ao banco sozinha e o ON CONFLICT passa a falhar em todo
+# insert, com uma mensagem que nao diz nada sobre chave.
+CHAVE_EXTRATO = ["id_plano_acao", "id_plano_acao_dado_bancario", "id"]
+CHAVE_CONTROLE_EXTRATO = [
+    "id_plano_acao",
+    "id_plano_acao_dado_bancario",
+    "periodo_inicial",
+    "periodo_final",
+]
+CHAVE_SUBTRANSACAO = [
+    "id_plano_acao",
+    "id_plano_acao_dado_bancario",
+    "id_transacao_pai",
+    "id",
+]
+CHAVE_CONTROLE_SUBTRANSACAO = [
+    "id_plano_acao",
+    "id_plano_acao_dado_bancario",
+    "id_transacao_pai",
+]
 
 default_args = {
     "owner": "Caio Borges",
@@ -35,7 +70,16 @@ default_args = {
 
 
 def _marcar_extrato_sem_dados(exc: BscRequestError) -> dict[str, Any] | None:
-    if is_empty_extrato_response(exc):
+    """Resultados que sao dado de negocio, nao falha: entram no checkpoint
+    como 'sem_dados' para nao serem rechamados.
+
+    Dois casos, distinguidos no banco pela ``mensagem_erro``, que preserva o
+    texto da origem: periodo sem lancamentos (a conta existe e nao se mexeu) e
+    conta invalida (o BB nao reconhece a conta -- encerrada, ou cadastrada no
+    Transferegov sem conta corrente real). Os dois sao 400 permanentes; deixar
+    o segundo como 'erro' faria a DAG rechamar a mesma conta invalida em toda
+    execucao, para sempre."""
+    if is_empty_extrato_response(exc) or is_conta_invalida_response(exc):
         return {"status": "sem_dados", "erro": exc.response_text}
     return None
 
@@ -84,13 +128,30 @@ async def _chamar_subtransacao(client: AsyncBscClient, item: dict[str, Any]) -> 
     return resposta
 
 
-# Uma conta por plano de acao, priorizando a ativa. A tabela guarda TODAS as
-# contas de cada plano (secao 7.1), mas o extrato e consultado por uma conta:
-# ativa primeiro, senao a mais recente (maior id na origem) -- mesma regra que
-# antes vivia em ``agencias_transferegov.get_agencia_conta``, agora aplicada no
-# consumo em vez de na ingestao, onde ela descartava dado.
+# TODAS as contas de cada plano de acao, uma linha por conta distinta.
+#
+# Ate 03/09/2026 esta consulta era ``DISTINCT ON (banco.id_plano_acao)``: uma
+# conta por plano, ativa primeiro e senao a mais recente. Planos da Lei Paulo
+# Gustavo tem duas contas bancarias, e a segunda nunca era consultada -- nao
+# virava nem linha de erro na tabela de controle, entao o plano aparecia como
+# extraido no diagnostico de cobertura. O extrato passa a ter grao
+# (plano de acao x conta x periodo).
+#
+# O DISTINCT ON continua, so que por (plano, agencia, conta): a mesma conta
+# pode estar cadastrada duas vezes na origem com ``id_plano_acao_dado_bancario``
+# diferentes, e sem essa deduplicacao a mesma transacao seria gravada duas
+# vezes com chaves distintas -- dobrando valor no gold sem nenhum sinal. O
+# desempate (ativa primeiro, senao o maior id) escolhe qual registro de dado
+# bancario e o canonico daquela conta.
+#
+# ``situacao_conta`` nao filtra nada de proposito: conta encerrada e
+# exatamente onde mora o historico de 2023-2024 da LPG.
 _SQL_CONTAS_POR_PLANO = f"""
-SELECT DISTINCT ON (banco.id_plano_acao)
+SELECT DISTINCT ON (
+    banco.id_plano_acao,
+    TRIM(banco.numero_agencia_plano_acao_dado_bancario),
+    TRIM(banco.numero_conta_plano_acao_dado_bancario)
+)
     banco.id_plano_acao,
     banco.id_plano_acao_dado_bancario,
     banco.id_agencia_conta,
@@ -108,14 +169,17 @@ WHERE banco.numero_agencia_plano_acao_dado_bancario IS NOT NULL
   AND banco.numero_conta_plano_acao_dado_bancario IS NOT NULL
 ORDER BY
     banco.id_plano_acao,
+    TRIM(banco.numero_agencia_plano_acao_dado_bancario),
+    TRIM(banco.numero_conta_plano_acao_dado_bancario),
     (banco.situacao_conta_plano_acao_dado_bancario = 'Conta Ativa') DESC,
     banco.id_plano_acao_dado_bancario DESC
 """
 
 
 def _carregar_entes_transferegov() -> list[dict[str, Any]]:
-    """Le agencia/conta de cada plano de acao de
-    ``transferegov.plano_acao_dado_bancario_minc``.
+    """Le TODAS as contas de cada plano de acao de
+    ``transferegov.plano_acao_dado_bancario_minc`` -- uma entrada por conta,
+    nao por plano.
 
     Antes esta DAG descobria agencia/conta chamando a API do Transferegov
     (uma requisicao por plano, ~18 mil) e guardava o resultado numa tabela
@@ -153,15 +217,17 @@ def _carregar_entes_transferegov() -> list[dict[str, Any]]:
         ) in linhas
     ]
 
-    # Planos com conta='0' ainda não têm conta corrente real no banco
+    # Contas com número '0' ainda não são conta corrente real no banco
     # (ex.: "Aguardando Aprovação do Plano de Ação") — o BSC rejeita com
-    # 400 "Conta corrente inválida." e esse status não entra no checkpoint
-    # como 'ok'/'sem_dados', então seriam reprocessados em cada re-execução.
+    # 400 "Conta corrente inválida.". Hoje esse 400 já entra no checkpoint
+    # (ver `_marcar_extrato_sem_dados`), mas descartar aqui evita gastar a
+    # chamada com o que se sabe de antemão que não existe.
     entes = [e for e in entes_brutos if str(e["conta"]).strip() != "0"]
     ignorados = len(entes_brutos) - len(entes)
     if ignorados:
         logging.info(
-            "[extracao_bbagil_dag] %d entes ignorados por conta='0' (sem conta corrente real)",
+            "[extracao_bbagil_dag] %d contas ignoradas por numero='0' "
+            "(sem conta corrente real)",
             ignorados,
         )
 
@@ -173,11 +239,15 @@ def _carregar_entes_transferegov() -> list[dict[str, Any]]:
             "api_plano_acao_dado_bancario_dag antes desta DAG"
         )
 
+    planos = {str(e["id_plano_acao"]) for e in entes}
     logging.info(
-        "[extracao_bbagil_dag] %d entes com agencia/conta lidos de %s.%s",
+        "[extracao_bbagil_dag] %d contas de %d planos de acao lidas de %s.%s "
+        "(%d contas alem da primeira de cada plano)",
         len(entes),
+        len(planos),
         schemas.SCHEMA_TRANSFEREGOV,
         schemas.TABELA_PLANO_ACAO_DADO_BANCARIO,
+        len(entes) - len(planos),
     )
     return entes
 
@@ -209,23 +279,33 @@ def _consultar_ou_vazio(db: ClientPostgresDB, query: str, descricao: str) -> lis
 def _combinacoes_extrato_pendentes(
     db: ClientPostgresDB, entes: list[dict[str, Any]], periodos: list[tuple[str, str]]
 ) -> list[Any]:
+    # A conta (``id_plano_acao_dado_bancario``) faz parte do checkpoint: sem
+    # ela, a segunda conta de um plano seria dada como ja feita pela primeira e
+    # nunca chegaria a ser consultada.
     feitas = _consultar_ou_vazio(
         db,
-        "SELECT id_plano_acao, periodo_inicial, periodo_final FROM "
+        "SELECT id_plano_acao, id_plano_acao_dado_bancario, periodo_inicial, "
+        "periodo_final FROM "
         f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_CONTROLE_EXTRATO} "
         "WHERE status IN ('ok', 'sem_dados')",
         f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_CONTROLE_EXTRATO}",
     )
     feitas_set = {
-        (str(id_plano_acao), periodo_inicial, periodo_final)
-        for id_plano_acao, periodo_inicial, periodo_final in feitas
+        (str(id_plano_acao), str(id_dado_bancario), periodo_inicial, periodo_final)
+        for id_plano_acao, id_dado_bancario, periodo_inicial, periodo_final in feitas
     }
 
     combinacoes = [(ente, periodo) for ente in entes for periodo in periodos]
     return [
         (ente, periodo)
         for ente, periodo in combinacoes
-        if (str(ente["id_plano_acao"]), periodo[0], periodo[1]) not in feitas_set
+        if (
+            str(ente["id_plano_acao"]),
+            str(ente["id_plano_acao_dado_bancario"]),
+            periodo[0],
+            periodo[1],
+        )
+        not in feitas_set
     ]
 
 
@@ -241,6 +321,7 @@ def _persistir_resultados_extrato(
         ente, (periodo_inicial, periodo_final) = resultado.item
         linha_controle = {
             "id_plano_acao": ente["id_plano_acao"],
+            "id_plano_acao_dado_bancario": ente["id_plano_acao_dado_bancario"],
             "periodo_inicial": periodo_inicial,
             "periodo_final": periodo_final,
             "status": resultado.status,
@@ -261,16 +342,16 @@ def _persistir_resultados_extrato(
         db.insert_data(
             linhas_raw,
             table_name=schemas.TABELA_EXTRATO,
-            primary_key=["id_plano_acao", "id"],
-            conflict_fields=["id_plano_acao", "id"],
+            primary_key=CHAVE_EXTRATO,
+            conflict_fields=CHAVE_EXTRATO,
             schema=schemas.SCHEMA_BBAGIL,
         )
     if linhas_controle:
         db.insert_data(
             linhas_controle,
             table_name=schemas.TABELA_CONTROLE_EXTRATO,
-            primary_key=["id_plano_acao", "periodo_inicial", "periodo_final"],
-            conflict_fields=["id_plano_acao", "periodo_inicial", "periodo_final"],
+            primary_key=CHAVE_CONTROLE_EXTRATO,
+            conflict_fields=CHAVE_CONTROLE_EXTRATO,
             schema=schemas.SCHEMA_BBAGIL,
         )
 
@@ -334,12 +415,15 @@ def _subtransacoes_pendentes(db: ClientPostgresDB) -> list[dict[str, Any]]:
     )
     feitas = _consultar_ou_vazio(
         db,
-        "SELECT id_plano_acao, id_transacao_pai FROM "
+        "SELECT id_plano_acao, id_plano_acao_dado_bancario, id_transacao_pai FROM "
         f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_CONTROLE_SUBTRANSACAO} "
         "WHERE status IN ('ok', 'sem_dados')",
         f"{schemas.SCHEMA_BBAGIL}.{schemas.TABELA_CONTROLE_SUBTRANSACAO}",
     )
-    feitas_set = {(str(id_plano_acao), str(id_pai)) for id_plano_acao, id_pai in feitas}
+    feitas_set = {
+        (str(id_plano_acao), str(id_dado_bancario), str(id_pai))
+        for id_plano_acao, id_dado_bancario, id_pai in feitas
+    }
 
     return [
         {
@@ -362,7 +446,8 @@ def _subtransacoes_pendentes(db: ClientPostgresDB) -> list[dict[str, Any]]:
             agencia,
             conta,
         ) in candidatos
-        if (str(id_plano_acao), str(id_transacao)) not in feitas_set
+        if (str(id_plano_acao), str(id_dado_bancario), str(id_transacao))
+        not in feitas_set
     ]
 
 
@@ -378,6 +463,7 @@ def _persistir_resultados_subtransacao(
         item = resultado.item
         linha_controle = {
             "id_plano_acao": item["id_plano_acao"],
+            "id_plano_acao_dado_bancario": item["id_plano_acao_dado_bancario"],
             "id_transacao_pai": item["id"],
             "status": resultado.status,
             "qtd_subtransacoes": 0,
@@ -398,16 +484,16 @@ def _persistir_resultados_subtransacao(
         db.insert_data(
             linhas_raw,
             table_name=schemas.TABELA_SUBTRANSACAO,
-            primary_key=["id_plano_acao", "id_transacao_pai", "id"],
-            conflict_fields=["id_plano_acao", "id_transacao_pai", "id"],
+            primary_key=CHAVE_SUBTRANSACAO,
+            conflict_fields=CHAVE_SUBTRANSACAO,
             schema=schemas.SCHEMA_BBAGIL,
         )
     if linhas_controle:
         db.insert_data(
             linhas_controle,
             table_name=schemas.TABELA_CONTROLE_SUBTRANSACAO,
-            primary_key=["id_plano_acao", "id_transacao_pai"],
-            conflict_fields=["id_plano_acao", "id_transacao_pai"],
+            primary_key=CHAVE_CONTROLE_SUBTRANSACAO,
+            conflict_fields=CHAVE_CONTROLE_SUBTRANSACAO,
             schema=schemas.SCHEMA_BBAGIL,
         )
 
@@ -463,17 +549,18 @@ def extracao_bbagil_dag() -> None:
 
     Fluxo (Fase 1 do PNAB, adaptada para TaskFlow):
 
-    1. ``carregar_contas_bancarias`` -- le agencia/conta de cada plano de
-       acao de ``transferegov.plano_acao_dado_bancario_minc`` (uma conta por
-       plano: ativa primeiro, senao a mais recente) e gera a lista de
-       periodos mensais a extrair. Quem extrai as contas da API e
+    1. ``carregar_contas_bancarias`` -- le TODAS as contas de cada plano de
+       acao de ``transferegov.plano_acao_dado_bancario_minc`` (uma entrada por
+       conta distinta; planos da LPG tem duas) e gera a lista de periodos
+       mensais a extrair. Quem extrai as contas da API e
        ``api_plano_acao_dado_bancario_dag`` -- esta DAG so consome.
-    2. ``extrair_extrato_bbagil`` -- para cada plano de acao x periodo
-       pendente, chama o extrato via ``AsyncBscClient``. HTTP 400 "sem
-       lancamentos" e registrado como dado de negocio, nao erro. Toda
-       transacao retornada e persistida, uma linha por transacao, em
-       ``bbagil.extrato_bbagil`` (upsert por ``id_plano_acao``+``id``);
-       toda combinacao tentada (ok/sem_dados/erro) vira uma linha em
+    2. ``extrair_extrato_bbagil`` -- para cada conta x periodo pendente,
+       chama o extrato via ``AsyncBscClient``. HTTP 400 "sem lancamentos" e
+       "conta corrente invalida" sao registrados como dado de negocio, nao
+       erro. Toda transacao retornada e persistida, uma linha por transacao,
+       em ``bbagil.extrato_bbagil`` (upsert por ``id_plano_acao`` +
+       ``id_plano_acao_dado_bancario`` + ``id``); toda combinacao tentada
+       (ok/sem_dados/erro) vira uma linha em
        ``bbagil.controle_extracao_bbagil_extrato``. A persistencia e feita
        a cada ``TAMANHO_LOTE_PERSISTENCIA`` itens (nao tudo no final): em
        listas de centenas de milhares de combinacoes/horas de execucao,
@@ -487,10 +574,15 @@ def extracao_bbagil_dag() -> None:
        agencia/conta), os sublancamentos das transacoes com
        ``subtransactionquantity`` > 0.
        Mesma logica de persistencia: ``bbagil.subtransacao_bbagil`` (upsert
-       por ``id_plano_acao`` + ``id_transacao_pai`` + ``id`` -- o ``id`` da
-       subtransacao e sequencial por transacao-mae, nao um identificador
-       global) e controle em
+       por ``id_plano_acao`` + ``id_plano_acao_dado_bancario`` +
+       ``id_transacao_pai`` + ``id`` -- o ``id`` da subtransacao e sequencial
+       por transacao-mae, nao um identificador global) e controle em
        ``bbagil.controle_extracao_bbagil_subtransacoes``.
+
+    Todas as quatro chaves incluem a conta (``id_plano_acao_dado_bancario``,
+    ver ``CHAVE_*`` no topo do modulo), porque o grao e conta, nao plano de
+    acao. Mudar uma dessas chaves exige migrar a PK da tabela ja existente a
+    mao -- ``insert_data`` nao altera constraint de tabela que ja existe.
 
     Esta DAG so extrai e deposita o dado bruto no Postgres; nao gera mais
     ``fato_bbagil`` nem nenhum arquivo local. Os filtros de negocio (o que

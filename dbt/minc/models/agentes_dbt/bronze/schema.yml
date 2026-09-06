@@ -35,7 +35,7 @@ models:
             responsavel_negocio: 'Meta 5 - agentes'
     columns:
       - name: id_plano_acao
-        description: Identificador do plano de ação (ente + programa) dono da conta bancária.
+        description: Identificador do plano de ação (ente + programa) dono das contas bancárias.
         data_type: text
         meta:
           openmetadata:
@@ -43,11 +43,21 @@ models:
               - MinC.Identificadores.IdPlanoAcao
         tests:
           - not_null
+      - name: id_plano_acao_dado_bancario
+        description: >
+          Identificador da conta bancária no Transferegov. Um plano de ação
+          tem mais de uma conta (os da LPG têm duas) e cada uma é consultada
+          separadamente no BB Ágil — por isso a conta faz parte da chave da
+          tabela raw, do join com as subtransações e da detecção de estorno.
+        data_type: text
+        tests:
+          - not_null
       - name: id
         description: >
-          Identificador da transação no extrato (id_plano_acao + id é a
-          chave da tabela raw). Usado por bbagil_subtransacoes_filtrado
-          pra achar a transação-mãe (id_transacao_pai = id).
+          Identificador da transação no extrato (id_plano_acao +
+          id_plano_acao_dado_bancario + id é a chave da tabela raw). Usado por
+          bbagil_subtransacoes_filtrado pra achar a transação-mãe
+          (id_transacao_pai = id, dentro da mesma conta).
         data_type: text
         tests:
           - not_null
@@ -132,10 +142,20 @@ models:
               - MinC.Identificadores.IdPlanoAcao
         tests:
           - not_null
+      - name: id_plano_acao_dado_bancario
+        description: >
+          Identificador da conta bancária de onde saiu o sublançamento. Entra
+          no join com a transação-mãe: o `id` da transação não é único entre
+          as contas de um mesmo plano, então sem a conta o join duplicaria
+          cada sublançamento.
+        data_type: text
+        tests:
+          - not_null
       - name: programa_curto
         description: >
           Código curto do programa (governmentprogramname), herdado da
-          transação-mãe do extrato via id_plano_acao + id_transacao_pai = id.
+          transação-mãe do extrato via id_plano_acao +
+          id_plano_acao_dado_bancario + id_transacao_pai = id.
         data_type: text
       - name: beneficiario_documento
         description: CPF/CNPJ do beneficiário do sublançamento, normalizado (LPAD por persontype).
