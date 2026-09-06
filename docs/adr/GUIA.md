@@ -14,6 +14,8 @@ que a substitui, e o antigo passa a `Status: substituído por ADR NNNN`.
 | [0003](0003-labels-por-eixo.md) | Vocabulário de labels organizado por eixo |
 | [0004](0004-revisao-semanal-apura-antes-de-narrar.md) | A revisão semanal apura por script e narra por modelo |
 | [0005](0005-ingestao-salic-por-trino-em-fatias.md) | A ingestão do SALIC passa a ser feita pelo Trino, em fatias de chave |
+| [0006](0006-silvers-salic-gate-a0-parcial.md) | Gate A0 parcial das silvers do SALIC: medidas, território e bloqueios dos KPIs |
+| [0007](0007-cosmos-monta-a-dag-por-dbt-ls.md) | O Cosmos monta a DAG por `dbt ls`, não por manifest versionado |
 
 Para escrever um novo, existe a skill
 [`architecture-decision-records`](../../.claude/skills/architecture-decision-records/).

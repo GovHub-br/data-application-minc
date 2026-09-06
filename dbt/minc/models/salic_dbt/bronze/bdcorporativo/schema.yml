@@ -1,0 +1,263 @@
+version: 2
+
+models:
+  - name: bdcorporativo__sysdiagrams
+    description: >
+      Tabela responsável por armazenar diagramas do SQL Server criados no ambiente. Camada
+      bronze tipada a partir de salic_bronze.bdcorporativo__sysdiagrams.
+    columns:
+      - name: name
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: principal_id
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: diagram_id
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: version
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: definition
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+
+  - name: bdcorporativo__tbalteracaonomeproponente
+    description: >
+      Pedidos de alteração do nome do proponente de um projeto. Origem no schema
+      scsac do banco corporativo. Camada bronze tipada a partir de
+      salic_bronze.bdcorporativo__tbalteracaonomeproponente.
+    columns:
+      - name: idpedidoalteracao
+        description: Identificador do pedido de alteração. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: nrcnpjcpf
+        description: >
+          CNPJ/CPF do proponente, sem máscara. Dado pessoal; mantido text para
+          preservar o zero à esquerda.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmproponente
+        description: Novo nome do proponente solicitado no pedido.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: bdcorporativo__tbcomprovantepagamento
+    description: >
+      Uma linha por comprovante de pagamento da execução do projeto. É a maior
+      tabela do domínio corporativo (~4,2 M linhas), do schema scsac. Camada
+      bronze tipada a partir de salic_bronze.bdcorporativo__tbcomprovantepagamento.
+      Armadilha: `idfornecedorexterior`, `dsoutrasfontes` e a coluna homônima
+      `tbcomprovantepagamento` chegam 100% vazias; números de comprovante e de
+      documento ficam text (são identificadores, não quantidades).
+    columns:
+      - name: tpdocumento
+        description: Código do tipo de documento comprobatório.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrcomprovante
+        description: Número do comprovante. Identificador, mantido text.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrserie
+        description: Série do documento. Pode vir '-' (sem série). ~80% preenchida.
+        data_type: text
+      - name: idcomprovantepagamento
+        description: Identificador do comprovante de pagamento. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: dsjustificativa
+        description: Justificativa/descrição do pagamento. ~63% preenchida.
+        data_type: text
+      - name: vlcomprovacao
+        description: Valor comprovado, em reais.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtemissao
+        description: Data de emissão do documento comprobatório.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtpagamento
+        description: Data do pagamento.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idfornecedor
+        description: Identificador do fornecedor nacional.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idfornecedorexterior
+        description: '[VAZIA EM 100% DAS LINHAS] Fornecedor no exterior; sem valor na origem.'
+        data_type: text
+      - name: idarquivo
+        description: Identificador do arquivo anexado (comprovante digitalizado).
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsoutrasfontes
+        description: '[VAZIA EM 100% DAS LINHAS]'
+        data_type: text
+      - name: tpformadepagamento
+        description: Código da forma de pagamento.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrdocumentodepagamento
+        description: Número do documento de pagamento. Identificador, mantido text.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tbcomprovantepagamento
+        description: '[VAZIA EM 100% DAS LINHAS] Coluna homônima da tabela, sem valor na origem.'
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: bdcorporativo__tbencaminhamentoprestacaocontas
+    description: >
+      Uma linha por encaminhamento de prestação de contas de um projeto entre
+      órgãos/agentes: quem enviou, para quem, quando e em que situação. ~8 mil
+      linhas, do schema scsac. Camada bronze tipada a partir de
+      salic_bronze.bdcorporativo__tbencaminhamentoprestacaocontas. Cruza com o
+      projeto por idpronac e com
+      bdcorporativo__tbsituacaoencaminhamentoprestacaocontas por
+      idsituacaoencprestcontas.
+    columns:
+      - name: idencprestcontas
+        description: Identificador do encaminhamento. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpronac
+        description: Projeto (PRONAC) da prestação de contas encaminhada.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idagenteorigem
+        description: Agente de origem do encaminhamento.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtinicioencaminhamento
+        description: Data/hora de início do encaminhamento.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsjustificativa
+        description: >
+          Justificativa do encaminhamento. Frequentemente preenchida apenas com '.'
+          (placeholder), embora 100% não-nula.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idorgaodestino
+        description: Órgão de destino do encaminhamento.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idorgaoorigem
+        description: Órgão de origem do encaminhamento.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idagentedestino
+        description: Agente de destino do encaminhamento.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: cdgruposdestino
+        description: Código do grupo de destino.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: cdgruposorigem
+        description: Código do grupo de origem.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtfimencaminhamento
+        description: Data/hora de fim do encaminhamento. ~98% preenchida.
+        data_type: timestamp
+      - name: idsituacaoencprestcontas
+        description: >
+          Situação do encaminhamento. Chave estrangeira lógica para
+          bdcorporativo__tbsituacaoencaminhamentoprestacaocontas.idsituacaoencprestcontas.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idsituacao
+        description: Código textual de situação do projeto (ex. E27).
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stativo
+        description: Flag de registro ativo (bit 0/1).
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer
+
+  - name: bdcorporativo__tbsituacaoencaminhamentoprestacaocontas
+    description: >
+      Tabela de domínio: as situações possíveis de um encaminhamento de prestação
+      de contas (Aguardando Análise, Em Análise, Analisado, Consultoria AECI,
+      Consultoria CONJUR). 5 linhas, do schema scsac. Camada bronze tipada a partir
+      de salic_bronze.bdcorporativo__tbsituacaoencaminhamentoprestacaocontas. É a
+      ponta de bdcorporativo__tbencaminhamentoprestacaocontas.idsituacaoencprestcontas.
+    columns:
+      - name: idsituacaoencprestcontas
+        description: Identificador da situação. Chave da tabela.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: dssituacaoencprestcontas
+        description: Descrição legível da situação.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
+          linha (ADR 0005). Não é campo de negócio.
+        data_type: integer

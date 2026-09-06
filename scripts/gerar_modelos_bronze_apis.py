@@ -4,7 +4,7 @@ Gera os modelos da camada bronze das fontes que nao vem do SALIC.
 
 Essas fontes chegam 100% como `text` -- pior que o SALIC, que ao menos tipa
 a coluna tecnica. Tipar e o trabalho desta camada, com as mesmas macros
-`bronze_*` ja usadas em models/salic_bronze/.
+`bronze_*` ja usadas em models/salic_dbt/bronze/.
 
 O cast NAO e inferido pelo nome da coluna: e decidido pelo padrao medido em
 scripts/perfilar_padroes.py, exigindo que 100% dos valores preenchidos casem.

@@ -16,6 +16,7 @@ OPENMETADATA_DIR = REPO_ROOT / "helpers/openmetadata"
 RECIPES_DIR = OPENMETADATA_DIR / "recipes"
 
 PROJETO_DBT = REPO_ROOT / "dbt/minc"
+DAG_PATH = REPO_ROOT / "dags/openmetadata_ingestion_dag.py"
 
 
 def _schemas_do_projeto_dbt() -> set[str]:
@@ -265,3 +266,124 @@ def test_dbt_project_dir_comes_from_the_environment(monkeypatch) -> None:
     outro = _load_config(monkeypatch, OM_DBT_PROJECT_DIR="dbt/outro")
     assert outro.DBT_MINC_DIR == "/opt/airflow/dbt/outro"
     assert outro.DBT_METADATA_RECIPE.dbt_project_dir == "/opt/airflow/dbt/outro"
+
+
+def test_metadata_recipe_never_marks_missing_tables_as_deleted() -> None:
+    """`markDeletedTables` tem default `true`, e ele apaga catalogo.
+
+    Uma carga parcial -- VPN caindo, ambiente restaurado pela metade, schema
+    ainda nao materializado -- marca como deletado tudo que o catalogo tem e o
+    banco nao, sem aviso. Com os 571 modelos SALIC como view, o custo de uma
+    execucao contra banco incompleto e o catalogo inteiro.
+    """
+    config = _load_recipe("postgres_metadata.yaml")["source"]["sourceConfig"]["config"]
+
+    assert config.get("markDeletedTables") is False, (
+        "postgres_metadata.yaml precisa de `markDeletedTables: false` explicito; "
+        "o default do conector e `true`."
+    )
+
+
+def test_only_the_metadata_recipe_declares_deletion_behaviour() -> None:
+    """Profiler e classifier nao sao `DatabaseMetadata` e nao apagam nada.
+
+    Declarar a chave neles daria a impressao de que ha tres lugares para
+    proteger, e o dia em que um for esquecido ninguem saberia qual importava.
+    """
+    for recipe_path in sorted(RECIPES_DIR.glob("*.yaml")):
+        raw = recipe_path.read_text(encoding="utf-8")
+        if recipe_path.name == "postgres_metadata.yaml":
+            continue
+        assert "markDeletedTables" not in raw, (
+            f"{recipe_path.name} declara markDeletedTables; a chave so tem efeito "
+            "em sourceConfig do tipo DatabaseMetadata."
+        )
+
+
+def test_catalog_recipes_are_on_by_default(monkeypatch) -> None:
+    """postgres_metadata e dbt_metadata sao o trabalho da DAG, nao um extra."""
+    for flag in ("OM_INGEST_POSTGRES", "OM_INGEST_DBT"):
+        monkeypatch.delenv(flag, raising=False)
+    config = _load_config(monkeypatch)
+
+    habilitadas = {recipe.task_id for recipe in config.ALL_RECIPES}
+    assert {"postgres_metadata", "dbt_metadata"} <= habilitadas
+
+
+@pytest.mark.parametrize(
+    ("flag", "task_id"),
+    [
+        ("OM_INGEST_POSTGRES", "postgres_metadata"),
+        ("OM_INGEST_DBT", "dbt_metadata"),
+    ],
+)
+def test_catalog_recipes_can_be_isolated(monkeypatch, flag: str, task_id: str) -> None:
+    """Desligar uma das duas serve para isolar problema, e precisa funcionar."""
+    config = _load_config(monkeypatch, **{flag: "false"})
+
+    assert task_id not in {recipe.task_id for recipe in config.ALL_RECIPES}
+
+
+def test_profiler_is_off_and_classifier_is_on_by_default(monkeypatch) -> None:
+    """A diferenca entre os dois nao e arbitraria.
+
+    O classifier roda com `storeSampleData: false` e nunca persiste linha
+    bruta. O profiler publica min, max e distribuicao -- estatistica reveladora
+    num banco com CPF, CNPJ e dados de raca e deficiencia. Ele so entra depois
+    que as exclusoes de coluna sensivel estiverem verificadas.
+    """
+    for flag in ("OM_INGEST_PROFILER", "OM_INGEST_CLASSIFIER"):
+        monkeypatch.delenv(flag, raising=False)
+    config = _load_config(monkeypatch)
+
+    habilitadas = {recipe.task_id for recipe in config.ALL_RECIPES}
+    assert "postgres_profiler" not in habilitadas
+    assert "postgres_classifier" in habilitadas
+
+
+@pytest.mark.parametrize(
+    "flag", ["OM_INGEST_POSTGRES", "OM_INGEST_DBT", "OM_INGEST_GLOSSARY"]
+)
+def test_declared_flags_reach_the_container(flag: str) -> None:
+    """Flag que o config le mas o compose nao passa e flag morta.
+
+    Ela e lida no parse da DAG, dentro do container: se nao estiver na
+    `environment:`, o default do codigo vence e mudar o `.env` nao muda nada.
+    """
+    compose = (REPO_ROOT / "infra/docker-compose.yml").read_text(encoding="utf-8")
+
+    assert f"{flag}:" in compose, f"{flag} nao chega ao container pelo compose"
+
+
+def test_glossary_runs_before_every_recipe() -> None:
+    """A ordem e obrigatoria, e o motivo nao aparece em nenhum erro.
+
+    `meta.openmetadata.glossary` nos schema.yml apenas REFERENCIA termo por
+    FQN. Se o termo ainda nao existe no servidor quando a recipe roda, a
+    referencia e descartada em silencio e o ativo chega ao catalogo sem o
+    vinculo -- nenhuma task falha.
+
+    O teste le a arvore sintatica: importar a DAG exigiria Airflow configurado.
+    """
+    tree = ast.parse(DAG_PATH.read_text(encoding="utf-8"), filename=str(DAG_PATH))
+    fonte = DAG_PATH.read_text(encoding="utf-8")
+
+    tarefas = {
+        no.name
+        for no in ast.walk(tree)
+        if isinstance(no, ast.FunctionDef)
+        and any(
+            "task" in ast.unparse(d.func if isinstance(d, ast.Call) else d)
+            for d in no.decorator_list
+        )
+    }
+    assert "sync_glossary" in tarefas, (
+        "a DAG nao tem task de glossario; sem ela, editar glossaries/minc.csv "
+        "nao chega ao servidor e os FQNs dos schema.yml apontam para o vazio."
+    )
+
+    posicao_glossario = fonte.index("previous_task = (")
+    posicao_encadeamento = fonte.index("for task_id in RECIPE_PIPELINE:")
+    assert (
+        posicao_glossario < posicao_encadeamento
+    ), "o glossario precisa iniciar a corrente, antes das recipes."

@@ -2,7 +2,7 @@
 """
 Gera o schema.yml dos modelos da camada bronze do SALIC.
 
-Os 571 modelos em dbt/minc/models/salic_bronze/<prefixo>/*.sql tipam as colunas
+Os 571 modelos em dbt/minc/models/salic_dbt/bronze/<prefixo>/*.sql tipam as colunas
 que chegam como texto da ingestao (macros bronze_*), mas nao tem nenhuma
 documentacao: sem descricao, sem teste, sem tag. Este script gera um schema.yml
 por diretorio, extraindo:
@@ -21,7 +21,7 @@ declaracao. Por isso o padrao exige fronteira de palavra. Nao simplifique.
 
 Uso:
     python3 scripts/gerar_schema_modelos_bronze.py \
-        --modelos dbt/minc/models/salic_bronze \
+        --modelos dbt/minc/models/salic_dbt/bronze \
         --catalogo catalogo_full.csv \
         --dicionarios <dir_xmls_schemaspy>
 """

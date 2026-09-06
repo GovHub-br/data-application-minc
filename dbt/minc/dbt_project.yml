@@ -37,20 +37,35 @@ models:
         +materialized: view
       gold:
         +materialized: table
-    # SALIC — camada bronze tipada, um modelo por tabela do raw salic_bronze
-    # (571 hoje). View por padrão: o objetivo é a camada semântica no dbt docs
-    # e no OpenMetadata, e view entrega isso com zero armazenamento. Os 52,7 GB
-    # do raw não se duplicam antes de alguém saber quais modelos importam —
-    # promova a table só as pesadas, depois.
-    salic_bronze:
-      +materialized: view
-      # Schema `salic`, NAO `salic_bronze`. Com target `prod` o
-      # generate_schema_name_for_env aplica o custom schema literal, entao
-      # `+schema: salic_bronze` faria o modelo resolver para a MESMA relacao
-      # que a sua propria source -- e o dbt derrubaria a tabela raw de 157 M
-      # de linhas para por uma view no lugar. Segue o padrao de agentes/cotas:
-      # um schema por dominio, as camadas separadas por pasta.
+    # SALIC — Lei Rouanet. Um dominio, as camadas separadas por PASTA, como em
+    # agentes_dbt e cotas_dbt.
+    #
+    # Schema `salic`, NAO `salic_bronze`. Com target `prod` o
+    # generate_schema_name_for_env aplica o custom schema literal, entao
+    # `+schema: salic_bronze` faria a bronze resolver para a MESMA relacao que a
+    # sua propria source -- e o dbt derrubaria a tabela raw de 157 M de linhas
+    # para por uma view no lugar.
+    salic_dbt:
       +schema: salic
+      # Um modelo por tabela do raw `salic_bronze` (571 hoje), so aplicando
+      # cast. View por padrao: o objetivo e a camada semantica no dbt docs e no
+      # OpenMetadata, e view entrega isso com zero armazenamento. Os 52,7 GB do
+      # raw nao se duplicam antes de alguem saber quais modelos importam --
+      # promova a table so as pesadas, depois.
+      bronze:
+        +materialized: view
+      # Silvers conformadas da Rouanet. `table`, e nao `view`: sao poucos
+      # modelos, todos com join pesado sobre views da bronze que ja leem 157 M
+      # de linhas. Materializar aqui e o que evita recomputar a bronze inteira
+      # a cada consulta de painel.
+      core:
+        +materialized: table
+      meta3:
+        +materialized: table
+      meta4:
+        +materialized: table
+      meta5:
+        +materialized: table
 
     # Fontes de API (TransfereGov, SIDRA/IBGE, SGS/Bacen). Chegam 100% como
     # `text`, entao precisam da mesma camada de tipagem do SALIC -- as macros

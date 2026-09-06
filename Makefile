@@ -33,9 +33,6 @@ setup:
 lock:
 	./infra/docker/airflow/compile-lock.sh
 
-dbt-manifest:
-	./scripts/gerar_manifest_dbt.sh
-
 format:
 	poetry run black .
 	poetry run ruff check --fix .

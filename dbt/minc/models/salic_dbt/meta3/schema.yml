@@ -1,0 +1,130 @@
+version: 2
+
+models:
+  - name: fct_pagamento_profissional_rouanet
+    description: >
+      Camada Silver restrita da Meta 3. Preserva os registros de pagamentos a
+      fornecedores e profissionais devolvidos pela view detalhada do SALIC.
+      GRÃO PROVISÓRIO: uma linha por registro da origem; a combinação projeto,
+      item, comprovante, prestador, data e valor é uma chave candidata, e
+      `ocorrencia_chave_candidata` evidencia repetições sem descartá-las.
+      MEDIDA: valor efetivamente pago em reais nominais; não é valor captado,
+      aprovado ou apenas comprovado. O ano é o da data de pagamento, em linha
+      com o recorte de execução do estudo FGV para 2024. Valores nulos, zero,
+      negativos e estornos não são filtrados na silver. IDENTIDADE: documento
+      e nome do prestador tornam o modelo inteiro restrito e proibido para RAG.
+      O texto livre de justificativa da origem é deliberadamente excluído.
+      LIMITAÇÕES: o grão e a reconciliação financeira aguardam a execução pela
+      DAG com permissão de escrita; a ligação com perfil demográfico e o filtro
+      temporal de prestação de contas ainda não têm fonte homologada.
+    config:
+      tags: [silver, salic, rouanet, meta3, restrito]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Pagamentos auditáveis a profissionais e fornecedores da Rouanet'
+        origem_dados: 'salic_bronze.sac__vwpagamentodefornecedordoprojetoporitemdetalhado'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - ocorrencia_chave_candidata
+            - tipo_documento_comprovante
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.IncentivoFiscal.ExecucaoFinanceira
+    columns:
+      - name: chave_candidata_pagamento
+        description: >
+          Hash técnico da combinação candidata a identificar o pagamento. É
+          linkável e derivado também do documento do prestador, portanto PII.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: [PII.Sensitive]
+      - name: ocorrencia_chave_candidata
+        description: >
+          Ordem da linha dentro de uma chave candidata repetida. Valor maior
+          que um sinaliza duplicidade a investigar, sem apagar o registro.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: id_pronac
+        description: Identificador técnico do projeto informado pela view de pagamentos.
+        data_type: integer
+      - name: pronac
+        description: >
+          Chave de negócio do projeto, recuperada preferencialmente pelo mapa
+          conformado e, quando possível, pelo número informado na própria view.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: [MinC.Identificadores.PRONAC]
+      - name: pronac_resolvido_por_mapa
+        description: >
+          Verdadeiro quando o PRONAC veio de uma associação unívoca com
+          `id_pronac`; falso indica uso do fallback numérico ou ausência.
+        data_type: boolean
+        tests:
+          - not_null
+      - name: documento_prestador
+        description: CPF ou CNPJ do prestador, normalizado para somente dígitos.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: [PII.Sensitive]
+      - name: tipo_pessoa_prestador
+        description: >
+          Tipo PF ou PJ derivado apenas do comprimento do documento; nulo para
+          documento ausente ou com quantidade de dígitos inválida.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: [PII.Sensitive]
+      - name: nome_prestador
+        description: Nome do fornecedor ou profissional registrado no comprovante.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: [PII.NonSensitive]
+      - name: id_item_planilha
+        description: Identificador técnico do item orçamentário pago no projeto.
+        data_type: integer
+      - name: nome_item
+        description: Descrição do item orçamentário ao qual o pagamento foi associado.
+        data_type: text
+      - name: numero_comprovante
+        description: Número do comprovante dentro dos registros de execução do projeto.
+        data_type: integer
+      - name: data_emissao
+        description: Data de emissão do documento fiscal ou comprovante apresentado.
+        data_type: date
+      - name: tipo_documento_comprovante
+        description: Código textual do tipo de documento fiscal ou comprovante.
+        data_type: text
+      - name: data_pagamento
+        description: Data em que o pagamento ao fornecedor ou profissional foi realizado.
+        data_type: date
+      - name: ano_pagamento
+        description: Ano civil derivado de `data_pagamento`, referência temporal do fato.
+        data_type: integer
+      - name: tipo_forma_pagamento
+        description: Código textual da forma de pagamento registrada na origem.
+        data_type: text
+      - name: numero_documento_pagamento
+        description: >
+          Número do documento da transação de pagamento. É mantido apenas para
+          auditoria no ambiente restrito e não pode ser publicado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags: [PII.Sensitive]
+      - name: valor_pago_reais
+        description: >
+          Valor efetivamente pago, em reais nominais. Nulos, zeros e valores
+          negativos são preservados para reconciliação e tratamento no gold.
+        data_type: numeric

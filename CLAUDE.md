@@ -4,6 +4,11 @@ Pipeline de dados do Ministério da Cultura no Gov Hub BR. Ingere dados de siste
 de governo (TransfereGov, BB Ágil, SALIC, FCU), transforma com dbt em Postgres e
 serve o acompanhamento das metas do PNAB e da Lei Paulo Gustavo.
 
+> **Trabalho em curso nas silvers do SALIC:** leia [`HANDOFF.md`](HANDOFF.md)
+> antes de mexer em `dbt/minc/models/salic_dbt/`. Ele diz o que está pronto, o
+> que está bloqueado e por quê — e o registro vivo, com protocolo de handoff
+> entre agentes, é [`docs/openmetadata/MEMORY.md`](docs/openmetadata/MEMORY.md).
+
 ## Stack
 
 Airflow 3.2 orquestra, Cosmos executa o dbt, Postgres é o destino, Docker Compose

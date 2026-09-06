@@ -11,8 +11,9 @@ inteiro e o que precisa de adaptação.
 ## Como uma recipe roda
 
 ```text
-openmetadata_ingestion_dag          uma task por recipe, ligada por flag
-  └─ runner.run_openmetadata_recipe
+openmetadata_ingestion_dag
+  ├─ glossary.sync_glossary                 primeira task, antes de tudo
+  └─ runner.run_openmetadata_recipe         uma task por recipe, ligada por flag
        ├─ dbt_artifacts.prepare_dbt_artifacts   só na recipe de dbt
        ├─ rendering.render_recipe               ${VAR} -> valor, em tmpdir
        └─ workflows.execute_metadata            despacha e executa
@@ -44,7 +45,7 @@ mesmo se a execução levantar. **O token nunca toca disco fora dali.**
 | `rendering.py` | substitui `${VAR}` e falha se sobrar marcador | **Sim, inteiro** |
 | `runner.py` | orquestra os três acima | **Sim, inteiro** |
 | `dbt_artifacts.py` | copia o projeto dbt e gera os artefatos que a recipe consome | **Sim, inteiro** |
-| `glossary.py` | valida e sincroniza glossário, de forma idempotente | Sim — recebe os caminhos por argumento |
+| `glossary.py` | valida e sincroniza glossário, de forma idempotente. **Primeira task da DAG** | Sim — recebe os caminhos por argumento |
 | `config.py` | catálogo de recipes, flags de liga/desliga, ordem do pipeline | Não — nomes e caminhos do MinC |
 | `lineage.py` | `tabela()` para `inlets`/`outlets` e a task que publica | Quase — troque os defaults de serviço |
 | `recipes/*.yaml` | uma recipe por fonte | Não — filtros de schema e nome de serviço |
@@ -95,7 +96,10 @@ nenhuma configuração muda isso — o que falta é `dbt run`, não recipe.
 
 **`markDeletedTables` tem default `true`.** Rodar `postgres_metadata` contra um
 banco incompleto marca como deletado tudo que o catálogo tem e o banco não. Um
-ambiente restaurado pela metade apaga catálogo inteiro sem avisar.
+ambiente restaurado pela metade apaga catálogo inteiro sem avisar. A recipe
+declara `false` explícito, e dois testes guardam isso: um exige a chave ali,
+outro proíbe declará-la nas demais — profiler e classifier não são
+`DatabaseMetadata` e não apagam nada, então protegê-los seria teatro.
 
 **`meta` de modelo dbt vai sob `config`.** A partir do dbt 1.10, declarar `meta`
 no topo do modelo *e* em `config.meta` aborta o parse. Coluna e source seguem no
@@ -113,21 +117,44 @@ não existe. É `shutil.which`.
 documentação apresenta como configuração de `airflow.cfg`, importa
 `airflow.lineage.backend` — módulo removido no Airflow 3.
 
+## Ordem, e por que ela não é negociável
+
+O glossário abre a corrente, antes de qualquer recipe. O motivo não aparece em
+erro nenhum: `meta.openmetadata.glossary` nos `schema.yml` apenas **referencia**
+termo por FQN, e quem cria o termo é o sync. Se o termo ainda não existe quando
+a recipe roda, a referência é descartada em silêncio e o ativo chega ao catálogo
+sem o vínculo — nenhuma task falha, nada aparece no log.
+
+Depois vem `postgres_metadata`, que cria as tabelas; depois `dbt_metadata`, que
+anexa descrição e linhagem; profiler e classifier por último, porque só têm o
+que medir depois disso.
+
+O sync é idempotente e **não remove termo remoto**: ele aplica a hierarquia
+primeiro e as relações depois, quando todos os FQNs já existem. Editar
+`glossaries/minc.csv` e rodar a DAG basta.
+
 ## Não conectado
 
-Dois módulos vieram junto e **não são importados por ninguém** hoje:
+**`semantic_relationships.py`** — 675 linhas, e valida
+`kind: MCIDSemanticRelationshipCatalog`: é do Ministério das **Cidades**, de
+onde a integração foi portada. Nenhum catálogo desse formato existe neste
+repositório, e criar um é uma decisão à parte — não efeito colateral de ligar o
+glossário. Quem for absorver o módulo pode deixá-lo de fora sem perder nada do
+que está descrito acima.
 
-- **`glossary.py`** (`load_glossary`, `sync_glossary`) — funcional e portável,
-  mas **nenhuma task chama**. O glossário `MinC` existe no servidor, com os 26
-  termos que `glossaries/minc.yaml` + `minc.csv` declaram, então foi aplicado
-  fora da DAG em algum momento. O `meta.openmetadata.glossary` dos `schema.yml`
-  apenas **referencia** termo por FQN; não cria. Se os termos forem alterados
-  aqui, alguém precisa chamar `sync_glossary` à mão — é idempotente — ou a
-  referência aponta para um termo que não existe.
-- **`semantic_relationships.py`** — 675 linhas, e valida
-  `kind: MCIDSemanticRelationshipCatalog`: é do Ministério das **Cidades**,
-  de onde a integração foi portada. Nenhum catálogo desse formato existe neste
-  repositório.
+## As flags
 
-Quem for absorver o módulo pode deixar os dois de fora sem perder nada do que
-está descrito acima.
+| Flag | Default | Por quê |
+|---|---|---|
+| `OM_INGEST_GLOSSARY` | `true` | cria os termos que os `schema.yml` referenciam |
+| `OM_INGEST_POSTGRES` | `true` | cria os ativos no catálogo — é o trabalho da DAG |
+| `OM_INGEST_DBT` | `true` | anexa descrição, tag e linhagem aos ativos |
+| `OM_INGEST_AIRFLOW` | `true` | cataloga pipelines; o catálogo de dados não depende dela |
+| `OM_INGEST_CLASSIFIER` | `true` | acha PII **sem** persistir amostra (`storeSampleData: false`) |
+| `OM_INGEST_PROFILER` | `false` | publica min, max e distribuição — estatística reveladora num banco com CPF, CNPJ e dados de raça e deficiência. Ligue só depois de verificar as exclusões de coluna sensível |
+| `OM_INGEST_SUPERSET` | `false` | o MinC não tem instância própria |
+
+Flag declarada no `config.py` precisa aparecer na `environment:` do
+`docker-compose.yml`, senão ela é lida no parse **dentro do container**, não
+encontra nada, e o default do código vence — mexer no `.env` não muda coisa
+alguma. Há um teste para isso.

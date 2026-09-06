@@ -41,6 +41,16 @@ x-airflow-environment: &airflow-common-env
   # antes re-criptografar as connections existentes (`airflow rotate-fernet-key`).
   AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-I9n8l_FqCBVdaOEsuoAo92lCW2Qk2oSvUtaTW4OX17A=}
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+  # O minc_cosmos_dag monta a DAG com `dbt ls`. Medido em 06/09/2026 nos 647
+  # modelos ativos: 102s em container novo (sem partial parse) e 34s depois.
+  # Os defaults -- 30s de dagbag_import_timeout, 50s de
+  # dag_file_processor_timeout -- estouram nos DOIS casos e a DAG some da UI.
+  # Sobem juntos porque o segundo e o teto do primeiro.
+  #
+  # Folga generosa de proposito: o custo de um timeout alto e so um parse
+  # travado demorar mais para ser abortado, e o numero cresce com o projeto.
+  AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: 300
+  AIRFLOW__DAG_PROCESSOR__DAG_FILE_PROCESSOR_TIMEOUT: 360
   AIRFLOW__CORE__TEST_CONNECTION: Enabled
   AIRFLOW__CORE__MAX_MAP_LENGTH: 15000
   AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: airflow:admin
@@ -72,7 +82,13 @@ x-airflow-environment: &airflow-common-env
   # MinC nao tem instancia propria.
   OM_INGEST_SUPERSET: ${OM_INGEST_SUPERSET:-false}
   OM_INGEST_AIRFLOW: ${OM_INGEST_AIRFLOW:-true}
-  OM_INGEST_PROFILER: ${OM_INGEST_PROFILER:-true}
+  OM_INGEST_POSTGRES: ${OM_INGEST_POSTGRES:-true}
+  OM_INGEST_DBT: ${OM_INGEST_DBT:-true}
+  OM_INGEST_GLOSSARY: ${OM_INGEST_GLOSSARY:-true}
+  # Profiler desligado: ele publica min, max e distribuicao, que sao
+  # estatisticas reveladoras num banco com CPF, CNPJ e dados de raca e
+  # deficiencia. Ligue depois de verificar as exclusoes de coluna sensivel.
+  OM_INGEST_PROFILER: ${OM_INGEST_PROFILER:-false}
   OM_INGEST_CLASSIFIER: ${OM_INGEST_CLASSIFIER:-true}
   OM_DBT_PROJECT_DIR: ${OM_DBT_PROJECT_DIR:-dbt/minc}
   # BSC / SERPRO (bbágil) — interpoladas do .env do project dir. Passadas aqui na
