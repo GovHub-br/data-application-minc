@@ -51,4 +51,4 @@ select
     -- chave por SIGLA (formato mais provável do agente LPG): "municipio|uf"
     {{ sem_acento('pm.nm_mun') }} || '|' || lower(us.sigla_uf) as chave_municipio_uf
 from por_municipio pm
-left join uf_sigla us on pm.cd_uf = us.cd_uf
+left join uf_sigla us on pm.cd_uf::text = us.cd_uf
