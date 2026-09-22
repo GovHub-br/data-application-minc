@@ -21,7 +21,10 @@ from siconfi_storage import SiconfiStorage
 
 logger = logging.getLogger(__name__)
 
-_POOL = "siconfi_api"
+# Não há pool do Airflow aqui de propósito: o contrato de 1 req/s é garantido
+# pelo SiconfiRateLimiter, que coordena via PostgreSQL e por isso vale entre
+# tasks, workers e DAGs. Um pool seria redundante — e, se não existisse na
+# instância, o scheduler deixaria as tasks em `scheduled` para sempre, sem log.
 _FACT_ENDPOINTS = [
     "rreo",
     "rgf",
@@ -41,6 +44,8 @@ _DEFAULT_CONFIG: dict[str, Any] = {
     "rgf_poderes": ["E", "L", "J", "M", "D"],
 }
 _DEFAULT_ARGS = {"owner": "MinC", "retries": 2, "retry_delay": timedelta(minutes=10)}
+# Unidades de trabalho acumuladas antes de cada gravação em lote no planejamento.
+_PLAN_FLUSH_SIZE = 5000
 
 
 def _config() -> dict[str, Any]:
@@ -114,7 +119,7 @@ def _normalise_type(value: Any, prefix: str) -> str:
     tags=["minc", "siconfi", "tesouro", "raw", "bronze"],
 )
 def siconfi_ingestion_dag() -> None:
-    @task(pool=_POOL)
+    @task
     def refresh_reference_data() -> dict[str, int]:
         conn_str, config, run_id = get_postgres_conn(), _config(), _run_id()
         storage = SiconfiStorage(conn_str)
@@ -147,13 +152,15 @@ def siconfi_ingestion_dag() -> None:
             raise ValueError(
                 "Nenhum ente disponível; aguarde a carga de /entes ou configure entity_ids"
             )
-        created = 0
-        for entity_id in entity_ids:
-            for year in range(int(config["start_year"]), int(config["end_year"]) + 1):
-                created += storage.enqueue(
-                    "extrato_entregas",
-                    {"id_ente": entity_id, "an_referencia": year},
-                )
+        years = range(int(config["start_year"]), int(config["end_year"]) + 1)
+        created = storage.enqueue_many(
+            "extrato_entregas",
+            (
+                ({"id_ente": entity_id, "an_referencia": year}, None)
+                for entity_id in entity_ids
+                for year in years
+            ),
+        )
         logger.info(
             "[siconfi] %s unidades de extrato novas, %s entes",
             created,
@@ -161,7 +168,7 @@ def siconfi_ingestion_dag() -> None:
         )
         return created
 
-    @task(pool=_POOL)
+    @task
     def ingest_extrato() -> dict[str, int]:
         return _ingest_work("extrato_entregas", get_postgres_conn(), _config(), _run_id())
 
@@ -172,6 +179,27 @@ def siconfi_ingestion_dag() -> None:
         storage.ensure_tables()
         created = {endpoint: 0 for endpoint in _FACT_ENDPOINTS}
         seen: set[tuple[str, str]] = set()
+        # As unidades vão para o banco em lotes: um extrato nacional completo
+        # planeja centenas de milhares delas, e uma conexão por unidade fazia
+        # esta task nunca terminar contra um Postgres remoto.
+        buffers: dict[str, list[tuple[dict[str, Any], str | None]]] = {
+            endpoint: [] for endpoint in _FACT_ENDPOINTS
+        }
+
+        def flush(endpoint: str) -> None:
+            if buffers[endpoint]:
+                created[endpoint] += storage.enqueue_many(endpoint, buffers[endpoint])
+                buffers[endpoint].clear()
+
+        def enqueue(endpoint: str, params: dict[str, Any], revision: str | None) -> None:
+            signature = (endpoint, str(sorted(params.items())))
+            if signature in seen:
+                return
+            seen.add(signature)
+            buffers[endpoint].append((params, revision))
+            if len(buffers[endpoint]) >= _PLAN_FLUSH_SIZE:
+                flush(endpoint)
+
         for item in storage.payloads(
             "extrato_entregas", int(config["max_manifest_rows_for_planning"])
         ):
@@ -187,12 +215,6 @@ def siconfi_ingestion_dag() -> None:
                 for k in ("data_status", "status_relatorio", "forma_envio")
             )
 
-            def enqueue(endpoint: str, params: dict[str, Any]) -> None:
-                signature = (endpoint, str(sorted(params.items())))
-                if signature not in seen:
-                    created[endpoint] += storage.enqueue(endpoint, params, revision)
-                    seen.add(signature)
-
             if "RREO" in delivery and period is not None:
                 enqueue(
                     "rreo",
@@ -204,6 +226,7 @@ def siconfi_ingestion_dag() -> None:
                             item.get("tipo_relatorio"), "RREO"
                         ),
                     },
+                    revision,
                 )
             elif "RGF" in delivery and period is not None:
                 p = "S" if periodicity == "S" else "Q"
@@ -220,9 +243,14 @@ def siconfi_ingestion_dag() -> None:
                             ),
                             "co_poder": str(poder),
                         },
+                        revision,
                     )
             elif "DCA" in delivery or "QDCC" in delivery:
-                enqueue("dca", {"id_ente": int(entity), "an_exercicio": int(year)})
+                enqueue(
+                    "dca",
+                    {"id_ente": int(entity), "an_exercicio": int(year)},
+                    revision,
+                )
             elif "MSC" in delivery and period is not None:
                 matrix_type = "MSCC" if periodicity == "M" else "MSCE"
                 common = {
@@ -245,12 +273,15 @@ def siconfi_ingestion_dag() -> None:
                                     "classe_conta": account_class,
                                     "id_tv": value_type,
                                 },
+                                revision,
                             )
+        for endpoint in _FACT_ENDPOINTS:
+            flush(endpoint)
         logger.info("[siconfi] unidades de fatos planejadas: %s", created)
         return created
 
     def fact_task(endpoint: str):
-        @task(task_id=f"ingest_{endpoint}", pool=_POOL)
+        @task(task_id=f"ingest_{endpoint}")
         def _ingest(_: dict[str, int]) -> dict[str, int]:
             return _ingest_work(endpoint, get_postgres_conn(), _config(), _run_id())
         return _ingest
