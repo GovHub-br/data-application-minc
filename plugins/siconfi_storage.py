@@ -8,6 +8,7 @@ from typing import Any, Iterable
 
 import psycopg2
 from psycopg2 import sql
+from psycopg2.extras import execute_values
 
 from cliente_siconfi import SiconfiPage, request_hash
 
@@ -191,38 +192,76 @@ class SiconfiStorage:
                     )
         return len(page.items)
 
+    @staticmethod
+    def _upsert_work_query() -> sql.Composed:
+        return sql.SQL(
+            """
+            INSERT INTO {}.work_queue (endpoint, work_key, params, revision_marker)
+            VALUES %s
+            ON CONFLICT (endpoint, work_key) DO UPDATE SET
+                params = EXCLUDED.params,
+                status = CASE
+                    WHEN {}.work_queue.revision_marker IS DISTINCT FROM EXCLUDED.revision_marker
+                    THEN 'pending' ELSE {}.work_queue.status END,
+                revision_marker = EXCLUDED.revision_marker,
+                updated_at = now()
+            RETURNING (xmax = 0) AS inserted
+            """
+        ).format(
+            sql.Identifier(CONTROL_SCHEMA),
+            sql.Identifier(CONTROL_SCHEMA),
+            sql.Identifier(CONTROL_SCHEMA),
+        )
+
     def enqueue(
         self,
         endpoint: str,
         params: dict[str, Any],
         revision_marker: str | None = None,
     ) -> bool:
+        return bool(self.enqueue_many(endpoint, [(params, revision_marker)]))
+
+    def enqueue_many(
+        self,
+        endpoint: str,
+        units: Iterable[tuple[dict[str, Any], str | None]],
+        chunk_size: int = 1000,
+    ) -> int:
+        """Insere/atualiza várias unidades de trabalho numa única conexão.
+
+        O planejamento produz dezenas de milhares de unidades por execução; uma
+        conexão por unidade tornava ``plan_facts`` impraticável contra um
+        Postgres remoto. As chaves são deduplicadas porque ``ON CONFLICT DO
+        UPDATE`` recusa afetar a mesma linha duas vezes no mesmo comando.
+        """
         self._table(endpoint)
-        key = request_hash(endpoint, params)
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    sql.SQL(
-                        """
-                        INSERT INTO {}.work_queue (endpoint, work_key, params, revision_marker)
-                        VALUES (%s, %s, %s::jsonb, %s)
-                        ON CONFLICT (endpoint, work_key) DO UPDATE SET
-                            params = EXCLUDED.params,
-                            status = CASE
-                                WHEN {}.work_queue.revision_marker IS DISTINCT FROM EXCLUDED.revision_marker
-                                THEN 'pending' ELSE {}.work_queue.status END,
-                            revision_marker = EXCLUDED.revision_marker,
-                            updated_at = now()
-                        RETURNING (xmax = 0) AS inserted
-                        """
-                    ).format(
-                        sql.Identifier(CONTROL_SCHEMA),
-                        sql.Identifier(CONTROL_SCHEMA),
-                        sql.Identifier(CONTROL_SCHEMA),
-                    ),
-                    (endpoint, key, json.dumps(params, default=str), revision_marker),
-                )
-                return bool(cur.fetchone()[0])
+        deduped: dict[str, tuple[str, str, str | None]] = {}
+        for params, revision_marker in units:
+            key = request_hash(endpoint, params)
+            deduped[key] = (key, json.dumps(params, default=str), revision_marker)
+        if not deduped:
+            return 0
+
+        rows = [(endpoint, key, payload, revision) for key, payload, revision in deduped.values()]
+        query = self._upsert_work_query()
+        inserted = 0
+        conn = psycopg2.connect(self.conn_str)
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    for start in range(0, len(rows), chunk_size):
+                        returned = execute_values(
+                            cur,
+                            query.as_string(cur),
+                            rows[start : start + chunk_size],
+                            template="(%s, %s, %s::jsonb, %s)",
+                            page_size=chunk_size,
+                            fetch=True,
+                        )
+                        inserted += sum(1 for (is_new,) in returned if is_new)
+        finally:
+            conn.close()
+        return inserted
 
     def claim(
         self,
