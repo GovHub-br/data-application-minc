@@ -14,7 +14,12 @@ from typing import Any
 
 from airflow.sdk import Variable, dag, get_current_context, task
 
-from cliente_siconfi import SiconfiClient, SiconfiPermanentError, SiconfiRetryableError
+from cliente_siconfi import (
+    SiconfiClient,
+    SiconfiPermanentError,
+    SiconfiRetryableError,
+    work_units,
+)
 from postgres_helpers import get_postgres_conn
 from schedule_loader import get_dynamic_schedule
 from siconfi_storage import SiconfiStorage
@@ -103,10 +108,6 @@ def _ingest_work(
         client.close()
     logger.info("[siconfi] %s: %s", endpoint, summary)
     return summary
-
-
-def _normalise_type(value: Any, prefix: str) -> str:
-    return f"{prefix} Simplificado" if str(value).upper() == "S" else prefix
 
 
 @dag(
@@ -203,78 +204,8 @@ def siconfi_ingestion_dag() -> None:
         for item in storage.payloads(
             "extrato_entregas", int(config["max_manifest_rows_for_planning"])
         ):
-            entity = item.get("cod_ibge") or item.get("id_ente")
-            year = item.get("exercicio") or item.get("an_referencia")
-            delivery = str(item.get("entregavel", "")).upper()
-            if entity is None or year is None:
-                continue
-            period = item.get("periodo")
-            periodicity = str(item.get("periodicidade", "")).upper()
-            revision = "|".join(
-                str(item.get(k, ""))
-                for k in ("data_status", "status_relatorio", "forma_envio")
-            )
-
-            if "RREO" in delivery and period is not None:
-                enqueue(
-                    "rreo",
-                    {
-                        "id_ente": int(entity),
-                        "an_exercicio": int(year),
-                        "nr_periodo": int(period),
-                        "co_tipo_demonstrativo": _normalise_type(
-                            item.get("tipo_relatorio"), "RREO"
-                        ),
-                    },
-                    revision,
-                )
-            elif "RGF" in delivery and period is not None:
-                p = "S" if periodicity == "S" else "Q"
-                for poder in config["rgf_poderes"]:
-                    enqueue(
-                        "rgf",
-                        {
-                            "id_ente": int(entity),
-                            "an_exercicio": int(year),
-                            "in_periodicidade": p,
-                            "nr_periodo": int(period),
-                            "co_tipo_demonstrativo": _normalise_type(
-                                item.get("tipo_relatorio"), "RGF"
-                            ),
-                            "co_poder": str(poder),
-                        },
-                        revision,
-                    )
-            elif "DCA" in delivery or "QDCC" in delivery:
-                enqueue(
-                    "dca",
-                    {"id_ente": int(entity), "an_exercicio": int(year)},
-                    revision,
-                )
-            elif "MSC" in delivery and period is not None:
-                matrix_type = "MSCC" if periodicity == "M" else "MSCE"
-                common = {
-                    "id_ente": int(entity),
-                    "an_referencia": int(year),
-                    "me_referencia": int(period),
-                    "co_tipo_matriz": matrix_type,
-                }
-                for endpoint, classes in (
-                    ("msc_patrimonial", [1, 2, 3, 4]),
-                    ("msc_orcamentaria", [5, 6]),
-                    ("msc_controle", [7, 8]),
-                ):
-                    for account_class in classes:
-                        for value_type in ("beginning_balance", "period_change", "ending_balance"):
-                            enqueue(
-                                endpoint,
-                                {
-                                    **common,
-                                    "classe_conta": account_class,
-                                    "id_tv": value_type,
-                                },
-                                revision,
-                            )
+            for endpoint, params, revision in work_units(item, config["rgf_poderes"]):
+                enqueue(endpoint, params, revision)
         for endpoint in _FACT_ENDPOINTS:
             flush(endpoint)
         logger.info("[siconfi] unidades de fatos planejadas: %s", created)

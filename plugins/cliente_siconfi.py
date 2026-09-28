@@ -12,9 +12,10 @@ import json
 import logging
 import random
 import time
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterator
+from typing import Any, Iterable, Iterator
 
 import httpx
 import psycopg2
@@ -271,3 +272,118 @@ class SiconfiClient:
             if not raw_items:
                 raise SiconfiPermanentError(200, "hasMore=true com página vazia")
             offset += len(raw_items)
+
+
+# --- Planejamento a partir do extrato de entregas --------------------------
+#
+# O extrato identifica o demonstrativo pelo nome por extenso ("Relatório
+# Resumido de Execução Orçamentária", "Balanço Anual (DCA)", "MSC
+# Encerramento"...), não pela sigla. As funções abaixo traduzem uma linha dele
+# nos parâmetros que os endpoints de fatos aceitam.
+
+# Mês que a API de MSC espera para a matriz de encerramento: o extrato informa
+# ``periodo=1`` nessas linhas, mas ``me_referencia=1`` com ``MSCE`` volta vazio.
+_MSCE_MONTH = 12
+_MSC_CLASSES = (
+    ("msc_patrimonial", (1, 2, 3, 4)),
+    ("msc_orcamentaria", (5, 6)),
+    ("msc_controle", (7, 8)),
+)
+_MSC_VALUE_TYPES = ("beginning_balance", "period_change", "ending_balance")
+
+WorkUnit = tuple[str, dict[str, Any], str]
+
+
+def _normalise_text(value: Any) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    return "".join(ch for ch in text if not unicodedata.combining(ch)).upper()
+
+
+def _normalise_type(value: Any, prefix: str) -> str:
+    return f"{prefix} Simplificado" if str(value).upper() == "S" else prefix
+
+
+def classify_delivery(entregavel: Any) -> str | None:
+    """Devolve ``rreo``, ``rgf``, ``dca``, ``msc`` ou ``None``."""
+    text = _normalise_text(entregavel)
+    if "RREO" in text or "RESUMIDO DE EXECUCAO ORCAMENTARIA" in text:
+        return "rreo"
+    if "RGF" in text or "GESTAO FISCAL" in text:
+        return "rgf"
+    if "DCA" in text or "QDCC" in text or "BALANCO ANUAL" in text:
+        return "dca"
+    if "MSC" in text:
+        return "msc"
+    return None
+
+
+def work_units(item: dict[str, Any], rgf_poderes: Iterable[str]) -> list[WorkUnit]:
+    """Unidades ``(endpoint, params, revision)`` geradas por uma linha do extrato."""
+    entity = item.get("cod_ibge") or item.get("id_ente")
+    year = item.get("exercicio") or item.get("an_referencia")
+    if entity is None or year is None:
+        return []
+    kind = classify_delivery(item.get("entregavel"))
+    period = item.get("periodo")
+    periodicity = str(item.get("periodicidade", "")).upper()
+    revision = "|".join(
+        str(item.get(k, "")) for k in ("data_status", "status_relatorio", "forma_envio")
+    )
+    entity, year = int(entity), int(year)
+
+    if kind == "rreo" and period is not None:
+        return [
+            (
+                "rreo",
+                {
+                    "id_ente": entity,
+                    "an_exercicio": year,
+                    "nr_periodo": int(period),
+                    "co_tipo_demonstrativo": _normalise_type(
+                        item.get("tipo_relatorio"), "RREO"
+                    ),
+                },
+                revision,
+            )
+        ]
+    if kind == "rgf" and period is not None:
+        return [
+            (
+                "rgf",
+                {
+                    "id_ente": entity,
+                    "an_exercicio": year,
+                    "in_periodicidade": "S" if periodicity == "S" else "Q",
+                    "nr_periodo": int(period),
+                    "co_tipo_demonstrativo": _normalise_type(
+                        item.get("tipo_relatorio"), "RGF"
+                    ),
+                    "co_poder": str(poder),
+                },
+                revision,
+            )
+            for poder in rgf_poderes
+        ]
+    if kind == "dca":
+        return [("dca", {"id_ente": entity, "an_exercicio": year}, revision)]
+    if kind == "msc" and period is not None:
+        closing = periodicity == "A" or "ENCERRAMENTO" in _normalise_text(
+            item.get("entregavel")
+        )
+        common = {
+            "id_ente": entity,
+            "an_referencia": year,
+            "me_referencia": _MSCE_MONTH if closing else int(period),
+            "co_tipo_matriz": "MSCE" if closing else "MSCC",
+        }
+        return [
+            (
+                endpoint,
+                {**common, "classe_conta": account_class, "id_tv": value_type},
+                revision,
+            )
+            for endpoint, classes in _MSC_CLASSES
+            for account_class in classes
+            for value_type in _MSC_VALUE_TYPES
+        ]
+    return []
