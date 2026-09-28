@@ -17,8 +17,15 @@
 # Rode sempre que mexer em requirements.txt ou subir AIRFLOW_VERSION, e
 # commite o lock junto com a mudanca.
 #
+# O lock atual entra como preferencia: o resolvedor so troca a versao de um
+# pacote quando o requirements.txt obriga. Sem isso, cada rodada puxava a ultima
+# versao de todos os ~400 nomes da base sem pin, e mudar um pacote trazia uma
+# centena de upgrades que ninguem pediu. UPGRADE=1 descarta a preferencia e
+# atualiza tudo -- faca isso num PR proprio.
+#
 # Uso:
 #   ./infra/docker/airflow/compile-lock.sh
+#   UPGRADE=1 ./infra/docker/airflow/compile-lock.sh
 #   AIRFLOW_VERSION=3.2.3 ./infra/docker/airflow/compile-lock.sh
 
 set -euo pipefail
@@ -56,6 +63,16 @@ echo "==> Pacotes ja presentes na imagem base: $(wc -l < "${workdir}/base_pkgs.t
 } > "${workdir}/lock.in"
 
 echo "==> Requisitos de entrada: $(grep -cE '^[a-zA-Z]' "${workdir}/lock.in")"
+
+# O uv le o arquivo de saida que ja existe como preferencia de versoes.
+upgrade_flag=""
+if [[ "${UPGRADE:-0}" == "1" ]]; then
+  upgrade_flag="--upgrade"
+  echo "==> UPGRADE=1: ignorando o lock atual, todas as versoes serao atualizadas"
+elif [[ -f "${lockfile}" ]]; then
+  cp "${lockfile}" "${workdir}/lock.out"
+fi
+
 echo "==> Resolvendo (pode levar alguns minutos)..."
 
 docker run --rm \
@@ -64,7 +81,7 @@ docker run --rm \
   bash -c "
     set -euo pipefail
     pip install --quiet uv
-    uv pip compile --quiet --python-version ${PYTHON_VERSION} \
+    uv pip compile --quiet --python-version ${PYTHON_VERSION} ${upgrade_flag} \
       --output-file /w/lock.out /w/lock.in
   "
 
