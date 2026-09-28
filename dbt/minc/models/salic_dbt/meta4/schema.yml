@@ -1,0 +1,97 @@
+version: 2
+
+models:
+  - name: brg_projeto_local_execucao
+    description: >
+      Camada Silver territorial da Meta 4. Relaciona o registro de abrangência
+      do SALIC ao PRONAC sem carregar valores financeiros. GRÃO: uma linha por
+      `id_abrangencia`. PAPEL GEOGRÁFICO: local declarado de realização, nunca
+      residência do proponente ou do prestador. O art. 15, § 2º, da IN MinC
+      10/2023 fundamenta essa distinção para a aferição territorial da PNAB,
+      mas não é tratado como obrigação jurídica da Rouanet. MULTICIDADE: não há
+      rateio nem replicação nesta bridge; essa regra permanece bloqueada para o
+      fato/gold. DESCONHECIDOS: projeto ou município não resolvido permanece
+      nulo e recebe flag de cobertura; nunca é classificado como não vulnerável.
+      LIMITAÇÕES: os códigos territoriais da origem ainda precisam casar com a
+      dimensão oficial do IBGE, e as 13 categorias do art. 15 precisam de
+      fontes e limiares operacionais antes da classificação de vulnerabilidade.
+    config:
+      tags: [silver, salic, rouanet, meta4, territorio]
+      meta:
+        status: Disabled
+        meta_objetivo: 'Locais declarados de realização dos projetos Rouanet'
+        origem_dados: 'salic_bronze.sac__abrangencia + map_chave_projeto_rouanet'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Incentivo Fiscal
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.IncentivoFiscal.LocalDeExecucao
+    columns:
+      - name: id_abrangencia
+        description: Identificador do registro territorial na tabela de abrangência do SALIC.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: id_projeto
+        description: Identificador antigo do projeto usado pela tabela de abrangência.
+        data_type: integer
+      - name: pronac
+        description: >
+          Chave de negócio do projeto quando `id_projeto` possui associação
+          unívoca no mapa conformado; nula em caso de ausência ou ambiguidade.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: [MinC.Identificadores.PRONAC]
+      - name: pronac_resolvido
+        description: Verdadeiro quando o local pôde ser ligado sem ambiguidade a um PRONAC.
+        data_type: boolean
+        tests:
+          - not_null
+      - name: id_pais_origem
+        description: Identificador de país conforme o domínio interno do SALIC.
+        data_type: integer
+      - name: id_uf_origem
+        description: Identificador de unidade federativa conforme o domínio interno do SALIC.
+        data_type: integer
+      - name: codigo_municipio_ibge_origem
+        description: >
+          Código municipal informado pela origem. É preservado como recebido e
+          não recebe zeros artificiais antes do casamento com base oficial.
+        data_type: integer
+        meta:
+          openmetadata:
+            glossary: [MinC.Identificadores.CodigoIBGE]
+      - name: registro_ativo
+        description: Indicador do SALIC de que o registro de abrangência está ativo.
+        data_type: boolean
+      - name: codigo_realizacao
+        description: 'Código original de realização: 0 sem informação, 1 não e 2 sim.'
+        data_type: text
+      - name: local_realizado
+        description: >
+          Indicador triestado derivado: verdadeiro para código 2, falso para 1
+          e nulo para ausência, sem informação ou código desconhecido.
+        data_type: boolean
+      - name: situacao_realizacao
+        description: >
+          Rótulo controlado derivado do código: SEM_INFORMACAO, NAO_REALIZADO,
+          REALIZADO ou CODIGO_DESCONHECIDO.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: [SEM_INFORMACAO, NAO_REALIZADO, REALIZADO, CODIGO_DESCONHECIDO]
+      - name: data_inicio_realizacao
+        description: Data inicial declarada para a realização na localidade.
+        data_type: date
+      - name: data_fim_realizacao
+        description: Data final declarada para a realização na localidade.
+        data_type: date

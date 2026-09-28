@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+"""Anota os schema.yml do dbt com domain, tier, owner e glossario.
+
+Escrito como script, e nao a mao, por dois motivos: sao 672 itens, e a
+correspondencia schema -> subdominio precisa ser a mesma regra em todos os
+arquivos. Rodar de novo e idempotente: so escreve o que falta ou diverge.
+
+    python scripts/anotar_openmetadata.py [--dry-run]
+"""
+
+import sys
+from pathlib import Path
+
+from ruamel.yaml import YAML
+
+RAIZ = Path(__file__).resolve().parents[1]
+MODELOS = RAIZ / "dbt/minc/models"
+
+DONO = "minc-data-engineering"
+
+FOMENTO = "Cultura.Fomento Direto"
+INCENTIVO = "Cultura.Incentivo Fiscal"
+FEDERATIVO = "Cultura.Repasse Federativo"
+CADASTRO = "Cultura.Cadastro Cultural"
+
+# Subdominio por schema de origem. O mecanismo de fomento e o criterio --
+# ver dbt/README.md.
+DOMINIO_POR_SCHEMA = {
+    "bronze": INCENTIVO,
+    "dados_salic": INCENTIVO,
+    "agentes": FOMENTO,
+    "cotas": FOMENTO,
+    "relatorio_gestao": FOMENTO,
+    "transferegov": FEDERATIVO,
+    "bbagil": FEDERATIVO,
+    "bb_agil": FEDERATIVO,
+    "bsc": FEDERATIVO,
+    "bsc_pnab": FEDERATIVO,
+    "execucao_pnab": FEDERATIVO,
+    # A captacao registrada pela Ancine e aporte de investidor, mesma
+    # estrutura da captacao da Rouanet -- incentivo fiscal, nao repasse.
+    "ancine": INCENTIVO,
+    "dados_mapa_cultura": CADASTRO,
+    # `bacen` fica fora de proposito: serie do SGS e indicador externo
+    # (deflator), nao mecanismo de fomento. Mapear exige um subdominio
+    # novo, que precisa existir no OpenMetadata antes.
+}
+
+# Tier pela camada: quem pode depender daquilo.
+TIER_POR_CAMADA = {
+    "gold": "Tier.Tier1",
+    "silver": "Tier.Tier2",
+    "views": "Tier.Tier2",
+    "bronze": "Tier.Tier3",
+    "metadata": "Tier.Tier3",
+}
+TIER_SOURCE = "Tier.Tier4"
+
+# Subdominio dos modelos dbt, pela pasta do dominio.
+DOMINIO_POR_PASTA = {
+    "agentes_dbt": FOMENTO,
+    "cotas_dbt": FOMENTO,
+    "metadata": FOMENTO,
+}
+
+# Coluna -> termo de glossario. So conceito cuja ambiguidade muda a leitura.
+GLOSSARIO_POR_COLUNA = {
+    "identificador_unico": "MinC.Identificadores.IdentificadorUnico",
+    "raca_normalizada": "MinC.Qualificadores.RacaNormalizada",
+    "origem_ano": "MinC.Qualificadores.OrigemDoAno",
+    "contemplado": "MinC.Agentes.Contemplado",
+    "categoria_primeiro_acesso": "MinC.Agentes.PrimeiroAcesso",
+    "perfil_classificacao": "MinC.Agentes.PrimeiroAcesso",
+    "cd_mun": "MinC.Identificadores.CodigoIBGE",
+    "municipio_codigo_ibge": "MinC.Identificadores.CodigoIBGE",
+    "chave_municipio_uf": "MinC.Identificadores.CodigoIBGE",
+    "em_concentracao_urbana": "MinC.Identificadores.FCU",
+    "valor_pago": "MinC.Cotas.ValorPonderado",
+}
+
+yaml = YAML()
+yaml.preserve_quotes = True
+yaml.width = 4096
+yaml.indent(mapping=2, sequence=4, offset=2)
+
+
+def bloco_om(item, *, em_config=False, contagem=None):
+    """Devolve meta.openmetadata do item, criando se preciso.
+
+    `em_config=True` grava em `config.meta`, e nao no `meta` de topo. E
+    obrigatorio em modelo: a partir do dbt 1.10 declarar `meta` nos dois
+    lugares no mesmo modelo aborta o parse com "found meta dictionary in
+    'config' dictionary and as top-level key" -- e todo modelo daqui ja tem
+    `config.meta.status`. No manifest da no mesmo: `node.meta` e lido de
+    `config.meta`, que e o que o conector dbt do OpenMetadata consome.
+
+    Source continua no `meta` de topo, que e onde o dbt le em source/table.
+    """
+    if em_config:
+        dono = item.setdefault("config", {})
+        # Anotacao antiga, no `meta` de topo: migra em vez de duplicar.
+        antigo = (item.get("meta") or {}).pop("openmetadata", None)
+        if antigo is not None:
+            dono.setdefault("meta", {}).setdefault("openmetadata", antigo)
+            if not item["meta"]:
+                del item["meta"]
+            if contagem is not None:
+                contagem["migrado_para_config"] += 1
+    else:
+        dono = item
+    meta = dono.setdefault("meta", {})
+    return meta.setdefault("openmetadata", {})
+
+
+def anotar(item, *, dominio, tier, contagem, em_config=False):
+    om = bloco_om(item, em_config=em_config, contagem=contagem)
+    if om.get("domain") != dominio:
+        om["domain"] = dominio
+        contagem["domain"] += 1
+    if tier and om.get("tier") != tier:
+        om["tier"] = tier
+        contagem["tier"] += 1
+    if om.get("owner") != DONO:
+        om["owner"] = DONO
+        contagem["owner"] += 1
+
+    for coluna in item.get("columns") or []:
+        termo = GLOSSARIO_POR_COLUNA.get(coluna.get("name"))
+        if not termo:
+            continue
+        om_col = bloco_om(coluna)
+        if om_col.get("glossary") != [termo]:
+            om_col["glossary"] = [termo]
+            contagem["glossario_coluna"] += 1
+
+
+def camada_do_caminho(caminho: Path) -> str | None:
+    for parte in caminho.parts:
+        if parte in TIER_POR_CAMADA:
+            return parte
+    return None
+
+
+def main() -> int:
+    dry = "--dry-run" in sys.argv
+    contagem = {
+        "domain": 0,
+        "tier": 0,
+        "owner": 0,
+        "glossario_coluna": 0,
+        "migrado_para_config": 0,
+    }
+    tocados = []
+
+    for caminho in sorted(MODELOS.rglob("*.yml")):
+        with caminho.open(encoding="utf-8") as f:
+            doc = yaml.load(f)
+        if not doc:
+            continue
+        mudou_antes = dict(contagem)
+
+        for source in doc.get("sources") or []:
+            schema = source.get("schema", source.get("name"))
+            dominio = DOMINIO_POR_SCHEMA.get(schema)
+            if not dominio:
+                print(f"   ! schema sem subdominio mapeado: {schema}")
+                continue
+            for tabela in source.get("tables") or []:
+                anotar(tabela, dominio=dominio, tier=TIER_SOURCE, contagem=contagem)
+
+        modelos = doc.get("models") or []
+        if modelos:
+            rel = caminho.relative_to(MODELOS)
+            pasta = rel.parts[0] if len(rel.parts) > 1 else None
+            dominio = DOMINIO_POR_PASTA.get(pasta, FOMENTO)
+            camada = camada_do_caminho(rel)
+            tier = TIER_POR_CAMADA.get(camada) if camada else None
+            for modelo in modelos:
+                anotar(
+                    modelo,
+                    dominio=dominio,
+                    tier=tier,
+                    contagem=contagem,
+                    em_config=True,
+                )
+
+        if contagem != mudou_antes:
+            tocados.append(caminho)
+            if not dry:
+                with caminho.open("w", encoding="utf-8") as f:
+                    yaml.dump(doc, f)
+
+    rotulo = "seriam alterados" if dry else "alterados"
+    print(f"\n{len(tocados)} arquivo(s) {rotulo}")
+    for chave, valor in contagem.items():
+        print(f"   {chave:<20} {valor}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

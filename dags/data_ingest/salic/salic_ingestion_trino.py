@@ -89,7 +89,7 @@ mesmo passando no ambiente local, onde tudo divide a mesma máquina.
 Diferenças de conteúdo em relação à v1
 --------------------------------------
 Nome da tabela bronze, nome das colunas e tipo ``TEXT`` são idênticos aos da
-v1 — as 561 fontes declaradas em ``dbt/minc/models/salic_bronze/`` continuam
+v1 — as 561 fontes declaradas em ``dbt/minc/models/salic_dbt/bronze/`` continuam
 valendo sem alteração. O texto dentro das colunas muda em três tipos
 (``bit``, ``char(n)`` e ``varbinary``); o porquê de cada um está no docstring
 de ``trino_bronze.cast_to_text``.

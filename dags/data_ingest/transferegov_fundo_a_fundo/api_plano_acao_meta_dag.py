@@ -5,6 +5,7 @@ from typing import Any
 from airflow.sdk import dag, task
 
 import schemas_minc as schemas
+from openmetadata.lineage import publicar_linhagem, tabela
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from extracao_por_plano_acao import carregar_planos_acao, extrair_por_plano_acao
@@ -37,7 +38,7 @@ def api_plano_acao_meta_dag() -> None:
     propagados da tabela-pai.
     """
 
-    @task
+    @task(inlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO)])
     def fetch_metas() -> list[dict[str, Any]]:
         db = ClientPostgresDB(get_postgres_conn())
         planos = carregar_planos_acao(db)
@@ -65,7 +66,7 @@ def api_plano_acao_meta_dag() -> None:
 
         return metas
 
-    @task
+    @task(outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_META)])
     def load_metas_to_postgres(metas: list[dict[str, Any]]) -> None:
         db = ClientPostgresDB(get_postgres_conn())
         db.insert_data(
@@ -83,7 +84,7 @@ def api_plano_acao_meta_dag() -> None:
             len(metas),
         )
 
-    load_metas_to_postgres(fetch_metas())
+    load_metas_to_postgres(fetch_metas()) >> publicar_linhagem()
 
 
 api_plano_acao_meta_dag()

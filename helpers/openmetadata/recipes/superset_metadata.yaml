@@ -1,0 +1,35 @@
+source:
+  type: superset
+  serviceName: MinC - Superset
+  serviceConnection:
+    config:
+      type: Superset
+      hostPort: ${SUPERSET_HOST_PORT}
+      connection:
+        type: SupersetAPI
+        username: ${SUPERSET_USERNAME}
+        password: ${SUPERSET_PASSWORD}
+        provider: db
+
+  sourceConfig:
+    config:
+      type: DashboardMetadata
+      lineageInformation:
+        dbServicePrefixes:
+          - MinC
+
+sink:
+  type: metadata-rest
+  config:
+    # Lote pequeno de proposito: o proxy na frente do OpenMetadata corta a
+    # conexao antes de um PUT grande terminar.
+    bulk_sink_batch_size: 10
+
+workflowConfig:
+  loggerLevel: INFO
+  openMetadataServerConfig:
+    hostPort: ${OM_HOST}
+    authProvider: openmetadata
+    securityConfig:
+      jwtToken: ${INGESTION_TOKEN}
+    storeServiceConnection: true

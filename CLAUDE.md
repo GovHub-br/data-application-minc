@@ -4,6 +4,11 @@ Pipeline de dados do Ministério da Cultura no Gov Hub BR. Ingere dados de siste
 de governo (TransfereGov, BB Ágil, SALIC, FCU), transforma com dbt em Postgres e
 serve o acompanhamento das metas do PNAB e da Lei Paulo Gustavo.
 
+> **Trabalho em curso nas silvers do SALIC:** leia [`HANDOFF.md`](HANDOFF.md)
+> antes de mexer em `dbt/minc/models/salic_dbt/`. Ele diz o que está pronto, o
+> que está bloqueado e por quê — e o registro vivo, com protocolo de handoff
+> entre agentes, é [`docs/openmetadata/MEMORY.md`](docs/openmetadata/MEMORY.md).
+
 ## Stack
 
 Airflow 3.2 orquestra, Cosmos executa o dbt, Postgres é o destino, Docker Compose
@@ -16,7 +21,7 @@ que usa Trino como motor de cópia — ver [ADR 0005](docs/adr/0005-ingestao-sal
 |---|---|---|
 | `dags/data_ingest/` | uma DAG por endpoint de origem — 13 hoje | Sim |
 | `dags/dbt/minc_cosmos_dag.py` | a DAG que roda o projeto dbt inteiro | Raramente |
-| `dbt/minc/models/` | dois domínios: `cotas_dbt` (24 modelos) e `agentes_dbt` (11), cada um em bronze → silver → gold | Sim |
+| `dbt/minc/models/` | dois domínios: `cotas_dbt` (24 modelos) e `agentes_dbt` (12), cada um em bronze → silver → gold | Sim |
 | `dbt/minc/models/sources.yml` | declaração das tabelas de origem | Sim |
 | `dbt/minc/target/` | saída do `dbt run` e do `dbt docs generate` | **Não.** Gerada, e ignorada pelo git |
 | `plugins/` | clientes de API (`cliente_*.py`), autenticação e regras de negócio | Sim |

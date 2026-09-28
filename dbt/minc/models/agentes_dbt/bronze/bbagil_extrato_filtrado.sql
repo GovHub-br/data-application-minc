@@ -24,6 +24,7 @@
 WITH base AS (
     SELECT
         id_plano_acao,
+        id_plano_acao_dado_bancario,
         id,
         governmentprogramname AS programa_curto,
         beneficiarydocumentid AS beneficiario_documento_bruto,
@@ -44,20 +45,27 @@ WITH base AS (
       AND beneficiarydocumentid NOT IN ('0', '191')
 ),
 
--- Chaves (plano de ação + documento bruto + valor) que aparecem como débito
--- E crédito — estorno/devolução. Descarta os dois lados do par.
+-- Chaves (conta + documento bruto + valor) que aparecem como débito E
+-- crédito — estorno/devolução. Descarta os dois lados do par.
+--
+-- A chave é a CONTA, não o plano de ação: um plano tem mais de uma conta (os
+-- da LPG têm duas) e estorno acontece dentro de uma conta só. Casando no
+-- nível do plano, um débito da conta A e um crédito da conta B viram "par" e
+-- os DOIS lados são descartados — perda silenciosa de pagamento real, no
+-- modelo que existe justamente para não perder.
 chaves_estorno AS (
-    SELECT id_plano_acao, beneficiario_documento_bruto, valor
+    SELECT id_plano_acao, id_plano_acao_dado_bancario, beneficiario_documento_bruto, valor
     FROM base
     WHERE creditdebitindicator = 'D'
     INTERSECT
-    SELECT id_plano_acao, beneficiario_documento_bruto, valor
+    SELECT id_plano_acao, id_plano_acao_dado_bancario, beneficiario_documento_bruto, valor
     FROM base
     WHERE creditdebitindicator = 'C'
 )
 
 SELECT
     b.id_plano_acao,
+    b.id_plano_acao_dado_bancario,
     b.id,
     b.programa_curto,
     b.beneficiario_documento,
@@ -67,6 +75,7 @@ SELECT
 FROM base b
 LEFT JOIN chaves_estorno ce
     ON b.id_plano_acao = ce.id_plano_acao
+    AND b.id_plano_acao_dado_bancario = ce.id_plano_acao_dado_bancario
     AND b.beneficiario_documento_bruto = ce.beneficiario_documento_bruto
     AND b.valor = ce.valor
 WHERE b.creditdebitindicator = 'D'

@@ -1,0 +1,30 @@
+source:
+  type: dbt
+  # Precisa casar com o serviceName da recipe de postgres, senao o dbt anexa
+  # descricoes e linhagem a um servico que nao existe.
+  serviceName: MinC
+  sourceConfig:
+    config:
+      type: DBT
+      dbtConfigSource:
+        dbtConfigType: local
+        dbtManifestFilePath: ${DBT_TARGET_DIR}/manifest.json
+        dbtCatalogFilePath: ${DBT_TARGET_DIR}/catalog.json
+        dbtRunResultsFilePath: ${DBT_TARGET_DIR}/run_results.json
+      dbtUpdateDescriptions: true
+      includeTags: true
+
+sink:
+  type: metadata-rest
+  config:
+    # Lote pequeno de proposito: o proxy na frente do OpenMetadata corta a
+    # conexao antes de um PUT grande terminar.
+    bulk_sink_batch_size: 10
+
+workflowConfig:
+  loggerLevel: INFO
+  openMetadataServerConfig:
+    hostPort: ${OM_HOST}
+    authProvider: openmetadata
+    securityConfig:
+      jwtToken: ${INGESTION_TOKEN}
