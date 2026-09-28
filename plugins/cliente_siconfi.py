@@ -15,7 +15,7 @@ import time
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterable, Iterator
+from typing import Any, Callable, Iterator, Mapping
 
 import httpx
 import psycopg2
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://apidatalake.tesouro.gov.br/ords/cdwhprd/siconfi/tt"
 RATE_LIMIT_NAME = "siconfi_public_api"
+CONTROL_SCHEMA = "siconfi_control"
 RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
 
 
@@ -83,7 +84,7 @@ class SiconfiRateLimiter:
     def __init__(
         self,
         conn_str: str,
-        schema: str = "siconfi_control",
+        schema: str = CONTROL_SCHEMA,
         interval_s: float = 1.05,
     ) -> None:
         self.conn_str = conn_str
@@ -281,6 +282,14 @@ class SiconfiClient:
 # Encerramento"...), não pela sigla. As funções abaixo traduzem uma linha dele
 # nos parâmetros que os endpoints de fatos aceitam.
 
+FACT_ENDPOINTS = (
+    "rreo",
+    "rgf",
+    "dca",
+    "msc_patrimonial",
+    "msc_orcamentaria",
+    "msc_controle",
+)
 # Mês que a API de MSC espera para a matriz de encerramento: o extrato informa
 # ``periodo=1`` nessas linhas, mas ``me_referencia=1`` com ``MSCE`` volta vazio.
 _MSCE_MONTH = 12
@@ -290,6 +299,24 @@ _MSC_CLASSES = (
     ("msc_controle", (7, 8)),
 )
 _MSC_VALUE_TYPES = ("beginning_balance", "period_change", "ending_balance")
+_MSC_MATRIX_TYPES = ("MSCC", "MSCE")
+_PODERES = ("E", "L", "J", "M", "D")
+# Instituição do extrato → poder no RGF, conferido na API: o Tribunal de Contas
+# responde em ``co_poder=L``. A ordem importa: "Tribunal de Contas" antes de
+# "Tribunal", "Ministério Público" antes de qualquer outro.
+_PODER_POR_INSTITUICAO = (
+    ("DEFENSORIA", "D"),
+    ("MINISTERIO PUBLICO", "M"),
+    ("TRIBUNAL DE CONTAS", "L"),
+    ("TRIBUNAL", "J"),
+    ("JUSTICA", "J"),
+    ("ASSEMBLEIA", "L"),
+    ("CAMARA", "L"),
+    ("SENADO", "L"),
+    ("PREFEITURA", "E"),
+    ("GOVERNO", "E"),
+    ("EXECUTIVO", "E"),
+)
 
 WorkUnit = tuple[str, dict[str, Any], str]
 
@@ -317,8 +344,22 @@ def classify_delivery(entregavel: Any) -> str | None:
     return None
 
 
-def work_units(item: dict[str, Any], rgf_poderes: Iterable[str]) -> list[WorkUnit]:
-    """Unidades ``(endpoint, params, revision)`` geradas por uma linha do extrato."""
+def poder_da_instituicao(instituicao: Any) -> str | None:
+    """Poder do RGF (E, L, J, M, D) de quem entregou, ou ``None`` se desconhecido."""
+    text = _normalise_text(instituicao)
+    for keyword, poder in _PODER_POR_INSTITUICAO:
+        if keyword in text:
+            return poder
+    return None
+
+
+def work_units(item: dict[str, Any]) -> list[WorkUnit]:
+    """Unidades ``(endpoint, params, revision)`` geradas por uma linha do extrato.
+
+    Gera tudo o que a linha permite; o recorte configurado é aplicado depois,
+    por ``PlanScope.allows``. No RGF, só o poder da instituição que entregou —
+    os cinco apenas quando a instituição não é reconhecida.
+    """
     entity = item.get("cod_ibge") or item.get("id_ente")
     year = item.get("exercicio") or item.get("an_referencia")
     if entity is None or year is None:
@@ -347,6 +388,7 @@ def work_units(item: dict[str, Any], rgf_poderes: Iterable[str]) -> list[WorkUni
             )
         ]
     if kind == "rgf" and period is not None:
+        poder = poder_da_instituicao(item.get("instituicao"))
         return [
             (
                 "rgf",
@@ -358,11 +400,11 @@ def work_units(item: dict[str, Any], rgf_poderes: Iterable[str]) -> list[WorkUni
                     "co_tipo_demonstrativo": _normalise_type(
                         item.get("tipo_relatorio"), "RGF"
                     ),
-                    "co_poder": str(poder),
+                    "co_poder": co_poder,
                 },
                 revision,
             )
-            for poder in rgf_poderes
+            for co_poder in ((poder,) if poder else _PODERES)
         ]
     if kind == "dca":
         return [("dca", {"id_ente": entity, "an_exercicio": year}, revision)]
@@ -387,3 +429,93 @@ def work_units(item: dict[str, Any], rgf_poderes: Iterable[str]) -> list[WorkUni
             for value_type in _MSC_VALUE_TYPES
         ]
     return []
+
+
+# --- Recorte configurável ---------------------------------------------------
+
+
+def _optional_set(
+    config: Mapping[str, Any], key: str, cast: Callable[[Any], Any]
+) -> frozenset | None:
+    value = config.get(key)
+    return None if value is None else frozenset(cast(v) for v in value)
+
+
+@dataclass(frozen=True)
+class PlanScope:
+    """O que entra na fila e o que sai dela. ``None`` num campo = sem filtro.
+
+    A mesma regra vale no planejamento (``allows``) e no claim
+    (``constraints``): estreitar o recorte depois que a fila já foi montada
+    também para de buscar o que ficou de fora.
+    """
+
+    start_year: int
+    end_year: int
+    endpoints: frozenset[str] | None = None
+    rgf_poderes: frozenset[str] | None = None
+    msc_months: frozenset[int] | None = None
+    msc_classes: frozenset[int] | None = None
+    msc_value_types: frozenset[str] | None = None
+    msc_matrix_types: frozenset[str] | None = None
+
+    @classmethod
+    def from_config(cls, config: Mapping[str, Any]) -> PlanScope:
+        scope = cls(
+            start_year=int(config["start_year"]),
+            end_year=int(config["end_year"]),
+            endpoints=_optional_set(config, "fact_endpoints", str),
+            rgf_poderes=_optional_set(config, "rgf_poderes", lambda v: str(v).upper()),
+            msc_months=_optional_set(config, "msc_months", int),
+            msc_classes=_optional_set(config, "msc_classes", int),
+            msc_value_types=_optional_set(config, "msc_value_types", str),
+            msc_matrix_types=_optional_set(
+                config, "msc_matrix_types", lambda v: str(v).upper()
+            ),
+        )
+        for name, value, valid in (
+            ("fact_endpoints", scope.endpoints, FACT_ENDPOINTS),
+            ("rgf_poderes", scope.rgf_poderes, _PODERES),
+            ("msc_value_types", scope.msc_value_types, _MSC_VALUE_TYPES),
+            ("msc_matrix_types", scope.msc_matrix_types, _MSC_MATRIX_TYPES),
+        ):
+            unknown = sorted((value or frozenset()) - set(valid))
+            if unknown:
+                raise ValueError(f"siconfi_config: {name} inválido: {unknown}")
+        return scope
+
+    def enabled(self, endpoint: str) -> bool:
+        return endpoint not in FACT_ENDPOINTS or (
+            self.endpoints is None or endpoint in self.endpoints
+        )
+
+    def constraints(self, endpoint: str) -> dict[str, frozenset]:
+        """Valores permitidos por parâmetro da unidade de trabalho."""
+        year_key = (
+            "an_exercicio" if endpoint in ("rreo", "rgf", "dca") else "an_referencia"
+        )
+        allowed: dict[str, frozenset | None] = {
+            year_key: frozenset(range(self.start_year, self.end_year + 1))
+        }
+        if endpoint == "rgf":
+            allowed["co_poder"] = self.rgf_poderes
+        if endpoint.startswith("msc_"):
+            allowed["me_referencia"] = self.msc_months
+            allowed["classe_conta"] = self.msc_classes
+            allowed["id_tv"] = self.msc_value_types
+            allowed["co_tipo_matriz"] = self.msc_matrix_types
+        return {key: values for key, values in allowed.items() if values is not None}
+
+    def allows(self, endpoint: str, params: Mapping[str, Any]) -> bool:
+        return self.enabled(endpoint) and all(
+            params.get(key) in values
+            for key, values in self.constraints(endpoint).items()
+        )
+
+    def fingerprint(self) -> str:
+        """Muda quando o recorte muda — e aí o planejamento relê o extrato."""
+        state = {
+            name: sorted(value) if isinstance(value, frozenset) else value
+            for name, value in vars(self).items()
+        }
+        return hashlib.sha256(json.dumps(state, sort_keys=True).encode()).hexdigest()[:16]
