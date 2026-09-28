@@ -1,0 +1,227 @@
+version: 2
+sources:
+  - name: bronze_bdcorporativo
+    schema: salic_bronze
+    description: >
+      Metadados técnicos do banco de dados corporativo (ex.: diagramas do SQL Server). Não é
+      dado de negócio do SALIC. Camada bronze (dados brutos do SALIC, réplica do sistema de
+      origem via Airflow, sem tratamento). Descrições e tiers gerados automaticamente a partir
+      do dicionário de dados original do SALIC (export SchemaSpy) cruzado com o levantamento
+      estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo (YAML semântico,
+      dicionário e catálogo em DOCX/HTML).
+    tables:
+      - name: bdcorporativo__sysdiagrams
+        description: >
+          Tabela responsável por armazenar diagramas do SQL Server criados no ambiente.
+        config:
+          tags:
+            - bronze
+            - salic
+            - bdcorporativo
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: name
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): sysname(256).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: principal_id
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: diagram_id
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+            tests:
+              - not_null
+              - unique
+          - name: version
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: definition
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varbinary(2147483647).
+            data_type: text
+
+      - name: bdcorporativo__tbalteracaonomeproponente
+        description: >
+          Pedidos de alteração do nome do proponente (schema scsac do banco
+          corporativo). Camada bronze (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, bdcorporativo]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idpedidoalteracao
+            description: Identificador do pedido de alteração. Chave da tabela.
+            data_type: text
+          - name: nrcnpjcpf
+            description: CNPJ/CPF do proponente, sem máscara. Dado pessoal; text.
+            data_type: text
+          - name: nmproponente
+            description: Novo nome do proponente solicitado.
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bdcorporativo__tbcomprovantepagamento
+        description: >
+          Uma linha por comprovante de pagamento da execução do projeto (schema
+          scsac do banco corporativo, ~4,2 M linhas). Camada bronze (raw do SALIC
+          via Trino, tudo text).
+        config:
+          tags: [bronze, salic, bdcorporativo]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: tpdocumento
+            description: Código do tipo de documento comprobatório.
+            data_type: text
+          - name: nrcomprovante
+            description: Número do comprovante. Identificador, mantido text.
+            data_type: text
+          - name: nrserie
+            description: Série do documento. Pode vir '-'. ~80% preenchida.
+            data_type: text
+          - name: idcomprovantepagamento
+            description: Identificador do comprovante de pagamento. Chave da tabela.
+            data_type: text
+          - name: dsjustificativa
+            description: Justificativa/descrição do pagamento. ~63% preenchida.
+            data_type: text
+          - name: vlcomprovacao
+            description: Valor comprovado, em reais.
+            data_type: text
+          - name: dtemissao
+            description: Data de emissão do documento.
+            data_type: text
+          - name: dtpagamento
+            description: Data do pagamento.
+            data_type: text
+          - name: idfornecedor
+            description: Identificador do fornecedor nacional.
+            data_type: text
+          - name: idfornecedorexterior
+            description: '[VAZIA EM 100% DAS LINHAS] Fornecedor no exterior.'
+            data_type: text
+          - name: idarquivo
+            description: Identificador do arquivo anexado.
+            data_type: text
+          - name: dsoutrasfontes
+            description: '[VAZIA EM 100% DAS LINHAS]'
+            data_type: text
+          - name: tpformadepagamento
+            description: Código da forma de pagamento.
+            data_type: text
+          - name: nrdocumentodepagamento
+            description: Número do documento de pagamento. Identificador, mantido text.
+            data_type: text
+          - name: tbcomprovantepagamento
+            description: '[VAZIA EM 100% DAS LINHAS] Coluna homônima da tabela, sem valor na origem.'
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bdcorporativo__tbencaminhamentoprestacaocontas
+        description: >
+          Uma linha por encaminhamento de prestação de contas de um projeto entre
+          órgãos/agentes (schema scsac do banco corporativo). Camada bronze (raw do
+          SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, bdcorporativo]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idencprestcontas
+            description: Identificador do encaminhamento. Chave da tabela.
+            data_type: text
+          - name: idpronac
+            description: Projeto (PRONAC) da prestação de contas.
+            data_type: text
+          - name: idagenteorigem
+            description: Agente de origem do encaminhamento.
+            data_type: text
+          - name: dtinicioencaminhamento
+            description: Data/hora de início do encaminhamento.
+            data_type: text
+          - name: dsjustificativa
+            description: Justificativa do encaminhamento (muitas vezes apenas '.').
+            data_type: text
+          - name: idorgaodestino
+            description: Órgão de destino.
+            data_type: text
+          - name: idorgaoorigem
+            description: Órgão de origem.
+            data_type: text
+          - name: idagentedestino
+            description: Agente de destino.
+            data_type: text
+          - name: cdgruposdestino
+            description: Código do grupo de destino.
+            data_type: text
+          - name: cdgruposorigem
+            description: Código do grupo de origem.
+            data_type: text
+          - name: dtfimencaminhamento
+            description: Data/hora de fim do encaminhamento. ~98% preenchida.
+            data_type: text
+          - name: idsituacaoencprestcontas
+            description: Situação do encaminhamento. Aponta para bdcorporativo__tbsituacaoencaminhamentoprestacaocontas.
+            data_type: text
+          - name: idsituacao
+            description: Código textual de situação (ex. E27).
+            data_type: text
+          - name: stativo
+            description: Flag de registro ativo (bit 0/1).
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bdcorporativo__tbsituacaoencaminhamentoprestacaocontas
+        description: >
+          Tabela de domínio: as situações possíveis de um encaminhamento de
+          prestação de contas (schema scsac do banco corporativo). Camada bronze
+          (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, bdcorporativo]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idsituacaoencprestcontas
+            description: Identificador da situação. Chave da tabela.
+            data_type: text
+          - name: dssituacaoencprestcontas
+            description: Descrição da situação (Aguardando Análise, Em Análise, ...).
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text

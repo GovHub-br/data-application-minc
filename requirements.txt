@@ -1,3 +1,13 @@
+# Dependencias que entram na imagem do Airflow.
+#
+# Este arquivo e a lista do que QUEREMOS; o que de fato e instalado esta em
+# infra/docker/airflow/requirements.lock.txt, resolvido a partir daqui pelo
+# script compile-lock.sh. Depois de editar aqui, rode `make lock`.
+#
+# Nao espelha o pyproject.toml de proposito: o openmetadata-ingestion so e
+# necessario em runtime dentro do container. Os testes injetam `metadata.*`
+# falso via sys.modules, entao poetry e CI nao precisam resolve-lo.
+
 astronomer-cosmos==1.14.2
 dbt-core>=1.10,<1.11
 dbt-postgres==1.10.0
@@ -15,3 +25,4 @@ apache-airflow-providers-postgres==6.7.0
 apache-airflow-providers-trino==6.6.1
 apache-airflow-providers-standard==1.13.1
 apache-airflow-providers-git==0.4.0
+openmetadata-ingestion[dbt,postgres,superset,airflow,pii-processor]==1.13.3.2

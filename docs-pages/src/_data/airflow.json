@@ -1,6 +1,21 @@
 {
   "dags": [
     {
+      "arquivo": "bacen_sgs_ingest_dag.py",
+      "caminho": "dags/data_ingest/bacen/bacen_sgs_ingest_dag.py",
+      "fonte": "bacen",
+      "dag_id": "bacen_sgs_ingest_dag",
+      "descricao": "",
+      "tags": [
+        "minc",
+        "bacen",
+        "sgs",
+        "indicadores",
+        "raw"
+      ],
+      "schedule": "dinâmico (schedule_loader)"
+    },
+    {
       "arquivo": "extracao_bbagil_dag.py",
       "caminho": "dags/data_ingest/bsc_pnab/extracao_bbagil_dag.py",
       "fonte": "bsc_pnab",
@@ -14,6 +29,34 @@
         "raw"
       ],
       "schedule": "dinâmico (schedule_loader)"
+    },
+    {
+      "arquivo": "ibge_agregados_dag.py",
+      "caminho": "dags/data_ingest/ibge/ibge_agregados_dag.py",
+      "fonte": "ibge",
+      "dag_id": "ibge_agregados_dag",
+      "descricao": "",
+      "tags": [
+        "extração",
+        "ibge",
+        "agregados",
+        "raw"
+      ],
+      "schedule": "0 3 * * 0"
+    },
+    {
+      "arquivo": "mapas_ingestion_trino.py",
+      "caminho": "dags/data_ingest/mapas/mapas_ingestion_trino.py",
+      "fonte": "mapas",
+      "dag_id": "mapas_ingestion_trino",
+      "descricao": "Carrega os schemas do Mapas Culturais na Bronze usando o Trino como motor de cópia.",
+      "tags": [
+        "mapas",
+        "bronze",
+        "extraction",
+        "trino"
+      ],
+      "schedule": ""
     },
     {
       "arquivo": "salic_ingestion.py",
@@ -187,6 +230,13 @@
   ],
   "clientes": [
     {
+      "arquivo": "cliente_bacen.py",
+      "sistema": "bacen",
+      "nome": "ClienteBacen",
+      "base": "ClienteBase",
+      "descricao": "Consome series temporais do SGS/BACEN."
+    },
+    {
       "arquivo": "cliente_base.py",
       "sistema": "base",
       "nome": "ClienteBase",
@@ -289,7 +339,7 @@
       "sistema": "transferegov_fundo_a_fundo",
       "nome": "ClienteTransfereGov",
       "base": "ClienteBase",
-      "descricao": ""
+      "descricao": "Cliente da API publica de dados abertos do Transferegov Fundo a Fundo."
     },
     {
       "arquivo": "cliente_transferegov_fundo_a_fundo.py",
@@ -300,14 +350,17 @@
     }
   ],
   "por_fonte": {
+    "bacen": 1,
     "bsc_pnab": 1,
+    "ibge": 1,
+    "mapas": 1,
     "salic": 2,
     "territorio": 1,
     "transferegov_fundo_a_fundo": 9
   },
   "totais": {
-    "dags": 13,
-    "fontes": 4,
-    "clientes": 16
+    "dags": 16,
+    "fontes": 7,
+    "clientes": 17
   }
 }

@@ -79,9 +79,13 @@ def download_anexos_dag():
         ids_para_baixar = [{"id": str(r[0]), "bucket": str(r[1])} for r in records]
 
         if not ids_para_baixar:
-            logging.info("Nenhum arquivo pendente de download encontrado no banco de dados.")
+            logging.info(
+                "Nenhum arquivo pendente de download encontrado no banco de dados."
+            )
         else:
-            logging.info(f"Encontrados {len(ids_para_baixar)} anexos pendentes para download nesta rodada.")
+            logging.info(
+                f"Encontrados {len(ids_para_baixar)} anexos pendentes para download nesta rodada."
+            )
 
         return ids_para_baixar
 
@@ -107,7 +111,9 @@ def download_anexos_dag():
             if not s3_hook.check_for_bucket(bucket_name):
                 s3_hook.create_bucket(bucket_name=bucket_name)
         except Exception as e:
-            logging.warning(f"Não foi possível verificar ou criar o bucket '{bucket_name}': {e}")
+            logging.warning(
+                f"Não foi possível verificar ou criar o bucket '{bucket_name}': {e}"
+            )
 
         url = f"{URL_BASE_RG}{anexo_id}"
 
@@ -119,7 +125,9 @@ def download_anexos_dag():
         nome_arquivo = dados_json.get("nome", "arquivo_sem_nome.bin")
 
         if not arquivo_base64:
-            logging.warning(f"Anexo {anexo_id} não possui a chave 'arquivo' com conteúdo em base64.")
+            logging.warning(
+                f"Anexo {anexo_id} não possui a chave 'arquivo' com conteúdo em base64."
+            )
             return
 
         # Decodifica o base64 para bytes
@@ -147,7 +155,9 @@ def download_anexos_dag():
         """
         pg_hook.run(update_query, parameters=(path_minio, anexo_id))
 
-        logging.info(f"Anexo {anexo_id} baixado e path ({path_minio}) registrado no BD com sucesso.")
+        logging.info(
+            f"Anexo {anexo_id} baixado e path ({path_minio}) registrado no BD com sucesso."
+        )
 
     # ── Task final que dispara a DAG de extração ──
     # Usa ALL_DONE para que o trigger execute mesmo se alguns downloads falharem

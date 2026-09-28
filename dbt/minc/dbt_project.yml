@@ -21,13 +21,11 @@ models:
     metadata:
       +materialized: incremental
       +schema: metadata
+    # Meta 5 — novos entrantes no fomento federal. Uma linhagem so, cruzando
+    # LPG, PNAB, LAB (BB Agil), Rouanet (SALIC) e audiovisual (Ancine).
     agentes_dbt:
       +materialized: table
       +schema: agentes
-      bronze:
-        +materialized: incremental
-      views:
-        +materialized: view
     # Meta 3 — cotas/reservas (LPG + PNAB). Domínio próprio, schema minc_cotas,
     # separado do agentes_dbt (meta 5 do colega). Bronze materializado como table
     # porque filtra o lixo de parsing (fica ~20k linhas em vez de milhões).
@@ -39,3 +37,57 @@ models:
         +materialized: view
       gold:
         +materialized: table
+    # SALIC — Lei Rouanet. Um dominio, as camadas separadas por PASTA, como em
+    # agentes_dbt e cotas_dbt.
+    #
+    # Schema `salic`, NAO `salic_bronze`. Com target `prod` o
+    # generate_schema_name_for_env aplica o custom schema literal, entao
+    # `+schema: salic_bronze` faria a bronze resolver para a MESMA relacao que a
+    # sua propria source -- e o dbt derrubaria a tabela raw de 157 M de linhas
+    # para por uma view no lugar.
+    salic_dbt:
+      +schema: salic
+      # Um modelo por tabela do raw `salic_bronze` (571 hoje), so aplicando
+      # cast. View por padrao: o objetivo e a camada semantica no dbt docs e no
+      # OpenMetadata, e view entrega isso com zero armazenamento. Os 52,7 GB do
+      # raw nao se duplicam antes de alguem saber quais modelos importam --
+      # promova a table so as pesadas, depois.
+      bronze:
+        +materialized: view
+      # Silvers conformadas da Rouanet. `table`, e nao `view`: sao poucos
+      # modelos, todos com join pesado sobre views da bronze que ja leem 157 M
+      # de linhas. Materializar aqui e o que evita recomputar a bronze inteira
+      # a cada consulta de painel.
+      core:
+        +materialized: table
+      meta3:
+        +materialized: table
+      meta4:
+        +materialized: table
+      meta5:
+        +materialized: table
+
+    # Fontes de API (TransfereGov, SIDRA/IBGE, SGS/Bacen). Chegam 100% como
+    # `text`, entao precisam da mesma camada de tipagem do SALIC -- as macros
+    # bronze_* sao as mesmas, e o cast de cada coluna foi decidido pelo padrao
+    # medido no dado, nao pelo nome (scripts/perfilar_padroes.py).
+    #
+    # Aqui o schema de destino repete o nome da PASTA, e nao o dominio, pelo
+    # mesmo motivo explicado acima no salic_bronze -- so que invertido: la o
+    # raw e `salic_bronze` e sobra o nome limpo `salic`; aqui o raw ja ocupa o
+    # nome limpo (`transferegov`), entao `+schema: transferegov` faria a view
+    # colidir com a tabela de origem.
+    #
+    # View pelo mesmo motivo do salic_bronze: a camada so aplica cast.
+    transferegov_bronze:
+      +materialized: view
+      +schema: transferegov_bronze
+    ibge_sidra_bronze:
+      +materialized: view
+      +schema: ibge_sidra_bronze
+    bacen_bronze:
+      +materialized: view
+      +schema: bacen_bronze
+    bbagil_bronze:
+      +materialized: view
+      +schema: bbagil_bronze

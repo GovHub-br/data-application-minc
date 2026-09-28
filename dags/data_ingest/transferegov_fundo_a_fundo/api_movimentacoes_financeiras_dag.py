@@ -8,6 +8,7 @@ from airflow.sdk import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 import schemas_minc as schemas
+from openmetadata.lineage import publicar_linhagem, tabela
 from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from postgres_helpers import get_postgres_conn
@@ -141,7 +142,7 @@ def api_movimentacoes_financeiras_dag() -> None:
 
         return {"bucket": _S3_BUCKET, "key": chave_s3}
 
-    @task
+    @task(outlets=[tabela(_SCHEMA, "raw_gestao_financeira_lancamentos")])
     def carregar_lancamentos_no_postgres(info_minio: dict[str, str]) -> None:
         """Le o JSON bruto de lancamentos do MinIO e insere no Postgres."""
         hook = _get_s3_hook()
@@ -163,7 +164,7 @@ def api_movimentacoes_financeiras_dag() -> None:
             len(lancamentos_data),
         )
 
-    @task
+    @task(inlets=[tabela(_SCHEMA, "raw_gestao_financeira_lancamentos")])
     def extrair_subtransacoes_para_minio() -> dict[str, str]:
         """Busca subtransacoes de todos os lancamentos ja carregados no
         Postgres e salva o JSON bruto agregado no MinIO."""
@@ -235,7 +236,7 @@ def api_movimentacoes_financeiras_dag() -> None:
 
         return {"bucket": _S3_BUCKET, "key": chave_s3}
 
-    @task
+    @task(outlets=[tabela(_SCHEMA, "raw_gestao_financeira_subtransacoes")])
     def carregar_subtransacoes_no_postgres(info_minio: dict[str, str]) -> None:
         """Le o JSON bruto de subtransacoes do MinIO e insere no Postgres."""
         hook = _get_s3_hook()
@@ -261,12 +262,13 @@ def api_movimentacoes_financeiras_dag() -> None:
     carga_lancamentos = carregar_lancamentos_no_postgres(info_lancamentos)
 
     info_subtransacoes = extrair_subtransacoes_para_minio()
-    carregar_subtransacoes_no_postgres(info_subtransacoes)
+    carga_subtransacoes = carregar_subtransacoes_no_postgres(info_subtransacoes)
 
     # Subtransacoes dependem dos lancamentos ja estarem persistidos no
     # Postgres (get_id_lancamentos_financeiros le dessa tabela) — por isso a
     # dependencia de ordem explicita, mesmo sem troca de dado via XCom.
     carga_lancamentos >> info_subtransacoes
+    carga_subtransacoes >> publicar_linhagem()
 
 
 api_movimentacoes_financeiras_dag()

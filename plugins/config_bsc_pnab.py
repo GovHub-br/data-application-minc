@@ -91,6 +91,12 @@ BSC_MAX_REQUESTS = int(os.getenv("BSC_MAX_REQUESTS", "200000"))
 
 EMPTY_EXTRATO_ERROR_MESSAGE = "Não existem lançamentos para a conta no período informado"
 
+# Conta que o BB nao reconhece (encerrada, ou cadastrada no Transferegov sem
+# corresponder a uma conta corrente real). E um 400 permanente: nao adianta
+# tentar de novo em execucao nenhuma, entao entra no checkpoint em vez de ficar
+# sendo rechamado para sempre -- ver `is_conta_invalida_response`.
+INVALID_ACCOUNT_ERROR_MESSAGE = "Conta corrente inválida"
+
 # --------------------------------------------------------------------------
 # Parametros de negocio (PNAB) - ajustaveis via Airflow Variable sem deploy
 # --------------------------------------------------------------------------

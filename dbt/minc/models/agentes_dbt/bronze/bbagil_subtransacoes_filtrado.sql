@@ -11,10 +11,16 @@
 --   4. remove repasses entre entes públicos (mesmo critério do extrato).
 --
 -- Contexto de programa (governmentprogramname) vem herdado da
--- transação-mãe via id_plano_acao + id_transacao_pai = id.
+-- transação-mãe via id_plano_acao + id_plano_acao_dado_bancario +
+-- id_transacao_pai = id. A CONTA (id_plano_acao_dado_bancario) faz parte do
+-- join de propósito: um plano de ação tem mais de uma conta (os da LPG têm
+-- duas) e o `id` da transação não é único entre elas — sem a conta, o join
+-- vira 1→N e cada sublançamento é contado duas vezes, inflando `valor` em
+-- pagamentos_bbagil_beneficiarios e eventos_fomento.
 
 SELECT
     s.id_plano_acao,
+    s.id_plano_acao_dado_bancario,
     e.governmentprogramname AS programa_curto,
     CASE
         WHEN s.beneficiarypersontype = '1'
@@ -28,6 +34,7 @@ SELECT
 FROM {{ source('bbagil', 'subtransacao_bbagil') }} s
 JOIN {{ source('bbagil', 'extrato_bbagil') }} e
     ON s.id_plano_acao = e.id_plano_acao
+    AND s.id_plano_acao_dado_bancario = e.id_plano_acao_dado_bancario
     AND s.id_transacao_pai = e.id
 WHERE s.beneficiarydocumentid IS NOT NULL
   AND s.beneficiarydocumentid != '0'
