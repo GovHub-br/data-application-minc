@@ -4,25 +4,33 @@
 # infra/docker/airflow/requirements.lock.txt, resolvido a partir daqui pelo
 # script compile-lock.sh. Depois de editar aqui, rode `make lock`.
 #
-# Nao espelha o pyproject.toml de proposito: o openmetadata-ingestion so e
-# necessario em runtime dentro do container. Os testes injetam `metadata.*`
-# falso via sys.modules, entao poetry e CI nao precisam resolve-lo.
+# O pyproject.toml (ambiente dos testes) tem que pinar as MESMAS versoes que o
+# lock resolveu para cada pacote que ele declara -- o
+# tests/test_dependencias_sincronizadas.py reprova o CI se divergirem. Por isso
+# um bump nunca entra so num arquivo: edite aqui, rode `make lock` e copie a
+# versao resolvida para o pyproject.toml, tudo no mesmo PR.
+#
+# O openmetadata-ingestion fica so aqui: e necessario em runtime dentro do
+# container, e os testes injetam `metadata.*` falso via sys.modules.
 
-astronomer-cosmos==1.14.2
-dbt-core>=1.10,<1.11
+astronomer-cosmos==1.15.1
+dbt-core==1.10.23
 dbt-postgres==1.10.0
 imap-tools==1.10.0
 zeep==4.3.3
-openpyxl
+openpyxl==3.1.5
 xlrd>=2.0.2
-odfpy>=1.4.1
+odfpy==1.4.1
 pyxlsb==1.0.10
 python-calamine==0.6.2
-apache-airflow-providers-amazon==9.29.0
+apache-airflow-providers-amazon==9.35.0
 apache-airflow-providers-microsoft-mssql==4.7.0
-pymssql
+pymssql==2.3.13
 apache-airflow-providers-postgres==6.7.0
 apache-airflow-providers-trino==6.6.1
 apache-airflow-providers-standard==1.13.1
 apache-airflow-providers-git==0.4.3
 openmetadata-ingestion[dbt,postgres,superset,airflow,pii-processor]==1.13.3.2
+# Nao usamos o provider do Google, mas ele vem na imagem base (22.x). Sem este
+# piso o resolvedor o rebaixava para 12.0.0 so para manter o litellm mais novo.
+apache-airflow-providers-google>=22
