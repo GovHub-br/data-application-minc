@@ -1,95 +1,88 @@
-"""Ingestão retomável dos nove endpoints da API pública SICONFI.
+"""Ingestão retomável da API de Dados Abertos do SICONFI para o datalake de análise.
 
-O escopo é deliberadamente dirigido pela Variable ``siconfi_config``. O
-padrão cobre só o exercício corrente e todos os demonstrativos. Para um
-backfill, estreite o recorte antes de ampliar os anos: a API aceita 1 req/s e
-cada combinação de parâmetros é uma requisição — a MSC completa de um ente
-num ano são 312. Chaves de recorte (ausente ou ``null`` = sem filtro):
+Endpoints: ``/anexos-relatorios``, ``/entes``, ``/extrato_entregas``, ``/rreo``,
+``/rgf``, ``/dca`` e ``/msc_orcamentaria`` (classes 5 e 6). ``/msc_patrimonial``
+e ``/msc_controle`` continuam suportados, desligados por padrão.
 
-- ``fact_endpoints``: quais de ``rreo``, ``rgf``, ``dca`` e ``msc_*`` buscar;
-- ``rgf_poderes``: E, L, J, M, D;
-- ``msc_months``, ``msc_classes``, ``msc_value_types``, ``msc_matrix_types``.
+O que se extrai não está no código: vem da Variable
+``siconfi_extracao_config``, com precedência
+``dag_run.conf > Variable > padrões`` — ver ``siconfi_config`` e o README desta
+pasta. Exemplo de backfill pontual pelo ``dag_run.conf``::
 
-Exemplo — o saldo final de dezembro da execução orçamentária, mais o DCA::
+    {"global": {"incluir_cod_ibge": [32]},
+     "endpoints": {"dca": {"ano_inicio": 2017, "ano_fim": 2024}}}
 
-    {"start_year": 2019, "end_year": 2025,
-     "fact_endpoints": ["msc_orcamentaria", "dca"],
-     "msc_months": [12], "msc_classes": [6],
-     "msc_value_types": ["ending_balance"], "msc_matrix_types": ["MSCC"]}
+O extrato de entregas decide o que se busca de cada ente e ano: RREO normal
+ou simplificado, RGF quadrimestral ou semestral e de quais poderes, meses de
+MSC entregues, DCA entregue ou não. Sem ele a DAG montaria combinações que a
+API responde com lista vazia, sem erro.
 
-O recorte vale também para o que já está na fila: estreitá-lo para de buscar o
-que ficou de fora, sem apagar nada. Cada task de ingestão trabalha até
-``max_run_minutes`` e devolve à fila o que não processou.
+O extrato dos últimos ``rebusca_anos`` exercícios volta à fila a cada
+``rebusca_dias``: é assim que uma retificação chega, porque o demonstrativo só
+é rebuscado quando a linha dele no extrato muda.
 """
 
-from __future__ import annotations
-
+import json
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Iterable, Iterator
 
 from airflow.sdk import Variable, dag, get_current_context, task
 
 from cliente_siconfi import (
+    ESFERAS,
     FACT_ENDPOINTS,
+    REFERENCE_ENDPOINTS,
     PlanScope,
     SiconfiClient,
-    SiconfiPermanentError,
-    SiconfiRetryableError,
-    work_units,
+    SiconfiPage,
+    SiconfiParametroInvalido,
+    SiconfiRequestError,
+    esfera_do_ente,
+    plan_units,
+    validate_params,
 )
 from postgres_helpers import get_postgres_conn
 from schedule_loader import get_dynamic_schedule
-from siconfi_storage import CLAIM_LEASE_MINUTES, SiconfiStorage
+from siconfi_config import (
+    STATUS_PARTICAO,
+    VARIABLE_NAME,
+    carregar,
+    config_da_chave,
+    validar_anexos,
+)
+from siconfi_storage import QUEUE_STATUS, SiconfiStorage, classify_outcome
 
-logger = logging.getLogger(__name__)
-
-# Não há pool do Airflow aqui de propósito: o contrato de 1 req/s é garantido
-# pelo SiconfiRateLimiter, que coordena via PostgreSQL e por isso vale entre
-# tasks, workers e DAGs. Um pool seria redundante — e, se não existisse na
-# instância, o scheduler deixaria as tasks em `scheduled` para sempre, sem log.
-_DEFAULT_CONFIG: dict[str, Any] = {
-    "start_year": datetime.now().year,
-    "end_year": datetime.now().year,
-    "entity_ids": [],
-    "page_limit": 5000,
-    # O limite real de cada task é o tempo; este teto só evita reservar demais.
-    "max_work_units_per_run": 2000,
-    "max_run_minutes": 45,
-    "reference_refresh_hours": 168,
-    # Linhas do extrato lidas por execução do planejamento, a partir de onde
-    # a anterior parou.
-    "max_manifest_rows_for_planning": 100000,
-    "fact_endpoints": None,
-    "rgf_poderes": None,
-    "msc_months": None,
-    "msc_classes": None,
-    "msc_value_types": None,
-    "msc_matrix_types": None,
+default_args = {
+    "owner": "Wallyson Souza",
+    "retries": 2,
+    "retry_delay": timedelta(minutes=10),
 }
-_DEFAULT_ARGS = {"owner": "MinC", "retries": 2, "retry_delay": timedelta(minutes=10)}
+
+# Não há pool do Airflow aqui de propósito: o intervalo entre chamadas e o
+# teto de chamadas simultâneas são garantidos pelo SiconfiRateLimiter, que
+# coordena via PostgreSQL e por isso vale entre tasks, workers e DAGs. Um pool
+# seria redundante — e, se não existisse na instância, o scheduler deixaria as
+# tasks em `scheduled` para sempre, sem log.
+
 # Unidades de trabalho acumuladas antes de cada gravação em lote no planejamento.
 _PLAN_FLUSH_SIZE = 5000
-# Linhas do extrato lidas do banco de cada vez no planejamento.
-_PLAN_READ_BATCH = 10000
+# Extratos (um por ente e ano) lidos do banco de cada vez no planejamento.
+_PLAN_READ_BATCH = 500
 
 
-def _config() -> dict[str, Any]:
-    configured = Variable.get("siconfi_config", default={}, deserialize_json=True)
-    config = {**_DEFAULT_CONFIG, **configured}
-    if int(config["start_year"]) > int(config["end_year"]):
-        raise ValueError("siconfi_config: start_year não pode ser maior que end_year")
-    if int(config["page_limit"]) < 1 or int(config["max_work_units_per_run"]) < 1:
-        raise ValueError(
-            "siconfi_config: page_limit e max_work_units_per_run devem ser positivos"
-        )
-    if not 0 < float(config["max_run_minutes"]) < CLAIM_LEASE_MINUTES:
-        raise ValueError(
-            f"siconfi_config: max_run_minutes deve ficar entre 0 e {CLAIM_LEASE_MINUTES}"
-        )
-    PlanScope.from_config(config)  # valida as chaves de recorte
-    return config
+class _ContaPaginas:
+    """Repassa as páginas de uma busca contando quantas vieram."""
+
+    def __init__(self, pages: Iterable[SiconfiPage]) -> None:
+        self._pages = pages
+        self.total = 0
+
+    def __iter__(self) -> Iterator[SiconfiPage]:
+        for page in self._pages:
+            self.total += 1
+            yield page
 
 
 def _run_id() -> str:
@@ -102,138 +95,337 @@ def _storage(conn_str: str) -> SiconfiStorage:
     return storage
 
 
-def _refresh_reference(
+def _carregar_configuracao(
+    conn_str: str, variable: Any, conf: Any, run_id: str
+) -> dict[str, Any]:
+    config = carregar(variable, conf, ano_corrente=datetime.now().year)
+    _storage(conn_str).save_run_config(run_id, config, variable, conf or None)
+    logging.info(
+        "[siconfi_ingestion_dag.py] configuração efetiva "
+        "(Variable %s, dag_run.conf %s): %s",
+        "presente" if variable is not None else "ausente, padrões do código",
+        "presente" if conf else "ausente",
+        json.dumps(config, ensure_ascii=False, sort_keys=True),
+    )
+    return config
+
+
+def _entes_do_recorte(
+    storage: SiconfiStorage, config: dict[str, Any]
+) -> tuple[dict[int, str], frozenset[int] | None]:
+    """Entes selecionados (``cod_ibge → esfera``) e o filtro que vai para o claim.
+
+    O filtro é ``None`` quando o recorte pega todos os entes: não há por que
+    mandar 5.598 códigos para cada claim.
+    """
+    entes = storage.ente_esferas()
+    if not entes:
+        raise ValueError(
+            "/entes ainda não foi carregado; ative endpoints.entes em "
+            f"{VARIABLE_NAME} e rode de novo"
+        )
+    glob = config["global"]
+    incluir = set(glob["incluir_cod_ibge"])
+    excluir = set(glob["excluir_cod_ibge"])
+    desconhecidos = sorted(incluir - entes.keys())
+    if desconhecidos:
+        raise ValueError(
+            f"{VARIABLE_NAME}.global.incluir_cod_ibge: {desconhecidos} "
+            "não estão em /entes"
+        )
+    selecionados = {
+        cod: esfera
+        for cod, esfera in entes.items()
+        if esfera in glob["esferas"]
+        and (not incluir or cod in incluir)
+        and cod not in excluir
+    }
+    if not selecionados:
+        raise ValueError(
+            f"{VARIABLE_NAME}.global: esferas, incluir_cod_ibge e excluir_cod_ibge "
+            "não deixam nenhum ente"
+        )
+    restrito = bool(incluir or excluir) or set(glob["esferas"]) != set(ESFERAS)
+    return selecionados, frozenset(selecionados) if restrito else None
+
+
+def _reprocessar(
+    storage: SiconfiStorage,
+    config: dict[str, Any],
+    scope: PlanScope,
+    endpoints: Iterable[str],
+) -> dict[str, int]:
+    statuses = config["global"]["reprocessar"]
+    if not statuses:
+        return {}
+    devolvidas = {
+        endpoint: storage.requeue_status(endpoint, statuses, scope.constraints(endpoint))
+        for endpoint in endpoints
+        if scope.enabled(endpoint)
+    }
+    logging.info(
+        "[siconfi_ingestion_dag.py] reprocessamento de %s: %s", statuses, devolvidas
+    )
+    return devolvidas
+
+
+def _atualizar_referencias(
     conn_str: str, config: dict[str, Any], run_id: str
 ) -> dict[str, int]:
     storage = _storage(conn_str)
-    client = SiconfiClient(conn_str, page_limit=int(config["page_limit"]))
+    client = SiconfiClient.from_config(conn_str, config)
     result: dict[str, int] = {}
     try:
-        for endpoint in ("anexos-relatorios", "entes"):
-            if not storage.reference_due(
-                endpoint, int(config["reference_refresh_hours"])
+        for endpoint in REFERENCE_ENDPOINTS:
+            cfg = config_da_chave(config, endpoint)
+            if not cfg["ativo"] or not storage.reference_due(
+                endpoint, int(cfg["recarga_horas"])
             ):
                 result[endpoint] = 0
                 continue
-            result[endpoint] = sum(
-                storage.persist_page(page, run_id)
-                for page in client.iter_pages(endpoint, {})
+            pages = _ContaPaginas(client.iter_pages(endpoint, {}))
+            try:
+                rows = storage.persist_fetch(endpoint, {}, pages, run_id)
+            except SiconfiRequestError as exc:
+                storage.log_partition(
+                    run_id, endpoint, {}, "erro", page_count=pages.total, error=str(exc)
+                )
+                raise
+            # Tabela de referência vazia nunca é normal: sem /entes não há
+            # recorte, sem /anexos-relatorios não há validação de no_anexo.
+            status = "sucesso_com_dados" if rows else "vazio_inesperado"
+            storage.log_partition(
+                run_id,
+                endpoint,
+                {},
+                status,
+                esperado=True,
+                item_count=rows,
+                page_count=pages.total,
             )
+            if not rows:
+                raise RuntimeError(f"/{endpoint} respondeu sem nenhum item")
             storage.mark_reference_refreshed(endpoint)
+            result[endpoint] = rows
     finally:
         client.close()
     return result
 
 
-def _plan_extrato(conn_str: str, config: dict[str, Any]) -> int:
+def _montar_particoes_extrato(conn_str: str, config: dict[str, Any]) -> dict[str, int]:
+    endpoint = "extrato_entregas"
     storage = _storage(conn_str)
-    entity_ids = [int(value) for value in config["entity_ids"]] or storage.entity_ids()
-    if not entity_ids:
-        raise ValueError(
-            "Nenhum ente disponível; aguarde a carga de /entes " "ou configure entity_ids"
-        )
-    years = range(int(config["start_year"]), int(config["end_year"]) + 1)
+    entes, filtro = _entes_do_recorte(storage, config)
+    scope = PlanScope(config, filtro)
+    if not scope.enabled(endpoint):
+        logging.info("[siconfi_ingestion_dag.py] extrato_entregas desligado")
+        return {}
+    years = scope.years(endpoint)
     created = storage.enqueue_many(
-        "extrato_entregas",
+        endpoint,
         (
-            ({"id_ente": entity_id, "an_referencia": year}, None)
-            for entity_id in entity_ids
+            ({"id_ente": ente, "an_referencia": year}, None, None)
+            for ente in sorted(entes)
             for year in years
         ),
     )
-    logger.info(
-        "[siconfi] %s unidades de extrato novas, %s entes", created, len(entity_ids)
+    # Uma retificação só chega se o extrato for buscado de novo. Volta para a
+    # fila o extrato dos exercícios recentes, que é onde entrega e retificação
+    # ainda acontecem; o planejamento dos fatos compara o revision_marker e só
+    # põe de volta na fila o demonstrativo que de fato mudou.
+    cfg = scope.cfg(endpoint)
+    refresh_years = int(cfg["rebusca_anos"])
+    min_year = max(years.start, datetime.now().year - refresh_years + 1)
+    requeued = 0
+    if refresh_years and min_year < years.stop:
+        requeued = storage.requeue_stale(
+            endpoint,
+            "an_referencia",
+            min_year=min_year,
+            max_year=years.stop - 1,
+            older_than_days=int(cfg["rebusca_dias"]),
+            entity_ids=filtro,
+        )
+    reprocessed = _reprocessar(storage, config, scope, [endpoint]).get(endpoint, 0)
+    logging.info(
+        "[siconfi_ingestion_dag.py] extrato: %s partições novas, %s devolvidas para "
+        "rebusca, %s reprocessadas; %s entes × %s–%s",
+        created,
+        requeued,
+        reprocessed,
+        len(entes),
+        years.start,
+        years.stop - 1,
     )
-    return created
+    return {"novas": created, "rebusca": requeued, "reprocessadas": reprocessed}
 
 
-def _plan_facts(conn_str: str, config: dict[str, Any]) -> dict[str, int]:
-    scope = PlanScope.from_config(config)
-    storage = _storage(conn_str)
-    created = {endpoint: 0 for endpoint in FACT_ENDPOINTS}
-    # As unidades vão para o banco em lotes: um extrato nacional completo
-    # planeja centenas de milhares delas, e uma conexão por unidade fazia
-    # esta task nunca terminar contra um Postgres remoto.
-    buffers: dict[str, list[tuple[dict[str, Any], str | None]]] = {
-        endpoint: [] for endpoint in FACT_ENDPOINTS
-    }
+class _FilaEmLotes:
+    """Acumula as partições planejadas e grava na fila em lotes.
 
-    def flush(endpoint: str) -> None:
-        if buffers[endpoint]:
-            created[endpoint] += storage.enqueue_many(endpoint, buffers[endpoint])
-            buffers[endpoint].clear()
+    Um extrato nacional completo planeja centenas de milhares de partições, e
+    uma conexão por partição fazia o planejamento nunca terminar contra um
+    Postgres remoto.
+    """
 
-    # O extrato é lido a partir de onde a execução anterior parou. Antes, só
-    # as 100 mil linhas mais recentes eram lidas, e num backfill nacional a
-    # maior parte do extrato nunca era planejada. Mudar o recorte zera a marca
-    # e relê tudo.
+    def __init__(self, storage: SiconfiStorage) -> None:
+        self.storage = storage
+        self.created = dict.fromkeys(FACT_ENDPOINTS, 0)
+        self._buffers: dict[str, list[tuple[dict[str, Any], str, bool]]] = {
+            endpoint: [] for endpoint in FACT_ENDPOINTS
+        }
+
+    def add(self, endpoint: str, unit: tuple[dict[str, Any], str, bool]) -> None:
+        self._buffers[endpoint].append(unit)
+        if len(self._buffers[endpoint]) >= _PLAN_FLUSH_SIZE:
+            self._flush(endpoint)
+
+    def flush(self) -> None:
+        for endpoint in FACT_ENDPOINTS:
+            self._flush(endpoint)
+
+    def _flush(self, endpoint: str) -> None:
+        if self._buffers[endpoint]:
+            self.created[endpoint] += self.storage.enqueue_many(
+                endpoint, self._buffers[endpoint]
+            )
+            self._buffers[endpoint].clear()
+
+
+def _planejar_do_extrato(
+    storage: SiconfiStorage,
+    scope: PlanScope,
+    entes: dict[int, str],
+    budget: int,
+) -> tuple[dict[str, int], int]:
+    """Lê o extrato de cada ente e ano de onde a execução anterior parou.
+
+    Mudar o recorte zera o cursor e relê tudo — sem rebuscar nada, porque o
+    que não mudou mantém o revision_marker.
+    """
+    fila = _FilaEmLotes(storage)
     fingerprint = scope.fingerprint()
-    after = storage.plan_watermark("extrato_entregas", fingerprint)
-    budget = int(config["max_manifest_rows_for_planning"])
+    cursor = storage.plan_cursor("extrato_entregas", fingerprint)
     read = 0
     while read < budget:
-        batch = storage.payloads_since(
-            "extrato_entregas", after, min(_PLAN_READ_BATCH, budget - read)
+        batch = storage.extrato_fetches_since(
+            cursor, min(_PLAN_READ_BATCH, budget - read)
         )
         if not batch:
             break
-        for _, item in batch:
-            for endpoint, params, revision in work_units(item):
-                if scope.allows(endpoint, params):
-                    buffers[endpoint].append((params, revision))
-                    if len(buffers[endpoint]) >= _PLAN_FLUSH_SIZE:
-                        flush(endpoint)
-        for endpoint in FACT_ENDPOINTS:
-            flush(endpoint)
-        after = batch[-1][0]
-        storage.save_plan_watermark("extrato_entregas", after, fingerprint)
+        for _, _, params, items in batch:
+            ente = int(params["id_ente"])
+            if scope.entes is not None and ente not in scope.entes:
+                continue
+            esfera = entes.get(ente) or esfera_do_ente(ente)
+            for endpoint, unit_params, revision, esperado in plan_units(
+                items, esfera, scope
+            ):
+                fila.add(endpoint, (unit_params, revision, esperado))
+        fila.flush()
+        cursor = (batch[-1][0], batch[-1][1])
+        storage.save_plan_cursor("extrato_entregas", *cursor, fingerprint)
         read += len(batch)
-    logger.info("[siconfi] %s linhas do extrato lidas; unidades novas: %s", read, created)
-    return created
+    return fila.created, read
 
 
-def _ingest_work(
+def _montar_particoes_fatos(conn_str: str, config: dict[str, Any]) -> dict[str, int]:
+    storage = _storage(conn_str)
+    entes, filtro = _entes_do_recorte(storage, config)
+    scope = PlanScope(config, filtro)
+    if not any(scope.enabled(endpoint) for endpoint in FACT_ENDPOINTS):
+        logging.info("[siconfi_ingestion_dag.py] nenhum demonstrativo ligado")
+        return {}
+    erros = validar_anexos(config, storage.latest_items("anexos-relatorios"))
+    if erros:
+        raise ValueError(
+            f"Configuração SICONFI inválida ({VARIABLE_NAME} / dag_run.conf):\n- "
+            + "\n- ".join(erros)
+        )
+    created, read = _planejar_do_extrato(
+        storage, scope, entes, int(config["global"]["max_extratos_por_planejamento"])
+    )
+    reprocessed = _reprocessar(storage, config, scope, FACT_ENDPOINTS)
+    logging.info(
+        "[siconfi_ingestion_dag.py] %s extratos lidos; partições novas: %s; "
+        "reprocessadas: %s",
+        read,
+        created,
+        reprocessed,
+    )
+    return {**created, "extratos_lidos": read, "reprocessadas": sum(reprocessed.values())}
+
+
+def _ingerir(
     endpoint: str, conn_str: str, config: dict[str, Any], run_id: str
 ) -> dict[str, int]:
-    scope = PlanScope.from_config(config)
     summary = dict.fromkeys(
-        ("claimed", "success", "no_data", "retry", "permanent_error", "released", "rows"),
-        0,
+        ("reservadas", *STATUS_PARTICAO, "devolvidas", "linhas", "paginas"), 0
     )
-    if not scope.enabled(endpoint):
-        logger.info("[siconfi] %s fora de fact_endpoints; nada a fazer", endpoint)
-        return summary
     storage = _storage(conn_str)
+    _, filtro = _entes_do_recorte(storage, config)
+    scope = PlanScope(config, filtro)
+    if not scope.enabled(endpoint):
+        logging.info("[siconfi_ingestion_dag.py] %s desligado; nada a fazer", endpoint)
+        return summary
+    glob = config["global"]
     claimed = storage.claim(
         endpoint,
-        int(config["max_work_units_per_run"]),
+        int(glob["max_particoes_por_execucao"]),
         run_id,
         param_filter=scope.constraints(endpoint),
     )
-    summary["claimed"] = len(claimed)
-    deadline = time.monotonic() + 60 * float(config["max_run_minutes"])
+    summary["reservadas"] = len(claimed)
+    max_tentativas = int(glob["max_tentativas_por_particao"])
+    deadline = time.monotonic() + 60 * float(glob["max_minutos_por_execucao"])
     done = 0
-    client = SiconfiClient(conn_str, page_limit=int(config["page_limit"]))
+    client = SiconfiClient.from_config(conn_str, config)
     try:
         for unit in claimed:
             if time.monotonic() >= deadline:
                 break
+            params = unit["params"]
+            pages = _ContaPaginas(())
+            rows, failure = 0, None
             try:
-                rows = sum(
-                    storage.persist_page(page, run_id)
-                    for page in client.iter_pages(endpoint, unit["params"])
-                )
-                status, error = ("success" if rows else "no_data"), None
-                summary["rows"] += rows
-            except SiconfiRetryableError as exc:
-                status, error = "retry", str(exc)
-                logger.warning("[siconfi] %s será repetido: %s", endpoint, exc)
-            except SiconfiPermanentError as exc:
-                status = "no_data" if exc.status_code == 404 else "permanent_error"
-                error = str(exc)
-                logger.warning("[siconfi] %s não recuperável: %s", endpoint, exc)
-            storage.complete(endpoint, unit["work_key"], status, error)
-            summary[status] += 1
+                # Antes do persist_fetch, para não abrir uma busca que nunca
+                # terminaria.
+                validate_params(endpoint, params)
+                pages = _ContaPaginas(client.iter_pages(endpoint, params))
+                rows = storage.persist_fetch(endpoint, params, pages, run_id)
+            except (SiconfiParametroInvalido, SiconfiRequestError) as exc:
+                failure = exc
+            status = classify_outcome(
+                rows, unit["esperado"], failure, unit["attempts"], max_tentativas
+            )
+            error = str(failure) if failure else None
+            storage.complete(
+                endpoint,
+                unit["work_key"],
+                status,
+                error,
+                run_id=run_id,
+                item_count=rows,
+                page_count=pages.total,
+            )
+            log_status = QUEUE_STATUS[status]
+            logging.log(
+                (
+                    logging.INFO
+                    if log_status in ("sucesso_com_dados", "vazio_esperado")
+                    else logging.WARNING
+                ),
+                "[siconfi_ingestion_dag.py] %s %s: %s (%s linhas, %s páginas)%s",
+                endpoint,
+                json.dumps(params, ensure_ascii=False, sort_keys=True),
+                log_status,
+                rows,
+                pages.total,
+                f" — {error}" if error else "",
+            )
+            summary[log_status] += 1
+            summary["linhas"] += rows
+            summary["paginas"] += pages.total
             done += 1
     finally:
         client.close()
@@ -241,8 +433,8 @@ def _ingest_work(
         # volta para a fila agora, não quando o lease vencer.
         remaining = [unit["work_key"] for unit in claimed[done:]]
         storage.release(endpoint, remaining, run_id)
-        summary["released"] = len(remaining)
-    logger.info("[siconfi] %s: %s", endpoint, summary)
+        summary["devolvidas"] = len(remaining)
+    logging.info("[siconfi_ingestion_dag.py] %s: %s", endpoint, summary)
     return summary
 
 
@@ -252,35 +444,77 @@ def _ingest_work(
     start_date=datetime(2026, 1, 1),
     catchup=False,
     max_active_runs=1,
-    default_args=_DEFAULT_ARGS,
+    default_args=default_args,
     tags=["minc", "siconfi", "tesouro", "raw", "bronze"],
+    doc_md=__doc__,
 )
 def siconfi_ingestion_dag() -> None:
-    @task
-    def refresh_reference_data() -> dict[str, int]:
-        return _refresh_reference(get_postgres_conn(), _config(), _run_id())
+    """DAG de ingestão da API pública SICONFI (Tesouro Nacional).
+
+    Fluxo:
+
+    1. ``carregar_configuracao`` -- lê a Variable e o ``dag_run.conf``,
+       valida e grava a configuração efetiva em
+       ``siconfi_control.run_config``. Nada é chamado antes disso.
+    2. ``atualizar_referencias`` -- recarrega ``/anexos-relatorios`` e
+       ``/entes`` quando a última carga tem mais de ``recarga_horas``.
+    3. ``montar_particoes_extrato`` -- enfileira uma partição por ente x ano
+       em ``siconfi_control.work_queue`` e devolve à fila o extrato recente.
+    4. ``ingerir_extrato_entregas`` -- consome a fila do extrato.
+    5. ``montar_particoes_fatos`` -- lê o extrato de cada ente e ano a partir
+       de onde a execução anterior parou e enfileira o que foi entregue.
+    6. ``ingerir_<endpoint>`` -- uma task por demonstrativo, em paralelo.
+
+    Toda página recebida vai para ``siconfi_bronze``, marcada com o
+    ``fetch_id`` da busca; quem lê a Bronze usa só a busca completa mais
+    recente de cada consulta (ver ``siconfi_storage``). Cada partição
+    processada fica em ``siconfi_control.partition_log`` com o status
+    ``sucesso_com_dados``, ``vazio_esperado``, ``vazio_inesperado`` ou
+    ``erro``.
+
+    Toda a lógica de HTTP, de limite de requisições e de montagem das
+    consultas fica em ``cliente_siconfi``; a de configuração em
+    ``siconfi_config``; a de fila e persistência em ``siconfi_storage``.
+    Esta DAG só orquestra.
+    """
 
     @task
-    def plan_extrato() -> int:
-        return _plan_extrato(get_postgres_conn(), _config())
+    def carregar_configuracao() -> dict[str, Any]:
+        # A Variable é lida aqui, e não no topo do arquivo, para não virar uma
+        # consulta ao banco a cada parse do scheduler.
+        context = get_current_context()
+        conf = dict(context["dag_run"].conf or {})
+        variable = Variable.get(VARIABLE_NAME, default=None, deserialize_json=True)
+        return _carregar_configuracao(get_postgres_conn(), variable, conf, _run_id())
 
     @task
-    def plan_facts() -> dict[str, int]:
-        return _plan_facts(get_postgres_conn(), _config())
+    def atualizar_referencias(config: dict[str, Any]) -> dict[str, int]:
+        return _atualizar_referencias(get_postgres_conn(), config, _run_id())
 
     @task
-    def ingest(endpoint: str) -> dict[str, int]:
-        return _ingest_work(endpoint, get_postgres_conn(), _config(), _run_id())
+    def montar_particoes_extrato(config: dict[str, Any]) -> dict[str, int]:
+        return _montar_particoes_extrato(get_postgres_conn(), config)
 
-    planned_facts = plan_facts()
+    @task
+    def montar_particoes_fatos(config: dict[str, Any]) -> dict[str, int]:
+        return _montar_particoes_fatos(get_postgres_conn(), config)
+
+    @task
+    def ingerir(endpoint: str, config: dict[str, Any]) -> dict[str, int]:
+        return _ingerir(endpoint, get_postgres_conn(), config, _run_id())
+
+    config = carregar_configuracao()
+    planned_facts = montar_particoes_fatos(config)
     (
-        refresh_reference_data()
-        >> plan_extrato()
-        >> ingest.override(task_id="ingest_extrato")("extrato_entregas")
+        atualizar_referencias(config)
+        >> montar_particoes_extrato(config)
+        >> ingerir.override(task_id="ingerir_extrato_entregas")(
+            "extrato_entregas", config
+        )
         >> planned_facts
     )
     for endpoint in FACT_ENDPOINTS:
-        planned_facts >> ingest.override(task_id=f"ingest_{endpoint}")(endpoint)
+        planned_facts >> ingerir.override(task_id=f"ingerir_{endpoint}")(endpoint, config)
 
 
 siconfi_ingestion_dag()
