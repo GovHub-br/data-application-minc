@@ -10,10 +10,16 @@ num ano são 312. Chaves de recorte (ausente ou ``null`` = sem filtro):
 - ``rgf_poderes``: E, L, J, M, D;
 - ``msc_months``, ``msc_classes``, ``msc_value_types``, ``msc_matrix_types``.
 
+A DCA tem intervalo de anos próprio, ``dca_start_year`` e ``dca_end_year``, e sem
+ele fica desligada. Ela não vem do extrato: é planejada direto, uma requisição por
+ente e exercício (a API só tem DCA a partir de 2013, e o balanço de um exercício
+só existe no ano seguinte). Isso evita buscar o extrato de cada ano antigo.
+
 Exemplo — o saldo final de dezembro da execução orçamentária, mais o DCA::
 
     {"start_year": 2019, "end_year": 2025,
      "fact_endpoints": ["msc_orcamentaria", "dca"],
+     "dca_start_year": 2014, "dca_end_year": 2025,
      "msc_months": [12], "msc_classes": [6],
      "msc_value_types": ["ending_balance"], "msc_matrix_types": ["MSCC"]}
 
@@ -62,6 +68,8 @@ _DEFAULT_CONFIG: dict[str, Any] = {
     # a anterior parou.
     "max_manifest_rows_for_planning": 100000,
     "fact_endpoints": None,
+    "dca_start_year": None,
+    "dca_end_year": None,
     "rgf_poderes": None,
     "msc_months": None,
     "msc_classes": None,
@@ -147,10 +155,31 @@ def _plan_extrato(conn_str: str, config: dict[str, Any]) -> int:
     return created
 
 
+def _plan_dca(storage: SiconfiStorage, scope: PlanScope, config: dict[str, Any]) -> int:
+    """Enfileira a DCA por ente e exercício, sem consultar o extrato."""
+    if not scope.enabled("dca"):
+        return 0
+    entity_ids = [int(value) for value in config["entity_ids"]] or storage.entity_ids()
+    if not entity_ids:
+        raise ValueError(
+            "Nenhum ente disponível; aguarde a carga de /entes ou configure entity_ids"
+        )
+    created = storage.enqueue_many("dca", scope.dca_units(entity_ids))
+    logger.info(
+        "[siconfi] %s unidades de dca novas, %s entes, exercícios %s a %s",
+        created,
+        len(entity_ids),
+        scope.dca_start_year,
+        scope.dca_end_year,
+    )
+    return created
+
+
 def _plan_facts(conn_str: str, config: dict[str, Any]) -> dict[str, int]:
     scope = PlanScope.from_config(config)
     storage = _storage(conn_str)
     created = {endpoint: 0 for endpoint in FACT_ENDPOINTS}
+    created["dca"] = _plan_dca(storage, scope, config)
     # As unidades vão para o banco em lotes: um extrato nacional completo
     # planeja centenas de milhares delas, e uma conexão por unidade fazia
     # esta task nunca terminar contra um Postgres remoto.
@@ -201,7 +230,7 @@ def _ingest_work(
         0,
     )
     if not scope.enabled(endpoint):
-        logger.info("[siconfi] %s fora de fact_endpoints; nada a fazer", endpoint)
+        logger.info("[siconfi] %s fora do recorte; nada a fazer", endpoint)
         return summary
     storage = _storage(conn_str)
     claimed = storage.claim(

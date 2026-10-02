@@ -15,7 +15,7 @@ import time
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterator, Mapping
+from typing import Any, Callable, Iterable, Iterator, Mapping
 
 import httpx
 import psycopg2
@@ -406,8 +406,9 @@ def work_units(item: dict[str, Any]) -> list[WorkUnit]:
             )
             for co_poder in ((poder,) if poder else _PODERES)
         ]
-    if kind == "dca":
-        return [("dca", {"id_ente": entity, "an_exercicio": year}, revision)]
+    # A DCA não sai do extrato: é anual e fechada, e a API a entrega por ente e
+    # exercício. Ela é planejada direto por ``PlanScope.dca_units``, o que evita
+    # buscar o extrato de cada ano só para descobrir uma unidade que já se conhece.
     if kind == "msc" and period is not None:
         closing = periodicity == "A" or "ENCERRAMENTO" in _normalise_text(
             item.get("entregavel")
@@ -441,6 +442,11 @@ def _optional_set(
     return None if value is None else frozenset(cast(v) for v in value)
 
 
+def _optional_int(config: Mapping[str, Any], key: str) -> int | None:
+    value = config.get(key)
+    return None if value is None else int(value)
+
+
 @dataclass(frozen=True)
 class PlanScope:
     """O que entra na fila e o que sai dela. ``None`` num campo = sem filtro.
@@ -448,6 +454,10 @@ class PlanScope:
     A mesma regra vale no planejamento (``allows``) e no claim
     (``constraints``): estreitar o recorte depois que a fila já foi montada
     também para de buscar o que ficou de fora.
+
+    A DCA é exceção: tem intervalo de anos próprio (``dca_start_year`` e
+    ``dca_end_year``) e, sem ele, fica desligada. O balanço de um exercício só
+    existe no ano seguinte, então o ano corrente não tem DCA para buscar.
     """
 
     start_year: int
@@ -458,12 +468,16 @@ class PlanScope:
     msc_classes: frozenset[int] | None = None
     msc_value_types: frozenset[str] | None = None
     msc_matrix_types: frozenset[str] | None = None
+    dca_start_year: int | None = None
+    dca_end_year: int | None = None
 
     @classmethod
     def from_config(cls, config: Mapping[str, Any]) -> PlanScope:
         scope = cls(
             start_year=int(config["start_year"]),
             end_year=int(config["end_year"]),
+            dca_start_year=_optional_int(config, "dca_start_year"),
+            dca_end_year=_optional_int(config, "dca_end_year"),
             endpoints=_optional_set(config, "fact_endpoints", str),
             rgf_poderes=_optional_set(config, "rgf_poderes", lambda v: str(v).upper()),
             msc_months=_optional_set(config, "msc_months", int),
@@ -482,9 +496,43 @@ class PlanScope:
             unknown = sorted((value or frozenset()) - set(valid))
             if unknown:
                 raise ValueError(f"siconfi_config: {name} inválido: {unknown}")
+        if (scope.dca_start_year is None) != (scope.dca_end_year is None):
+            raise ValueError(
+                "siconfi_config: dca_start_year e dca_end_year devem vir juntos"
+            )
+        if (
+            scope.dca_start_year is not None
+            and scope.dca_end_year is not None
+            and scope.dca_start_year > scope.dca_end_year
+        ):
+            raise ValueError(
+                "siconfi_config: dca_start_year não pode ser maior que dca_end_year"
+            )
         return scope
 
+    def dca_years(self) -> range:
+        """Exercícios de DCA a buscar; vazio quando o intervalo não foi configurado."""
+        if self.dca_start_year is None or self.dca_end_year is None:
+            return range(0)
+        return range(self.dca_start_year, self.dca_end_year + 1)
+
+    def dca_units(
+        self, entity_ids: Iterable[int]
+    ) -> Iterator[tuple[dict[str, Any], str | None]]:
+        """Uma unidade de DCA por ente e exercício, sem passar pelo extrato.
+
+        Sem marcador de revisão: a DCA entregue não é reenfileirada. Quem não
+        entregou volta vazio e a unidade termina como ``no_data``.
+        """
+        if not self.enabled("dca"):
+            return
+        for entity_id in entity_ids:
+            for year in self.dca_years():
+                yield {"id_ente": int(entity_id), "an_exercicio": year}, None
+
     def enabled(self, endpoint: str) -> bool:
+        if endpoint == "dca" and not self.dca_years():
+            return False
         return endpoint not in FACT_ENDPOINTS or (
             self.endpoints is None or endpoint in self.endpoints
         )
@@ -494,9 +542,12 @@ class PlanScope:
         year_key = (
             "an_exercicio" if endpoint in ("rreo", "rgf", "dca") else "an_referencia"
         )
-        allowed: dict[str, frozenset | None] = {
-            year_key: frozenset(range(self.start_year, self.end_year + 1))
-        }
+        years = (
+            self.dca_years()
+            if endpoint == "dca"
+            else range(self.start_year, self.end_year + 1)
+        )
+        allowed: dict[str, frozenset | None] = {year_key: frozenset(years)}
         if endpoint == "rgf":
             allowed["co_poder"] = self.rgf_poderes
         if endpoint.startswith("msc_"):
@@ -513,9 +564,14 @@ class PlanScope:
         )
 
     def fingerprint(self) -> str:
-        """Muda quando o recorte muda — e aí o planejamento relê o extrato."""
+        """Muda quando o recorte muda — e aí o planejamento relê o extrato.
+
+        Os anos da DCA ficam de fora: ela não vem do extrato, então mudá-los não
+        justifica reler as centenas de milhares de linhas dele.
+        """
         state = {
             name: sorted(value) if isinstance(value, frozenset) else value
             for name, value in vars(self).items()
+            if not name.startswith("dca_")
         }
         return hashlib.sha256(json.dumps(state, sort_keys=True).encode()).hexdigest()[:16]

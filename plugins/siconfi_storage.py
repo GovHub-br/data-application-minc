@@ -1,4 +1,8 @@
-"""Persistência Bronze e controle retomável da ingestão SICONFI."""
+"""Persistência Bronze e controle retomável da ingestão SICONFI.
+
+Uma tabela de páginas cruas por endpoint (``raw_pages_<endpoint>``). Os itens são
+expandidos em ``<endpoint>_items`` só onde ainda não há estruturação no dbt — ver
+``PAGES_ONLY_ENDPOINTS``."""
 
 from __future__ import annotations
 
@@ -21,26 +25,21 @@ CLAIM_LEASE_MINUTES = 60
 VALID_ENDPOINTS = frozenset(
     {"anexos-relatorios", "entes", "extrato_entregas", *FACT_ENDPOINTS}
 )
+# Endpoints sem tabela de itens: o banco guarda só a página crua em
+# ``raw_pages_<endpoint>`` e a estruturação em colunas é feita no dbt. Uma linha
+# de item em JSONB não comprime (fica abaixo do limite do TOAST) e repete os
+# nomes de campo: a MSC orçamentária chegou a ~830 bytes por linha e 45 GB. As três
+# MSC têm as mesmas colunas e filas grandes, e a DCA (um ente por exercício, de 2013
+# em diante) também; rreo e rgf ficam com itens porque as filas deles já esvaziaram.
+PAGES_ONLY_ENDPOINTS = frozenset(
+    {"dca", "msc_patrimonial", "msc_orcamentaria", "msc_controle"}
+)
 _BRONZE = sql.Identifier(BRONZE_SCHEMA)
 _CONTROL = sql.Identifier(CONTROL_SCHEMA)
 
 _DDL = [
     sql.SQL("CREATE SCHEMA IF NOT EXISTS {bronze}"),
     sql.SQL("CREATE SCHEMA IF NOT EXISTS {control}"),
-    sql.SQL("""
-        CREATE TABLE IF NOT EXISTS {bronze}.raw_pages (
-            raw_page_id BIGSERIAL PRIMARY KEY,
-            endpoint TEXT NOT NULL,
-            request_hash TEXT NOT NULL,
-            request_params JSONB NOT NULL,
-            page_offset INTEGER NOT NULL,
-            fetched_at TIMESTAMPTZ NOT NULL,
-            run_id TEXT NOT NULL,
-            response_headers JSONB NOT NULL,
-            payload JSONB NOT NULL,
-            item_count INTEGER NOT NULL
-        )
-        """),
     sql.SQL("""
         CREATE TABLE IF NOT EXISTS {control}.work_queue (
             endpoint TEXT NOT NULL,
@@ -77,10 +76,24 @@ _DDL = [
         )
         """),
 ]
+_PAGES_DDL = sql.SQL("""
+    CREATE TABLE IF NOT EXISTS {bronze}.{table} (
+        raw_page_id BIGSERIAL PRIMARY KEY,
+        endpoint TEXT NOT NULL,
+        request_hash TEXT NOT NULL,
+        request_params JSONB NOT NULL,
+        page_offset INTEGER NOT NULL,
+        fetched_at TIMESTAMPTZ NOT NULL,
+        run_id TEXT NOT NULL,
+        response_headers JSONB NOT NULL,
+        payload JSONB NOT NULL,
+        item_count INTEGER NOT NULL
+    )
+    """)
 _ITEMS_DDL = sql.SQL("""
     CREATE TABLE IF NOT EXISTS {bronze}.{table} (
         bronze_item_id BIGSERIAL PRIMARY KEY,
-        raw_page_id BIGINT NOT NULL REFERENCES {bronze}.raw_pages(raw_page_id),
+        raw_page_id BIGINT NOT NULL REFERENCES {bronze}.{pages}(raw_page_id),
         dt_ingest TIMESTAMPTZ NOT NULL,
         run_id TEXT NOT NULL,
         request_hash TEXT NOT NULL,
@@ -122,9 +135,20 @@ class SiconfiStorage:
             conn.close()
 
     @staticmethod
-    def _table(endpoint: str) -> str:
+    def _validate(endpoint: str) -> None:
         if endpoint not in VALID_ENDPOINTS:
             raise ValueError(f"endpoint SICONFI inválido: {endpoint}")
+
+    @classmethod
+    def _pages_table(cls, endpoint: str) -> str:
+        cls._validate(endpoint)
+        return f"raw_pages_{endpoint.replace('-', '_')}"
+
+    @classmethod
+    def _table(cls, endpoint: str) -> str:
+        cls._validate(endpoint)
+        if endpoint in PAGES_ONLY_ENDPOINTS:
+            raise ValueError(f"{endpoint} não tem tabela de itens; leia as páginas")
         return f"{endpoint.replace('-', '_')}_items"
 
     def ensure_tables(self) -> None:
@@ -132,9 +156,15 @@ class SiconfiStorage:
             for statement in _DDL:
                 cur.execute(statement.format(bronze=_BRONZE, control=_CONTROL))
             for endpoint in sorted(VALID_ENDPOINTS):
+                pages = sql.Identifier(self._pages_table(endpoint))
+                cur.execute(_PAGES_DDL.format(bronze=_BRONZE, table=pages))
+                if endpoint in PAGES_ONLY_ENDPOINTS:
+                    continue
                 cur.execute(
                     _ITEMS_DDL.format(
-                        bronze=_BRONZE, table=sql.Identifier(self._table(endpoint))
+                        bronze=_BRONZE,
+                        table=sql.Identifier(self._table(endpoint)),
+                        pages=pages,
                     )
                 )
 
@@ -168,12 +198,14 @@ class SiconfiStorage:
         with self._cursor() as cur:
             cur.execute(
                 sql.SQL("""
-                    INSERT INTO {}.raw_pages
+                    INSERT INTO {}.{}
                       (endpoint, request_hash, request_params, page_offset, fetched_at,
                        run_id, response_headers, payload, item_count)
                     VALUES (%s, %s, %s::jsonb, %s, %s, %s, %s::jsonb, %s::jsonb, %s)
                     RETURNING raw_page_id
-                    """).format(_BRONZE),
+                    """).format(
+                    _BRONZE, sql.Identifier(self._pages_table(page.endpoint))
+                ),
                 (
                     page.endpoint,
                     query_hash,
@@ -189,7 +221,7 @@ class SiconfiStorage:
             row = cur.fetchone()
             assert row is not None  # RETURNING sempre devolve a linha inserida
             raw_page_id = row[0]
-            if page.items:
+            if page.items and page.endpoint not in PAGES_ONLY_ENDPOINTS:
                 # execute_values manda a página em poucos comandos; o
                 # executemany do psycopg2 faz uma ida ao banco por item.
                 execute_values(
@@ -229,7 +261,7 @@ class SiconfiStorage:
         Postgres remoto. As chaves são deduplicadas porque ``ON CONFLICT DO
         UPDATE`` recusa afetar a mesma linha duas vezes no mesmo comando.
         """
-        self._table(endpoint)
+        self._validate(endpoint)
         deduped: dict[str, tuple[str, str, str | None]] = {}
         for params, revision_marker in units:
             key = request_hash(endpoint, params)
@@ -262,7 +294,7 @@ class SiconfiStorage:
         param_filter: Mapping[str, Iterable[Any]] | None = None,
     ) -> list[dict[str, Any]]:
         """Reserva até ``limit`` unidades cujos ``params`` caibam em ``param_filter``."""
-        self._table(endpoint)
+        self._validate(endpoint)
         filters = sorted((param_filter or {}).items())
         filter_sql = sql.SQL("").join(
             sql.SQL(" AND (params->>{}) = ANY(%s)").format(sql.Literal(key))
