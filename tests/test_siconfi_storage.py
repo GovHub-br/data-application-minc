@@ -1,7 +1,8 @@
 """Bronze SICONFI: uma tabela de páginas por endpoint, itens só onde ainda faltam no dbt.
 
-A MSC orçamentária chegou a 45 GB em linhas JSONB de ~830 bytes. Ela guarda só a
-página crua e é estruturada no dbt; os demais endpoints seguem com a tabela de itens.
+A MSC orçamentária chegou a 45 GB em linhas JSONB de ~830 bytes. As três MSC e a DCA
+guardam só a página crua e são estruturadas no dbt; os demais endpoints seguem com a
+tabela de itens.
 """
 
 from unittest.mock import MagicMock, patch
@@ -58,27 +59,34 @@ def test_endpoint_invalido_e_recusado() -> None:
         SiconfiStorage._pages_table("nao_existe")
 
 
-def test_orcamentaria_nao_tem_tabela_de_itens() -> None:
-    assert PAGES_ONLY_ENDPOINTS == {"msc_orcamentaria"}
+_SO_PAGINAS = ["dca", "msc_patrimonial", "msc_orcamentaria", "msc_controle"]
+
+
+@pytest.mark.parametrize("endpoint", _SO_PAGINAS)
+def test_endpoint_so_de_paginas_nao_tem_tabela_de_itens(endpoint: str) -> None:
+    assert endpoint in PAGES_ONLY_ENDPOINTS
     with pytest.raises(ValueError, match="não tem tabela de itens"):
-        SiconfiStorage._table("msc_orcamentaria")
+        SiconfiStorage._table(endpoint)
 
 
-def test_so_a_orcamentaria_perdeu_os_itens() -> None:
+def test_so_as_msc_e_a_dca_perderam_os_itens() -> None:
+    assert PAGES_ONLY_ENDPOINTS == set(_SO_PAGINAS)
     com_itens = {e for e in VALID_ENDPOINTS if e not in PAGES_ONLY_ENDPOINTS}
-    assert {"msc_patrimonial", "msc_controle", "rreo", "rgf", "dca"} <= com_itens
+    assert {"rreo", "rgf"} <= com_itens
+    # O planejamento da DAG lê estas duas direto do banco.
     assert {"entes", "extrato_entregas"} <= com_itens
     assert all(e in FACT_ENDPOINTS for e in PAGES_ONLY_ENDPOINTS)
 
 
-def test_orcamentaria_grava_a_pagina_e_nao_expande_itens() -> None:
+@pytest.mark.parametrize("endpoint", _SO_PAGINAS)
+def test_grava_a_pagina_e_nao_expande_itens(endpoint: str) -> None:
     storage, cur = _storage_com_cursor_falso()
     with patch.object(siconfi_storage, "execute_values") as execute_values:
         gravados = storage.persist_page(
-            _page("msc_orcamentaria", [{"valor": 1.5}, {"valor": 2}]), "run-1"
+            _page(endpoint, [{"valor": 1.5}, {"valor": 2}]), "run-1"
         )
     assert gravados == 2
-    assert "raw_pages_msc_orcamentaria" in repr(cur.execute.call_args.args[0])
+    assert f"raw_pages_{endpoint}" in repr(cur.execute.call_args.args[0])
     execute_values.assert_not_called()
 
 

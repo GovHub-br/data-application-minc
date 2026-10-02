@@ -90,9 +90,10 @@ def test_rgf_de_instituicao_desconhecida_consulta_os_cinco_poderes() -> None:
     assert [u[1]["co_poder"] for u in units] == ["E", "L", "J", "M", "D"]
 
 
-def test_dca() -> None:
+def test_dca_nao_sai_do_extrato() -> None:
+    # A DCA é planejada direto por ente e exercício (PlanScope.dca_units).
     item = {**_BASE, "entregavel": "Balanço Anual (DCA)", "periodicidade": "A"}
-    assert work_units(item) == [("dca", {"id_ente": 3550308, "an_exercicio": 2025}, "||")]
+    assert work_units(item) == []
 
 
 def test_msc_agregada_usa_mes_do_extrato() -> None:
@@ -132,7 +133,9 @@ def test_recorte_padrao_so_filtra_os_anos() -> None:
     scope = PlanScope.from_config(_ANOS)
     assert scope.allows("msc_patrimonial", {**_MSC_DEZ, "classe_conta": 1})
     assert not scope.allows("msc_orcamentaria", {**_MSC_DEZ, "an_referencia": 2026})
-    assert not scope.allows("dca", {"id_ente": 32, "an_exercicio": 2018})
+    # Sem intervalo próprio, a DCA fica desligada.
+    assert not scope.enabled("dca")
+    assert not scope.allows("dca", {"id_ente": 32, "an_exercicio": 2024})
 
 
 def test_recorte_do_outro_repositorio() -> None:
@@ -140,6 +143,8 @@ def test_recorte_do_outro_repositorio() -> None:
         {
             **_ANOS,
             "fact_endpoints": ["msc_orcamentaria", "dca"],
+            "dca_start_year": 2014,
+            "dca_end_year": 2025,
             "msc_months": [12],
             "msc_classes": [6],
             "msc_value_types": ["ending_balance"],
@@ -153,6 +158,7 @@ def test_recorte_do_outro_repositorio() -> None:
     assert not scope.allows("msc_orcamentaria", {**_MSC_DEZ, "co_tipo_matriz": "MSCE"})
     assert not scope.allows("msc_patrimonial", {**_MSC_DEZ, "classe_conta": 1})
     assert scope.allows("dca", {"id_ente": 32, "an_exercicio": 2024})
+    assert not scope.allows("dca", {"id_ente": 32, "an_exercicio": 2013})
     assert not scope.enabled("rreo")
     # O extrato não é demonstrativo de fatos: nunca fica de fora.
     assert scope.enabled("extrato_entregas")
@@ -198,6 +204,55 @@ def test_fingerprint_muda_com_o_recorte() -> None:
     assert base.fingerprint() == PlanScope.from_config(dict(_ANOS)).fingerprint()
     narrowed = PlanScope.from_config({**_ANOS, "msc_months": [12]})
     assert base.fingerprint() != narrowed.fingerprint()
+
+
+_DCA = {"dca_start_year": 2014, "dca_end_year": 2025}
+
+
+def test_dca_tem_intervalo_proprio_e_nao_depende_do_recorte_das_msc() -> None:
+    scope = PlanScope.from_config({"start_year": 2026, "end_year": 2026, **_DCA})
+    assert scope.enabled("dca")
+    assert scope.constraints("dca") == {"an_exercicio": frozenset(range(2014, 2026))}
+    # As demais continuam no recorte global.
+    assert scope.constraints("msc_orcamentaria")["an_referencia"] == frozenset({2026})
+
+
+def test_dca_planejada_direto_por_ente_e_exercicio() -> None:
+    scope = PlanScope.from_config({**_ANOS, **_DCA})
+    units = list(scope.dca_units([3550308, 3106200]))
+    assert len(units) == 2 * 12
+    assert ({"id_ente": 3550308, "an_exercicio": 2014}, None) in units
+    assert ({"id_ente": 3106200, "an_exercicio": 2025}, None) in units
+    # Sem marcador de revisão: a DCA entregue não volta para a fila.
+    assert {revision for _, revision in units} == {None}
+    # Todas as unidades planejadas passam pelo mesmo filtro do claim.
+    assert all(scope.allows("dca", params) for params, _ in units)
+
+
+def test_dca_desligada_nao_planeja_nada() -> None:
+    assert list(PlanScope.from_config(_ANOS).dca_units([1, 2])) == []
+    fora = PlanScope.from_config({**_ANOS, **_DCA, "fact_endpoints": ["rreo"]})
+    assert not fora.enabled("dca")
+    assert list(fora.dca_units([1, 2])) == []
+
+
+def test_anos_da_dca_nao_forcam_reler_o_extrato() -> None:
+    sem = PlanScope.from_config(_ANOS)
+    com = PlanScope.from_config({**_ANOS, **_DCA})
+    assert sem.fingerprint() == com.fingerprint()
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"dca_start_year": 2014},
+        {"dca_end_year": 2025},
+        {"dca_start_year": 2025, "dca_end_year": 2014},
+    ],
+)
+def test_intervalo_da_dca_invalido_falha_cedo(config: dict) -> None:
+    with pytest.raises(ValueError, match="siconfi_config"):
+        PlanScope.from_config({**_ANOS, **config})
 
 
 @pytest.mark.parametrize(

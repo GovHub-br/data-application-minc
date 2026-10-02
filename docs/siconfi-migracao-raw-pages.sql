@@ -5,9 +5,12 @@
 --   2. rodar este script;
 --   3. publicar o código e despausar a DAG.
 --
--- Não apaga nada. raw_pages e msc_orcamentaria_items continuam no banco até a
--- bronze do dbt estar validada; depois disso:
+-- Não apaga nada. raw_pages e as tabelas de itens das MSC continuam no banco
+-- (as MSC e a dca deixam de receber linhas) até a bronze do dbt estar validada; depois:
 --   DROP TABLE siconfi_bronze.msc_orcamentaria_items;  -- ~45 GB
+--   DROP TABLE siconfi_bronze.msc_patrimonial_items;
+--   DROP TABLE siconfi_bronze.msc_controle_items;
+--   DROP TABLE siconfi_bronze.dca_items;
 --   DROP TABLE siconfi_bronze.raw_pages;
 -- (nesta ordem: a FK de msc_orcamentaria_items ainda aponta para raw_pages).
 --

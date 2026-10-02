@@ -28,8 +28,12 @@ VALID_ENDPOINTS = frozenset(
 # Endpoints sem tabela de itens: o banco guarda só a página crua em
 # ``raw_pages_<endpoint>`` e a estruturação em colunas é feita no dbt. Uma linha
 # de item em JSONB não comprime (fica abaixo do limite do TOAST) e repete os
-# nomes de campo; só a MSC orçamentária chegou a ~830 bytes por linha.
-PAGES_ONLY_ENDPOINTS = frozenset({"msc_orcamentaria"})
+# nomes de campo: a MSC orçamentária chegou a ~830 bytes por linha e 45 GB. As três
+# MSC têm as mesmas colunas e filas grandes, e a DCA (um ente por exercício, de 2013
+# em diante) também; rreo e rgf ficam com itens porque as filas deles já esvaziaram.
+PAGES_ONLY_ENDPOINTS = frozenset(
+    {"dca", "msc_patrimonial", "msc_orcamentaria", "msc_controle"}
+)
 _BRONZE = sql.Identifier(BRONZE_SCHEMA)
 _CONTROL = sql.Identifier(CONTROL_SCHEMA)
 
