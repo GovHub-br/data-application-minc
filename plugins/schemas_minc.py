@@ -36,6 +36,20 @@ TABELA_RELATORIO_GESTAO = "relatorios_gestao"
 TABELA_ANEXO_RELATORIO = "anexos_relatorios"
 
 # ---------------------------------------------------------------------------
+# transferegov no datalakehouse (MinIO)
+# ---------------------------------------------------------------------------
+# As DAGs de API do TransfereGov gravam em raw/<fonte>/<entidade>/ e
+# staging/<fonte>/<entidade>/ do bucket minc-datalakehouse, nao mais no
+# Postgres. A entidade reaproveita o nome da tabela acima -- e o nome que o
+# dbt ja conhece, o que facilita a ponte de volta quando ela existir.
+FONTE_TRANSFEREGOV = "transferegov"
+ENTIDADE_LANCAMENTOS = "gestao_financeira_lancamentos"
+ENTIDADE_SUBTRANSACOES = "gestao_financeira_subtransacoes"
+# Binarios XLS/ODS dos relatorios de gestao. So existem em raw: a versao
+# tabular deles e o que extracao_anexos_dag grava em relatorio_gestao.*.
+PREFIXO_ANEXOS_ARQUIVOS = f"raw/{FONTE_TRANSFEREGOV}/anexos_arquivos/"
+
+# ---------------------------------------------------------------------------
 # bbagil (secao 7.2)
 # ---------------------------------------------------------------------------
 TABELA_EXTRATO = "extrato_bbagil"
