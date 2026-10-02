@@ -5,11 +5,9 @@ from airflow.sdk import dag, task
 from airflow.sdk import Variable
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
+import datalakehouse
 import schemas_minc as schemas
-from openmetadata.lineage import publicar_linhagem, tabela
-from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
-from postgres_helpers import get_postgres_conn
 from schedule_loader import get_dynamic_schedule
 from territorio_ibge import derivar_territorio
 
@@ -30,12 +28,12 @@ default_args = {
     tags=["minc", "transferegov", "planos_acao", "raw"],
 )
 def api_planos_acao_dag() -> None:
-    @task(outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO)])
-    def fetch_and_load_planos_acao() -> int:
-        """Busca e carrega planos de ação em uma única task.
+    @task
+    def extrair_planos_acao() -> str:
+        """Busca os planos de ação de cada programa e grava em ``raw/``.
 
-        Unificado para evitar XCom de payload grande (lista de dicts com
-        milhares de registros), que causa falha de IPC no Airflow 3.x.
+        Só a key do arquivo volta por XCom: a lista de milhares de planos
+        estoura o IPC do Airflow 3.x.
         """
         logging.info("[api_planos_acao_dag.py] Iniciando extração de planos de ação")
 
@@ -46,8 +44,7 @@ def api_planos_acao_dag() -> None:
         )
 
         api = ClienteTransfereGov()
-        db = ClientPostgresDB(get_postgres_conn())
-        total_carregado = 0
+        planos_data: list[dict] = []
 
         for id_programa in ids_alvo:
             logging.info(
@@ -57,23 +54,9 @@ def api_planos_acao_dag() -> None:
             planos = api.get_planos_acao_by_programa(int(id_programa))
 
             if planos:
-                for plano in planos:
-                    # Campos territoriais da secao 7.1. Sem isso o plano
-                    # ESTADUAL fica gravado com o codigo IBGE do municipio da
-                    # capital, que e o que a validacao 12.7 proibe.
-                    plano.update(derivar_territorio(plano))
-                    plano["dt_ingest"] = datetime.now().isoformat()
-
-                db.insert_data(
-                    planos,
-                    table_name=schemas.TABELA_PLANO_ACAO,
-                    primary_key=["id_plano_acao"],
-                    conflict_fields=["id_plano_acao"],
-                    schema=schemas.SCHEMA_TRANSFEREGOV,
-                )
-                total_carregado += len(planos)
+                planos_data.extend(planos)
                 logging.info(
-                    "[api_planos_acao_dag.py] Programa %s: %d planos carregados",
+                    "[api_planos_acao_dag.py] Programa %s: %d planos extraídos",
                     id_programa,
                     len(planos),
                 )
@@ -83,14 +66,19 @@ def api_planos_acao_dag() -> None:
                     id_programa,
                 )
 
-        if total_carregado == 0:
+        if not planos_data:
             raise ValueError("[api_planos_acao_dag.py] Nenhum plano de ação foi extraído")
 
-        logging.info(
-            "[api_planos_acao_dag.py] Carga concluída com %s registros no total",
-            total_carregado,
+        return datalakehouse.gravar_raw(
+            planos_data, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
         )
-        return total_carregado
+
+    @task
+    def converter_planos_acao_para_staging(key_raw: str) -> str:
+        # Campos territoriais da secao 7.1. Sem isso o plano ESTADUAL fica com
+        # o codigo IBGE do municipio da capital, que e o que a validacao 12.7
+        # proibe. Entram so no staging: o raw e a resposta da API intocada.
+        return datalakehouse.raw_para_staging(key_raw, enriquecer=derivar_territorio)
 
     trigger_relatorios = TriggerDagRunOperator(
         task_id="trigger_relatorios",
@@ -113,13 +101,8 @@ def api_planos_acao_dag() -> None:
         wait_for_completion=False,
     )
 
-    carga = fetch_and_load_planos_acao()
-    carga >> [
-        trigger_relatorios,
-        trigger_metas,
-        trigger_dado_bancario,
-        publicar_linhagem(),
-    ]
+    staging = converter_planos_acao_para_staging(extrair_planos_acao())
+    staging >> [trigger_relatorios, trigger_metas, trigger_dado_bancario]
 
 
 api_planos_acao_dag()

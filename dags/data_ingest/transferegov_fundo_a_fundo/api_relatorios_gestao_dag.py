@@ -5,12 +5,9 @@ from typing import Any
 from airflow.sdk import dag, task
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
+import datalakehouse
 import schemas_minc as schemas
-from openmetadata.lineage import publicar_linhagem, tabela
-from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
-from postgres_helpers import get_postgres_conn
-from schedule_loader import get_dynamic_schedule
 
 
 default_args = {
@@ -29,16 +26,16 @@ default_args = {
     tags=["minc", "transferegov", "relatorios", "raw"],
 )
 def api_relatorios_gestao_dag() -> None:
-    @task(inlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO)])
-    def fetch_relatorios_gestao() -> list[dict[str, Any]]:
+    @task
+    def extrair_relatorios_gestao() -> str:
         logging.info(
             "[api_relatorios_gestao_dag.py] Iniciando extração de relatórios de gestão"
         )
 
-        db = ClientPostgresDB(get_postgres_conn())
-        ids_planos = db.get_id_planos_acao(
-            schema=schemas.SCHEMA_TRANSFEREGOV, table_name=schemas.TABELA_PLANO_ACAO
+        planos = datalakehouse.ler_staging_recente(
+            schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
         )
+        ids_planos = planos["id_plano_acao"].dropna().unique().tolist()
 
         if not ids_planos:
             raise ValueError(
@@ -60,10 +57,6 @@ def api_relatorios_gestao_dag() -> None:
                 relatorios_finais = [
                     r for r in relatorios_raw if r.get("tipo_relatorio_gestao") == "FINAL"
                 ]
-
-                for relatorio in relatorios_finais:
-                    relatorio["dt_ingest"] = datetime.now().isoformat()
-
                 relatorios_data.extend(relatorios_finais)
 
                 logging.info(
@@ -86,25 +79,13 @@ def api_relatorios_gestao_dag() -> None:
             "[api_relatorios_gestao_dag.py] Extração concluída com %s registros",
             len(relatorios_data),
         )
-        return relatorios_data
-
-    @task(outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO)])
-    def load_relatorios_to_postgres(relatorios_data: list[dict[str, Any]]) -> None:
-        logging.info("[api_relatorios_gestao_dag.py] Iniciando carga no PostgreSQL")
-
-        db = ClientPostgresDB(get_postgres_conn())
-        db.insert_data(
-            relatorios_data,
-            table_name=schemas.TABELA_RELATORIO_GESTAO,
-            primary_key=["id_relatorio_gestao"],
-            conflict_fields=["id_relatorio_gestao"],
-            schema=schemas.SCHEMA_TRANSFEREGOV,
+        return datalakehouse.gravar_raw(
+            relatorios_data, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO
         )
 
-        logging.info(
-            "[api_relatorios_gestao_dag.py] Carga concluída com %s registros",
-            len(relatorios_data),
-        )
+    @task
+    def converter_relatorios_para_staging(key_raw: str) -> str:
+        return datalakehouse.raw_para_staging(key_raw)
 
     trigger_anexos = TriggerDagRunOperator(
         task_id="trigger_anexos",
@@ -112,8 +93,7 @@ def api_relatorios_gestao_dag() -> None:
         wait_for_completion=False,
     )
 
-    carga = load_relatorios_to_postgres(fetch_relatorios_gestao())
-    carga >> [trigger_anexos, publicar_linhagem()]
+    converter_relatorios_para_staging(extrair_relatorios_gestao()) >> trigger_anexos
 
 
 api_relatorios_gestao_dag()
