@@ -7,7 +7,13 @@ nunca entrarem na fila.
 
 import pytest
 
-from cliente_siconfi import PlanScope, classify_delivery, poder_da_instituicao, work_units
+from cliente_siconfi import (
+    PlanScope,
+    classify_delivery,
+    planned_units,
+    poder_da_instituicao,
+    work_units,
+)
 
 _BASE = {"exercicio": 2025, "cod_ibge": 3550308, "periodo": 1}
 
@@ -251,6 +257,108 @@ def test_anos_da_dca_nao_forcam_reler_o_extrato() -> None:
     ],
 )
 def test_intervalo_da_dca_invalido_falha_cedo(config: dict) -> None:
+    with pytest.raises(ValueError, match="siconfi_config"):
+        PlanScope.from_config({**_ANOS, **config})
+
+
+# --- RREO: bimestre e anexo (RCL = Anexo 03 do bimestre 6) -----------------
+
+_RCL = {"rreo_periods": [6], "rreo_anexos": ["RREO-Anexo 03"]}
+
+
+def _linha_rreo(periodo: int, tipo: str = "P") -> dict:
+    return {
+        "exercicio": 2024,
+        "cod_ibge": 3550308,
+        "entregavel": "Relatório Resumido de Execução Orçamentária",
+        "periodicidade": "B",
+        "periodo": periodo,
+        "tipo_relatorio": tipo,
+    }
+
+
+def test_rreo_sem_filtro_continua_pedindo_o_relatorio_inteiro() -> None:
+    scope = PlanScope.from_config(_ANOS)
+    units = list(planned_units({**_linha_rreo(3), "exercicio": 2024}, scope))
+    assert len(units) == 1
+    assert "no_anexo" not in units[0][1]
+
+
+def test_rcl_so_o_bimestre_6_e_so_o_anexo_03() -> None:
+    scope = PlanScope.from_config({**_ANOS, **_RCL})
+    kept = [u for p in range(1, 7) for u in planned_units(_linha_rreo(p), scope)]
+    assert [(u[0], u[1]) for u in kept] == [
+        (
+            "rreo",
+            {
+                "id_ente": 3550308,
+                "an_exercicio": 2024,
+                "nr_periodo": 6,
+                "co_tipo_demonstrativo": "RREO",
+                "no_anexo": "RREO-Anexo 03",
+            },
+        )
+    ]
+
+
+def test_rcl_do_municipio_pequeno_usa_o_rreo_simplificado() -> None:
+    scope = PlanScope.from_config({**_ANOS, **_RCL})
+    (unit,) = planned_units(_linha_rreo(6, tipo="S"), scope)
+    assert unit[1]["co_tipo_demonstrativo"] == "RREO Simplificado"
+    assert unit[1]["no_anexo"] == "RREO-Anexo 03"
+
+
+def test_varios_anexos_viram_uma_unidade_cada() -> None:
+    scope = PlanScope.from_config(
+        {**_ANOS, "rreo_anexos": ["RREO-Anexo 03", "RREO-Anexo 02"]}
+    )
+    units = list(planned_units(_linha_rreo(6), scope))
+    assert [u[1]["no_anexo"] for u in units] == ["RREO-Anexo 02", "RREO-Anexo 03"]
+
+
+def test_filtro_do_rreo_nao_afeta_outros_endpoints() -> None:
+    scope = PlanScope.from_config({**_ANOS, **_RCL})
+    rgf = {
+        **_BASE,
+        "entregavel": "Relatório de Gestão Fiscal",
+        "periodicidade": "Q",
+        "instituicao": "Prefeitura Municipal de São Paulo - SP",
+        "periodo": 1,
+        "exercicio": 2024,
+    }
+    assert len(list(planned_units(rgf, scope))) == 1
+    assert scope.expand("rgf", {"id_ente": 1}) == [{"id_ente": 1}]
+
+
+def test_constraints_do_rreo_vao_para_o_claim() -> None:
+    scope = PlanScope.from_config({**_ANOS, **_RCL})
+    assert scope.constraints("rreo") == {
+        "an_exercicio": frozenset(range(2019, 2026)),
+        "nr_periodo": frozenset({6}),
+        "no_anexo": frozenset({"RREO-Anexo 03"}),
+    }
+    # Unidades antigas, pedidas sem no_anexo, deixam de ser reservadas.
+    assert not scope.allows(
+        "rreo",
+        {"id_ente": 1, "an_exercicio": 2024, "nr_periodo": 6},
+    )
+
+
+def test_filtro_do_rreo_muda_o_fingerprint_para_reler_o_extrato() -> None:
+    base = PlanScope.from_config(_ANOS)
+    assert base.fingerprint() != PlanScope.from_config({**_ANOS, **_RCL}).fingerprint()
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"rreo_periods": [7]},
+        {"rreo_periods": [0]},
+        {"rreo_anexos": ["RREO-Anexo 99"]},
+        {"rreo_anexos": ["rreo-anexo 03"]},
+    ],
+)
+def test_filtro_invalido_do_rreo_falha_cedo(config: dict) -> None:
     with pytest.raises(ValueError, match="siconfi_config"):
         PlanScope.from_config({**_ANOS, **config})
 

@@ -8,7 +8,10 @@ num ano são 312. Chaves de recorte (ausente ou ``null`` = sem filtro):
 
 - ``fact_endpoints``: quais de ``rreo``, ``rgf``, ``dca`` e ``msc_*`` buscar;
 - ``rgf_poderes``: E, L, J, M, D;
-- ``msc_months``, ``msc_classes``, ``msc_value_types``, ``msc_matrix_types``.
+- ``msc_months``, ``msc_classes``, ``msc_value_types``, ``msc_matrix_types``;
+- ``rreo_periods`` (bimestres 1 a 6) e ``rreo_anexos`` (por exemplo
+  ``"RREO-Anexo 03"``). Com anexos, cada unidade pede só aqueles anexos em vez do
+  RREO inteiro.
 
 A DCA tem intervalo de anos próprio, ``dca_start_year`` e ``dca_end_year``, e sem
 ele fica desligada. Ela não vem do extrato: é planejada direto, uma requisição por
@@ -22,6 +25,15 @@ Exemplo — o saldo final de dezembro da execução orçamentária, mais o DCA::
      "dca_start_year": 2014, "dca_end_year": 2025,
      "msc_months": [12], "msc_classes": [6],
      "msc_value_types": ["ending_balance"], "msc_matrix_types": ["MSCC"]}
+
+Exemplo — Eixo 1 (gasto empenhado da MSC orçamentária e a RCL, que é o Anexo 03
+do RREO no bimestre 6)::
+
+    {"start_year": 2019, "end_year": 2025,
+     "fact_endpoints": ["msc_orcamentaria", "rreo"],
+     "msc_months": [12], "msc_classes": [6],
+     "msc_value_types": ["ending_balance"], "msc_matrix_types": ["MSCC", "MSCE"],
+     "rreo_periods": [6], "rreo_anexos": ["RREO-Anexo 03"]}
 
 O recorte vale também para o que já está na fila: estreitá-lo para de buscar o
 que ficou de fora, sem apagar nada. Cada task de ingestão trabalha até
@@ -43,7 +55,7 @@ from cliente_siconfi import (
     SiconfiClient,
     SiconfiPermanentError,
     SiconfiRetryableError,
-    work_units,
+    planned_units,
 )
 from postgres_helpers import get_postgres_conn
 from schedule_loader import get_dynamic_schedule
@@ -68,6 +80,8 @@ _DEFAULT_CONFIG: dict[str, Any] = {
     # a anterior parou.
     "max_manifest_rows_for_planning": 100000,
     "fact_endpoints": None,
+    "rreo_periods": None,
+    "rreo_anexos": None,
     "dca_start_year": None,
     "dca_end_year": None,
     "rgf_poderes": None,
@@ -207,11 +221,10 @@ def _plan_facts(conn_str: str, config: dict[str, Any]) -> dict[str, int]:
         if not batch:
             break
         for _, item in batch:
-            for endpoint, params, revision in work_units(item):
-                if scope.allows(endpoint, params):
-                    buffers[endpoint].append((params, revision))
-                    if len(buffers[endpoint]) >= _PLAN_FLUSH_SIZE:
-                        flush(endpoint)
+            for endpoint, params, revision in planned_units(item, scope):
+                buffers[endpoint].append((params, revision))
+                if len(buffers[endpoint]) >= _PLAN_FLUSH_SIZE:
+                    flush(endpoint)
         for endpoint in FACT_ENDPOINTS:
             flush(endpoint)
         after = batch[-1][0]
