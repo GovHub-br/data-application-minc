@@ -301,6 +301,29 @@ _MSC_CLASSES = (
 _MSC_VALUE_TYPES = ("beginning_balance", "period_change", "ending_balance")
 _MSC_MATRIX_TYPES = ("MSCC", "MSCE")
 _PODERES = ("E", "L", "J", "M", "D")
+_RREO_PERIODOS = (1, 2, 3, 4, 5, 6)
+# Anexos que o endpoint /rreo aceita em ``no_anexo`` (spec do Tesouro).
+_RREO_ANEXOS = (
+    "RREO-Anexo 01",
+    "RREO-Anexo 02",
+    "RREO-Anexo 03",
+    "RREO-Anexo 04",
+    "RREO-Anexo 04 - RGPS",
+    "RREO-Anexo 04 - RPPS",
+    "RREO-Anexo 04.0 - RGPS",
+    "RREO-Anexo 04.1",
+    "RREO-Anexo 04.2",
+    "RREO-Anexo 04.3 - RGPS",
+    "RREO-Anexo 05",
+    "RREO-Anexo 06",
+    "RREO-Anexo 07",
+    "RREO-Anexo 09",
+    "RREO-Anexo 10 - RGPS",
+    "RREO-Anexo 10 - RPPS",
+    "RREO-Anexo 11",
+    "RREO-Anexo 13",
+    "RREO-Anexo 14",
+)
 # Instituição do extrato → poder no RGF, conferido na API: o Tribunal de Contas
 # responde em ``co_poder=L``. A ordem importa: "Tribunal de Contas" antes de
 # "Tribunal", "Ministério Público" antes de qualquer outro.
@@ -458,6 +481,10 @@ class PlanScope:
     A DCA é exceção: tem intervalo de anos próprio (``dca_start_year`` e
     ``dca_end_year``) e, sem ele, fica desligada. O balanço de um exercício só
     existe no ano seguinte, então o ano corrente não tem DCA para buscar.
+
+    O RREO aceita ``rreo_periods`` (bimestres) e ``rreo_anexos``. Com anexos
+    definidos, cada unidade pede só aqueles anexos (``no_anexo``) em vez do
+    relatório inteiro: a RCL, por exemplo, é o Anexo 03 do bimestre 6.
     """
 
     start_year: int
@@ -468,6 +495,8 @@ class PlanScope:
     msc_classes: frozenset[int] | None = None
     msc_value_types: frozenset[str] | None = None
     msc_matrix_types: frozenset[str] | None = None
+    rreo_periods: frozenset[int] | None = None
+    rreo_anexos: frozenset[str] | None = None
     dca_start_year: int | None = None
     dca_end_year: int | None = None
 
@@ -486,10 +515,14 @@ class PlanScope:
             msc_matrix_types=_optional_set(
                 config, "msc_matrix_types", lambda v: str(v).upper()
             ),
+            rreo_periods=_optional_set(config, "rreo_periods", int),
+            rreo_anexos=_optional_set(config, "rreo_anexos", str),
         )
         for name, value, valid in (
             ("fact_endpoints", scope.endpoints, FACT_ENDPOINTS),
             ("rgf_poderes", scope.rgf_poderes, _PODERES),
+            ("rreo_periods", scope.rreo_periods, _RREO_PERIODOS),
+            ("rreo_anexos", scope.rreo_anexos, _RREO_ANEXOS),
             ("msc_value_types", scope.msc_value_types, _MSC_VALUE_TYPES),
             ("msc_matrix_types", scope.msc_matrix_types, _MSC_MATRIX_TYPES),
         ):
@@ -550,12 +583,25 @@ class PlanScope:
         allowed: dict[str, frozenset | None] = {year_key: frozenset(years)}
         if endpoint == "rgf":
             allowed["co_poder"] = self.rgf_poderes
+        if endpoint == "rreo":
+            allowed["nr_periodo"] = self.rreo_periods
+            allowed["no_anexo"] = self.rreo_anexos
         if endpoint.startswith("msc_"):
             allowed["me_referencia"] = self.msc_months
             allowed["classe_conta"] = self.msc_classes
             allowed["id_tv"] = self.msc_value_types
             allowed["co_tipo_matriz"] = self.msc_matrix_types
         return {key: values for key, values in allowed.items() if values is not None}
+
+    def expand(self, endpoint: str, params: Mapping[str, Any]) -> list[dict[str, Any]]:
+        """Parâmetros de cada requisição que uma unidade do extrato vira.
+
+        Com ``rreo_anexos``, o RREO vira uma requisição por anexo pedido (com
+        ``no_anexo``); sem ele, e nos demais endpoints, a unidade passa como está.
+        """
+        if endpoint == "rreo" and self.rreo_anexos is not None:
+            return [{**params, "no_anexo": anexo} for anexo in sorted(self.rreo_anexos)]
+        return [dict(params)]
 
     def allows(self, endpoint: str, params: Mapping[str, Any]) -> bool:
         return self.enabled(endpoint) and all(
@@ -575,3 +621,11 @@ class PlanScope:
             if not name.startswith("dca_")
         }
         return hashlib.sha256(json.dumps(state, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def planned_units(item: dict[str, Any], scope: PlanScope) -> Iterator[WorkUnit]:
+    """Unidades de uma linha do extrato, já no formato da fila e dentro do recorte."""
+    for endpoint, params, revision in work_units(item):
+        for unit_params in scope.expand(endpoint, params):
+            if scope.allows(endpoint, unit_params):
+                yield endpoint, unit_params, revision
