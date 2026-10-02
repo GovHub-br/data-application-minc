@@ -19,37 +19,60 @@ Duas coisas justificam o modulo em vez de repetir o laco nas duas DAGs:
 """
 
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
+
+import pandas as pd
 
 import schemas_minc as schemas
-from cliente_postgres import ClientPostgresDB
 
 # Mesmo default de agencias_transferegov.get_contas_agencias_programas: a
 # API publica aguenta bem esse nivel de concorrencia.
 MAX_WORKERS_PADRAO = 20
 
 
-def carregar_planos_acao(db: ClientPostgresDB) -> list[dict[str, Any]]:
-    """Le de ``plano_acao_minc`` as chaves que precisam ser propagadas.
+def carregar_planos_acao(planos: pd.DataFrame) -> list[dict[str, Any]]:
+    """Extrai do staging de ``plano_acao_minc`` as chaves a propagar.
 
     E daqui, e nao do payload da origem, que ``id_programa`` e ``cod_ibge``
-    saem -- e o que garante a consistencia exigida pela secao 9.2.
+    saem -- e o que garante a consistencia exigida pela secao 9.2. O
+    DataFrame vem de ``datalakehouse.ler_staging_recente``.
     """
-    linhas = db.execute_query(
-        "SELECT id_plano_acao, id_programa, cod_ibge FROM "
-        f"{schemas.SCHEMA_TRANSFEREGOV}.{schemas.TABELA_PLANO_ACAO}"
-    )
+    colunas = ["id_plano_acao", "id_programa", "cod_ibge"]
+    if planos.empty:
+        return []
+    linhas = planos[colunas].astype(object).where(planos[colunas].notna(), None)
+    registros: list[dict[str, Any]] = linhas.to_dict(orient="records")  # type: ignore[assignment]
+    return registros
 
-    return [
-        {
-            "id_plano_acao": id_plano_acao,
-            "id_programa": id_programa,
-            "cod_ibge": cod_ibge,
-        }
-        for id_plano_acao, id_programa, cod_ibge in linhas
-    ]
+
+def juntar_anexos_ao_plano(
+    anexos: pd.DataFrame, relatorios: pd.DataFrame, planos: pd.DataFrame
+) -> pd.DataFrame:
+    """``anexos_relatorios -> relatorios_gestao -> plano_acao_minc``.
+
+    O mesmo join que as DAGs de anexos faziam em SQL, agora sobre o staging:
+    devolve cada anexo com ``id_plano_acao``, ``id_programa`` e ``cod_ibge``.
+    Anexo sem relatorio ou sem plano cai fora, como no INNER JOIN de antes.
+    """
+    juntos = (
+        anexos[["id", "nome", "id_relatorio_gestao"]]
+        .merge(
+            relatorios[["id_relatorio_gestao", "id_plano_acao"]].drop_duplicates(
+                "id_relatorio_gestao"
+            ),
+            on="id_relatorio_gestao",
+        )
+        .merge(
+            planos[["id_plano_acao", "id_programa", "cod_ibge"]].drop_duplicates(
+                "id_plano_acao"
+            ),
+            on="id_plano_acao",
+        )
+    )
+    # pd.NA nao serializa em XCom; as DAGs de anexo devolvem estes valores.
+    return juntos.astype(object).where(juntos.notna(), None)
 
 
 def _propagar_chaves(
@@ -74,7 +97,6 @@ def _propagar_chaves(
     registro["id_plano_acao"] = plano["id_plano_acao"]
     registro["id_programa"] = plano["id_programa"]
     registro["cod_ibge"] = plano["cod_ibge"]
-    registro["dt_ingest"] = datetime.now().isoformat()
     return registro
 
 
@@ -139,3 +161,37 @@ def extrair_por_plano_acao(
         planos_com_erro,
     )
     return registros
+
+
+# ── anexos binarios no datalakehouse ─────────────────────────────────────
+
+# O id do anexo no nome do arquivo e o que torna o download idempotente: o
+# nome que a API devolve pode mudar, o id nao.
+_ID_NO_NOME = re.compile(r"/anexo_(\d+)_[^/]*$")
+
+
+def politica_do_programa(id_programa: Any) -> str:
+    """Pasta do anexo dentro de ``anexos_arquivos/``: ``lpg``, ``pnab`` ou ``outros``."""
+    try:
+        id_int = int(id_programa)
+    except (TypeError, ValueError):
+        return "outros"
+    if id_int in schemas.IDS_PROGRAMA_LPG:
+        return "lpg"
+    if id_int in schemas.IDS_PROGRAMA_PNAB_CICLO_1:
+        return "pnab"
+    return "outros"
+
+
+def key_anexo_arquivo(politica: str, id_anexo: Any, nome_arquivo: str) -> str:
+    return f"{schemas.PREFIXO_ANEXOS_ARQUIVOS}{politica}/anexo_{id_anexo}_{nome_arquivo}"
+
+
+def ids_ja_baixados(keys: Iterable[str]) -> dict[str, str]:
+    """``id do anexo -> key`` dos binarios que ja estao no datalakehouse."""
+    baixados: dict[str, str] = {}
+    for key in keys:
+        encontrado = _ID_NO_NOME.search(key)
+        if encontrado:
+            baixados[encontrado.group(1)] = key
+    return baixados
