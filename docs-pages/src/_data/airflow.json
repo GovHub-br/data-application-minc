@@ -86,6 +86,21 @@
       "schedule": ""
     },
     {
+      "arquivo": "siconfi_ingestion_dag.py",
+      "caminho": "dags/data_ingest/siconfi/siconfi_ingestion_dag.py",
+      "fonte": "siconfi",
+      "dag_id": "siconfi_ingestion_dag",
+      "descricao": "",
+      "tags": [
+        "minc",
+        "siconfi",
+        "tesouro",
+        "raw",
+        "bronze"
+      ],
+      "schedule": "dinâmico (schedule_loader)"
+    },
+    {
       "arquivo": "ingest_territorio_fcu_dag.py",
       "caminho": "dags/data_ingest/territorio/ingest_territorio_fcu_dag.py",
       "fonte": "territorio",
@@ -119,7 +134,7 @@
       "caminho": "dags/data_ingest/transferegov_fundo_a_fundo/api_movimentacoes_financeiras_dag.py",
       "fonte": "transferegov_fundo_a_fundo",
       "dag_id": "api_movimentacoes_financeiras_dag",
-      "descricao": "DAG de ingestao dos endpoints PostgREST ``/gestao_financeira_lancamentos`` e ``/gestao_financeira_subtransacoes`` do Transferegov Fundo a Fundo.",
+      "descricao": "DAG de ingestao dos endpoints ``/gestao_financeira_lancamentos`` e ``/gestao_financeira_subtransacoes`` do Transferegov Fundo a Fundo.",
       "tags": [
         "minc",
         "transferegov",
@@ -314,6 +329,55 @@
       "descricao": "Client to consume the SIAPE SOAP API using OAuth2 authentication"
     },
     {
+      "arquivo": "cliente_siconfi.py",
+      "sistema": "siconfi",
+      "nome": "SiconfiRequestError",
+      "base": "RuntimeError",
+      "descricao": "Erro HTTP da SICONFI com contexto suficiente para a fila de controle."
+    },
+    {
+      "arquivo": "cliente_siconfi.py",
+      "sistema": "siconfi",
+      "nome": "SiconfiRetryableError",
+      "base": "SiconfiRequestError",
+      "descricao": "Falha transitória: a unidade de trabalho deve voltar para a fila."
+    },
+    {
+      "arquivo": "cliente_siconfi.py",
+      "sistema": "siconfi",
+      "nome": "SiconfiPermanentError",
+      "base": "SiconfiRequestError",
+      "descricao": "Falha de contrato/parâmetro: repetir não muda o resultado."
+    },
+    {
+      "arquivo": "cliente_siconfi.py",
+      "sistema": "siconfi",
+      "nome": "SiconfiPage",
+      "base": "",
+      "descricao": ""
+    },
+    {
+      "arquivo": "cliente_siconfi.py",
+      "sistema": "siconfi",
+      "nome": "SiconfiRateLimiter",
+      "base": "",
+      "descricao": "Reserva horários de chamada com lock transacional no PostgreSQL."
+    },
+    {
+      "arquivo": "cliente_siconfi.py",
+      "sistema": "siconfi",
+      "nome": "SiconfiClient",
+      "base": "",
+      "descricao": "GET paginado, rate-limited e com retry classificado da SICONFI."
+    },
+    {
+      "arquivo": "cliente_siconfi.py",
+      "sistema": "siconfi",
+      "nome": "PlanScope",
+      "base": "",
+      "descricao": "O que entra na fila e o que sai dela. ``None`` num campo = sem filtro."
+    },
+    {
       "arquivo": "cliente_siorg.py",
       "sistema": "siorg",
       "nome": "ClienteSiorg",
@@ -355,12 +419,13 @@
     "ibge": 1,
     "mapas": 1,
     "salic": 2,
+    "siconfi": 1,
     "territorio": 1,
     "transferegov_fundo_a_fundo": 9
   },
   "totais": {
-    "dags": 16,
-    "fontes": 7,
-    "clientes": 17
+    "dags": 17,
+    "fontes": 8,
+    "clientes": 24
   }
 }
