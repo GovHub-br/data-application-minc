@@ -1,25 +1,28 @@
 import base64
 import logging
 
+import pandas as pd
 import requests
 from airflow.sdk import dag, task
-from airflow.sdk import Variable
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.sdk import TriggerRule
 from datetime import datetime, timedelta
 
 
+import datalakehouse
 import schemas_minc as schemas
+from extracao_por_plano_acao import (
+    ids_ja_baixados,
+    juntar_anexos_ao_plano,
+    key_anexo_arquivo,
+    politica_do_programa,
+)
 
 URL_BASE_RG = "https://fundos.transferegov.sistema.gov.br/maisbrasil-transferencia-backend/api/public/anexos/rg/"
 
-_TABELA_ANEXOS = f"{schemas.SCHEMA_TRANSFEREGOV}.{schemas.TABELA_ANEXO_RELATORIO}"
-# id_programa e TEXT na tabela (toda coluna nasce TEXT na camada raw), entao
-# a comparacao vai com os ids entre aspas.
-_IDS_LPG_SQL = ", ".join(f"'{i}'" for i in schemas.IDS_PROGRAMA_LPG)
-_IDS_PNAB_SQL = ", ".join(f"'{i}'" for i in schemas.IDS_PROGRAMA_PNAB_CICLO_1)
+_EXTENSOES_PLANILHA = (".xls", ".xlsx", ".ods")
+# Teto por rodada: com max_active_tis_per_dag=3 isso ja e horas de download.
+_LIMITE_POR_RODADA = 3000
 
 default_args = {
     "owner": "Wallyson Souza",
@@ -36,88 +39,59 @@ default_args = {
     catchup=False,
     tags=["minc", "transferegov", "extracao", "anexos"],
 )
-def download_anexos_dag():
+def download_anexos_dag() -> None:
 
     @task
     def buscar_ids_pendentes() -> list:
+        """Anexos de planilha que ainda não estão em ``raw/.../anexos_arquivos/``.
+
+        A lista sai do staging (anexo -> relatório -> plano de ação, para saber
+        o programa e daí a pasta LPG/PNAB) menos o que já foi baixado. Quem
+        diz "já baixado" é o próprio bucket, não uma coluna no banco.
         """
-        Garante a existência da coluna caminho_minio no banco e busca apenas os IDs
-        que ainda não possuem esse caminho registrado, fazendo JOIN para descobrir
-        o programa (PNAB ou LPG) e definindo o bucket correspondente.
-        """
-        pg_hook = PostgresHook(postgres_conn_id="postgres_default")
 
-        # 1. Garante que a coluna caminho_minio existe na tabela do banco
-        alter_table_query = f"""
-        ALTER TABLE {_TABELA_ANEXOS}
-        ADD COLUMN IF NOT EXISTS caminho_minio VARCHAR(500);
-        """
-        pg_hook.run(alter_table_query)
-        logging.info("Garantida a existência da coluna 'caminho_minio' na tabela.")
+        def staging(entidade: str) -> pd.DataFrame:
+            return datalakehouse.ler_staging_recente(schemas.FONTE_TRANSFEREGOV, entidade)
 
-        # 2. Busca os arquivos Excel/ODS não baixados e descobre o bucket via id_programa
-        query = f"""
-        SELECT
-            ar.id,
-            CASE
-                WHEN pa.id_programa IN ({_IDS_LPG_SQL}) THEN 'anexos-lpg'
-                WHEN pa.id_programa IN ({_IDS_PNAB_SQL}) THEN 'anexos-pnab'
-                ELSE 'anexos-outros'
-            END AS bucket_name
-        FROM {_TABELA_ANEXOS} ar
-        JOIN {schemas.SCHEMA_TRANSFEREGOV}.{schemas.TABELA_RELATORIO_GESTAO} rg
-            ON ar.id_relatorio_gestao = rg.id_relatorio_gestao
-        JOIN {schemas.SCHEMA_TRANSFEREGOV}.{schemas.TABELA_PLANO_ACAO} pa
-            ON rg.id_plano_acao = pa.id_plano_acao
-        WHERE (ar.nome ILIKE '%.xls' OR ar.nome ILIKE '%.xlsx' OR ar.nome ILIKE '%.ods')
-          AND ar.caminho_minio IS NULL
-        LIMIT 3000;
-        """
-        records = pg_hook.get_records(query)
+        anexos = juntar_anexos_ao_plano(
+            staging(schemas.TABELA_ANEXO_RELATORIO),
+            staging(schemas.TABELA_RELATORIO_GESTAO),
+            staging(schemas.TABELA_PLANO_ACAO),
+        )
+        anexos = anexos[
+            anexos["nome"].fillna("").str.lower().str.endswith(_EXTENSOES_PLANILHA)
+        ]
 
-        # Cria uma lista de dicionários com as infos do anexo
-        ids_para_baixar = [{"id": str(r[0]), "bucket": str(r[1])} for r in records]
+        baixados = ids_ja_baixados(
+            o["Key"]
+            for o in datalakehouse.listar_objetos(schemas.PREFIXO_ANEXOS_ARQUIVOS)
+        )
+        pendentes = [
+            {"id": str(linha.id), "politica": politica_do_programa(linha.id_programa)}
+            for linha in anexos.drop_duplicates("id").itertuples()
+            if str(linha.id) not in baixados
+        ][:_LIMITE_POR_RODADA]
 
-        if not ids_para_baixar:
-            logging.info(
-                "Nenhum arquivo pendente de download encontrado no banco de dados."
-            )
-        else:
-            logging.info(
-                f"Encontrados {len(ids_para_baixar)} anexos pendentes para download nesta rodada."
-            )
-
-        return ids_para_baixar
+        logging.info(
+            "%d anexos de planilha no staging, %d já baixados, %d nesta rodada",
+            len(anexos),
+            len(baixados),
+            len(pendentes),
+        )
+        return pendentes
 
     @task(max_active_tis_per_dag=3)
-    def baixar_e_salvar_anexos(pendente: dict):
+    def baixar_e_salvar_anexos(pendente: dict) -> None:
         """
         Processa UM único anexo por invocação (Dynamic Task Mapping).
-        Faz o request na API, decodifica o base64, salva no MinIO no bucket
-        correspondente e atualiza o banco com o caminho registrado.
+        Faz o request na API, decodifica o base64 e grava o binário em
+        ``raw/transferegov/anexos_arquivos/<politica>/``.
         A concorrência é controlada por max_active_tis_per_dag=3 para evitar
         HTTP 429 (rate limit) na API do governo.
         """
         anexo_id = pendente["id"]
-        bucket_name = pendente["bucket"]
 
-        # Hooks instanciados dentro da task — cada mapped task tem sua própria conexão
-        minio_conn_id = Variable.get("minio_conn_id", default="minio_default")
-        s3_hook = S3Hook(aws_conn_id=minio_conn_id)
-        pg_hook = PostgresHook(postgres_conn_id="postgres_default")
-
-        # Verifica e cria o bucket caso ainda não exista
-        try:
-            if not s3_hook.check_for_bucket(bucket_name):
-                s3_hook.create_bucket(bucket_name=bucket_name)
-        except Exception as e:
-            logging.warning(
-                f"Não foi possível verificar ou criar o bucket '{bucket_name}': {e}"
-            )
-
-        url = f"{URL_BASE_RG}{anexo_id}"
-
-        response = requests.get(url, timeout=15)
+        response = requests.get(f"{URL_BASE_RG}{anexo_id}", timeout=15)
         response.raise_for_status()
 
         dados_json = response.json()
@@ -130,34 +104,11 @@ def download_anexos_dag():
             )
             return
 
-        # Decodifica o base64 para bytes
-        arquivo_bytes = base64.b64decode(arquivo_base64)
-
-        # Definindo a chave do arquivo no MinIO
-        chave_s3 = f"anexo_{anexo_id}_{nome_arquivo}"
-
-        # Salva os bytes decodificados diretamente no MinIO
-        s3_hook.load_bytes(
-            bytes_data=arquivo_bytes,
-            key=chave_s3,
-            bucket_name=bucket_name,
-            replace=True,
+        key = datalakehouse.gravar_bytes(
+            base64.b64decode(arquivo_base64),
+            key_anexo_arquivo(pendente["politica"], anexo_id, nome_arquivo),
         )
-
-        # Formata o path final do minio (Ex: anexos-pnab/anexo_ID_Nome.xls)
-        path_minio = f"{bucket_name}/{chave_s3}"
-
-        # Atualiza o banco de dados com o caminho do arquivo
-        update_query = f"""
-        UPDATE {_TABELA_ANEXOS}
-        SET caminho_minio = %s
-        WHERE id = %s
-        """
-        pg_hook.run(update_query, parameters=(path_minio, anexo_id))
-
-        logging.info(
-            f"Anexo {anexo_id} baixado e path ({path_minio}) registrado no BD com sucesso."
-        )
+        logging.info(f"Anexo {anexo_id} salvo em s3://{datalakehouse.BUCKET}/{key}")
 
     # ── Task final que dispara a DAG de extração ──
     # Usa ALL_DONE para que o trigger execute mesmo se alguns downloads falharem

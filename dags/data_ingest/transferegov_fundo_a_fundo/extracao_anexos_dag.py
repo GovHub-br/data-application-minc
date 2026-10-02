@@ -6,12 +6,15 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 from airflow.sdk import dag, task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.sdk import TriggerRule
 
+import datalakehouse
 import schemas_minc as schemas
 from cliente_postgres import ClientPostgresDB
+from extracao_por_plano_acao import ids_ja_baixados, juntar_anexos_ao_plano
 from extracao_planilhas import (
     TimeoutLeituraError,
     extrair_lpg,
@@ -40,7 +43,7 @@ _URL_ANEXO_RG = (
 # payload_origem -- nada se perde, mas a tabela para de crescer.
 _LIMITE_COLUNAS_PLANILHA = 1200
 
-_S3_CONN_ID = "minio_default"
+_S3_CONN_ID = datalakehouse.CONN_ID
 
 default_args = {
     "owner": "Caio Borges",
@@ -80,12 +83,13 @@ def extracao_anexos_dag() -> None:
 
     Fluxo:
 
-    1. ``listar_anexos_pendentes`` — monta a lista a partir do **Postgres**,
-       não do MinIO: o join ``anexos_relatorios → relatorios_gestao →
-       plano_acao_minc`` traz, junto do caminho do arquivo, as chaves que a
-       seção 7.3 exige em cada linha de planilha (``id_relatorio_gestao``,
-       ``id_plano_acao``, ``id_programa``, ``cod_ibge``). Varrer as keys do
-       MinIO daria o arquivo, mas não diria de que plano de ação ele é.
+    1. ``listar_anexos_pendentes`` — monta a lista a partir do **staging**
+       do datalakehouse: o join ``anexos_relatorios → relatorios_gestao →
+       plano_acao_minc`` traz as chaves que a seção 7.3 exige em cada linha
+       de planilha (``id_relatorio_gestao``, ``id_plano_acao``,
+       ``id_programa``, ``cod_ibge``), e a listagem de
+       ``raw/transferegov/anexos_arquivos/`` diz onde está o binário. Varrer
+       só as keys daria o arquivo, mas não diria de que plano de ação ele é.
        A lista sai fatiada em blocos (chunks) de 50 arquivos.
        NOTA: .ods é intencionalmente excluído — a engine odf causa OOM.
     2. ``baixar_e_extrair`` — para CADA lote (via ``.expand()``), itera
@@ -101,7 +105,7 @@ def extracao_anexos_dag() -> None:
 
     @task
     def listar_anexos_pendentes() -> list[list[dict[str, Any]]]:
-        """Monta a lista de anexos a processar a partir do Postgres e a fatia
+        """Monta a lista de anexos a processar a partir do staging e a fatia
         em blocos (chunks) de 50 arquivos.
 
         Retorna ``list[list[dict]]`` para que o Dynamic Task Mapping crie
@@ -111,20 +115,33 @@ def extracao_anexos_dag() -> None:
         NOTA: extensão .ods é excluída propositalmente — a engine odf
         carrega o DOM XML inteiro em memória e causa OOM Kills.
         """
-        db = ClientPostgresDB(get_postgres_conn())
-        linhas = db.execute_query(
-            "SELECT anexo.id, anexo.nome, anexo.caminho_minio, "
-            "       anexo.id_relatorio_gestao, plano.id_plano_acao, "
-            "       plano.id_programa, plano.cod_ibge "
-            f"FROM {schemas.SCHEMA_TRANSFEREGOV}."
-            f"{schemas.TABELA_ANEXO_RELATORIO} anexo "
-            f"JOIN {schemas.SCHEMA_TRANSFEREGOV}."
-            f"{schemas.TABELA_RELATORIO_GESTAO} relatorio "
-            "  ON anexo.id_relatorio_gestao = relatorio.id_relatorio_gestao "
-            f"JOIN {schemas.SCHEMA_TRANSFEREGOV}.{schemas.TABELA_PLANO_ACAO} plano "
-            "  ON relatorio.id_plano_acao = plano.id_plano_acao "
-            "WHERE anexo.caminho_minio IS NOT NULL"
+
+        def staging(entidade: str) -> pd.DataFrame:
+            return datalakehouse.ler_staging_recente(schemas.FONTE_TRANSFEREGOV, entidade)
+
+        anexos = juntar_anexos_ao_plano(
+            staging(schemas.TABELA_ANEXO_RELATORIO),
+            staging(schemas.TABELA_RELATORIO_GESTAO),
+            staging(schemas.TABELA_PLANO_ACAO),
+        ).drop_duplicates("id")
+        # So os anexos cujo binario ja foi baixado por download_anexos_dag.
+        baixados = ids_ja_baixados(
+            o["Key"]
+            for o in datalakehouse.listar_objetos(schemas.PREFIXO_ANEXOS_ARQUIVOS)
         )
+        linhas = [
+            (
+                linha.id,
+                linha.nome,
+                f"{datalakehouse.BUCKET}/{baixados[str(linha.id)]}",
+                linha.id_relatorio_gestao,
+                linha.id_plano_acao,
+                linha.id_programa,
+                linha.cod_ibge,
+            )
+            for linha in anexos.itertuples()
+            if str(linha.id) in baixados
+        ]
 
         # .ods removido intencionalmente — engine odf causa OOM
         extensoes_validas = {".xlsx", ".xls", ".xlsm", ".xlsb"}
@@ -141,8 +158,8 @@ def extracao_anexos_dag() -> None:
             id_programa,
             cod_ibge,
         ) in linhas:
-            # id_programa vem como TEXT do banco (toda coluna nasce TEXT na
-            # camada raw) e pode faltar em plano mal cadastrado na origem —
+            # id_programa vem como texto do staging (toda coluna nasce texto
+            # no staging) e pode faltar em plano mal cadastrado na origem —
             # nesse caso o anexo é da validação 12.8 (anexo sem programa
             # identificado) e não tem como ser roteado.
             try:
@@ -165,7 +182,7 @@ def extracao_anexos_dag() -> None:
                 sem_politica += 1
                 continue
 
-            # caminho_minio e "<bucket>/<key>", gravado por download_anexos_dag
+            # caminho_minio e "<bucket>/<key>", montado acima a partir da listagem
             bucket, _, key = str(caminho_minio).partition("/")
             if not key:
                 logging.warning(

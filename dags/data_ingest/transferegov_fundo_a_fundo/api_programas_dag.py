@@ -6,11 +6,9 @@ from airflow.sdk import dag, task
 from airflow.sdk import Variable
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
+import datalakehouse
 import schemas_minc as schemas
-from openmetadata.lineage import publicar_linhagem, tabela
-from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
-from postgres_helpers import get_postgres_conn
 from schedule_loader import get_dynamic_schedule
 
 
@@ -22,7 +20,7 @@ default_args = {
 
 # Filtra por id_programa e nao por codigo_programa: a API publica devolve 500
 # ao filtrar /programas por codigo (bug do lado do servidor), e o id ja e a
-# chave primaria da tabela de destino.
+# identificador do programa no staging.
 _URL_CONSULTA_PROGRAMA = (
     "https://api-publica.transferegov.gestao.gov.br/fundoafundo/programas?id_programa={}"
 )
@@ -50,8 +48,8 @@ def _politica_por_id_programa() -> dict[int, dict[str, str]]:
     if not politicas:
         logging.warning(
             "[api_programas_dag.py] Variable 'transferegov_politicas_publicas' "
-            "nao configurada — 'sigla' e 'politica_publica' ficarao nulas em %s.%s",
-            schemas.SCHEMA_TRANSFEREGOV,
+            "nao configurada — 'sigla' e 'politica_publica' ficarao nulas no "
+            "staging de %s",
             schemas.TABELA_PROGRAMA,
         )
 
@@ -75,14 +73,14 @@ def _politica_por_id_programa() -> dict[int, dict[str, str]]:
 )
 def api_programas_dag() -> None:
     @task
-    def fetch_programas() -> list[dict[str, Any]]:
+    def extrair_programas() -> str:
+        """Busca os programas do escopo e grava a resposta da API em ``raw/``."""
         logging.info("[api_programas_dag.py] Iniciando extração de programas")
         ids_alvo = Variable.get(
             "transferegov_programas_ids",
             default=schemas.PROGRAMAS_IDS_PADRAO,
             deserialize_json=True,
         )
-        politicas = _politica_por_id_programa()
 
         api = ClienteTransfereGov()
         programas_data: list[dict[str, Any]] = []
@@ -92,22 +90,7 @@ def api_programas_dag() -> None:
             programa = api.get_programa_by_id(int(id_programa))
 
             if programa:
-                # Campos obrigatorios da secao 7.2 que nao vem da API. O
-                # codigo_programa vem no payload e e mantido como texto (e
-                # identificador de negocio, nao numero).
-                politica = politicas.get(int(id_programa), {})
-                programa["sigla"] = politica.get("sigla")
-                programa["politica_publica"] = politica.get("politica_publica")
-                programa["url_consulta"] = _URL_CONSULTA_PROGRAMA.format(id_programa)
-                programa["dt_ingest"] = datetime.now().isoformat()
                 programas_data.append(programa)
-
-                if not politica:
-                    logging.warning(
-                        "[api_programas_dag.py] Programa %s sem política pública "
-                        "mapeada na Variable 'transferegov_politicas_publicas'",
-                        id_programa,
-                    )
             else:
                 logging.warning(
                     "[api_programas_dag.py] Programa não encontrado para ID: %s",
@@ -126,31 +109,39 @@ def api_programas_dag() -> None:
                 len(ids_alvo),
             )
 
-        logging.info(
-            "[api_programas_dag.py] Extração concluída com %s registros",
-            len(programas_data),
-        )
-        return programas_data
-
-    @task(outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PROGRAMA)])
-    def load_programas_to_postgres(programas_data: list[dict[str, Any]]) -> None:
-        logging.info("[api_programas_dag.py] Iniciando carga no PostgreSQL")
-
-        db = ClientPostgresDB(get_postgres_conn())
-        db.insert_data(
-            programas_data,
-            table_name=schemas.TABELA_PROGRAMA,
-            primary_key=["id_programa"],
-            conflict_fields=["id_programa"],
-            schema=schemas.SCHEMA_TRANSFEREGOV,
+        return datalakehouse.gravar_raw(
+            programas_data, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PROGRAMA
         )
 
-        logging.info(
-            "[api_programas_dag.py] Carga concluída com %s registros",
-            len(programas_data),
-        )
+    @task
+    def converter_programas_para_staging(key_raw: str) -> str:
+        """Gera o Parquet de staging, com os campos que não vêm da API.
 
-    carga_finalizada = load_programas_to_postgres(fetch_programas())
+        ``sigla``, ``politica_publica`` e ``url_consulta`` são obrigatórios na
+        seção 7.2, mas são decisão do MinC, não dado da origem -- por isso
+        entram aqui e não no raw. O ``codigo_programa`` vem no payload e é
+        mantido como texto (é identificador de negócio, não número).
+        """
+        politicas = _politica_por_id_programa()
+
+        def enriquecer(programa: dict[str, Any]) -> dict[str, Any]:
+            id_programa = int(programa["id_programa"])
+            politica = politicas.get(id_programa, {})
+            if not politica:
+                logging.warning(
+                    "[api_programas_dag.py] Programa %s sem política pública "
+                    "mapeada na Variable 'transferegov_politicas_publicas'",
+                    id_programa,
+                )
+            return {
+                "sigla": politica.get("sigla"),
+                "politica_publica": politica.get("politica_publica"),
+                "url_consulta": _URL_CONSULTA_PROGRAMA.format(id_programa),
+            }
+
+        return datalakehouse.raw_para_staging(key_raw, enriquecer=enriquecer)
+
+    staging = converter_programas_para_staging(extrair_programas())
 
     trigger_planos_acao = TriggerDagRunOperator(
         task_id="trigger_planos_acao",
@@ -158,7 +149,7 @@ def api_programas_dag() -> None:
         wait_for_completion=False,
     )
 
-    carga_finalizada >> [trigger_planos_acao, publicar_linhagem()]
+    staging >> trigger_planos_acao
 
 
 api_programas_dag()
