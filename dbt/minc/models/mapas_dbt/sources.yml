@@ -1,0 +1,46 @@
+version: 2
+
+sources:
+  - name: mapas
+    schema: mapas
+    description: >
+      Mapas Culturais (Hacklab) — cadastro de agentes, espaços, eventos,
+      oportunidades e inscrições. Bronze: cópia fiel do banco da plataforma,
+      sem tipagem nem regra de negócio, gravada pela DAG
+      `mapas_ingestion_trino` como `mapas.bronze_<tabela>`. Toda coluna é
+      `varchar`, mais a coluna técnica `_fatia`.
+
+      O Mapas não passa pelo MinIO (camada Raw): a origem já é um banco de
+      dados, então a DAG lê dele direto pelo Trino. Só o schema `public` da
+      origem é ingerido, sem as tabelas descritas no ADR 0008.
+
+      Esta fonte é distinta de `dados_mapa_cultura`, a cópia antiga do Mapas, que
+      não está ligada a nenhum modelo.
+    tables:
+      - name: bronze_agent
+        description: >
+          Agentes culturais (pessoa física ou coletivo). 17 colunas na origem.
+          Chave: `id`. `location` chega como texto do `point` do PostgreSQL
+          ("(x,y)") e `_geo_location` como o hexadecimal EWKB do `geography`.
+        meta:
+          used: true
+      - name: bronze_agent_meta
+        description: >
+          Atributos dos agentes no formato chave-valor: uma linha por
+          (`object_id`, `key`). Chave: `id`. É onde ficam campos como
+          documento e autodeclaração, e por isso contém dado pessoal.
+        meta:
+          used: true
+      - name: bronze_agent_relation
+        description: >
+          Relação de um agente com outro objeto do Mapas (inscrição, espaço,
+          projeto etc.), com o tipo do objeto em `object_type`. Chave: `id`.
+        meta:
+          used: true
+      - name: bronze_usr
+        description: >
+          Usuários da plataforma. Chave: `id`. `agent.user_id` aponta para cá.
+          A origem tem também `auth_uid` e `email`, que NÃO são levados para a
+          silver por serem identificadores pessoais sem uso analítico.
+        meta:
+          used: true

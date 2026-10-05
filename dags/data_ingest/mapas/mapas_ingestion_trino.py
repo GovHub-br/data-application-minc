@@ -23,12 +23,51 @@ PostgreSQL, portanto:
 * Contagem aproximada de linhas vem de ``pg_catalog.pg_stat_user_tables``
   (melhor esforço; zero se indisponível, o que desliga o fatiamento e carrega
   a tabela em uma vez só).
-* Não há ``unsupported-type-handling`` nem ``case-insensitive-name-matching``
-  porque PostgreSQL → PostgreSQL não tem os tipos exóticos nem o CamelCase do
-  SQL Server.
+* Não há ``case-insensitive-name-matching``: PostgreSQL não tem o CamelCase do
+  SQL Server. Tipos exóticos existem, sim, e o ``CAST(... AS varchar)`` da
+  bronze falha ou perde a coluna neles: ``json``/``jsonb`` (11 tabelas do
+  escopo, tratado por ``json_format`` em ``cast_to_text``), ``geography``
+  (``agent`` e ``space``, trazida como texto pelo catálogo) e ``geometry`` (a
+  ``geo_division``, deixada de fora). Ver "Escopo" e ADR 0008.
 
 A montagem do SQL de carga (fatias, predicados, DDL da bronze) reutiliza
-``plugins/trino_bronze.py`` sem alteração.
+``plugins/trino_bronze.py``; a única adição feita para o Mapas ali é o ramo
+``json`` de ``cast_to_text``, que não alcança o SALIC.
+
+Nomenclatura
+------------
+O schema de destino é a fonte e o nome da tabela leva o prefixo da camada::
+
+    mapas.bronze_<tabela>        public.agent  →  mapas.bronze_agent
+
+Os nomes dos modelos dbt seguem ``bronze_<fonte>_<entidade>.sql``, por exemplo
+``bronze_mapas_agent.sql``. O schema vem da Variable ``mapas_trino_bronze_schema``
+(padrão ``mapas``); o prefixo ``bronze_`` é fixo. A tabela de log fica em
+``control``, que não pertence a uma fonte só. Toda tabela carrega ainda a coluna
+técnica ``_fatia``.
+
+Escopo
+------
+Só o schema ``public`` entra, e não inteiro (ADR 0008). ``tiger`` e ``topology``
+são da extensão PostGIS e não têm dado do Mapas. Dentro do ``public`` ficam de
+fora, via ``exclude_tables``:
+
+* ``pcache``, ``permission_cache_pending``, ``job``, ``spatial_ref_sys`` —
+  cache, fila e tabela da extensão;
+* ``entity_revision``, ``entity_revision_data``,
+  ``entity_revision_revision_data`` — histórico de edições (~24 GB);
+* ``blame_log``, ``blame_request`` — log de acesso, com IP e sessão (~16 GB);
+* ``geo_division`` — a coluna ``geom`` é ``geometry``, e o ``CAST`` para
+  ``varchar`` falha (``TYPE_MISMATCH``): a carga da tabela termina em erro;
+* as 10 views do ``public`` — o Trino as lista como tabela base e a DAG
+  tentaria materializá-las: ``geometry_columns`` e ``geography_columns``
+  (PostGIS), ``pg_stat_statements`` e ``pg_stat_statements_info`` (extensão),
+  ``blame`` (junta o log de acesso), ``evaluations``, ``rcv_bi``,
+  ``rcv_bi_registration``, ``vw_rcv_fato_pontos`` e ``vw_rcv_fato_pontos_old``
+  (consultas de BI, derivadas das tabelas base).
+
+A lista é configuração, não código: mora na Variable, não nesta DAG. O plano
+esperado são 59 tabelas, conferido contra o banco real.
 
 Configuração
 ------------
@@ -40,7 +79,16 @@ descreve um schema do banco Mapas::
         "schema": "public",
         "catalog": "mapas",
         "tables": [],
-        "exclude_tables": [],
+        "exclude_tables": [
+          "pcache", "permission_cache_pending", "job", "spatial_ref_sys",
+          "entity_revision", "entity_revision_data",
+          "entity_revision_revision_data",
+          "blame_log", "blame_request", "geo_division",
+          "geometry_columns", "geography_columns",
+          "pg_stat_statements", "pg_stat_statements_info",
+          "blame", "evaluations", "rcv_bi", "rcv_bi_registration",
+          "vw_rcv_fato_pontos", "vw_rcv_fato_pontos_old"
+        ],
         "rows_per_slice": 500000,
         "slice_concurrency": 2
       }
@@ -71,12 +119,10 @@ from airflow.providers.trino.hooks.trino import TrinoHook
 from airflow.sdk import Param, dag, get_current_context, task
 
 from trino_bronze import (
-    DEFAULT_BRONZE_SCHEMA,
     DEFAULT_TARGET_CATALOG,
     SLICE_COLUMN,
     bronze_ddl,
     bronze_schema,
-    bronze_table_name,
     build_statements,
     metadata_key,
     parse_only_tables,
@@ -91,6 +137,10 @@ from trino_bronze import (
 TRINO_CONN_ID = "trino_default"
 
 _DEFAULT_CATALOG = "mapas"
+# O schema de destino é a fonte, não a camada: as tabelas ficam em
+# ``mapas.bronze_<tabela>``. A Variable ``mapas_trino_bronze_schema`` troca o
+# schema; o prefixo ``bronze_`` do nome da tabela é fixo (_bronze_table_name).
+_DEFAULT_BRONZE_SCHEMA = "mapas"
 _DEFAULT_CONTROL_SCHEMA = "control"
 _BRONZE_SCHEMA_VAR = "mapas_trino_bronze_schema"
 _CONTROL_SCHEMA_VAR = "mapas_trino_control_schema"
@@ -202,7 +252,20 @@ def _target_catalog_name() -> str:
 
 
 def _bronze_schema_name() -> str:
-    return Variable.get(_BRONZE_SCHEMA_VAR, default_var=DEFAULT_BRONZE_SCHEMA)
+    return Variable.get(_BRONZE_SCHEMA_VAR, default_var=_DEFAULT_BRONZE_SCHEMA)
+
+
+def _bronze_table_name(table: str) -> str:
+    """Nome da tabela na bronze do Mapas: ``bronze_<tabela>``, em minúsculas.
+
+    O schema do destino já é a fonte (``mapas``), então o nome não repete o banco
+    nem o schema de origem, como faz o ``<banco>__<tabela>`` do SALIC em
+    ``trino_bronze.bronze_table_name`` — que continua como está, porque as fontes
+    do dbt do SALIC dependem dele. Só o ``public`` é ingerido (ADR 0008); se outro
+    schema de origem entrar, duas tabelas de mesmo nome colidiriam, e o
+    ``plan_targets`` recusa o plano nesse caso.
+    """
+    return f"bronze_{table.lower()}"
 
 
 def _control_schema_name() -> str:
@@ -321,7 +384,7 @@ def tables_done_today(catalogo: str, controle: str) -> set[tuple[str, str]]:
             title="Carregar apenas estas tabelas",
             description=(
                 "Lista separada por vírgula no formato schema.tabela, por exemplo: "
-                "public.occurrence, tiger.addr. Vazio carrega tudo o que a "
+                "public.agent, public.space. Vazio carrega tudo o que a "
                 "Variable mapas_trino_data descreve."
             ),
         ),
@@ -413,6 +476,8 @@ def mapas_ingestion_trino() -> None:
         targets: list[dict] = []
         for source in configs:
             targets.extend(_plan_source(source, done, only, destino))
+
+        _recusar_nomes_repetidos(targets)
 
         targets.sort(key=lambda t: t["row_count"], reverse=True)
         lotes = _distribuir_em_lotes(targets)
@@ -568,9 +633,7 @@ def _plan_source(
                 **destino,
                 "schema": table_schema,
                 "table": table,
-                # schema usado como discriminador no nome da bronze (público__tabela,
-                # tiger__tabela…) para evitar colisão entre schemas distintos.
-                "bronze_table": bronze_table_name(table_schema, table),
+                "bronze_table": _bronze_table_name(table),
                 "row_count": counts.get(key, 0),
                 "key_column": keys.get(key),
                 "rows_per_slice": source["rows_per_slice"],
@@ -585,6 +648,25 @@ def _plan_source(
         sum(1 for t in targets if t["key_column"]),
     )
     return targets
+
+
+def _recusar_nomes_repetidos(targets: list[dict]) -> None:
+    """Falha o plano se duas tabelas de origem cairem no mesmo nome da bronze.
+
+    A carga faz DROP + CREATE da tabela de destino: sem esta checagem, a segunda
+    tabela apagaria a primeira em silêncio.
+    """
+    origem_por_destino: dict[str, list[str]] = {}
+    for target in targets:
+        origem_por_destino.setdefault(target["bronze_table"], []).append(
+            f"{target['schema']}.{target['table']}"
+        )
+    repetidos = {k: v for k, v in origem_por_destino.items() if len(v) > 1}
+    if repetidos:
+        detalhe = "; ".join(f"{k} <- {', '.join(v)}" for k, v in repetidos.items())
+        raise ValueError(
+            f"Tabelas de origem diferentes caem no mesmo nome da bronze: {detalhe}"
+        )
 
 
 def _distribuir_em_lotes(targets: list[dict]) -> list[list[dict]]:

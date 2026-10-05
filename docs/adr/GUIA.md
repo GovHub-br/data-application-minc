@@ -16,6 +16,7 @@ que a substitui, e o antigo passa a `Status: substituído por ADR NNNN`.
 | [0005](0005-ingestao-salic-por-trino-em-fatias.md) | A ingestão do SALIC passa a ser feita pelo Trino, em fatias de chave |
 | [0006](0006-silvers-salic-gate-a0-parcial.md) | Gate A0 parcial das silvers do SALIC: medidas, território e bloqueios dos KPIs |
 | [0007](0007-cosmos-monta-a-dag-por-dbt-ls.md) | O Cosmos monta a DAG por `dbt ls`, não por manifest versionado |
+| [0008](0008-ingestao-mapas-so-public-sem-historico.md) | A ingestão do Mapas leva só o `public`, sem o histórico de edições nem o log de acesso |
 
 Para escrever um novo, existe a skill
 [`architecture-decision-records`](../../.claude/skills/architecture-decision-records/).
