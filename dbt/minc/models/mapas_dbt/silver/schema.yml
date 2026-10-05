@@ -1,0 +1,263 @@
+version: 2
+
+models:
+  - name: silver_mapas_agent
+    description: >
+      Silver do Mapas Culturais — agentes (pessoa física ou coletivo). Uma linha
+      por agente. Tipa a `mapas.bronze_agent` (17 colunas na origem; `location`
+      vira `longitude` e `latitude`, 18 na saída), tira duplicata pelo `id` e
+      deixa NULL o que está ausente ou não casa com o tipo. Não cruza tabelas.
+
+      Contém dado pessoal: nome, descrições livres e localização. Tabela
+      materializada como `mapas.silver_agent`.
+
+      Os códigos de `type` e `status` aparecem na origem como inteiros; os
+      significados que o Mapas lhes dá NÃO foram verificados aqui.
+    config:
+      tags: [silver, mapas]
+      meta:
+        status: Active
+        origem_dados: 'mapas.bronze_agent'
+        openmetadata:
+          domain: Cultura.Cadastro Cultural
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+          tags:
+            - Certification.Silver
+    columns:
+      - name: id
+        description: Identificador do agente no Mapas. Chave desta tabela.
+        data_type: integer
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: Usuário dono do agente (`silver_mapas_usr.id`).
+        data_type: integer
+      - name: type
+        description: >
+          Código do tipo do agente. Na amostra do banco real aparecem só os
+          valores 1 e 2 (pessoa física e coletivo, a confirmar).
+        data_type: smallint
+      - name: name
+        description: Nome do agente. Dado pessoal quando o agente é pessoa física.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+      - name: longitude
+        description: >
+          Longitude em graus decimais, tirada do `x` do `point` `location`. NULL
+          quando ausente, fora de [-180, 180] ou exatamente no ponto (0,0), que o
+          cadastro grava quando não há localização. Pode haver coordenada válida
+          porém fora do Brasil: é erro de cadastro e não é corrigido aqui.
+        data_type: numeric
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+      - name: latitude
+        description: >
+          Latitude em graus decimais, tirada do `y` do `point` `location`. Mesmas
+          regras de NULL da longitude, no intervalo [-90, 90].
+        data_type: numeric
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+      - name: _geo_location
+        description: >
+          Localização como `geography`, em hexadecimal EWKB (texto). Mantida como
+          texto porque o DW não depende do PostGIS; quem tiver PostGIS lê com
+          `ST_GeogFromText`. Mesma informação de longitude e latitude, sem o
+          tratamento de ponto inválido.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+      - name: short_description
+        description: Descrição curta, texto livre. Vazio vira NULL.
+        data_type: text
+      - name: long_description
+        description: Descrição longa, texto livre. Vazio vira NULL.
+        data_type: text
+      - name: create_timestamp
+        description: Momento em que o agente foi criado.
+        data_type: timestamp without time zone
+      - name: status
+        description: >
+          Código de situação do agente. Na amostra do banco real aparecem 1, 0,
+          -10, -9 e -2; os significados NÃO foram verificados.
+        data_type: smallint
+      - name: is_verified
+        description: Se o agente foi verificado. NULL quando ausente, nunca falso.
+        data_type: boolean
+      - name: parent_id
+        description: Agente pai, quando há hierarquia (`id` desta mesma tabela).
+        data_type: integer
+      - name: public_location
+        description: >
+          Se a localização do agente é pública. Nem a longitude nem a latitude
+          desta tabela filtram por esta coluna: a decisão de expor ou não a
+          localização fica para quem consome.
+        data_type: boolean
+      - name: id_responsavel_rac
+        description: Identificador do responsável no RAC (significado a confirmar).
+        data_type: integer
+      - name: id_usuario_rac
+        description: Identificador do usuário no RAC (significado a confirmar).
+        data_type: integer
+      - name: update_timestamp
+        description: Última atualização do agente. NULL quando nunca foi atualizado.
+        data_type: timestamp without time zone
+      - name: subsite_id
+        description: Subsite do Mapas ao qual o agente pertence, quando há.
+        data_type: integer
+
+  - name: silver_mapas_agent_meta
+    description: >
+      Silver do Mapas Culturais — atributos dos agentes em chave-valor. Uma linha
+      por registro de atributo; um agente tem várias linhas, uma por `key`. Tipa
+      a `mapas.bronze_agent_meta` e tira duplicata pelo `id`. NÃO é pivotada: um
+      atributo por coluna é cruzamento e fica para a camada seguinte.
+
+      Contém dado pessoal: documento, telefone e autodeclaração são atributos
+      desta tabela. Materializada como `mapas.silver_agent_meta`.
+    config:
+      tags: [silver, mapas]
+      meta:
+        status: Active
+        origem_dados: 'mapas.bronze_agent_meta'
+        openmetadata:
+          domain: Cultura.Cadastro Cultural
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+          tags:
+            - Certification.Silver
+    columns:
+      - name: id
+        description: Identificador do registro de atributo. Chave desta tabela.
+        data_type: integer
+        tests:
+          - unique
+          - not_null
+      - name: object_id
+        description: Agente a que o atributo pertence (`silver_mapas_agent.id`).
+        data_type: integer
+        tests:
+          - not_null
+      - name: key
+        description: Nome do atributo, por exemplo o documento ou a autodeclaração.
+        data_type: text
+        tests:
+          - not_null
+      - name: value
+        description: >
+          Valor do atributo, sempre texto, porque o tipo depende da `key`. Espaços
+          das pontas saem, e vazio vira NULL. Pode ser dado pessoal.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+  - name: silver_mapas_agent_relation
+    description: >
+      Silver do Mapas Culturais — relação de um agente com outro objeto do Mapas
+      (inscrição, espaço, projeto etc.). Uma linha por relação. Tipa a
+      `mapas.bronze_agent_relation` e tira duplicata pelo `id`.
+
+      `object_id` só faz sentido junto de `object_type`: é o id na tabela daquele
+      tipo. Esta camada não resolve a ligação. Materializada como
+      `mapas.silver_agent_relation`.
+    config:
+      tags: [silver, mapas]
+      meta:
+        status: Active
+        origem_dados: 'mapas.bronze_agent_relation'
+        openmetadata:
+          domain: Cultura.Cadastro Cultural
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+          tags:
+            - Certification.Silver
+    columns:
+      - name: id
+        description: Identificador da relação. Chave desta tabela.
+        data_type: integer
+        tests:
+          - unique
+          - not_null
+      - name: agent_id
+        description: Agente da relação (`silver_mapas_agent.id`).
+        data_type: integer
+        tests:
+          - not_null
+      - name: object_type
+        description: >
+          Nome da classe do objeto relacionado, por exemplo
+          `MapasCulturais\Entities\Registration`. Era um tipo enumerado na origem.
+        data_type: text
+      - name: object_id
+        description: Id do objeto relacionado, na tabela que `object_type` indica.
+        data_type: integer
+      - name: type
+        description: Papel do agente na relação, texto livre. Vazio vira NULL.
+        data_type: text
+      - name: has_control
+        description: Se o agente controla o objeto. NULL quando ausente, nunca falso.
+        data_type: boolean
+      - name: create_timestamp
+        description: Momento em que a relação foi criada.
+        data_type: timestamp without time zone
+      - name: status
+        description: Código de situação da relação (significado NÃO verificado).
+        data_type: smallint
+      - name: metadata
+        description: >
+          Metadados da relação. Era `json` na origem e sai como `jsonb`; vazio e
+          o literal 'null' viram NULL.
+        data_type: jsonb
+
+  - name: silver_mapas_usr
+    description: >
+      Silver do Mapas Culturais — usuários da plataforma. Uma linha por usuário.
+      Tipa a `mapas.bronze_usr` e tira duplicata pelo `id`.
+
+      `auth_uid` e `email` ficam DE FORA de propósito: são identificadores
+      pessoais sem uso analítico, e a silver é lida por mais gente do que a
+      bronze. Materializada como `mapas.silver_usr`.
+    config:
+      tags: [silver, mapas]
+      meta:
+        status: Active
+        origem_dados: 'mapas.bronze_usr'
+        openmetadata:
+          domain: Cultura.Cadastro Cultural
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+          tags:
+            - Certification.Silver
+    columns:
+      - name: id
+        description: Identificador do usuário. Chave desta tabela.
+        data_type: integer
+        tests:
+          - unique
+          - not_null
+      - name: auth_provider
+        description: >
+          Código do provedor de autenticação. Na origem real aparecem só 0 e 2;
+          o significado de cada um NÃO foi verificado.
+        data_type: smallint
+      - name: last_login_timestamp
+        description: >
+          Último login. NOT NULL na origem e sem data-sentinela; uma parte dos
+          usuários tem o valor igual à criação, e é dado, não ausência.
+        data_type: timestamp without time zone
+      - name: create_timestamp
+        description: Momento em que o usuário foi criado.
+        data_type: timestamp without time zone
+      - name: status
+        description: Código de situação do usuário (significado NÃO verificado).
+        data_type: smallint
+      - name: profile_id
+        description: Agente que é o perfil principal do usuário, quando há.
+        data_type: integer
