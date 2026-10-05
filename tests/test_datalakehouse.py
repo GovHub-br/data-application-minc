@@ -1,9 +1,9 @@
-"""Testes das partes puras do datalakehouse: caminho, conversão e seleção.
+"""Testes das partes puras do datalakehouse: caminho, conversão e cadeia.
 
 O que importa aqui: raw e staging de um mesmo run sempre se encontram pelo
 caminho, e o Parquet de staging tem o mesmo shape que o Postgres tinha
-(colunas achatadas com ``__``, tudo texto) -- é o que o dbt vai ler quando a
-ponte existir.
+(colunas achatadas com ``__``, em minúsculas, tudo texto) -- é o que a ponte
+grava de volta nas tabelas que o dbt lê.
 """
 
 import io
@@ -14,10 +14,13 @@ import pandas as pd
 import pytest
 
 from datalakehouse import (
+    cadeia_do_gatilho,
     caminho,
-    escolher_mais_recente,
+    key_da_cadeia,
+    parquet_para_registros,
     raw_para_staging_key,
     registros_para_parquet,
+    uri_asset,
 )
 from extracao_por_plano_acao import (
     carregar_planos_acao,
@@ -98,30 +101,59 @@ def test_lista_vazia_gera_parquet_legivel() -> None:
     assert len(_ler(registros_para_parquet([]))) == 0
 
 
-# ── seleção do mais recente ──────────────────────────────────────────────
+def test_colunas_camelcase_saem_em_minusculo_como_no_postgres() -> None:
+    registros = [{"id": 1, "tipoAnexo": {"auditLogin": "x", "idPrograma": 46}}]
+    df = _ler(registros_para_parquet(registros, dt_ingest=_DATA))
+
+    assert {"tipoanexo__auditlogin", "tipoanexo__idprograma"} <= set(df.columns)
 
 
-def test_mais_recente_e_por_data_de_escrita_nao_pela_key() -> None:
-    objetos = [
-        {
-            "Key": "staging/t/e/ano=2026/mes=10/dia=01/scheduled__x.parquet",
-            "LastModified": datetime(2026, 10, 1, 1, tzinfo=timezone.utc),
-        },
-        {
-            "Key": "staging/t/e/ano=2026/mes=10/dia=01/manual__y.parquet",
-            "LastModified": datetime(2026, 10, 1, 9, tzinfo=timezone.utc),
-        },
-        {
-            "Key": "staging/t/e/ano=2026/mes=10/dia=01/lixo.txt",
-            "LastModified": datetime(2026, 10, 2, tzinfo=timezone.utc),
-        },
+# ── cadeia entre DAGs ────────────────────────────────────────────────────
+
+
+def test_uri_do_asset_e_estavel_por_entidade() -> None:
+    assert uri_asset("staging/transferegov/plano_acao_minc/") == (
+        "s3://minc-datalakehouse/staging/transferegov/plano_acao_minc"
+    )
+
+
+def test_cadeia_vem_do_evento_mais_novo() -> None:
+    extras = [
+        {"plano_acao_minc": "staging/a.parquet"},
+        {"plano_acao_minc": "staging/b.parquet"},
     ]
-    mais_recente = escolher_mais_recente(objetos, "parquet")
-    assert mais_recente is not None and mais_recente.endswith("manual__y.parquet")
+    assert cadeia_do_gatilho(extras, conf={"plano_acao_minc": "x"}) == {
+        "plano_acao_minc": "staging/b.parquet"
+    }
 
 
-def test_sem_objetos_nao_ha_mais_recente() -> None:
-    assert escolher_mais_recente([], "parquet") is None
+def test_sem_evento_a_cadeia_vem_do_conf() -> None:
+    assert cadeia_do_gatilho([], conf={"programa_minc": "staging/p.parquet"}) == {
+        "programa_minc": "staging/p.parquet"
+    }
+    assert cadeia_do_gatilho([], conf=None) == {}
+
+
+def test_entidade_fora_da_cadeia_diz_o_que_falta() -> None:
+    with pytest.raises(KeyError, match="relatorios_gestao"):
+        key_da_cadeia({"plano_acao_minc": "k"}, "relatorios_gestao")
+
+
+# ── ponte staging -> Postgres ────────────────────────────────────────────
+
+
+def test_registros_da_ponte_sem_na_e_sem_chave_repetida() -> None:
+    df = pd.DataFrame({"id": ["1", "1", "2"], "nome": ["velho", "novo", pd.NA]}).astype(
+        "string"
+    )
+    assert parquet_para_registros(df, ["id"]) == [
+        {"id": "1", "nome": "novo"},
+        {"id": "2", "nome": None},
+    ]
+
+
+def test_parquet_vazio_nao_gera_registros() -> None:
+    assert parquet_para_registros(_ler(registros_para_parquet([])), ["id"]) == []
 
 
 # ── leitura do staging nas DAGs encadeadas ───────────────────────────────
@@ -152,6 +184,17 @@ def test_join_de_anexos_descarta_orfaos_e_nao_devolve_na() -> None:
 
     assert juntos["id"].tolist() == ["10"]
     assert juntos["cod_ibge"].tolist() == [None]
+
+
+def test_join_de_anexos_sem_campo_obrigatorio_diz_qual_entidade() -> None:
+    anexos = pd.DataFrame({"id": ["10"], "id_relatorio_gestao": ["1"]})
+    relatorios = pd.DataFrame({"id_relatorio_gestao": ["1"], "id_plano_acao": ["100"]})
+    planos = pd.DataFrame(
+        {"id_plano_acao": ["100"], "id_programa": ["46"], "cod_ibge": ["1"]}
+    )
+
+    with pytest.raises(ValueError, match=r"anexos_relatorios.*'nome'"):
+        juntar_anexos_ao_plano(anexos, relatorios, planos)
 
 
 @pytest.mark.parametrize(

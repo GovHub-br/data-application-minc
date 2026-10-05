@@ -4,7 +4,6 @@ from typing import Any
 
 from airflow.sdk import dag, task
 from airflow.sdk import Variable
-from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 import datalakehouse
 import schemas_minc as schemas
@@ -21,6 +20,11 @@ default_args = {
 # Filtra por id_programa e nao por codigo_programa: a API publica devolve 500
 # ao filtrar /programas por codigo (bug do lado do servidor), e o id ja e a
 # identificador do programa no staging.
+# Evento que dispara a api_planos_acao_dag.
+ASSET_PROGRAMA = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PROGRAMA
+)
+
 _URL_CONSULTA_PROGRAMA = (
     "https://api-publica.transferegov.gestao.gov.br/fundoafundo/programas?id_programa={}"
 )
@@ -113,7 +117,7 @@ def api_programas_dag() -> None:
             programas_data, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PROGRAMA
         )
 
-    @task
+    @task(outlets=[ASSET_PROGRAMA])
     def converter_programas_para_staging(key_raw: str) -> str:
         """Gera o Parquet de staging, com os campos que não vêm da API.
 
@@ -139,17 +143,11 @@ def api_programas_dag() -> None:
                 "url_consulta": _URL_CONSULTA_PROGRAMA.format(id_programa),
             }
 
-        return datalakehouse.raw_para_staging(key_raw, enriquecer=enriquecer)
+        key = datalakehouse.raw_para_staging(key_raw, enriquecer=enriquecer)
+        datalakehouse.publicar_cadeia(ASSET_PROGRAMA, {schemas.TABELA_PROGRAMA: key})
+        return key
 
-    staging = converter_programas_para_staging(extrair_programas())
-
-    trigger_planos_acao = TriggerDagRunOperator(
-        task_id="trigger_planos_acao",
-        trigger_dag_id="api_planos_acao_dag",
-        wait_for_completion=False,
-    )
-
-    staging >> trigger_planos_acao
+    converter_programas_para_staging(extrair_programas())
 
 
 api_programas_dag()

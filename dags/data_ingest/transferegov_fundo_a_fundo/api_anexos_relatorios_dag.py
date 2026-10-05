@@ -1,12 +1,19 @@
 import logging
 from datetime import datetime, timedelta
 from airflow.sdk import dag, task
-from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 import datalakehouse
 import schemas_minc as schemas
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGovBackend
 
+
+ASSET_RELATORIOS = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO
+)
+# Evento que dispara a download_anexos_transferegov_dag.
+ASSET_ANEXOS = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_ANEXO_RELATORIO
+)
 
 default_args = {
     "owner": "Caio Borges",
@@ -17,7 +24,7 @@ default_args = {
 
 @dag(
     dag_id="api_anexos_relatorios_dag",
-    schedule=None,
+    schedule=[ASSET_RELATORIOS],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -30,8 +37,9 @@ def api_anexos_relatorios_dag() -> None:
             "[api_anexos_relatorios_dag.py] Iniciando extração de anexos de relatórios"
         )
 
-        relatorios = datalakehouse.ler_staging_recente(
-            schemas.FONTE_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO
+        cadeia = datalakehouse.ler_cadeia(ASSET_RELATORIOS)
+        relatorios = datalakehouse.ler_parquet(
+            datalakehouse.key_da_cadeia(cadeia, schemas.TABELA_RELATORIO_GESTAO)
         )
         ids_relatorios = relatorios["id_relatorio_gestao"].dropna().unique().tolist()
 
@@ -81,17 +89,16 @@ def api_anexos_relatorios_dag() -> None:
             anexos_data, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_ANEXO_RELATORIO
         )
 
-    @task
+    @task(outlets=[ASSET_ANEXOS])
     def converter_anexos_para_staging(key_raw: str) -> str:
-        return datalakehouse.raw_para_staging(key_raw)
+        key = datalakehouse.raw_para_staging(key_raw)
+        cadeia = datalakehouse.ler_cadeia(ASSET_RELATORIOS)
+        datalakehouse.publicar_cadeia(
+            ASSET_ANEXOS, {**cadeia, schemas.TABELA_ANEXO_RELATORIO: key}
+        )
+        return key
 
-    trigger_download = TriggerDagRunOperator(
-        task_id="trigger_download_anexos",
-        trigger_dag_id="download_anexos_transferegov_dag",
-        wait_for_completion=False,
-    )
-
-    converter_anexos_para_staging(extrair_anexos_relatorios()) >> trigger_download
+    converter_anexos_para_staging(extrair_anexos_relatorios())
 
 
 api_anexos_relatorios_dag()

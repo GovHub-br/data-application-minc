@@ -45,6 +45,8 @@ _LIMITE_COLUNAS_PLANILHA = 1200
 
 _S3_CONN_ID = datalakehouse.CONN_ID
 
+ASSET_ANEXOS_ARQUIVOS = datalakehouse.asset(schemas.PREFIXO_ANEXOS_ARQUIVOS)
+
 default_args = {
     "owner": "Caio Borges",
     "retries": 2,
@@ -71,7 +73,7 @@ def _hash_registro(id_anexo: str, indice_subtabela: int, linha_origem: int) -> s
 
 @dag(
     dag_id="extracao_anexos_dag",
-    schedule=None,
+    schedule=[ASSET_ANEXOS_ARQUIVOS],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -116,8 +118,14 @@ def extracao_anexos_dag() -> None:
         carrega o DOM XML inteiro em memória e causa OOM Kills.
         """
 
+        # Os três arquivos são os da cadeia que a download_anexos repassou:
+        # do mesmo run, para o join não descartar anexo de relatório novo.
+        cadeia = datalakehouse.ler_cadeia(ASSET_ANEXOS_ARQUIVOS)
+
         def staging(entidade: str) -> pd.DataFrame:
-            return datalakehouse.ler_staging_recente(schemas.FONTE_TRANSFEREGOV, entidade)
+            return datalakehouse.ler_parquet(
+                datalakehouse.key_da_cadeia(cadeia, entidade)
+            )
 
         anexos = juntar_anexos_ao_plano(
             staging(schemas.TABELA_ANEXO_RELATORIO),

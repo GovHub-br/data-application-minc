@@ -7,8 +7,14 @@ import datalakehouse
 import schemas_minc as schemas
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from extracao_por_plano_acao import carregar_planos_acao, extrair_por_plano_acao
-from schedule_loader import get_dynamic_schedule
 
+
+ASSET_PLANO_ACAO = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+)
+ASSET_META = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_META
+)
 
 default_args = {
     "owner": "Caio Borges",
@@ -19,7 +25,7 @@ default_args = {
 
 @dag(
     dag_id="api_plano_acao_meta_dag",
-    schedule=get_dynamic_schedule("api_plano_acao_meta_dag"),
+    schedule=[ASSET_PLANO_ACAO],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -38,9 +44,10 @@ def api_plano_acao_meta_dag() -> None:
 
     @task
     def extrair_metas() -> str:
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
         planos = carregar_planos_acao(
-            datalakehouse.ler_staging_recente(
-                schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+            datalakehouse.ler_parquet(
+                datalakehouse.key_da_cadeia(cadeia, schemas.TABELA_PLANO_ACAO)
             )
         )
 
@@ -69,9 +76,14 @@ def api_plano_acao_meta_dag() -> None:
             metas, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_META
         )
 
-    @task
+    @task(outlets=[ASSET_META])
     def converter_metas_para_staging(key_raw: str) -> str:
-        return datalakehouse.raw_para_staging(key_raw)
+        key = datalakehouse.raw_para_staging(key_raw)
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
+        datalakehouse.publicar_cadeia(
+            ASSET_META, {**cadeia, schemas.TABELA_PLANO_ACAO_META: key}
+        )
+        return key
 
     converter_metas_para_staging(extrair_metas())
 

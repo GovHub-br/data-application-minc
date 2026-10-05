@@ -1294,7 +1294,9 @@ def listar_arquivos_s3(
 
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
-    hook = S3Hook(aws_conn_id="minio_default")
+    import datalakehouse
+
+    hook = S3Hook(aws_conn_id=datalakehouse.CONN_ID)
     client = hook.get_client_type("s3")
 
     paginator = client.get_paginator("list_objects_v2")

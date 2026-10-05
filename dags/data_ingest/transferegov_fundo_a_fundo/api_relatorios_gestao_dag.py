@@ -3,12 +3,19 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from airflow.sdk import dag, task
-from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 import datalakehouse
 import schemas_minc as schemas
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 
+
+ASSET_PLANO_ACAO = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+)
+# Evento que dispara a api_anexos_relatorios_dag.
+ASSET_RELATORIOS = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO
+)
 
 default_args = {
     "owner": "Caio Borges",
@@ -19,7 +26,7 @@ default_args = {
 
 @dag(
     dag_id="api_relatorios_gestao_dag",
-    schedule=None,
+    schedule=[ASSET_PLANO_ACAO],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -32,8 +39,9 @@ def api_relatorios_gestao_dag() -> None:
             "[api_relatorios_gestao_dag.py] Iniciando extração de relatórios de gestão"
         )
 
-        planos = datalakehouse.ler_staging_recente(
-            schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
+        planos = datalakehouse.ler_parquet(
+            datalakehouse.key_da_cadeia(cadeia, schemas.TABELA_PLANO_ACAO)
         )
         ids_planos = planos["id_plano_acao"].dropna().unique().tolist()
 
@@ -83,17 +91,16 @@ def api_relatorios_gestao_dag() -> None:
             relatorios_data, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO
         )
 
-    @task
+    @task(outlets=[ASSET_RELATORIOS])
     def converter_relatorios_para_staging(key_raw: str) -> str:
-        return datalakehouse.raw_para_staging(key_raw)
+        key = datalakehouse.raw_para_staging(key_raw)
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
+        datalakehouse.publicar_cadeia(
+            ASSET_RELATORIOS, {**cadeia, schemas.TABELA_RELATORIO_GESTAO: key}
+        )
+        return key
 
-    trigger_anexos = TriggerDagRunOperator(
-        task_id="trigger_anexos",
-        trigger_dag_id="api_anexos_relatorios_dag",
-        wait_for_completion=False,
-    )
-
-    converter_relatorios_para_staging(extrair_relatorios_gestao()) >> trigger_anexos
+    converter_relatorios_para_staging(extrair_relatorios_gestao())
 
 
 api_relatorios_gestao_dag()

@@ -13,22 +13,30 @@ um arquivo de staging, o raw de onde ele saiu é sempre recuperável.
 As funções de caminho e de conversão são puras (não tocam Airflow nem rede)
 para serem testáveis sem subir o ambiente; o ``S3Hook`` é importado só dentro
 das funções que falam com o MinIO.
+
+O encadeamento entre DAGs é por Asset, um por entidade: quem grava o staging
+publica um evento com a key exata do arquivo no ``extra``, e quem consome lê
+essa key do evento que o disparou. O ``extra`` carrega a *cadeia* inteira
+(``entidade -> key``) desde o programa, para que um consumidor que precise de
+várias entidades -- anexos, relatórios e planos -- leia todas do mesmo run.
 """
 
 from __future__ import annotations
 
+import functools
 import io
 import json
 import logging
 import math
 import re
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping
 
 import pandas as pd
 
 if TYPE_CHECKING:
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+    from airflow.sdk import Asset
 
 CONN_ID = "minio_datalakehouse"
 BUCKET = "minc-datalakehouse"
@@ -73,17 +81,44 @@ def raw_para_staging_key(key_raw: str) -> str:
     return f"{CAMADA_STAGING}/{miolo}.parquet"
 
 
-def escolher_mais_recente(objetos: Iterable[dict[str, Any]], ext: str) -> str | None:
-    """Key mais recente (por ``LastModified``) entre objetos de ``list_objects_v2``.
+# ── cadeia entre DAGs ────────────────────────────────────────────────────
 
-    Não dá para ordenar pela key: dentro do mesmo dia, ``manual__`` e
-    ``scheduled__`` não saem em ordem cronológica.
+
+def uri_asset(key_prefixo: str) -> str:
+    """URI do Asset que representa tudo o que existe sob ``key_prefixo``.
+
+    É estático por entidade, sem ``run_id``: a identidade do Asset é o que o
+    scheduler usa para casar produtor e consumidor. A key do run vai no
+    ``extra`` do evento.
     """
-    candidatos = [o for o in objetos if o["Key"].endswith(f".{ext}")]
-    if not candidatos:
-        return None
-    mais_recente: str = max(candidatos, key=lambda o: o["LastModified"])["Key"]
-    return mais_recente
+    return f"s3://{BUCKET}/{key_prefixo.rstrip('/')}"
+
+
+def cadeia_do_gatilho(
+    extras: Iterable[Mapping[str, Any]], conf: Mapping[str, Any] | None = None
+) -> dict[str, str]:
+    """Cadeia ``entidade -> key`` do evento que disparou o run.
+
+    ``extras`` são os ``extra`` dos eventos do Asset de gatilho, do mais
+    antigo para o mais novo; vale o mais novo. Sem evento (run manual), vale
+    o ``conf`` do run -- é por ele que se reprocessa um arquivo específico.
+    """
+    ultimo: Mapping[str, Any] = {}
+    for extra in extras:
+        ultimo = extra
+    origem = ultimo or conf or {}
+    return {str(k): str(v) for k, v in origem.items()}
+
+
+def key_da_cadeia(cadeia: Mapping[str, str], entidade: str) -> str:
+    try:
+        return cadeia[entidade]
+    except KeyError:
+        raise KeyError(
+            f"a cadeia que disparou este run não traz '{entidade}' "
+            f"(tem: {sorted(cadeia)}). Para rodar à mão, passe a key no conf: "
+            f'{{"{entidade}": "staging/..."}}'
+        ) from None
 
 
 # ── conversão JSON → Parquet ─────────────────────────────────────────────
@@ -121,6 +156,10 @@ def registros_para_parquet(
         registros = [{**r, **enriquecer(r)} for r in registros]
 
     df = pd.json_normalize(registros, sep="__") if registros else pd.DataFrame()
+    # O insert_data baixava as chaves para minúsculo, e é com esses nomes que
+    # as tabelas e a bronze existem: o backend do TransfereGov responde em
+    # camelCase (tipoAnexo.auditLogin), e a coluna é tipoanexo__auditlogin.
+    df.columns = [str(coluna).lower() for coluna in df.columns]
     df["dt_ingest"] = (dt_ingest or datetime.now(timezone.utc)).isoformat()
     df = df.astype(object).apply(lambda coluna: coluna.map(_como_texto))
     df = df.astype("string")
@@ -130,11 +169,38 @@ def registros_para_parquet(
     return buffer.getvalue()
 
 
+def parquet_para_registros(df: pd.DataFrame, chave: list[str]) -> list[dict[str, Any]]:
+    """Linhas de um Parquet de staging prontas para ``insert_data`` com upsert.
+
+    ``pd.NA`` vira ``None`` (o psycopg2 não sabe adaptar ``NA``), e linhas
+    com a mesma ``chave`` ficam só na última ocorrência: duas no mesmo
+    INSERT fariam o ``ON CONFLICT DO UPDATE`` recusar o lote inteiro.
+    """
+    if df.empty:
+        return []
+    unicas = df.drop_duplicates(subset=chave, keep="last")
+    if len(unicas) < len(df):
+        logging.warning(
+            "[datalakehouse] %d linhas com %s repetido -- fica a última",
+            len(df) - len(unicas),
+            chave,
+        )
+    registros: list[dict[str, Any]] = (
+        unicas.astype(object).where(unicas.notna(), None).to_dict(orient="records")  # type: ignore[assignment]
+    )
+    return registros
+
+
 # ── MinIO ────────────────────────────────────────────────────────────────
 
 
+@functools.cache
 def get_hook() -> S3Hook:
-    """``S3Hook`` da conexão ``minio_datalakehouse``, com o bucket garantido."""
+    """``S3Hook`` da conexão ``minio_datalakehouse``, com o bucket garantido.
+
+    Em cache: sem isso, cada leitura e cada escrita pagava um HeadBucket --
+    3000 a mais numa rodada da ``download_anexos_transferegov_dag``.
+    """
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
     hook = S3Hook(aws_conn_id=CONN_ID)
@@ -223,26 +289,44 @@ def ler_parquet(key: str) -> pd.DataFrame:
     return pd.read_parquet(io.BytesIO(corpo))
 
 
-def ler_staging_recente(fonte: str, entidade: str) -> pd.DataFrame:
-    """Último Parquet de ``entidade`` no staging.
-
-    É o que substitui a leitura da tabela Postgres entre DAGs encadeadas: a
-    DAG-filha consome o que a DAG-mãe acabou de escrever.
-    """
-    key = escolher_mais_recente(
-        listar_objetos(prefixo(CAMADA_STAGING, fonte, entidade)), "parquet"
-    )
-    if key is None:
-        raise FileNotFoundError(
-            f"nenhum Parquet em s3://{BUCKET}/"
-            f"{prefixo(CAMADA_STAGING, fonte, entidade)} -- a DAG que produz "
-            f"'{entidade}' já rodou?"
-        )
-    logging.info("[datalakehouse] Lendo s3://%s/%s", BUCKET, key)
-    return ler_parquet(key)
-
-
 def gravar_bytes(conteudo: bytes, key: str) -> str:
     """Grava um binário (anexo, por exemplo) em ``key`` e devolve a key."""
     get_hook().load_bytes(bytes_data=conteudo, key=key, bucket_name=BUCKET, replace=True)
     return key
+
+
+# ── Assets ───────────────────────────────────────────────────────────────
+
+
+def asset(key_prefixo: str) -> Asset:
+    """Asset de um prefixo do bucket (ver ``uri_asset``)."""
+    from airflow.sdk import Asset
+
+    return Asset(uri=uri_asset(key_prefixo))
+
+
+def asset_staging(fonte: str, entidade: str) -> Asset:
+    return asset(prefixo(CAMADA_STAGING, fonte, entidade))
+
+
+def ler_cadeia(asset_gatilho: Asset) -> dict[str, str]:
+    """Cadeia ``entidade -> key`` do evento de ``asset_gatilho`` que disparou o run."""
+    from airflow.sdk import get_current_context
+
+    contexto = get_current_context()
+    eventos = contexto["triggering_asset_events"].get(asset_gatilho, [])
+    return cadeia_do_gatilho(
+        (evento.extra for evento in eventos), contexto["dag_run"].conf
+    )
+
+
+def publicar_cadeia(asset_saida: Asset, cadeia: Mapping[str, str]) -> None:
+    """Põe ``cadeia`` no ``extra`` do evento que a task vai emitir em ``asset_saida``.
+
+    A task precisa declarar ``asset_saida`` em ``outlets``; o evento só sai se
+    ela terminar com sucesso.
+    """
+    from airflow.sdk import get_current_context
+
+    get_current_context()["outlet_events"][asset_saida].extra.update(cadeia)
+    logging.info("[datalakehouse] Evento em %s: %s", asset_saida.uri, dict(cadeia))

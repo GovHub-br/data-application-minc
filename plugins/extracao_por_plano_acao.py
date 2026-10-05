@@ -47,6 +47,17 @@ def carregar_planos_acao(planos: pd.DataFrame) -> list[dict[str, Any]]:
     return registros
 
 
+def _colunas(df: pd.DataFrame, colunas: list[str], entidade: str) -> pd.DataFrame:
+    """``df[colunas]``, com erro que diz qual entidade perdeu qual campo."""
+    faltando = [c for c in colunas if c not in df.columns]
+    if faltando:
+        raise ValueError(
+            f"staging de {entidade} sem as colunas {faltando} -- o payload da "
+            "origem mudou?"
+        )
+    return df[colunas]
+
+
 def juntar_anexos_ao_plano(
     anexos: pd.DataFrame, relatorios: pd.DataFrame, planos: pd.DataFrame
 ) -> pd.DataFrame:
@@ -54,23 +65,44 @@ def juntar_anexos_ao_plano(
 
     O mesmo join que as DAGs de anexos faziam em SQL, agora sobre o staging:
     devolve cada anexo com ``id_plano_acao``, ``id_programa`` e ``cod_ibge``.
-    Anexo sem relatorio ou sem plano cai fora, como no INNER JOIN de antes.
+    Anexo sem relatorio ou sem plano cai fora, como no INNER JOIN de antes --
+    e a quantidade vai para o log, porque cair muito e sinal de que os tres
+    arquivos nao sao do mesmo run.
     """
+    if anexos.empty:
+        return pd.DataFrame(
+            columns=[
+                "id",
+                "nome",
+                "id_relatorio_gestao",
+                "id_plano_acao",
+                "id_programa",
+                "cod_ibge",
+            ]
+        )
     juntos = (
-        anexos[["id", "nome", "id_relatorio_gestao"]]
+        _colunas(anexos, ["id", "nome", "id_relatorio_gestao"], "anexos_relatorios")
         .merge(
-            relatorios[["id_relatorio_gestao", "id_plano_acao"]].drop_duplicates(
-                "id_relatorio_gestao"
-            ),
+            _colunas(
+                relatorios, ["id_relatorio_gestao", "id_plano_acao"], "relatorios_gestao"
+            ).drop_duplicates("id_relatorio_gestao"),
             on="id_relatorio_gestao",
         )
         .merge(
-            planos[["id_plano_acao", "id_programa", "cod_ibge"]].drop_duplicates(
-                "id_plano_acao"
-            ),
+            _colunas(
+                planos, ["id_plano_acao", "id_programa", "cod_ibge"], "plano_acao_minc"
+            ).drop_duplicates("id_plano_acao"),
             on="id_plano_acao",
         )
     )
+    descartados = len(anexos) - len(juntos)
+    if descartados:
+        logging.warning(
+            "%d de %d anexos sem relatorio ou plano de acao correspondente -- "
+            "fora do join",
+            descartados,
+            len(anexos),
+        )
     # pd.NA nao serializa em XCom; as DAGs de anexo devolvem estes valores.
     return juntos.astype(object).where(juntos.notna(), None)
 

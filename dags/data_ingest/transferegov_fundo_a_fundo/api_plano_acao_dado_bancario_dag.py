@@ -7,8 +7,14 @@ import datalakehouse
 import schemas_minc as schemas
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from extracao_por_plano_acao import carregar_planos_acao, extrair_por_plano_acao
-from schedule_loader import get_dynamic_schedule
 
+
+ASSET_PLANO_ACAO = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+)
+ASSET_DADO_BANCARIO = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_DADO_BANCARIO
+)
 
 default_args = {
     "owner": "Caio Borges",
@@ -19,7 +25,7 @@ default_args = {
 
 @dag(
     dag_id="api_plano_acao_dado_bancario_dag",
-    schedule=get_dynamic_schedule("api_plano_acao_dado_bancario_dag"),
+    schedule=[ASSET_PLANO_ACAO],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -42,9 +48,10 @@ def api_plano_acao_dado_bancario_dag() -> None:
 
     @task
     def extrair_dados_bancarios() -> str:
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
         planos = carregar_planos_acao(
-            datalakehouse.ler_staging_recente(
-                schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+            datalakehouse.ler_parquet(
+                datalakehouse.key_da_cadeia(cadeia, schemas.TABELA_PLANO_ACAO)
             )
         )
 
@@ -92,9 +99,14 @@ def api_plano_acao_dado_bancario_dag() -> None:
             contas, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_DADO_BANCARIO
         )
 
-    @task
+    @task(outlets=[ASSET_DADO_BANCARIO])
     def converter_dados_bancarios_para_staging(key_raw: str) -> str:
-        return datalakehouse.raw_para_staging(key_raw)
+        key = datalakehouse.raw_para_staging(key_raw)
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
+        datalakehouse.publicar_cadeia(
+            ASSET_DADO_BANCARIO, {**cadeia, schemas.TABELA_PLANO_ACAO_DADO_BANCARIO: key}
+        )
+        return key
 
     converter_dados_bancarios_para_staging(extrair_dados_bancarios())
 

@@ -4,7 +4,6 @@ import logging
 import pandas as pd
 import requests
 from airflow.sdk import dag, task
-from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.sdk import TriggerRule
 from datetime import datetime, timedelta
 
@@ -24,6 +23,12 @@ _EXTENSOES_PLANILHA = (".xls", ".xlsx", ".ods")
 # Teto por rodada: com max_active_tis_per_dag=3 isso ja e horas de download.
 _LIMITE_POR_RODADA = 3000
 
+ASSET_ANEXOS = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_ANEXO_RELATORIO
+)
+# Evento que dispara a extracao_anexos_dag, com a mesma cadeia de keys.
+ASSET_ANEXOS_ARQUIVOS = datalakehouse.asset(schemas.PREFIXO_ANEXOS_ARQUIVOS)
+
 default_args = {
     "owner": "Wallyson Souza",
     "retries": 2,
@@ -34,7 +39,7 @@ default_args = {
 @dag(
     dag_id="download_anexos_transferegov_dag",
     default_args=default_args,
-    schedule=None,
+    schedule=[ASSET_ANEXOS],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     tags=["minc", "transferegov", "extracao", "anexos"],
@@ -47,11 +52,15 @@ def download_anexos_dag() -> None:
 
         A lista sai do staging (anexo -> relatório -> plano de ação, para saber
         o programa e daí a pasta LPG/PNAB) menos o que já foi baixado. Quem
-        diz "já baixado" é o próprio bucket, não uma coluna no banco.
+        diz "já baixado" é o próprio bucket, não uma coluna no banco. Os três
+        arquivos de staging são os da cadeia que disparou o run.
         """
+        cadeia = datalakehouse.ler_cadeia(ASSET_ANEXOS)
 
         def staging(entidade: str) -> pd.DataFrame:
-            return datalakehouse.ler_staging_recente(schemas.FONTE_TRANSFEREGOV, entidade)
+            return datalakehouse.ler_parquet(
+                datalakehouse.key_da_cadeia(cadeia, entidade)
+            )
 
         anexos = juntar_anexos_ao_plano(
             staging(schemas.TABELA_ANEXO_RELATORIO),
@@ -110,18 +119,17 @@ def download_anexos_dag() -> None:
         )
         logging.info(f"Anexo {anexo_id} salvo em s3://{datalakehouse.BUCKET}/{key}")
 
-    # ── Task final que dispara a DAG de extração ──
-    # Usa ALL_DONE para que o trigger execute mesmo se alguns downloads falharem
-    trigger_extracao = TriggerDagRunOperator(
-        task_id="trigger_extracao_anexos",
-        trigger_dag_id="extracao_anexos_dag",
-        wait_for_completion=False,
-        trigger_rule=TriggerRule.ALL_DONE,
-    )
+    # Roda mesmo se alguns downloads falharem (ALL_DONE): o que foi baixado
+    # já pode ser extraído, e o que falhou volta como pendente na próxima.
+    @task(outlets=[ASSET_ANEXOS_ARQUIVOS], trigger_rule=TriggerRule.ALL_DONE)
+    def anunciar_downloads() -> None:
+        datalakehouse.publicar_cadeia(
+            ASSET_ANEXOS_ARQUIVOS, datalakehouse.ler_cadeia(ASSET_ANEXOS)
+        )
 
     # Fluxo da DAG — Dynamic Task Mapping: cada pendente vira uma task individual
     lista_pendentes = buscar_ids_pendentes()
-    baixar_e_salvar_anexos.expand(pendente=lista_pendentes) >> trigger_extracao
+    baixar_e_salvar_anexos.expand(pendente=lista_pendentes) >> anunciar_downloads()
 
 
 # Instancia a DAG

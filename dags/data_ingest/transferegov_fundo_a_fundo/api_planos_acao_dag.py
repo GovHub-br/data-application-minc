@@ -3,14 +3,21 @@ from datetime import datetime, timedelta
 
 from airflow.sdk import dag, task
 from airflow.sdk import Variable
-from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 import datalakehouse
 import schemas_minc as schemas
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
-from schedule_loader import get_dynamic_schedule
 from territorio_ibge import derivar_territorio
 
+
+ASSET_PROGRAMA = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PROGRAMA
+)
+# Evento que dispara metas, dado bancario e relatorios de gestao (passos 3A,
+# 3B e 6 da secao 6), com a key deste run no extra.
+ASSET_PLANO_ACAO = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+)
 
 default_args = {
     "owner": "Wallyson Souza",
@@ -21,7 +28,9 @@ default_args = {
 
 @dag(
     dag_id="api_planos_acao_dag",
-    schedule=get_dynamic_schedule("api_planos_acao_dag"),
+    # Roda depois de cada carga de programas, e nao por cron proprio: o
+    # agendamento e o da api_programas_dag.
+    schedule=[ASSET_PROGRAMA],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -73,36 +82,19 @@ def api_planos_acao_dag() -> None:
             planos_data, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
         )
 
-    @task
+    @task(outlets=[ASSET_PLANO_ACAO])
     def converter_planos_acao_para_staging(key_raw: str) -> str:
         # Campos territoriais da secao 7.1. Sem isso o plano ESTADUAL fica com
         # o codigo IBGE do municipio da capital, que e o que a validacao 12.7
         # proibe. Entram so no staging: o raw e a resposta da API intocada.
-        return datalakehouse.raw_para_staging(key_raw, enriquecer=derivar_territorio)
+        key = datalakehouse.raw_para_staging(key_raw, enriquecer=derivar_territorio)
+        cadeia = datalakehouse.ler_cadeia(ASSET_PROGRAMA)
+        datalakehouse.publicar_cadeia(
+            ASSET_PLANO_ACAO, {**cadeia, schemas.TABELA_PLANO_ACAO: key}
+        )
+        return key
 
-    trigger_relatorios = TriggerDagRunOperator(
-        task_id="trigger_relatorios",
-        trigger_dag_id="api_relatorios_gestao_dag",
-        wait_for_completion=False,
-    )
-
-    # Metas e dados bancarios sao os dois ramos que dependem so do plano de
-    # acao (passos 3A e 3B da secao 6) — disparados em paralelo com os
-    # relatorios de gestao, que seguem o proprio ramo (passo 6).
-    trigger_metas = TriggerDagRunOperator(
-        task_id="trigger_metas",
-        trigger_dag_id="api_plano_acao_meta_dag",
-        wait_for_completion=False,
-    )
-
-    trigger_dado_bancario = TriggerDagRunOperator(
-        task_id="trigger_dado_bancario",
-        trigger_dag_id="api_plano_acao_dado_bancario_dag",
-        wait_for_completion=False,
-    )
-
-    staging = converter_planos_acao_para_staging(extrair_planos_acao())
-    staging >> [trigger_relatorios, trigger_metas, trigger_dado_bancario]
+    converter_planos_acao_para_staging(extrair_planos_acao())
 
 
 api_planos_acao_dag()

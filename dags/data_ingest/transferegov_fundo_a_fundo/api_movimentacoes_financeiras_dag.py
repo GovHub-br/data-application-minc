@@ -10,6 +10,14 @@ from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from schedule_loader import get_dynamic_schedule
 
 
+# Eventos que disparam as pontes staging -> Postgres destas duas entidades.
+ASSET_LANCAMENTOS = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.ENTIDADE_LANCAMENTOS
+)
+ASSET_SUBTRANSACOES = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.ENTIDADE_SUBTRANSACOES
+)
+
 default_args = {
     "owner": "Caio Borges",
     "retries": 3,
@@ -71,9 +79,13 @@ def api_movimentacoes_financeiras_dag() -> None:
             schemas.ENTIDADE_LANCAMENTOS,
         )
 
-    @task
+    @task(outlets=[ASSET_LANCAMENTOS])
     def converter_lancamentos_para_staging(key_raw: str) -> str:
-        return datalakehouse.raw_para_staging(key_raw)
+        key = datalakehouse.raw_para_staging(key_raw)
+        datalakehouse.publicar_cadeia(
+            ASSET_LANCAMENTOS, {schemas.ENTIDADE_LANCAMENTOS: key}
+        )
+        return key
 
     @task
     def extrair_subtransacoes(key_staging_lancamentos: str) -> str:
@@ -127,9 +139,13 @@ def api_movimentacoes_financeiras_dag() -> None:
             schemas.ENTIDADE_SUBTRANSACOES,
         )
 
-    @task
+    @task(outlets=[ASSET_SUBTRANSACOES])
     def converter_subtransacoes_para_staging(key_raw: str) -> str:
-        return datalakehouse.raw_para_staging(key_raw)
+        key = datalakehouse.raw_para_staging(key_raw)
+        datalakehouse.publicar_cadeia(
+            ASSET_SUBTRANSACOES, {schemas.ENTIDADE_SUBTRANSACOES: key}
+        )
+        return key
 
     staging_lancamentos = converter_lancamentos_para_staging(extrair_lancamentos())
     converter_subtransacoes_para_staging(extrair_subtransacoes(staging_lancamentos))
