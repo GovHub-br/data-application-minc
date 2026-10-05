@@ -79,13 +79,17 @@ def passthrough(catalog: str, tsql: str) -> str:
 def cast_to_text(column: str, trino_type: str) -> str:
     """Expressão que converte *column* em ``varchar`` preservando o texto da v1.
 
-    Três tipos não são um ``CAST`` direto:
+    Quatro tipos não são um ``CAST`` direto:
 
     * ``boolean`` — o ``CAST`` do Trino daria ``'true'``; a v1, que passava por
       ``str()`` do Python, gravava ``'True'``.
     * ``varbinary`` — o Trino recusa o ``CAST`` para ``varchar``. Hexadecimal é
       o único formato textual que não perde o conteúdo (a v1 gravava a repr de
       ``bytes``, que não era recuperável).
+    * ``json`` — o ``CAST`` só aceita um valor escalar; um objeto ou uma lista
+      falha com ``INVALID_CAST_ARGUMENT``. ``json_format`` devolve o texto do
+      JSON. Vem de origem PostgreSQL (``json`` e ``jsonb``): o conector do SQL
+      Server não expõe esse tipo, então o SALIC não passa por aqui.
     * ``char(n)`` — sai sem o preenchimento de espaços à direita, porque é assim
       que o Trino converte ``char`` em ``varchar``. A v1 mantinha os espaços.
     """
@@ -96,6 +100,8 @@ def cast_to_text(column: str, trino_type: str) -> str:
         return f"CASE WHEN {ident} THEN 'True' WHEN NOT {ident} THEN 'False' END"
     if base == "varbinary":
         return f"to_hex({ident})"
+    if base == "json":
+        return f"json_format({ident})"
     return f"CAST({ident} AS varchar)"
 
 

@@ -149,6 +149,34 @@ def test_tipo_com_precisao_e_reconhecido_pela_base() -> None:
     assert cast_to_text("Quando", "timestamp(3)") == 'CAST("Quando" AS varchar)'
 
 
+def test_json_usa_json_format() -> None:
+    # O CAST(json AS varchar) do Trino só aceita escalar; objeto e lista falham
+    # com INVALID_CAST_ARGUMENT. Vem de json/jsonb do PostgreSQL (Mapas).
+    assert cast_to_text("payload", "json") == 'json_format("payload")'
+    assert cast_to_text("Payload", "JSON") == 'json_format("Payload")'
+
+
+def test_tipos_que_nao_sao_json_continuam_no_cast_de_sempre() -> None:
+    # O ramo do json não pode alcançar o SALIC (SQL Server): tudo o que o conector
+    # de lá entrega continua gerando exatamente o mesmo SQL.
+    for tipo in (
+        "varchar",
+        "varchar(80)",
+        "char(14)",
+        "integer",
+        "bigint",
+        "smallint",
+        "double",
+        "real",
+        "decimal(18,2)",
+        "date",
+        "timestamp(3)",
+        "timestamp(3) with time zone",
+        "uuid",
+    ):
+        assert cast_to_text("c", tipo) == 'CAST("c" AS varchar)', tipo
+
+
 # ── Quoting ──────────────────────────────────────────────────────────────────
 
 
