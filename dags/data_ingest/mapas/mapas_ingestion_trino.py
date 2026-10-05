@@ -23,12 +23,27 @@ PostgreSQL, portanto:
 * Contagem aproximada de linhas vem de ``pg_catalog.pg_stat_user_tables``
   (melhor esforço; zero se indisponível, o que desliga o fatiamento e carrega
   a tabela em uma vez só).
-* Não há ``unsupported-type-handling`` nem ``case-insensitive-name-matching``
-  porque PostgreSQL → PostgreSQL não tem os tipos exóticos nem o CamelCase do
-  SQL Server.
+* Não há ``case-insensitive-name-matching``: PostgreSQL não tem o CamelCase do
+  SQL Server. Tipos exóticos existem, sim — o PostGIS cria ``geometry`` — e o
+  conector os ignora em silêncio; ver "Escopo" abaixo e ADR 0008.
 
 A montagem do SQL de carga (fatias, predicados, DDL da bronze) reutiliza
 ``plugins/trino_bronze.py`` sem alteração.
+
+Escopo
+------
+Só o schema ``public`` entra, e não inteiro (ADR 0008). ``tiger`` e ``topology``
+são da extensão PostGIS e não têm dado do Mapas. Dentro do ``public`` ficam de
+fora, via ``exclude_tables``:
+
+* ``pcache``, ``permission_cache_pending``, ``job``, ``spatial_ref_sys`` —
+  cache, fila e tabela da extensão;
+* ``entity_revision``, ``entity_revision_data``,
+  ``entity_revision_revision_data`` — histórico de edições (~24 GB);
+* ``blame_log``, ``blame_request`` — log de acesso, com IP e sessão (~16 GB);
+* ``geo_division`` — a coluna ``geom`` é ``geometry``, que o conector ignora.
+
+A lista é configuração, não código: mora na Variable, não nesta DAG.
 
 Configuração
 ------------
@@ -40,7 +55,12 @@ descreve um schema do banco Mapas::
         "schema": "public",
         "catalog": "mapas",
         "tables": [],
-        "exclude_tables": [],
+        "exclude_tables": [
+          "pcache", "permission_cache_pending", "job", "spatial_ref_sys",
+          "entity_revision", "entity_revision_data",
+          "entity_revision_revision_data",
+          "blame_log", "blame_request", "geo_division"
+        ],
         "rows_per_slice": 500000,
         "slice_concurrency": 2
       }
@@ -321,7 +341,7 @@ def tables_done_today(catalogo: str, controle: str) -> set[tuple[str, str]]:
             title="Carregar apenas estas tabelas",
             description=(
                 "Lista separada por vírgula no formato schema.tabela, por exemplo: "
-                "public.occurrence, tiger.addr. Vazio carrega tudo o que a "
+                "public.agent, public.space. Vazio carrega tudo o que a "
                 "Variable mapas_trino_data descreve."
             ),
         ),
