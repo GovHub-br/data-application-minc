@@ -82,7 +82,9 @@ def _criar_ponte(entidade: str, tabela_destino: str, chave: list[str]) -> None:
             cada um tivesse tido o seu run.
             """
             contexto = get_current_context()
-            eventos = contexto["triggering_asset_events"].get(asset_staging, [])
+            eventos = datalakehouse.eventos_em_ordem(
+                contexto["triggering_asset_events"].get(asset_staging, [])
+            )
             # Sem evento (run manual), a key vem do conf: {"<entidade>": "staging/..."}
             extras = [e.extra for e in eventos] or [contexto["dag_run"].conf or {}]
             keys = [

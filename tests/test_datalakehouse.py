@@ -9,6 +9,7 @@ grava de volta nas tabelas que o dbt lê.
 import io
 import json
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -16,6 +17,7 @@ import pytest
 from datalakehouse import (
     cadeia_do_gatilho,
     caminho,
+    eventos_em_ordem,
     key_da_cadeia,
     parquet_para_registros,
     raw_para_staging_key,
@@ -125,6 +127,26 @@ def test_cadeia_vem_do_evento_mais_novo() -> None:
     assert cadeia_do_gatilho(extras, conf={"plano_acao_minc": "x"}) == {
         "plano_acao_minc": "staging/b.parquet"
     }
+
+
+def test_eventos_fora_de_ordem_sao_ordenados_pelo_timestamp() -> None:
+    # A ordem que o Airflow devolveu no teste do PR #58: nem crescente nem
+    # decrescente.
+    def evento(hora: str, key: str) -> SimpleNamespace:
+        return SimpleNamespace(
+            timestamp=datetime.fromisoformat(f"2026-10-06T{hora}+00:00"),
+            extra={"programa_minc": key},
+        )
+
+    eventos = [
+        evento("14:02:00", "c"),
+        evento("14:00:50.170000", "a"),
+        evento("14:00:50.380000", "b"),
+        evento("14:27:00", "d"),
+    ]
+    em_ordem = eventos_em_ordem(eventos)
+    assert [e.extra["programa_minc"] for e in em_ordem] == ["a", "b", "c", "d"]
+    assert cadeia_do_gatilho(e.extra for e in em_ordem) == {"programa_minc": "d"}
 
 
 def test_sem_evento_a_cadeia_vem_do_conf() -> None:

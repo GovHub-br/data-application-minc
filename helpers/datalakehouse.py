@@ -94,13 +94,24 @@ def uri_asset(key_prefixo: str) -> str:
     return f"s3://{BUCKET}/{key_prefixo.rstrip('/')}"
 
 
+def eventos_em_ordem(eventos: Iterable[Any]) -> list[Any]:
+    """Eventos de Asset do mais antigo para o mais novo, pelo ``timestamp``.
+
+    O Airflow não garante a ordem de ``triggering_asset_events``: os eventos
+    voltam pela relação ``consumed_asset_events``, sem ``ORDER BY``. Quem lê
+    mais de um evento -- a produtora rodou de novo antes da consumidora --
+    precisa ordenar antes de escolher o mais novo ou de aplicar em sequência.
+    """
+    return sorted(eventos, key=lambda evento: evento.timestamp)
+
+
 def cadeia_do_gatilho(
     extras: Iterable[Mapping[str, Any]], conf: Mapping[str, Any] | None = None
 ) -> dict[str, str]:
     """Cadeia ``entidade -> key`` do evento que disparou o run.
 
     ``extras`` são os ``extra`` dos eventos do Asset de gatilho, do mais
-    antigo para o mais novo; vale o mais novo. Sem evento (run manual), vale
+    antigo para o mais novo (ver ``eventos_em_ordem``); vale o mais novo. Sem evento (run manual), vale
     o ``conf`` do run -- é por ele que se reprocessa um arquivo específico.
     """
     ultimo: Mapping[str, Any] = {}
@@ -314,7 +325,7 @@ def ler_cadeia(asset_gatilho: Asset) -> dict[str, str]:
     from airflow.sdk import get_current_context
 
     contexto = get_current_context()
-    eventos = contexto["triggering_asset_events"].get(asset_gatilho, [])
+    eventos = eventos_em_ordem(contexto["triggering_asset_events"].get(asset_gatilho, []))
     return cadeia_do_gatilho(
         (evento.extra for evento in eventos), contexto["dag_run"].conf
     )
