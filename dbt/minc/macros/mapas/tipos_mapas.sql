@@ -4,8 +4,8 @@
   A bronze do Mapas (mapas.bronze_<tabela>) é uma cópia fiel: tudo chega como
   texto, e é a silver que tipa (ver o padrão de camadas do Lakehouse). Para os
   tipos comuns use as macros bronze_texto, bronze_inteiro, bronze_numerico,
-  bronze_timestamp e bronze_booleano; as duas daqui são para os dois tipos que
-  o PostgreSQL do Mapas tem e que elas não entendem: `point` e `json`.
+  bronze_timestamp e bronze_booleano; as daqui são para os tipos que o
+  PostgreSQL do Mapas tem e que elas não entendem: `point`, `json` e `double`.
 
   A regra é a mesma das outras: valor que não casa vira NULL em vez de derrubar
   o modelo. Ausente fica nulo.
@@ -62,5 +62,18 @@
         when trim({{ col }}) = 'null'
         then null
         else trim({{ col }})::jsonb
+    end
+{%- endmacro %}
+
+
+{% macro mapas_float(col) -%}
+    {#- Um `double` do PostgreSQL passa pelo Trino como texto em notação científica:
+        o zero chega como '0E0' e 10 como '1.0E1'. A macro bronze_numerico só aceita
+        '123.45', então rejeitaria esses valores e transformaria um zero legítimo em
+        NULL, ou seja, em "ausente". Esta aceita a notação científica (com expoente de
+        até 3 dígitos, para o cast não estourar); o que não casa vira NULL. -#}
+    case
+        when trim({{ col }}) ~ '^-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]{1,3})?$'
+        then trim({{ col }})::double precision
     end
 {%- endmacro %}
