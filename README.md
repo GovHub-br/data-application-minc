@@ -94,32 +94,61 @@ nunca vira falso.
 
 ### Schemas e nomenclatura
 
+A decisão está no [ADR 0010](docs/adr/0010-camadas-e-schemas-do-data-lakehouse.md);
+a tabela abaixo é o resumo.
+
 | Camada | Schema | Tabela | Arquivo dbt | Exemplo |
 |---|---|---|---|---|
 | Raw | — | — | — (`source`) | `raw/salic/agentes/` |
-| Bronze | `<fonte>` | `bronze_<entidade>` | `bronze_<fonte>__<entidade>.sql` | `salic.bronze_agentes` |
-| Silver | `<fonte>` | `silver_<entidade>` | `silver_<fonte>__<entidade>.sql` | `salic.silver_agentes` |
-| Intermediate | `intermediate` | `int_<fonte1>_<fonte2>` | `int_<fonte1>_<fonte2>.sql` | `intermediate.int_salic_transferegov` |
-| Gold | `<produto>` | `<nome>`, sem prefixo | `<produto>__<nome>.sql` | `cultura_numeros.meta_5_primeiro_acesso` |
+| Bronze | `<fonte>` | `bronze_<entidade>` | `<fonte>/bronze_<entidade>.sql` | `salic.bronze_agentes_agentes` |
+| Silver | `<fonte>` | `silver_<entidade>` | `<fonte>/silver_<entidade>.sql` | `salic.silver_agentes_agentes` |
+| Intermediate | `intermediate` | `int_<fonte1>_<fonte2>` | `intermediate/int_<fonte1>_<fonte2>.sql` | `intermediate.int_salic_transferegov` |
+| Gold | `<produto>` | `<nome>`, sem prefixo | `<produto>/<nome>.sql` | `cultura_em_numeros.eixo2_meta3_fct_pagamento_profissional_rouanet` |
 
-- O arquivo dbt leva a fonte (ou o produto) no nome porque o dbt exige nome de
-  modelo único no projeto inteiro. A tabela recebe o nome curto por `alias`.
+- O nome do arquivo é o nome da tabela. A fonte fica na pasta e no schema,
+  não no nome, e não há `alias`.
+- A entidade preserva o que identifica a tabela na origem. No SALIC, que tem
+  cinco bancos, é `<banco>_<tabela>`: `agentes_agentes`,
+  `sac_aberturadecontabancaria`.
 - Fonte com uma única entidade usa o nome da fonte como entidade, como em
-  `transferegov.bronze_transferegov`.
-- A Gold não leva prefixo de camada: o schema já identifica o produto.
-- Produtos de dados citados até agora: `cultura_numeros` (Cultura em Números),
-  `sefli` e `patrimonio_cultural`.
+  `transferegov/bronze_transferegov.sql`.
+- A Gold não leva prefixo de camada nem de produto: a pasta e o schema já
+  dizem o produto. Dentro da pasta, cada produto nomeia suas tabelas como
+  precisar; o Cultura em Números leva eixo e meta no nome.
+- Produtos de dados citados até agora: `cultura_em_numeros` (Cultura em
+  Números), `sefli` e `patrimonio_cultural`.
+
+Pastas no projeto dbt: uma por fonte, uma por produto e uma `intermediate`,
+sem subpasta de camada.
+
+```text
+dbt/minc/models/
+├── salic/
+│   ├── bronze_agentes_agentes.sql
+│   └── silver_agentes_agentes.sql
+├── bbagil/
+│   ├── bronze_controle_extracao_bbagil_extrato.sql
+│   └── silver_controle_extracao_bbagil_extrato.sql
+├── intermediate/
+│   └── int_salic_transferegov.sql
+└── cultura_em_numeros/
+    └── eixo2_meta3_fct_pagamento_profissional_rouanet.sql
+```
 
 Exemplo de ponta a ponta:
 
 ```text
-raw/salic/agentes/              ─▶ salic.bronze_agentes             ─▶ salic.silver_agentes
+raw/salic/agentes/              ─▶ salic.bronze_agentes_agentes     ─▶ salic.silver_agentes_agentes
 raw/transferegov/transferegov/  ─▶ transferegov.bronze_transferegov ─▶ transferegov.silver_transferegov
 
-salic.silver_agentes + transferegov.silver_transferegov
+salic.silver_agentes_agentes + transferegov.silver_transferegov
   ─▶ intermediate.int_salic_transferegov
-  ─▶ cultura_numeros.meta_5_primeiro_acesso
+  ─▶ cultura_em_numeros.eixo2_meta5_primeiro_acesso
 ```
+
+O projeto de hoje ainda está na organização anterior, por domínio; a
+migração é incremental e a skill `arquitetura-lakehouse-minc` verifica a
+aderência de cada PR.
 
 ### Decisões que sustentam a arquitetura
 
