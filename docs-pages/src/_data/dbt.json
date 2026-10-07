@@ -2440,6 +2440,2905 @@
       "linhas_sql": 12
     },
     {
+      "nome": "silver_mapas_agent",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_agent.sql",
+      "descricao": "Silver do Mapas Culturais — agentes (pessoa física ou coletivo). Uma linha por agente. Tipa a `mapas.bronze_agent` (17 colunas na origem; `location` vira `longitude` e `latitude`, 18 na saída), tira duplicata pelo `id` e deixa NULL o que está ausente ou não casa com o tipo. Não cruza tabelas.\nContém dado pessoal: nome, descrições livres e localização. Tabela materializada como `mapas.silver_agent`.\nOs códigos de `type` e `status` aparecem na origem como inteiros; os significados que o Mapas lhes dá NÃO foram verificados aqui.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Identificador do agente no Mapas. Chave desta tabela."
+        },
+        {
+          "nome": "user_id",
+          "descricao": "Usuário dono do agente (`silver_mapas_usr.id`)."
+        },
+        {
+          "nome": "type",
+          "descricao": "Código do tipo do agente. Na amostra do banco real aparecem só os valores 1 e 2 (pessoa física e coletivo, a confirmar)."
+        },
+        {
+          "nome": "name",
+          "descricao": "Nome do agente. Dado pessoal quando o agente é pessoa física."
+        },
+        {
+          "nome": "longitude",
+          "descricao": "Longitude em graus decimais, tirada do `x` do `point` `location`. NULL quando ausente, fora de [-180, 180] ou exatamente no ponto (0,0), que o cadastro grava quando não há localização. Pode haver coordenada válida porém fora do Brasil: é erro de cadastro e não é corrigido aqui."
+        },
+        {
+          "nome": "latitude",
+          "descricao": "Latitude em graus decimais, tirada do `y` do `point` `location`. Mesmas regras de NULL da longitude, no intervalo [-90, 90]."
+        },
+        {
+          "nome": "_geo_location",
+          "descricao": "Localização como `geography`, em hexadecimal EWKB (texto). Mantida como texto porque o DW não depende do PostGIS; quem tiver PostGIS lê com `ST_GeogFromText`. Mesma informação de longitude e latitude, sem o tratamento de ponto inválido."
+        },
+        {
+          "nome": "short_description",
+          "descricao": "Descrição curta, texto livre. Vazio vira NULL."
+        },
+        {
+          "nome": "long_description",
+          "descricao": "Descrição longa, texto livre. Vazio vira NULL."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Momento em que o agente foi criado."
+        },
+        {
+          "nome": "status",
+          "descricao": "Código de situação do agente. Na amostra do banco real aparecem 1, 0, -10, -9 e -2; os significados NÃO foram verificados."
+        },
+        {
+          "nome": "is_verified",
+          "descricao": "Se o agente foi verificado. NULL quando ausente, nunca falso."
+        },
+        {
+          "nome": "parent_id",
+          "descricao": "Agente pai, quando há hierarquia (`id` desta mesma tabela)."
+        },
+        {
+          "nome": "public_location",
+          "descricao": "Se a localização do agente é pública. Nem a longitude nem a latitude desta tabela filtram por esta coluna: a decisão de expor ou não a localização fica para quem consome."
+        },
+        {
+          "nome": "id_responsavel_rac",
+          "descricao": "Identificador do responsável no RAC (significado a confirmar)."
+        },
+        {
+          "nome": "id_usuario_rac",
+          "descricao": "Identificador do usuário no RAC (significado a confirmar)."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Última atualização do agente. NULL quando nunca foi atualizado."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Subsite do Mapas ao qual o agente pertence, quando há."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_agent"
+      ],
+      "linhas_sql": 74
+    },
+    {
+      "nome": "silver_mapas_agent_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_agent_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos dos agentes em chave-valor. Uma linha por registro de atributo; um agente tem várias linhas, uma por `key`. Tipa a `mapas.bronze_agent_meta` e tira duplicata pelo `id`. NÃO é pivotada: um atributo por coluna é cruzamento e fica para a camada seguinte.\nContém dado pessoal: documento, telefone e autodeclaração são atributos desta tabela. Materializada como `mapas.silver_agent_meta`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Identificador do registro de atributo. Chave desta tabela."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Agente a que o atributo pertence (`silver_mapas_agent.id`)."
+        },
+        {
+          "nome": "key",
+          "descricao": "Nome do atributo, por exemplo o documento ou a autodeclaração."
+        },
+        {
+          "nome": "value",
+          "descricao": "Valor do atributo, sempre texto, porque o tipo depende da `key`. Espaços das pontas saem, e vazio vira NULL. Pode ser dado pessoal."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_agent_meta"
+      ],
+      "linhas_sql": 39
+    },
+    {
+      "nome": "silver_mapas_agent_relation",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_agent_relation.sql",
+      "descricao": "Silver do Mapas Culturais — relação de um agente com outro objeto do Mapas (inscrição, espaço, projeto etc.). Uma linha por relação. Tipa a `mapas.bronze_agent_relation` e tira duplicata pelo `id`.\n`object_id` só faz sentido junto de `object_type`: é o id na tabela daquele tipo. Esta camada não resolve a ligação. Materializada como `mapas.silver_agent_relation`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Identificador da relação. Chave desta tabela."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Agente da relação (`silver_mapas_agent.id`)."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Nome da classe do objeto relacionado, por exemplo `MapasCulturais\\Entities\\Registration`. Era um tipo enumerado na origem."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Id do objeto relacionado, na tabela que `object_type` indica."
+        },
+        {
+          "nome": "type",
+          "descricao": "Papel do agente na relação, texto livre. Vazio vira NULL."
+        },
+        {
+          "nome": "has_control",
+          "descricao": "Se o agente controla o objeto. NULL quando ausente, nunca falso."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Momento em que a relação foi criada."
+        },
+        {
+          "nome": "status",
+          "descricao": "Código de situação da relação (significado NÃO verificado)."
+        },
+        {
+          "nome": "metadata",
+          "descricao": "Metadados da relação. Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_agent_relation"
+      ],
+      "linhas_sql": 52
+    },
+    {
+      "nome": "silver_mapas_chat_message",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_chat_message.sql",
+      "descricao": "Silver do Mapas Culturais — mensagens do chat da plataforma (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_chat_message` (6 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_chat_message`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "chat_thread_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "parent_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "user_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "payload",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_chat_message"
+      ],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "silver_mapas_chat_thread",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_chat_thread.sql",
+      "descricao": "Silver do Mapas Culturais — conversas do chat (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_chat_thread` (9 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_chat_thread`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "identifier",
+          "descricao": "Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "description",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "last_message_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_chat_thread"
+      ],
+      "linhas_sql": 46
+    },
+    {
+      "nome": "silver_mapas_cultbr_request_log",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_cultbr_request_log.sql",
+      "descricao": "Silver do Mapas Culturais — registro das chamadas à integração CultBR (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_cultbr_request_log` (8 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_cultbr_request_log`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "request_uuid",
+          "descricao": "Origem: `character varying(36)`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "opportunity_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 92 valores distintos."
+        },
+        {
+          "nome": "action",
+          "descricao": "Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `character varying(16)`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "user_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_cultbr_request_log"
+      ],
+      "linhas_sql": 44
+    },
+    {
+      "nome": "silver_mapas_cultbr_request_log_attempt",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_cultbr_request_log_attempt.sql",
+      "descricao": "Silver do Mapas Culturais — tentativas de cada chamada à integração CultBR (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_cultbr_request_log_attempt` (14 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_cultbr_request_log_attempt`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "log_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "attempt",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "max_attempts",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "endpoint",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 88 valores distintos."
+        },
+        {
+          "nome": "http_method",
+          "descricao": "Origem: `character varying(8)`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "http_status",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos."
+        },
+        {
+          "nome": "payload",
+          "descricao": "Era `jsonb` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 88 valores distintos."
+        },
+        {
+          "nome": "response",
+          "descricao": "Era `jsonb` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 98 valores distintos."
+        },
+        {
+          "nome": "error_message",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 2 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `character varying(16)`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "sent_at",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "duration_ms",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 74 valores distintos."
+        },
+        {
+          "nome": "response_headers",
+          "descricao": "Era `jsonb` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 99 preenchidas, 99 valores distintos."
+        }
+      ],
+      "colunas_descritas": 14,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_cultbr_request_log_attempt"
+      ],
+      "linhas_sql": 58
+    },
+    {
+      "nome": "silver_mapas_db_update",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_db_update.sql",
+      "descricao": "Silver do Mapas Culturais — controle das atualizações de banco já aplicadas (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_db_update` (2 colunas na origem), tira duplicata pela chave (name). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_db_update`.",
+      "colunas": [
+        {
+          "nome": "name",
+          "descricao": "Chave desta tabela. Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "exec_time",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 37 valores distintos."
+        }
+      ],
+      "colunas_descritas": 2,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_db_update"
+      ],
+      "linhas_sql": 30
+    },
+    {
+      "nome": "silver_mapas_evaluation_method_configuration",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_evaluation_method_configuration.sql",
+      "descricao": "Silver do Mapas Culturais — configuração do método de avaliação de uma oportunidade (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_evaluation_method_configuration` (6 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_evaluation_method_configuration`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "opportunity_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "evaluation_from",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 56 preenchidas, 50 valores distintos."
+        },
+        {
+          "nome": "evaluation_to",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 56 preenchidas, 51 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 6 valores distintos."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_evaluation_method_configuration"
+      ],
+      "linhas_sql": 36
+    },
+    {
+      "nome": "silver_mapas_evaluationmethodconfiguration_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_evaluationmethodconfiguration_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos da configuração do método de avaliação, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_evaluationmethodconfiguration_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_evaluationmethodconfiguration_meta`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 46 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 10 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 66 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_evaluationmethodconfiguration_meta"
+      ],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "silver_mapas_event",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_event.sql",
+      "descricao": "Silver do Mapas Culturais — eventos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_event` (13 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_event`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "project_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 6 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 91 valores distintos."
+        },
+        {
+          "nome": "short_description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 91 valores distintos."
+        },
+        {
+          "nome": "long_description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 53 preenchidas, 52 valores distintos."
+        },
+        {
+          "nome": "rules",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 75 valores distintos."
+        },
+        {
+          "nome": "is_verified",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 80 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 50 preenchidas, 14 valores distintos."
+        }
+      ],
+      "colunas_descritas": 13,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_event"
+      ],
+      "linhas_sql": 54
+    },
+    {
+      "nome": "silver_mapas_event_attendance",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_event_attendance.sql",
+      "descricao": "Silver do Mapas Culturais — presenças confirmadas em ocorrências de eventos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_event_attendance` (10 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_event_attendance`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "user_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "event_occurrence_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "event_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "space_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "reccurrence_string",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "start_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "end_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_event_attendance"
+      ],
+      "linhas_sql": 48
+    },
+    {
+      "nome": "silver_mapas_event_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_event_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos dos eventos, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_event_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_event_meta`.",
+      "colunas": [
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 9 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 22 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 65 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_event_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_event_occurrence",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_event_occurrence.sql",
+      "descricao": "Silver do Mapas Culturais — ocorrências (data, hora e local) dos eventos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_event_occurrence` (17 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_event_occurrence`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "space_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 89 valores distintos."
+        },
+        {
+          "nome": "event_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 99 valores distintos."
+        },
+        {
+          "nome": "rule",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "starts_on",
+          "descricao": "Origem: `date`. Na amostra de 100 linhas: 100 preenchidas, 73 valores distintos."
+        },
+        {
+          "nome": "ends_on",
+          "descricao": "Origem: `date`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "starts_at",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 82 valores distintos."
+        },
+        {
+          "nome": "ends_at",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 84 valores distintos."
+        },
+        {
+          "nome": "frequency",
+          "descricao": "Tipo enumerado na origem; sai como texto. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos."
+        },
+        {
+          "nome": "separation",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "count",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "until",
+          "descricao": "Origem: `date`. Na amostra de 100 linhas: 70 preenchidas, 48 valores distintos."
+        },
+        {
+          "nome": "timezone_name",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 88 valores distintos."
+        },
+        {
+          "nome": "price",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 6 valores distintos."
+        },
+        {
+          "nome": "priceinfo",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 6 preenchidas, 5 valores distintos."
+        }
+      ],
+      "colunas_descritas": 17,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_event_occurrence"
+      ],
+      "linhas_sql": 62
+    },
+    {
+      "nome": "silver_mapas_event_occurrence_cancellation",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_event_occurrence_cancellation.sql",
+      "descricao": "Silver do Mapas Culturais — cancelamentos de ocorrências de eventos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_event_occurrence_cancellation` (3 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_event_occurrence_cancellation`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "event_occurrence_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "date",
+          "descricao": "Origem: `date`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_event_occurrence_cancellation"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_event_occurrence_recurrence",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_event_occurrence_recurrence.sql",
+      "descricao": "Silver do Mapas Culturais — regras de recorrência das ocorrências de eventos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_event_occurrence_recurrence` (5 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_event_occurrence_recurrence`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "event_occurrence_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 38 valores distintos."
+        },
+        {
+          "nome": "month",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "day",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos."
+        },
+        {
+          "nome": "week",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_event_occurrence_recurrence"
+      ],
+      "linhas_sql": 35
+    },
+    {
+      "nome": "silver_mapas_federative_entity",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_federative_entity.sql",
+      "descricao": "Silver do Mapas Culturais — entes federativos (estados e municípios) (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_federative_entity` (7 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_federative_entity`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "document",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 76 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 76 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "exercices",
+          "descricao": "Era `jsonb` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 83 valores distintos."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_federative_entity"
+      ],
+      "linhas_sql": 35
+    },
+    {
+      "nome": "silver_mapas_file",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_file.sql",
+      "descricao": "Silver do Mapas Culturais — metadados dos arquivos anexados aos objetos do Mapas (não o conteúdo do arquivo) (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_file` (12 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_file`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "md5",
+          "descricao": "Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 95 valores distintos."
+        },
+        {
+          "nome": "mime_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Tipo enumerado na origem; sai como texto. Na amostra de 100 linhas: 100 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 43 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 64 valores distintos."
+        },
+        {
+          "nome": "grp",
+          "descricao": "Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 11 valores distintos."
+        },
+        {
+          "nome": "description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "parent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 59 preenchidas, 34 valores distintos."
+        },
+        {
+          "nome": "path",
+          "descricao": "Origem: `character varying(1024)`. Na amostra de 100 linhas: 95 preenchidas, 95 valores distintos."
+        },
+        {
+          "nome": "private",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_file"
+      ],
+      "linhas_sql": 53
+    },
+    {
+      "nome": "silver_mapas_metadata",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_metadata.sql",
+      "descricao": "Silver do Mapas Culturais — metadados genéricos de objetos, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_metadata` (4 colunas na origem), tira duplicata pela chave (object_id, object_type, key). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_metadata`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Parte da chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Parte da chave desta tabela. Tipo enumerado na origem; sai como texto. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "key",
+          "descricao": "Parte da chave desta tabela. Origem: `character varying(32)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_metadata"
+      ],
+      "linhas_sql": 36
+    },
+    {
+      "nome": "silver_mapas_metalist",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_metalist.sql",
+      "descricao": "Silver do Mapas Culturais — listas de links e vídeos associados aos objetos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_metalist` (9 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_metalist`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 44 valores distintos."
+        },
+        {
+          "nome": "grp",
+          "descricao": "Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "title",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 79 valores distintos."
+        },
+        {
+          "nome": "description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 83 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 99 valores distintos."
+        },
+        {
+          "nome": "order",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_metalist"
+      ],
+      "linhas_sql": 38
+    },
+    {
+      "nome": "silver_mapas_notification",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_notification.sql",
+      "descricao": "Silver do Mapas Culturais — notificações enviadas aos usuários (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_notification` (7 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_notification`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "user_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 58 valores distintos."
+        },
+        {
+          "nome": "request_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 69 preenchidas, 54 valores distintos."
+        },
+        {
+          "nome": "message",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 86 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 84 valores distintos."
+        },
+        {
+          "nome": "action_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_notification"
+      ],
+      "linhas_sql": 35
+    },
+    {
+      "nome": "silver_mapas_notification_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_notification_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos das notificações, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_notification_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_notification_meta`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_notification_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_opportunity",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_opportunity.sql",
+      "descricao": "Silver do Mapas Culturais — oportunidades (editais e chamadas) (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_opportunity` (24 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_opportunity`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "parent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 51 preenchidas, 49 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 54 valores distintos."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 21 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 54 valores distintos."
+        },
+        {
+          "nome": "short_description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 26 preenchidas, 23 valores distintos."
+        },
+        {
+          "nome": "long_description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 12 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "registration_from",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 30 preenchidas, 28 valores distintos."
+        },
+        {
+          "nome": "registration_to",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 30 preenchidas, 27 valores distintos."
+        },
+        {
+          "nome": "published_registrations",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "registration_categories",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 78 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 86 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 97 preenchidas, 6 valores distintos."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 58 valores distintos."
+        },
+        {
+          "nome": "avaliable_evaluation_fields",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 89 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "publish_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 12 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "auto_publish",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "registration_proponent_types",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos."
+        },
+        {
+          "nome": "registration_ranges",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "continuous_flow",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 11 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "publicity_only",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        }
+      ],
+      "colunas_descritas": 24,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_opportunity"
+      ],
+      "linhas_sql": 78
+    },
+    {
+      "nome": "silver_mapas_opportunity_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_opportunity_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos das oportunidades, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_opportunity_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_opportunity_meta`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 17 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 15 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 34 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_opportunity_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_procuration",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_procuration.sql",
+      "descricao": "Silver do Mapas Culturais — procurações: um usuário autorizado a agir em nome de outro (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_procuration` (6 colunas na origem), tira duplicata (linha idêntica, sem chave primária utilizável). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. A coluna `token` (token da procuração (credencial)) NÃO vai para a silver. Materializada como `mapas.silver_procuration`.",
+      "colunas": [
+        {
+          "nome": "usr_id",
+          "descricao": "Origem: `integer`. Na amostra de 1 linhas: 1 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "attorney_user_id",
+          "descricao": "Origem: `integer`. Na amostra de 1 linhas: 1 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "action",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 1 linhas: 1 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 1 linhas: 1 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "valid_until_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 1 linhas: 1 preenchidas, 1 valores distintos."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_procuration"
+      ],
+      "linhas_sql": 29
+    },
+    {
+      "nome": "silver_mapas_project",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_project.sql",
+      "descricao": "Silver do Mapas Culturais — projetos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_project` (14 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_project`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 95 valores distintos."
+        },
+        {
+          "nome": "short_description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 84 preenchidas, 82 valores distintos."
+        },
+        {
+          "nome": "long_description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 78 preenchidas, 75 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 89 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 6 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 77 valores distintos."
+        },
+        {
+          "nome": "is_verified",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 22 valores distintos."
+        },
+        {
+          "nome": "parent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 12 preenchidas, 11 valores distintos."
+        },
+        {
+          "nome": "starts_on",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 13 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "ends_on",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 13 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 65 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 50 preenchidas, 11 valores distintos."
+        }
+      ],
+      "colunas_descritas": 14,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_project"
+      ],
+      "linhas_sql": 56
+    },
+    {
+      "nome": "silver_mapas_project_event",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_project_event.sql",
+      "descricao": "Silver do Mapas Culturais — relação entre projetos e eventos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_project_event` (5 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_project_event`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "event_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "project_id",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `smallint`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_project_event"
+      ],
+      "linhas_sql": 33
+    },
+    {
+      "nome": "silver_mapas_project_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_project_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos dos projetos, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_project_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_project_meta`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 96 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 55 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_project_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_registration",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration.sql",
+      "descricao": "Silver do Mapas Culturais — inscrições nas oportunidades (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration` (22 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "opportunity_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 35 valores distintos."
+        },
+        {
+          "nome": "category",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 38 preenchidas, 14 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 98 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "sent_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 28 preenchidas, 28 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos."
+        },
+        {
+          "nome": "agents_data",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 24 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "consolidated_result",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "number",
+          "descricao": "Origem: `character varying(24)`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "valuers_exceptions_list",
+          "descricao": "Era `jsonb` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "space_data",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 92 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "proponent_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 46 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "range",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 24 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "score",
+          "descricao": "Origem: `double precision`. Na amostra de 100 linhas: 15 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "eligible",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 25 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "editable_until",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "edit_sent_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "editable_fields",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "valuers",
+          "descricao": "Era `jsonb` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        }
+      ],
+      "colunas_descritas": 22,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration"
+      ],
+      "linhas_sql": 72
+    },
+    {
+      "nome": "silver_mapas_registration_evaluation",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_evaluation.sql",
+      "descricao": "Silver do Mapas Culturais — avaliações das inscrições (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_evaluation` (11 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_evaluation`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "registration_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "user_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 32 valores distintos."
+        },
+        {
+          "nome": "result",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 54 preenchidas, 16 valores distintos."
+        },
+        {
+          "nome": "evaluation_data",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 41 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 99 preenchidas, 98 valores distintos."
+        },
+        {
+          "nome": "sent_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 53 preenchidas, 53 valores distintos."
+        },
+        {
+          "nome": "is_tiebreaker",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 99 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "committee",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 97 preenchidas, 7 valores distintos."
+        }
+      ],
+      "colunas_descritas": 11,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_evaluation"
+      ],
+      "linhas_sql": 50
+    },
+    {
+      "nome": "silver_mapas_registration_field_configuration",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_field_configuration.sql",
+      "descricao": "Silver do Mapas Culturais — configuração dos campos do formulário de inscrição (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_field_configuration` (17 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_field_configuration`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "opportunity_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 50 valores distintos."
+        },
+        {
+          "nome": "title",
+          "descricao": "Origem: `character varying`. Na amostra de 100 linhas: 100 preenchidas, 80 valores distintos."
+        },
+        {
+          "nome": "description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 31 preenchidas, 24 valores distintos."
+        },
+        {
+          "nome": "categories",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 11 valores distintos."
+        },
+        {
+          "nome": "required",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "field_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 13 valores distintos."
+        },
+        {
+          "nome": "field_options",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 17 valores distintos."
+        },
+        {
+          "nome": "max_size",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 28 preenchidas, 8 valores distintos."
+        },
+        {
+          "nome": "display_order",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 34 valores distintos."
+        },
+        {
+          "nome": "config",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos."
+        },
+        {
+          "nome": "conditional",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 12 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "conditional_field",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 1 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "conditional_value",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 5 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "registration_ranges",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 12 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "proponent_types",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 12 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "step_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 50 valores distintos."
+        }
+      ],
+      "colunas_descritas": 17,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_field_configuration"
+      ],
+      "linhas_sql": 64
+    },
+    {
+      "nome": "silver_mapas_registration_file_configuration",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_file_configuration.sql",
+      "descricao": "Silver do Mapas Culturais — configuração dos anexos exigidos na inscrição (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_file_configuration` (14 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_file_configuration`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "opportunity_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 27 valores distintos."
+        },
+        {
+          "nome": "title",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 71 valores distintos."
+        },
+        {
+          "nome": "description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 69 preenchidas, 46 valores distintos."
+        },
+        {
+          "nome": "required",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "categories",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "display_order",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 41 valores distintos."
+        },
+        {
+          "nome": "conditional",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 4 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "conditional_field",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "conditional_value",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 1 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "registration_ranges",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 4 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "proponent_types",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 4 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "step_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 27 valores distintos."
+        },
+        {
+          "nome": "allowed_file_types",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        }
+      ],
+      "colunas_descritas": 14,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_file_configuration"
+      ],
+      "linhas_sql": 58
+    },
+    {
+      "nome": "silver_mapas_registration_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos das inscrições, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_meta`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 49 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 56 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 80 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_registration_step",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_step.sql",
+      "descricao": "Silver do Mapas Culturais — etapas das oportunidades (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_step` (7 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_step`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "display_order",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "opportunity_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "metadata",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_step"
+      ],
+      "linhas_sql": 36
+    },
+    {
+      "nome": "silver_mapas_registration_workplan",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_workplan.sql",
+      "descricao": "Silver do Mapas Culturais — planos de trabalho das inscrições (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_workplan` (5 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_workplan`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 99 valores distintos."
+        },
+        {
+          "nome": "registration_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_workplan"
+      ],
+      "linhas_sql": 33
+    },
+    {
+      "nome": "silver_mapas_registration_workplan_goal",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_workplan_goal.sql",
+      "descricao": "Silver do Mapas Culturais — metas dos planos de trabalho (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_workplan_goal` (6 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_workplan_goal`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 45 valores distintos."
+        },
+        {
+          "nome": "workplan_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 46 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 97 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 84 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_workplan_goal"
+      ],
+      "linhas_sql": 35
+    },
+    {
+      "nome": "silver_mapas_registration_workplan_goal_delivery",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_workplan_goal_delivery.sql",
+      "descricao": "Silver do Mapas Culturais — entregas das metas dos planos de trabalho (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_workplan_goal_delivery` (6 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_workplan_goal_delivery`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 45 valores distintos."
+        },
+        {
+          "nome": "goal_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 50 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 78 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 59 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_workplan_goal_delivery"
+      ],
+      "linhas_sql": 36
+    },
+    {
+      "nome": "silver_mapas_registration_workplan_goal_delivery_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_workplan_goal_delivery_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos das entregas das metas, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_workplan_goal_delivery_meta` (4 colunas na origem), tira duplicata (linha idêntica, sem chave primária utilizável). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_workplan_goal_delivery_meta`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 13 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 31 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 68 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_workplan_goal_delivery_meta"
+      ],
+      "linhas_sql": 26
+    },
+    {
+      "nome": "silver_mapas_registration_workplan_goal_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_workplan_goal_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos das metas, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_workplan_goal_meta` (4 colunas na origem), tira duplicata (linha idêntica, sem chave primária utilizável). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_workplan_goal_meta`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 27 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 6 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 58 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_workplan_goal_meta"
+      ],
+      "linhas_sql": 25
+    },
+    {
+      "nome": "silver_mapas_registration_workplan_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_registration_workplan_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos dos planos de trabalho, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_registration_workplan_meta` (4 colunas na origem), tira duplicata (linha idêntica, sem chave primária utilizável). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_registration_workplan_meta`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 59 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 31 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_registration_workplan_meta"
+      ],
+      "linhas_sql": 26
+    },
+    {
+      "nome": "silver_mapas_request",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_request.sql",
+      "descricao": "Silver do Mapas Culturais — solicitações de aprovação entre objetos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_request` (12 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_request`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "request_uid",
+          "descricao": "Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "requester_user_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 55 valores distintos."
+        },
+        {
+          "nome": "origin_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "origin_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 80 valores distintos."
+        },
+        {
+          "nome": "destination_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos."
+        },
+        {
+          "nome": "destination_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 72 valores distintos."
+        },
+        {
+          "nome": "metadata",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 50 valores distintos."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "action_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_request"
+      ],
+      "linhas_sql": 52
+    },
+    {
+      "nome": "silver_mapas_role",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_role.sql",
+      "descricao": "Silver do Mapas Culturais — papéis atribuídos a usuários em subsites (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_role` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_role`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "usr_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 91 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 88 preenchidas, 4 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_role"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_seal",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_seal.sql",
+      "descricao": "Silver do Mapas Culturais — selos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_seal` (12 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_seal`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 72 linhas: 72 preenchidas, 72 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 72 linhas: 72 preenchidas, 36 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 72 linhas: 72 preenchidas, 70 valores distintos."
+        },
+        {
+          "nome": "short_description",
+          "descricao": "Origem: `text`. Na amostra de 72 linhas: 71 preenchidas, 69 valores distintos."
+        },
+        {
+          "nome": "long_description",
+          "descricao": "Origem: `text`. Na amostra de 72 linhas: 36 preenchidas, 31 valores distintos."
+        },
+        {
+          "nome": "valid_period",
+          "descricao": "Origem: `smallint`. Na amostra de 72 linhas: 72 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 72 linhas: 72 preenchidas, 72 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 72 linhas: 72 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "certificate_text",
+          "descricao": "Origem: `text`. Na amostra de 72 linhas: 20 preenchidas, 19 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 72 linhas: 61 preenchidas, 61 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 72 linhas: 64 preenchidas, 16 valores distintos."
+        },
+        {
+          "nome": "locked_fields",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 72 linhas: 51 preenchidas, 1 valores distintos."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_seal"
+      ],
+      "linhas_sql": 52
+    },
+    {
+      "nome": "silver_mapas_seal_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_seal_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos dos selos, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_seal_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_seal_meta`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 12 linhas: 12 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 12 linhas: 12 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 12 linhas: 12 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 12 linhas: 9 preenchidas, 4 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_seal_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_seal_relation",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_seal_relation.sql",
+      "descricao": "Silver do Mapas Culturais — selos concedidos a objetos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_seal_relation` (10 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_seal_relation`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "seal_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 11 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "owner_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 20 valores distintos."
+        },
+        {
+          "nome": "validate_date",
+          "descricao": "Origem: `date`. Na amostra de 100 linhas: 100 preenchidas, 48 valores distintos."
+        },
+        {
+          "nome": "renovation_request",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_seal_relation"
+      ],
+      "linhas_sql": 48
+    },
+    {
+      "nome": "silver_mapas_security_allowlist",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_security_allowlist.sql",
+      "descricao": "Silver do Mapas Culturais — endereços IP permitidos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_security_allowlist` (9 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_security_allowlist`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "ip",
+          "descricao": "Origem: `character varying(45)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "origin",
+          "descricao": "Origem: `character varying(16)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "note",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "created_at",
+          "descricao": "Origem: `timestamp without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "created_by",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "removed_at",
+          "descricao": "Origem: `timestamp without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "removed_by",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "removal_note",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_security_allowlist"
+      ],
+      "linhas_sql": 37
+    },
+    {
+      "nome": "silver_mapas_security_blacklist",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_security_blacklist.sql",
+      "descricao": "Silver do Mapas Culturais — endereços IP bloqueados (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_security_blacklist` (13 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_security_blacklist`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "ip",
+          "descricao": "Origem: `character varying(45)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "origin",
+          "descricao": "Origem: `character varying(16)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "note",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "rule_limit",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "rule_window",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "hits",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "created_at",
+          "descricao": "Origem: `timestamp without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "created_by",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "expires_at",
+          "descricao": "Origem: `timestamp without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "removed_at",
+          "descricao": "Origem: `timestamp without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "removed_by",
+          "descricao": "Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "removal_note",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 13,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_security_blacklist"
+      ],
+      "linhas_sql": 54
+    },
+    {
+      "nome": "silver_mapas_security_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_security_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos da configuração de segurança, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_security_meta` (3 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_security_meta`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(64)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_security_meta"
+      ],
+      "linhas_sql": 31
+    },
+    {
+      "nome": "silver_mapas_space",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_space.sql",
+      "descricao": "Silver do Mapas Culturais — espaços culturais (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_space` (16 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_space`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "parent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 3 preenchidas, 3 valores distintos."
+        },
+        {
+          "nome": "longitude",
+          "descricao": "Longitude em graus decimais, tirada do `x` do `point` `location`. NULL quando ausente, fora de [-180, 180] ou exatamente em (0,0)."
+        },
+        {
+          "nome": "latitude",
+          "descricao": "Latitude em graus decimais, tirada do `y` do `point` `location`. NULL quando ausente, fora de [-90, 90] ou exatamente em (0,0)."
+        },
+        {
+          "nome": "_geo_location",
+          "descricao": "Hexadecimal EWKB (texto); o DW não depende do PostGIS. Na amostra de 100 linhas: 81 preenchidas, 75 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "short_description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 87 preenchidas, 74 valores distintos."
+        },
+        {
+          "nome": "long_description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 55 preenchidas, 55 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 81 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "type",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 31 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 64 valores distintos."
+        },
+        {
+          "nome": "is_verified",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "public",
+          "descricao": "Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 78 valores distintos."
+        },
+        {
+          "nome": "codigo",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 42 preenchidas, 8 valores distintos."
+        }
+      ],
+      "colunas_descritas": 17,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_space"
+      ],
+      "linhas_sql": 68
+    },
+    {
+      "nome": "silver_mapas_space_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_space_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos dos espaços, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_space_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_space_meta`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 60 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 12 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 87 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_space_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_space_relation",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_space_relation.sql",
+      "descricao": "Silver do Mapas Culturais — relações dos espaços com agentes (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_space_relation` (6 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_space_relation`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "space_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 95 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_space_relation"
+      ],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "silver_mapas_subsite",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_subsite.sql",
+      "descricao": "Silver do Mapas Culturais — subsites (instâncias) da plataforma (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_subsite` (9 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_subsite`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 60 linhas: 60 preenchidas, 60 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 60 linhas: 60 preenchidas, 55 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. Na amostra de 60 linhas: 60 preenchidas, 60 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. Na amostra de 60 linhas: 60 preenchidas, 4 valores distintos."
+        },
+        {
+          "nome": "agent_id",
+          "descricao": "Origem: `integer`. Na amostra de 60 linhas: 60 preenchidas, 9 valores distintos."
+        },
+        {
+          "nome": "url",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 60 linhas: 60 preenchidas, 60 valores distintos."
+        },
+        {
+          "nome": "namespace",
+          "descricao": "Origem: `character varying(50)`. Na amostra de 60 linhas: 60 preenchidas, 5 valores distintos."
+        },
+        {
+          "nome": "alias_url",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 60 linhas: 8 preenchidas, 8 valores distintos."
+        },
+        {
+          "nome": "verified_seals",
+          "descricao": "Origem: `character varying(512)`. Na amostra de 60 linhas: 60 preenchidas, 13 valores distintos."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_subsite"
+      ],
+      "linhas_sql": 46
+    },
+    {
+      "nome": "silver_mapas_subsite_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_subsite_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos dos subsites, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_subsite_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_subsite_meta`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 21 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 22 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 60 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_subsite_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_system_role",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_system_role.sql",
+      "descricao": "Silver do Mapas Culturais — papéis do sistema e suas permissões (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_system_role` (8 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_system_role`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "slug",
+          "descricao": "Origem: `character varying(64)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "subsite_context",
+          "descricao": "Origem: `boolean`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "permissions",
+          "descricao": "Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "update_timestamp",
+          "descricao": "Origem: `timestamp(0) without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `smallint`. A tabela estava vazia na amostra; o tipo vem do que o banco declara."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_system_role"
+      ],
+      "linhas_sql": 44
+    },
+    {
+      "nome": "silver_mapas_term",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_term.sql",
+      "descricao": "Silver do Mapas Culturais — termos de taxonomia (áreas, linguagens, tags) (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_term` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_term`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        },
+        {
+          "nome": "taxonomy",
+          "descricao": "Origem: `character varying(64)`. Na amostra de 100 linhas: 100 preenchidas, 11 valores distintos."
+        },
+        {
+          "nome": "term",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 97 valores distintos."
+        },
+        {
+          "nome": "description",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_term"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_term_relation",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_term_relation.sql",
+      "descricao": "Silver do Mapas Culturais — termos associados a objetos (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_term_relation` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_term_relation`.",
+      "colunas": [
+        {
+          "nome": "term_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 78 valores distintos."
+        },
+        {
+          "nome": "object_type",
+          "descricao": "Tipo enumerado na origem; sai como texto. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos."
+        },
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_term_relation"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_user_app",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_user_app.sql",
+      "descricao": "Silver do Mapas Culturais — aplicações (chaves de API) cadastradas, sem a chave privada (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_user_app` (7 colunas na origem), tira duplicata pela chave (public_key). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. A coluna `private_key` (chave privada da aplicação (credencial)) NÃO vai para a silver. Materializada como `mapas.silver_user_app`.",
+      "colunas": [
+        {
+          "nome": "public_key",
+          "descricao": "Chave desta tabela. Origem: `character varying(64)`. Na amostra de 24 linhas: 24 preenchidas, 24 valores distintos."
+        },
+        {
+          "nome": "user_id",
+          "descricao": "Origem: `integer`. Na amostra de 24 linhas: 24 preenchidas, 19 valores distintos."
+        },
+        {
+          "nome": "name",
+          "descricao": "Origem: `text`. Na amostra de 24 linhas: 23 preenchidas, 20 valores distintos."
+        },
+        {
+          "nome": "status",
+          "descricao": "Origem: `integer`. Na amostra de 24 linhas: 24 preenchidas, 1 valores distintos."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Origem: `timestamp without time zone`. Na amostra de 24 linhas: 24 preenchidas, 24 valores distintos."
+        },
+        {
+          "nome": "subsite_id",
+          "descricao": "Origem: `integer`. Na amostra de 24 linhas: 24 preenchidas, 3 valores distintos."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_user_app"
+      ],
+      "linhas_sql": 38
+    },
+    {
+      "nome": "silver_mapas_user_meta",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_user_meta.sql",
+      "descricao": "Silver do Mapas Culturais — atributos dos usuários, em chave-valor (descrição inferida do nome da tabela; o significado de negócio das colunas NÃO foi verificado). Tipa a `mapas.bronze_user_meta` (4 colunas na origem), tira duplicata pela chave (id). Não cruza tabelas. Colunas e estatísticas vêm de uma amostra de até 100 linhas. Materializada como `mapas.silver_user_meta`.",
+      "colunas": [
+        {
+          "nome": "object_id",
+          "descricao": "Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 38 valores distintos."
+        },
+        {
+          "nome": "key",
+          "descricao": "Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 10 valores distintos."
+        },
+        {
+          "nome": "value",
+          "descricao": "Origem: `text`. Na amostra de 100 linhas: 76 preenchidas, 36 valores distintos."
+        },
+        {
+          "nome": "id",
+          "descricao": "Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_user_meta"
+      ],
+      "linhas_sql": 32
+    },
+    {
+      "nome": "silver_mapas_usr",
+      "dominio": "mapas",
+      "camada": "silver",
+      "caminho": "dbt/minc/models/mapas_dbt/silver/silver_mapas_usr.sql",
+      "descricao": "Silver do Mapas Culturais — usuários da plataforma. Uma linha por usuário. Tipa a `mapas.bronze_usr` e tira duplicata pelo `id`.\n`auth_uid` e `email` ficam DE FORA de propósito: são identificadores pessoais sem uso analítico, e a silver é lida por mais gente do que a bronze. Materializada como `mapas.silver_usr`.",
+      "colunas": [
+        {
+          "nome": "id",
+          "descricao": "Identificador do usuário. Chave desta tabela."
+        },
+        {
+          "nome": "auth_provider",
+          "descricao": "Código do provedor de autenticação. Na origem real aparecem só 0 e 2; o significado de cada um NÃO foi verificado."
+        },
+        {
+          "nome": "last_login_timestamp",
+          "descricao": "Último login. NOT NULL na origem e sem data-sentinela; uma parte dos usuários tem o valor igual à criação, e é dado, não ausência."
+        },
+        {
+          "nome": "create_timestamp",
+          "descricao": "Momento em que o usuário foi criado."
+        },
+        {
+          "nome": "status",
+          "descricao": "Código de situação do usuário (significado NÃO verificado)."
+        },
+        {
+          "nome": "profile_id",
+          "descricao": "Agente que é o perfil principal do usuário, quando há."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "mapas.bronze_usr"
+      ],
+      "linhas_sql": 42
+    },
+    {
       "nome": "models_metadata",
       "dominio": "metadata",
       "camada": "outros",
@@ -39218,7 +42117,7 @@
       "colunas": [
         {
           "nome": "id_agente",
-          "descricao": "Identificador do agente no cadastro do SALIC. Chave do proponente nesta tabela."
+          "descricao": "Identificador do agente no cadastro do SALIC. Chave do proponente nesta tabela. Identifica uma pessoa de forma indireta, e por isso recebe a mesma classificação que na ponte de proponente."
         },
         {
           "nome": "documento_proponente",
@@ -40046,6 +42945,13 @@
         "outros": 5
       }
     },
+    "mapas": {
+      "modelos": 59,
+      "testes": 114,
+      "camadas": {
+        "silver": 59
+      }
+    },
     "metadata": {
       "modelos": 1,
       "testes": 3,
@@ -40478,9 +43384,9 @@
     }
   ],
   "totais": {
-    "modelos": 653,
-    "testes": 5054,
-    "com_descricao": 652,
+    "modelos": 712,
+    "testes": 5168,
+    "com_descricao": 711,
     "sources": 79
   }
 }

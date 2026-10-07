@@ -1,17 +1,20 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any
 
 from airflow.sdk import dag, task
 
+import datalakehouse
 import schemas_minc as schemas
-from openmetadata.lineage import publicar_linhagem, tabela
-from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from extracao_por_plano_acao import carregar_planos_acao, extrair_por_plano_acao
-from postgres_helpers import get_postgres_conn
-from schedule_loader import get_dynamic_schedule
 
+
+ASSET_PLANO_ACAO = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+)
+ASSET_DADO_BANCARIO = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_DADO_BANCARIO
+)
 
 default_args = {
     "owner": "Caio Borges",
@@ -22,7 +25,7 @@ default_args = {
 
 @dag(
     dag_id="api_plano_acao_dado_bancario_dag",
-    schedule=get_dynamic_schedule("api_plano_acao_dado_bancario_dag"),
+    schedule=[ASSET_PLANO_ACAO],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -32,27 +35,30 @@ def api_plano_acao_dado_bancario_dag() -> None:
     """Passo 3B da secao 6: contas bancarias de cada plano de acao.
 
     Grava **todas** as contas de cada plano, com todas as colunas da origem,
-    em ``transferegov.plano_acao_dado_bancario_minc``. Antes essa informacao
-    era efeito colateral da DAG do BB Agil, que guardava uma unica conta por
-    plano e apenas quatro campos -- perdendo tanto a granularidade ("uma
-    linha por registro de conta bancaria", secao 7.1) quanto colunas da
-    origem.
+    em ``plano_acao_dado_bancario_minc`` (raw e staging do datalakehouse).
+    Antes essa informacao era efeito colateral da DAG do BB Agil, que
+    guardava uma unica conta por plano e apenas quatro campos -- perdendo
+    tanto a granularidade ("uma linha por registro de conta bancaria", secao
+    7.1) quanto colunas da origem.
 
     Escolher qual conta consultar no BB Agil continua existindo, mas como
     regra de consumo, dentro de ``extracao_bbagil_dag`` -- nao mais como
     filtro na ingestao.
     """
 
-    @task(inlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO)])
-    def fetch_dados_bancarios() -> list[dict[str, Any]]:
-        db = ClientPostgresDB(get_postgres_conn())
-        planos = carregar_planos_acao(db)
+    @task
+    def extrair_dados_bancarios() -> str:
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
+        planos = carregar_planos_acao(
+            datalakehouse.ler_parquet(
+                datalakehouse.key_da_cadeia(cadeia, schemas.TABELA_PLANO_ACAO)
+            )
+        )
 
         if not planos:
             raise ValueError(
-                "[api_plano_acao_dado_bancario_dag.py] Nenhum plano de ação "
-                f"encontrado em {schemas.SCHEMA_TRANSFEREGOV}."
-                f"{schemas.TABELA_PLANO_ACAO}"
+                "[api_plano_acao_dado_bancario_dag.py] Nenhum plano de ação no "
+                f"staging de {schemas.TABELA_PLANO_ACAO}"
             )
 
         logging.info(
@@ -89,30 +95,20 @@ def api_plano_acao_dado_bancario_dag() -> None:
                 inutilizaveis,
             )
 
-        return contas
-
-    @task(
-        outlets=[
-            tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_DADO_BANCARIO)
-        ]
-    )
-    def load_dados_bancarios_to_postgres(contas: list[dict[str, Any]]) -> None:
-        db = ClientPostgresDB(get_postgres_conn())
-        db.insert_data(
-            contas,
-            # Identificador do dado bancario na origem (secao 9.1).
-            table_name=schemas.TABELA_PLANO_ACAO_DADO_BANCARIO,
-            primary_key=["id_plano_acao_dado_bancario"],
-            conflict_fields=["id_plano_acao_dado_bancario"],
-            schema=schemas.SCHEMA_TRANSFEREGOV,
+        return datalakehouse.gravar_raw(
+            contas, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_DADO_BANCARIO
         )
 
-        logging.info(
-            "[api_plano_acao_dado_bancario_dag.py] Carga concluída com %s registros",
-            len(contas),
+    @task(outlets=[ASSET_DADO_BANCARIO])
+    def converter_dados_bancarios_para_staging(key_raw: str) -> str:
+        key = datalakehouse.raw_para_staging(key_raw)
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
+        datalakehouse.publicar_cadeia(
+            ASSET_DADO_BANCARIO, {**cadeia, schemas.TABELA_PLANO_ACAO_DADO_BANCARIO: key}
         )
+        return key
 
-    load_dados_bancarios_to_postgres(fetch_dados_bancarios()) >> publicar_linhagem()
+    converter_dados_bancarios_para_staging(extrair_dados_bancarios())
 
 
 api_plano_acao_dado_bancario_dag()

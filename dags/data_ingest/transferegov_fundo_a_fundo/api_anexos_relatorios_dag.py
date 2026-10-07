@@ -1,14 +1,19 @@
 import logging
 from datetime import datetime, timedelta
 from airflow.sdk import dag, task
-from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
+import datalakehouse
 import schemas_minc as schemas
-from openmetadata.lineage import publicar_linhagem, tabela
-from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGovBackend
-from postgres_helpers import get_postgres_conn
 
+
+ASSET_RELATORIOS = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO
+)
+# Evento que dispara a download_anexos_transferegov_dag.
+ASSET_ANEXOS = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_ANEXO_RELATORIO
+)
 
 default_args = {
     "owner": "Caio Borges",
@@ -19,25 +24,24 @@ default_args = {
 
 @dag(
     dag_id="api_anexos_relatorios_dag",
-    schedule=None,
+    schedule=[ASSET_RELATORIOS],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
     tags=["minc", "transferegov", "anexos", "raw"],
 )
 def api_anexos_relatorios_dag() -> None:
-    @task(
-        inlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_RELATORIO_GESTAO)],
-        outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_ANEXO_RELATORIO)],
-    )
-    def fetch_and_load_anexos_relatorios() -> None:
-        logging.info("[api_anexos_relatorios_dag.py] Iniciando extração de anexos de relatórios")
-
-        db = ClientPostgresDB(get_postgres_conn())
-        ids_relatorios = db.get_id_relatorios_gestao(
-            schema=schemas.SCHEMA_TRANSFEREGOV,
-            table_name=schemas.TABELA_RELATORIO_GESTAO,
+    @task
+    def extrair_anexos_relatorios() -> str:
+        logging.info(
+            "[api_anexos_relatorios_dag.py] Iniciando extração de anexos de relatórios"
         )
+
+        cadeia = datalakehouse.ler_cadeia(ASSET_RELATORIOS)
+        relatorios = datalakehouse.ler_parquet(
+            datalakehouse.key_da_cadeia(cadeia, schemas.TABELA_RELATORIO_GESTAO)
+        )
+        ids_relatorios = relatorios["id_relatorio_gestao"].dropna().unique().tolist()
 
         if not ids_relatorios:
             raise ValueError(
@@ -45,7 +49,7 @@ def api_anexos_relatorios_dag() -> None:
             )
 
         api = ClienteTransfereGovBackend()
-        total_inseridos = 0
+        anexos_data: list[dict] = []
 
         for id_relatorio in ids_relatorios:
             logging.info(
@@ -62,40 +66,39 @@ def api_anexos_relatorios_dag() -> None:
                 )
                 continue
 
+            # O payload do anexo nao traz o relatorio de onde veio; sem isso o
+            # raw nao se liga de volta ao plano de acao.
             for anexo in anexos_raw:
                 anexo["id_relatorio_gestao"] = id_relatorio
-                anexo["dt_ingest"] = datetime.now().isoformat()
 
-            db.insert_data(
-                anexos_raw,
-                table_name=schemas.TABELA_ANEXO_RELATORIO,
-                primary_key=["id"],
-                conflict_fields=["id"],
-                schema=schemas.SCHEMA_TRANSFEREGOV,
-            )
-
-            total_inseridos += len(anexos_raw)
+            anexos_data.extend(anexos_raw)
             logging.info(
-                "[api_anexos_relatorios_dag.py] Relatório %s: %d anexos inseridos",
+                "[api_anexos_relatorios_dag.py] Relatório %s: %d anexos encontrados",
                 id_relatorio,
                 len(anexos_raw),
             )
 
-        if total_inseridos == 0:
+        if not anexos_data:
             raise ValueError("[api_anexos_relatorios_dag.py] Nenhum anexo foi extraído")
 
         logging.info(
-            "[api_anexos_relatorios_dag.py] Extração e carga concluídas com %s registros no total",
-            total_inseridos,
+            "[api_anexos_relatorios_dag.py] Extração concluída com %s registros no total",
+            len(anexos_data),
+        )
+        return datalakehouse.gravar_raw(
+            anexos_data, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_ANEXO_RELATORIO
         )
 
-    trigger_download = TriggerDagRunOperator(
-        task_id="trigger_download_anexos",
-        trigger_dag_id="download_anexos_transferegov_dag",
-        wait_for_completion=False,
-    )
+    @task(outlets=[ASSET_ANEXOS])
+    def converter_anexos_para_staging(key_raw: str) -> str:
+        key = datalakehouse.raw_para_staging(key_raw)
+        cadeia = datalakehouse.ler_cadeia(ASSET_RELATORIOS)
+        datalakehouse.publicar_cadeia(
+            ASSET_ANEXOS, {**cadeia, schemas.TABELA_ANEXO_RELATORIO: key}
+        )
+        return key
 
-    fetch_and_load_anexos_relatorios() >> [trigger_download, publicar_linhagem()]
+    converter_anexos_para_staging(extrair_anexos_relatorios())
 
 
 api_anexos_relatorios_dag()

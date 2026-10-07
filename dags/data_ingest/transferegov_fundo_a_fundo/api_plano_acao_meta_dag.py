@@ -1,17 +1,20 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any
 
 from airflow.sdk import dag, task
 
+import datalakehouse
 import schemas_minc as schemas
-from openmetadata.lineage import publicar_linhagem, tabela
-from cliente_postgres import ClientPostgresDB
 from cliente_transferegov_fundo_a_fundo import ClienteTransfereGov
 from extracao_por_plano_acao import carregar_planos_acao, extrair_por_plano_acao
-from postgres_helpers import get_postgres_conn
-from schedule_loader import get_dynamic_schedule
 
+
+ASSET_PLANO_ACAO = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO
+)
+ASSET_META = datalakehouse.asset_staging(
+    schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_META
+)
 
 default_args = {
     "owner": "Caio Borges",
@@ -22,7 +25,7 @@ default_args = {
 
 @dag(
     dag_id="api_plano_acao_meta_dag",
-    schedule=get_dynamic_schedule("api_plano_acao_meta_dag"),
+    schedule=[ASSET_PLANO_ACAO],
     start_date=datetime(2023, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -33,20 +36,25 @@ def api_plano_acao_meta_dag() -> None:
 
     Disparada por ``api_planos_acao_dag`` (as metas so podem ser buscadas
     depois que os planos existem, porque o endpoint so filtra por
-    ``id_plano_acao``). Grava em
-    ``transferegov.plano_acao_meta_minc`` com ``id_programa`` e ``cod_ibge``
-    propagados da tabela-pai.
+    ``id_plano_acao``). Le os planos do staging de ``plano_acao_minc`` e grava
+    ``plano_acao_meta_minc`` em raw e staging, com ``id_programa`` e
+    ``cod_ibge`` propagados do plano-pai. O identificador da meta na origem
+    (secao 9.1) e ``id_meta_plano_acao``, nao ``id_meta`` como sugere o ER.
     """
 
-    @task(inlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO)])
-    def fetch_metas() -> list[dict[str, Any]]:
-        db = ClientPostgresDB(get_postgres_conn())
-        planos = carregar_planos_acao(db)
+    @task
+    def extrair_metas() -> str:
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
+        planos = carregar_planos_acao(
+            datalakehouse.ler_parquet(
+                datalakehouse.key_da_cadeia(cadeia, schemas.TABELA_PLANO_ACAO)
+            )
+        )
 
         if not planos:
             raise ValueError(
-                "[api_plano_acao_meta_dag.py] Nenhum plano de ação encontrado em "
-                f"{schemas.SCHEMA_TRANSFEREGOV}.{schemas.TABELA_PLANO_ACAO}"
+                "[api_plano_acao_meta_dag.py] Nenhum plano de ação no staging de "
+                f"{schemas.TABELA_PLANO_ACAO}"
             )
 
         logging.info(
@@ -64,27 +72,20 @@ def api_plano_acao_meta_dag() -> None:
         if not metas:
             raise ValueError("[api_plano_acao_meta_dag.py] Nenhuma meta foi extraída")
 
-        return metas
-
-    @task(outlets=[tabela(schemas.SCHEMA_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_META)])
-    def load_metas_to_postgres(metas: list[dict[str, Any]]) -> None:
-        db = ClientPostgresDB(get_postgres_conn())
-        db.insert_data(
-            metas,
-            table_name=schemas.TABELA_PLANO_ACAO_META,
-            # Identificador da meta na origem (secao 9.1). O nome do campo e
-            # id_meta_plano_acao, nao id_meta como sugere o diagrama ER.
-            primary_key=["id_meta_plano_acao"],
-            conflict_fields=["id_meta_plano_acao"],
-            schema=schemas.SCHEMA_TRANSFEREGOV,
+        return datalakehouse.gravar_raw(
+            metas, schemas.FONTE_TRANSFEREGOV, schemas.TABELA_PLANO_ACAO_META
         )
 
-        logging.info(
-            "[api_plano_acao_meta_dag.py] Carga concluída com %s registros",
-            len(metas),
+    @task(outlets=[ASSET_META])
+    def converter_metas_para_staging(key_raw: str) -> str:
+        key = datalakehouse.raw_para_staging(key_raw)
+        cadeia = datalakehouse.ler_cadeia(ASSET_PLANO_ACAO)
+        datalakehouse.publicar_cadeia(
+            ASSET_META, {**cadeia, schemas.TABELA_PLANO_ACAO_META: key}
         )
+        return key
 
-    load_metas_to_postgres(fetch_metas()) >> publicar_linhagem()
+    converter_metas_para_staging(extrair_metas())
 
 
 api_plano_acao_meta_dag()

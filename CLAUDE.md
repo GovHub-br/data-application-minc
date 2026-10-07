@@ -11,9 +11,12 @@ serve o acompanhamento das metas do PNAB e da Lei Paulo Gustavo.
 
 ## Stack
 
-Airflow 3.2 orquestra, Cosmos executa o dbt, Postgres é o destino, Docker Compose
-sobe tudo local. Dependências via Poetry. A ingestão do SALIC tem uma segunda via
-que usa Trino como motor de cópia — ver [ADR 0005](docs/adr/0005-ingestao-salic-por-trino-em-fatias.md).
+Airflow 3.2 orquestra, Cosmos executa o dbt, Postgres é o destino do dbt, Docker
+Compose sobe tudo local. Dependências via Poetry. A ingestão do SALIC tem uma
+segunda via que usa Trino como motor de cópia — ver [ADR 0005](docs/adr/0005-ingestao-salic-por-trino-em-fatias.md).
+As DAGs de API do TransfereGov gravam no datalakehouse (MinIO, `raw/` e
+`staging/`) e uma ponte por entidade devolve ao Postgres — ver
+[ADR 0011](docs/adr/0011-transferegov-grava-no-datalakehouse.md).
 
 ## Mapa do repositório
 
