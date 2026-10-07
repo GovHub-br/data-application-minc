@@ -17,6 +17,7 @@ import pytest
 from datalakehouse import (
     cadeia_do_gatilho,
     caminho,
+    caminho_particionado,
     eventos_em_ordem,
     key_da_cadeia,
     parquet_para_registros,
@@ -54,6 +55,26 @@ def test_caminho_particiona_por_data_e_sanitiza_run_id() -> None:
         "raw/transferegov/plano_acao_minc/ano=2026/mes=10/dia=01/"
         "manual__2026-10-01T12_00_00_00_00.json"
     )
+
+
+def test_caminho_particionado_usa_a_particao_do_dado_e_nao_a_data() -> None:
+    key = caminho_particionado(
+        "staging",
+        "inep",
+        "ed_basica",
+        {"ano_censo": 2015},
+        "manual__2026-10-07T12:00:00+00:00",
+        "parquet",
+    )
+    assert key == (
+        "staging/inep/ed_basica/ano_censo=2015/"
+        "manual__2026-10-07T12_00_00_00_00.parquet"
+    )
+
+
+def test_caminho_particionado_recusa_camada_desconhecida() -> None:
+    with pytest.raises(ValueError):
+        caminho_particionado("bronze", "inep", "x", {}, "r", "zip")
 
 
 def test_staging_e_o_raw_com_outro_prefixo_e_extensao() -> None:

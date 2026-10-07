@@ -73,6 +73,27 @@ def caminho(camada: str, fonte: str, entidade: str, run_id: str, data: datetime)
     )
 
 
+def caminho_particionado(
+    camada: str,
+    fonte: str,
+    entidade: str,
+    particao: Mapping[str, Any],
+    run_id: str,
+    extensao: str,
+) -> str:
+    """Key de um arquivo particionado pelo que identifica o dado, não pela data do run.
+
+    Para fonte estática (um arquivo por ano de referência, como os censos do
+    INEP) a partição útil é o ano do dado: recarregar um ano é achar o prefixo
+    dele. Cada run grava a própria key, então o raw continua imutável.
+    """
+    particoes = "".join(f"{nome}={valor}/" for nome, valor in particao.items())
+    return (
+        f"{prefixo(camada, fonte, entidade)}{particoes}"
+        f"{sanitizar_run_id(run_id)}.{extensao}"
+    )
+
+
 def raw_para_staging_key(key_raw: str) -> str:
     """Key de staging equivalente a uma key de raw."""
     if not key_raw.startswith(f"{CAMADA_RAW}/") or not key_raw.endswith(".json"):
@@ -304,6 +325,25 @@ def gravar_bytes(conteudo: bytes, key: str) -> str:
     """Grava um binário (anexo, por exemplo) em ``key`` e devolve a key."""
     get_hook().load_bytes(bytes_data=conteudo, key=key, bucket_name=BUCKET, replace=True)
     return key
+
+
+def gravar_arquivo(caminho_local: str, key: str) -> str:
+    """Envia um arquivo local para ``key`` sem carregá-lo em memória.
+
+    Para o que não cabe com folga num ``bytes`` -- o ZIP de 2025 do Censo
+    Escolar tem 537 MB.
+    """
+    get_hook().load_file(
+        filename=caminho_local, key=key, bucket_name=BUCKET, replace=True
+    )
+    logging.info("[datalakehouse] %s enviado para s3://%s/%s", caminho_local, BUCKET, key)
+    return key
+
+
+def baixar_arquivo(key: str, caminho_local: str) -> str:
+    """Baixa ``key`` para ``caminho_local`` em streaming e devolve o caminho."""
+    get_hook().get_key(key=key, bucket_name=BUCKET).download_file(caminho_local)
+    return caminho_local
 
 
 # ── Assets ───────────────────────────────────────────────────────────────
