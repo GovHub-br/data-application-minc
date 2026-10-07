@@ -20,6 +20,7 @@ que a substitui, e o antigo passa a `Status: substituído por ADR NNNN`.
 | [0009](0009-data-lakehouse-extracao-airflow-camadas-minio-acesso-trino.md) | A plataforma de dados do MinC é um Data Lakehouse: extração pelo Airflow, camadas no MinIO e todo acesso via Trino |
 | [0010](0010-camadas-e-schemas-do-data-lakehouse.md) | Cinco camadas, schema por fonte até a Intermediate e um schema por produto na Gold |
 | [0011](0011-transferegov-grava-no-datalakehouse.md) | A ingestão do TransfereGov grava no datalakehouse, e uma ponte devolve ao Postgres |
+| [0012](0012-fontes-estaticas-no-schema-seeds.md) | Fonte estática vai de raw a Parquet no MinIO e chega ao Postgres no schema `seeds` |
 
 Para escrever um novo, existe a skill
 [`architecture-decision-records`](../../.claude/skills/architecture-decision-records/).
