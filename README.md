@@ -38,6 +38,144 @@ Este repositório organiza a aplicação de dados em torno do Airflow e do dbt. 
 raiz contém o código executado pelo Airflow; a pasta `infra/` concentra Docker,
 Compose e arquivos de suporte para o ambiente local.
 
+## Arquitetura de dados
+
+Arquitetura de produção da plataforma de dados do MinC, um Data Lakehouse
+aprovado em outubro de 2026. O ambiente local descrito em
+[Rodando Localmente](#rodando-localmente) ainda executa o dbt sobre PostgreSQL.
+
+![Arquitetura de dados do MinC](docs/arquitetura/arquitetura-dados-minc.png)
+
+### Componentes
+
+| Componente | Papel |
+|---|---|
+| **Apache Airflow** | Orquestra a plataforma e faz a extração. As DAGs extraem os dados das fontes (Pull) e gravam os arquivos na zona `raw` do MinIO. CDC é a evolução prevista. |
+| **MinIO** | Object storage. Guarda a zona `raw` e os arquivos Parquet de todas as tabelas, da Bronze à Gold. |
+| **Apache Iceberg** | Formato de tabela da Bronze, Silver, Intermediate e Gold. Dá transações, snapshots, evolução de schema e time travel sobre os arquivos Parquet. |
+| **Apache Polaris** | Catálogo Iceberg (API REST). É o ponto único de leitura e escrita das tabelas. |
+| **PostgreSQL** | Persistência do catálogo: guarda só os metadados do Iceberg, que o Polaris acessa via JDBC. Não guarda dados das camadas. |
+| **Trino** | Motor único de consulta. Carrega o `raw` na Bronze, executa o SQL do dbt, lê e grava as tabelas Iceberg através do Polaris e serve todo o consumo. |
+| **dbt** (`dbt-trino`) | Define as transformações da Bronze à Gold. Consulta os metadados das tabelas, monta o SQL e o executa no Trino. |
+| **Apache Ranger** | Políticas de acesso aplicadas no Trino: controle por linha e por coluna, mascaramento, anonimização na consulta e auditoria. |
+
+### Fluxo, passo a passo
+
+1. **Extração.** As DAGs do Airflow extraem os dados das fontes (SALIC,
+   TransfereGov, PNAB, BSC) e gravam os arquivos em `raw/`, no MinIO, do jeito
+   que chegaram. O `raw` é imutável: nunca é sobrescrito.
+2. **Carga na Bronze.** O Trino lê o `raw` e grava a Bronze, uma cópia fiel do
+   dado. Não existe etapa de staging entre as duas.
+3. **Transformação.** O dbt monta Silver, Intermediate e Gold e executa o SQL
+   no Trino. Para saber o que existe, o Trino consulta o Polaris, que lê os
+   metadados no PostgreSQL. As tabelas resultantes são gravadas como Iceberg no
+   MinIO, ou seja, as transformações acontecem dentro do MinIO.
+4. **Consumo.** Todo acesso passa pelo Trino, e o Ranger aplica as políticas e
+   a anonimização no momento da consulta. A Gold alimenta os indicadores
+   oficiais (dashboards, APIs, BI); a Silver alimenta ML, treinamento de IA,
+   RAG e análise exploratória. Ninguém lê arquivos direto do MinIO, porque esse
+   caminho escaparia das políticas do Ranger.
+
+### Camadas
+
+![Camadas e schemas do Data Lakehouse do MinC](docs/arquitetura/modelagem-dados-minc.png)
+
+| Camada | O que faz | O que não faz | Organização | Consumo |
+|---|---|---|---|---|
+| **Raw** | Guarda o dado como extraído da fonte. É a base para reprocessar e auditar. | Não é sobrescrita. Não é modelo dbt: entra no projeto como `source`. | Arquivos no MinIO, em `raw/<fonte>/<entidade>/` | Não |
+| **Bronze** | Cópia fiel do `raw`, com histórico permanente e metadados de ingestão. | Não tipa, não agrega, não remove registros, não aplica regra de negócio. | Schema da fonte | Não |
+| **Silver** | Limpa, tipa, deduplica e normaliza. | Não cruza fontes. Não aplica regra de negócio final. | Schema da fonte | ML, IA, RAG e análise exploratória |
+| **Intermediate** | Cruza fontes e concentra transformações reutilizáveis. Melhora o desempenho da Gold e evita SQL duplicado entre produtos. | Não aplica regra de negócio final. | Schema único `intermediate` | Não |
+| **Gold** | Regra de negócio final: fatos, dimensões e indicadores. | Não muda de forma incompatível sem versionamento. | Um schema por produto de dados | Consumo oficial |
+
+Bronze, Silver e Intermediate são comuns a todos os produtos de dados; só a
+Gold é separada por produto. Em todas as camadas, valor ausente fica nulo e
+nunca vira falso.
+
+### Schemas e nomenclatura
+
+A decisão está no [ADR 0010](docs/adr/0010-camadas-e-schemas-do-data-lakehouse.md);
+a tabela abaixo é o resumo.
+
+| Camada | Schema | Tabela | Arquivo dbt | Exemplo |
+|---|---|---|---|---|
+| Raw | — | — | — (`source`) | `raw/salic/agentes/` |
+| Bronze | `<fonte>` | `bronze_<entidade>` | `<fonte>/bronze_<entidade>.sql` | `salic.bronze_agentes_agentes` |
+| Silver | `<fonte>` | `silver_<entidade>` | `<fonte>/silver_<entidade>.sql` | `salic.silver_agentes_agentes` |
+| Intermediate | `intermediate` | `int_<fonte1>_<fonte2>` | `intermediate/int_<fonte1>_<fonte2>.sql` | `intermediate.int_salic_transferegov` |
+| Gold | `<produto>` | `<nome>`, sem prefixo | `<produto>/<nome>.sql` | `cultura_em_numeros.eixo2_meta3_fct_pagamento_profissional_rouanet` |
+
+- O nome do arquivo é o nome da tabela. A fonte fica na pasta e no schema,
+  não no nome, e não há `alias`.
+- A entidade preserva o que identifica a tabela na origem. No SALIC, que tem
+  cinco bancos, é `<banco>_<tabela>`: `agentes_agentes`,
+  `sac_aberturadecontabancaria`.
+- Fonte com uma única entidade usa o nome da fonte como entidade, como em
+  `transferegov/bronze_transferegov.sql`.
+- A Gold não leva prefixo de camada nem de produto: a pasta e o schema já
+  dizem o produto. Dentro da pasta, cada produto nomeia suas tabelas como
+  precisar; o Cultura em Números leva eixo e meta no nome.
+- Produtos de dados citados até agora: `cultura_em_numeros` (Cultura em
+  Números), `sefli` e `patrimonio_cultural`.
+
+Pastas no projeto dbt: uma por fonte, uma por produto e uma `intermediate`,
+sem subpasta de camada.
+
+```text
+dbt/minc/models/
+├── salic/
+│   ├── bronze_agentes_agentes.sql
+│   └── silver_agentes_agentes.sql
+├── bbagil/
+│   ├── bronze_controle_extracao_bbagil_extrato.sql
+│   └── silver_controle_extracao_bbagil_extrato.sql
+├── intermediate/
+│   └── int_salic_transferegov.sql
+└── cultura_em_numeros/
+    └── eixo2_meta3_fct_pagamento_profissional_rouanet.sql
+```
+
+Exemplo de ponta a ponta:
+
+```text
+raw/salic/agentes/              ─▶ salic.bronze_agentes_agentes     ─▶ salic.silver_agentes_agentes
+raw/transferegov/transferegov/  ─▶ transferegov.bronze_transferegov ─▶ transferegov.silver_transferegov
+
+salic.silver_agentes_agentes + transferegov.silver_transferegov
+  ─▶ intermediate.int_salic_transferegov
+  ─▶ cultura_em_numeros.eixo2_meta5_primeiro_acesso
+```
+
+O projeto de hoje ainda está na organização anterior, por domínio; a
+migração é incremental e a skill `arquitetura-lakehouse-minc` verifica a
+aderência de cada PR.
+
+### Decisões que sustentam a arquitetura
+
+- **Data Lakehouse** com Iceberg sobre MinIO, em vez de data warehouse
+  tradicional ou de data lake só de arquivos: escala, versionamento e baixo
+  acoplamento, ao custo de mais componentes para operar.
+- **Dado bruto imutável**: o `raw` nunca é sobrescrito, o que permite auditar e
+  reconstruir qualquer camada.
+- **Integração incremental**: começa com Pull pelas DAGs do Airflow e evolui
+  para CDC.
+- **Catálogo único**: Polaris centraliza leitura e escrita, com os metadados no
+  PostgreSQL; o dbt roda pelo Trino, o mesmo motor que serve o consumo.
+- **Anonimização na consulta**: os dados ficam íntegros nas camadas e o Ranger
+  anonimiza no Trino conforme o perfil de quem consulta. Mantém uma única cópia
+  dos dados, e por isso todo acesso precisa passar pelo Trino.
+- **Consumo por camada**: a Gold é a camada oficial de consumo; a Silver é
+  cedida para ciência de dados.
+- **Responsabilidades separadas**: cruzamento entre fontes só na Intermediate,
+  regra de negócio só na Gold.
+
+### Em aberto
+
+- Formato dos arquivos gravados em `raw`.
+- Estratégia de particionamento das tabelas.
+- Lista completa de produtos de dados e como dimensões comuns (tempo,
+  território) são compartilhadas entre eles.
+
 ## Stack
 
 - **Apache Airflow**: orquestração dos pipelines

@@ -17,6 +17,8 @@ que a substitui, e o antigo passa a `Status: substituído por ADR NNNN`.
 | [0006](0006-silvers-salic-gate-a0-parcial.md) | Gate A0 parcial das silvers do SALIC: medidas, território e bloqueios dos KPIs |
 | [0007](0007-cosmos-monta-a-dag-por-dbt-ls.md) | O Cosmos monta a DAG por `dbt ls`, não por manifest versionado |
 | [0008](0008-ingestao-mapas-so-public-sem-historico.md) | A ingestão do Mapas leva só o `public`, sem o histórico de edições nem o log de acesso |
+| [0009](0009-data-lakehouse-extracao-airflow-camadas-minio-acesso-trino.md) | A plataforma de dados do MinC é um Data Lakehouse: extração pelo Airflow, camadas no MinIO e todo acesso via Trino |
+| [0010](0010-camadas-e-schemas-do-data-lakehouse.md) | Cinco camadas, schema por fonte até a Intermediate e um schema por produto na Gold |
 
 Para escrever um novo, existe a skill
 [`architecture-decision-records`](../../.claude/skills/architecture-decision-records/).
