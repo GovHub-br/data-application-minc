@@ -50,6 +50,15 @@ ENTIDADE_SUBTRANSACOES = "gestao_financeira_subtransacoes"
 PREFIXO_ANEXOS_ARQUIVOS = f"raw/{FONTE_TRANSFEREGOV}/anexos_arquivos/"
 
 # ---------------------------------------------------------------------------
+# fontes estaticas (seeds)
+# ---------------------------------------------------------------------------
+# Fonte publicada como arquivo, uma vez por periodo de referencia (os censos
+# do INEP): raw/<fonte>/ -> staging/<fonte>/ no MinIO, e dali para
+# seeds.<fonte>_<entidade> no Postgres.
+SCHEMA_SEEDS = "seeds"
+FONTE_INEP = "inep"
+
+# ---------------------------------------------------------------------------
 # bbagil (secao 7.2)
 # ---------------------------------------------------------------------------
 TABELA_EXTRATO = "extrato_bbagil"
