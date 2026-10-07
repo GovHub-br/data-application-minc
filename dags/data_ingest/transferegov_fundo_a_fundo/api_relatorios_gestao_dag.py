@@ -47,9 +47,13 @@ def api_relatorios_gestao_dag() -> None:
 
         api = ClienteTransfereGov()
         relatorios_data: list[dict[str, Any]] = []
+        planos_sem_relatorio = 0
 
         for id_plano in ids_planos:
-            logging.info(
+            # As tres linhas por plano abaixo ficam em debug: com ~23,6 mil
+            # planos elas respondiam pela maior parte de um log de task de 87MB.
+            # O que importa em operacao esta agregado no resumo do fim.
+            logging.debug(
                 "[api_relatorios_gestao_dag.py] Buscando relatórios para plano ID: %s",
                 id_plano,
             )
@@ -66,13 +70,14 @@ def api_relatorios_gestao_dag() -> None:
 
                 relatorios_data.extend(relatorios_finais)
 
-                logging.info(
+                logging.debug(
                     "[api_relatorios_gestao_dag.py] Plano %s: %d relatórios FINAL encontrados",
                     id_plano,
                     len(relatorios_finais),
                 )
             else:
-                logging.warning(
+                planos_sem_relatorio += 1
+                logging.debug(
                     "[api_relatorios_gestao_dag.py] Nenhum relatório encontrado para plano ID: %s",
                     id_plano,
                 )
@@ -83,8 +88,11 @@ def api_relatorios_gestao_dag() -> None:
             )
 
         logging.info(
-            "[api_relatorios_gestao_dag.py] Extração concluída com %s registros",
+            "[api_relatorios_gestao_dag.py] Extração concluída com %s registros "
+            "de %s planos consultados (%s planos sem relatório)",
             len(relatorios_data),
+            len(ids_planos),
+            planos_sem_relatorio,
         )
         return relatorios_data
 

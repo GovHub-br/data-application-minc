@@ -99,7 +99,9 @@ class ClienteTransfereGov(ClienteBase):
 
             pagina += 1
 
-        logging.info(
+        # debug: e por chamada de endpoint, nao por task. Quem itera milhares
+        # de ids emite milhares destas.
+        logging.debug(
             f"[cliente_transferegov.py] Fetched {len(registros)} registros "
             f"({contexto})"
         )
