@@ -35,13 +35,19 @@ class ClienteBase:
 
         for attempt in range(self.DEFAULT_MAX_RETRIES):
             try:
-                logging.info(
+                # debug, nao info: uma linha por requisicao. Em loops de
+                # paginacao isso chega a 23,6 mil requisicoes numa task -- junto
+                # com a linha de sucesso abaixo gerou logs de 178MB. A falha
+                # continua visivel: o except loga warning por tentativa e error
+                # ao esgotar as retentativas. Inclui kwargs, que pode carregar
+                # parametros de consulta, outro motivo para nao ficar em info.
+                logging.debug(
                     f"[cliente_base.py] Attempt {attempt + 1} for {method} "
                     f"{self.base_url}{path} with kwargs: {kwargs}"
                 )
                 response = self.client.request(method, path, **kwargs)
                 response.raise_for_status()
-                logging.info(
+                logging.debug(
                     f"[cliente_base.py] Request successful with status "
                     f"{response.status_code}"
                 )
