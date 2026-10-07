@@ -282,7 +282,15 @@ def test_conferir_contagens_aponta_o_ano_e_a_entidade_divergentes() -> None:
         inep.conferir_contagens([ok, ruim])
 
 
-def test_certificado_da_intermediaria_esta_no_repositorio() -> None:
-    texto = inep._CERTIFICADO_INEP.read_text()
-    assert "BEGIN CERTIFICATE" in texto
-    assert "PRIVATE KEY" not in texto
+def test_intermediaria_com_impressao_digital_errada_e_recusada() -> None:
+    with pytest.raises(ValueError, match="SHA-256"):
+        inep.intermediaria_pem(b"nao e o certificado")
+
+
+def test_intermediaria_esperada_vira_pem(monkeypatch: pytest.MonkeyPatch) -> None:
+    import hashlib
+
+    der = b"qualquer conteudo"
+    monkeypatch.setattr(inep, "_SHA256_INTERMEDIARIA", hashlib.sha256(der).hexdigest())
+    pem = inep.intermediaria_pem(der)
+    assert pem.startswith("-----BEGIN CERTIFICATE-----")

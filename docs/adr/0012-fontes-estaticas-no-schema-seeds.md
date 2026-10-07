@@ -86,9 +86,11 @@ elas seria arbitrária.
 - Na conversão, o CENSOESC de 2003–2006 chega a ~2,1 GB de memória: é o
   buffer por coluna do writer de Parquet. Por isso a conversão roda um ano
   por vez.
-- O `download.inep.gov.br` não envia a intermediária da cadeia TLS. Ela está
-  em `plugins/certificados/` e vence em 2030-11-19. Quando o INEP trocar de
-  emissora, o download falha com `CERTIFICATE_VERIFY_FAILED` e o arquivo
-  precisa ser trocado.
+- O `download.inep.gov.br` não envia a intermediária da cadeia TLS. O
+  `cliente_inep.py` a baixa do AIA do certificado do host, como faz o
+  navegador, e só a aceita se o SHA-256 bater com o que está no código —
+  nenhum `.pem` é versionado (`*.pem` está no `.gitignore`). Ela vence em
+  2030-11-19. Quando o INEP trocar de emissora, o download falha e a URL e a
+  impressão digital precisam ser trocadas juntas.
 - Uma nova fonte estática segue o mesmo caminho e entra em `seeds` com o
   próprio prefixo.

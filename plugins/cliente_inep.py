@@ -112,10 +112,12 @@ COLUNA_JSONB = "dados"
 COLUNA_ANO = "ano_censo"
 COLUNA_DT_INGESTAO = "dt_ingestao"
 
-# A intermediária de *.inep.gov.br, que o servidor não envia (ver o .pem).
-_CERTIFICADO_INEP = (
-    Path(__file__).parent / "certificados" / "rnp_icpedu_gr46_ov_tls_ca_2025.pem"
-)
+# A intermediária de *.inep.gov.br, que o servidor não envia. Não é
+# versionada (``*.pem`` no .gitignore): vem do AIA do certificado do host e só
+# é aceita se o SHA-256 do DER bater. Vence em 2030-11-19; quando o INEP
+# trocar de emissora, URL e impressão digital mudam juntas.
+_URL_INTERMEDIARIA = "http://secure.globalsign.com/cacert/rnpicpedugr46ovtlsca2025.crt"
+_SHA256_INTERMEDIARIA = "e10747d4da7bab09cba9952f019d3534cb9fba070bf13d8791b1699cd2ff59dd"
 
 # Bloco de leitura do CSV, lido sem threads. Medido no CENSOESC de 2006
 # (3.808 colunas): com 16 MB e threads o leitor sozinho chega a 2 GB de RSS;
@@ -465,21 +467,40 @@ def conferir_contagens(cargas: list[dict[str, Any]]) -> None:
 # ── rede ─────────────────────────────────────────────────────────────────
 
 
+def intermediaria_pem(der: bytes) -> str:
+    """Converte a intermediária para PEM, se ela for a esperada."""
+    import hashlib
+    import ssl
+
+    obtido = hashlib.sha256(der).hexdigest()
+    if obtido != _SHA256_INTERMEDIARIA:
+        raise ValueError(
+            f"Intermediária do INEP com SHA-256 {obtido}, esperado "
+            f"{_SHA256_INTERMEDIARIA}. Se o INEP trocou de emissora, atualize "
+            "_URL_INTERMEDIARIA e _SHA256_INTERMEDIARIA."
+        )
+    return ssl.DER_cert_to_PEM_cert(der)
+
+
 @functools.cache
-def bundle_ca() -> str:
+def bundle_ca(timeout: int = 30) -> str:
     """Bundle do certifi mais a intermediária do INEP, num arquivo temporário.
 
     O ``download.inep.gov.br`` envia só o certificado folha. Navegador e curl
     do macOS buscam a intermediária pelo AIA; o OpenSSL do ``requests``, não.
-    A cadeia ICP-Brasil que a imagem do Airflow instala não ajuda: a
-    emissora é da RNP, sob a GlobalSign Root R46.
+    Aqui se faz o mesmo que o navegador, conferindo a impressão digital porque
+    o AIA é servido por HTTP. A cadeia ICP-Brasil que a imagem do Airflow
+    instala não ajuda: a emissora é da RNP, sob a GlobalSign Root R46.
     """
     import certifi
+    import requests
+
+    resposta = requests.get(_URL_INTERMEDIARIA, timeout=timeout)
+    resposta.raise_for_status()
+    pem = intermediaria_pem(resposta.content)
 
     destino = Path(tempfile.gettempdir()) / "inep_ca_bundle.pem"
-    destino.write_text(
-        Path(certifi.where()).read_text() + "\n" + _CERTIFICADO_INEP.read_text()
-    )
+    destino.write_text(Path(certifi.where()).read_text() + "\n" + pem)
     return str(destino)
 
 
