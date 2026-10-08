@@ -37,16 +37,20 @@ models:
         +materialized: view
       gold:
         +materialized: table
-    # Mapas Culturais. A bronze não é modelo: é a cópia crua que a DAG
-    # mapas_ingestion_trino grava como mapas.bronze_<tabela>, declarada como
-    # source. A silver cai no MESMO schema, `mapas`, com alias silver_<entidade>:
-    # o nome do modelo (silver_mapas_<entidade>) e o da tabela (silver_...) nunca
-    # coincidem com os da bronze, então o dbt não tem como sobrescrevê-la.
+    # Mapas Culturais, na estrutura do ADR 0010: pasta por fonte, arquivos planos
+    # e o schema é o nome da pasta. O nome do arquivo é o nome da tabela
+    # (silver_<entidade>), sem alias.
+    #
+    # A bronze (mapas.bronze_<tabela>) não é modelo: é a cópia crua que a DAG
+    # mapas_ingestion_trino grava, declarada como source. A silver cai no MESMO
+    # schema, e `silver_*` nunca coincide com `bronze_*`, então o dbt não tem como
+    # sobrescrever a bronze. Um modelo bronze_<entidade> aqui, ao contrário,
+    # substituiria a tabela que a DAG grava com esse mesmo nome.
+    #
     # Table, e não view: a silver é consumida via Trino (ML, análise exploratória).
-    mapas_dbt:
+    mapas:
       +schema: mapas
-      silver:
-        +materialized: table
+      +materialized: table
     # SALIC — Lei Rouanet. Um dominio, as camadas separadas por PASTA, como em
     # agentes_dbt e cotas_dbt.
     #

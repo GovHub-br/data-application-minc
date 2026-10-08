@@ -40,8 +40,9 @@ O schema de destino é a fonte e o nome da tabela leva o prefixo da camada::
 
     mapas.bronze_<tabela>        public.agent  →  mapas.bronze_agent
 
-Os nomes dos modelos dbt seguem ``bronze_<fonte>_<entidade>.sql``, por exemplo
-``bronze_mapas_agent.sql``. O schema vem da Variable ``mapas_trino_bronze_schema``
+Os modelos dbt da silver ficam em ``dbt/minc/models/mapas/`` (ADR 0010: pasta por
+fonte, arquivos planos) e o nome do arquivo é o nome da tabela, por exemplo
+``silver_agent.sql``. O schema vem da Variable ``mapas_trino_bronze_schema``
 (padrão ``mapas``); o prefixo ``bronze_`` é fixo. A tabela de log fica em
 ``control``, que não pertence a uma fonte só. Toda tabela carrega ainda a coluna
 técnica ``_fatia``.
