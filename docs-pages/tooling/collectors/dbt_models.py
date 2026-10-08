@@ -2,8 +2,9 @@
 dbt_models.py: inventário e linhagem dos modelos dbt.
 
 Lê a árvore de arquivos, não o `manifest.json`. A convenção de pastas do
-repositório — `models/<dominio>_dbt/<camada>/<modelo>.sql` — já carrega domínio
-e camada, e os `ref()`/`source()` no SQL dão a linhagem. Assim a coleta roda
+repositório — `models/<dominio>_dbt/<camada>/<modelo>.sql`, ou, na estrutura do
+ADR 0010, `models/<fonte>/<camada>_<entidade>.sql` — já carrega domínio e
+camada, e os `ref()`/`source()` no SQL dão a linhagem. Assim a coleta roda
 offline: sem dbt instalado, sem VPN e sem conexão com o Postgres.
 
 O preço dessa escolha é acoplamento à convenção de pastas. Se alguém reorganizar
@@ -28,6 +29,9 @@ RE_SOURCE = re.compile(r"""source\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*
 RE_MATERIALIZED = re.compile(r"""materialized\s*=\s*['"](\w+)['"]""")
 
 CAMADAS = ("bronze", "silver", "gold", "views")
+
+# Camada pelo prefixo do nome do arquivo, para a estrutura plana do ADR 0010.
+PREFIXOS_CAMADA = {"bronze_": "bronze", "silver_": "silver", "int_": "intermediate"}
 
 
 def _yaml_da_pasta(pasta: Path) -> dict[str, Any]:
@@ -74,7 +78,18 @@ def _classificar(relativo: Path) -> tuple[str, str]:
     if not partes:
         return "geral", "outros"
     dominio = partes[0].removesuffix("_dbt")
-    camada = next((p for p in partes if p in CAMADAS), "outros")
+    camada = next((p for p in partes if p in CAMADAS), None)
+    if camada is None:
+        # Estrutura do ADR 0010: arquivos planos na pasta da fonte, e a camada
+        # está no prefixo do nome (`silver_agent.sql`), não numa subpasta.
+        camada = next(
+            (
+                c
+                for prefixo, c in PREFIXOS_CAMADA.items()
+                if relativo.stem.startswith(prefixo)
+            ),
+            "outros",
+        )
     return dominio, camada
 
 
