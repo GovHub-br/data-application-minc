@@ -1,34 +1,60 @@
 version: 2
 
 # SALIC na estrutura do ADR 0010: a Bronze é a tabela que a ingestão grava em
-# salic.bronze_<banco>_<tabela> (source salic, em sources_sac.yml), e a Silver
-# a lê por source(). Quando o salic_dbt migrar, os modelos sac__<tabela> de lá
-# (que tipam) viram silver_sac_<tabela> aqui.
+# salic.bronze_<banco>_<tabela> (ADR 0017; sources em sources_<banco>.yml), e a
+# Silver a lê por source(). Este arquivo guarda a silver da Meta 5, que junta
+# duas tabelas do sac; as silvers migradas do salic_dbt, uma por tabela, ficam
+# em schema_<banco>.yml, um arquivo por banco.
 models:
   - name: silver_sac_captacao_proponente
     description: >
-      Camada Silver — um recibo de captação da Lei Rouanet por linha, com o
-      proponente que recebeu o recurso. Junta o recibo (sac__captacao) ao
-      cadastro do projeto pelo PRONAC e tipa; não decide quais recibos
-      contam para um indicador. Grão: 1 linha por recibo de captação.
+      Camada Silver / SALIC. Recibos de captação da Lei Rouanet, cada um com
+      o proponente que recebeu o recurso. Junta o recibo
+      (salic.bronze_sac_captacao) ao cadastro do projeto
+      (salic.bronze_sac_projetos) pelo PRONAC e tipa.
 
-      O proponente de cada PRONAC vem de sac__projetos (cgccpf), o cadastro
-      oficial do projeto. O PRONAC sai da macro pronac_de_ano_sequencial nas
-      duas tabelas, a mesma do fct_captacao_rouanet. Recibo cujo PRONAC o
-      cadastro não resolve fica de fora sem erro; o teste singular
-      salic_recibo_sem_proponente (severity warn) avisa por PRONAC, separando
-      PRONAC malformado de ausente do cadastro, e o
+      GRÃO: uma linha por recibo de captação. UNIVERSO: todo recibo de
+      salic.bronze_sac_captacao cujo PRONAC o cadastro do projeto resolve.
+      Nenhum corte por ano, valor ou situação do projeto.
+
+      PARA QUE SERVE: é a entrada da Rouanet na Meta 5, via
+      int_ancine_bbagil_salic. Não decide quais recibos contam para um
+      indicador — isso é da Gold de cada produto.
+
+      LIGAÇÃO ENTRE AS TABELAS: salic.bronze_sac_captacao tem o dinheiro e a
+      data, mas não o proponente (cgccpfmecena é o incentivador que aportou,
+      não quem recebeu). O proponente de cada PRONAC vem de
+      salic.bronze_sac_projetos (cgccpf), o cadastro oficial do projeto. O
+      PRONAC sai da macro
+      pronac_de_ano_sequencial nas duas tabelas, a mesma de
+      fct_captacao_rouanet, para os dois modelos poderem ser reconciliados.
+
+      DESCONHECIDOS: recibo cujo PRONAC o cadastro não resolve fica de fora
+      sem erro. O teste singular salic_recibo_sem_proponente (severity warn)
+      avisa por PRONAC, separando PRONAC malformado de ausente do cadastro, e
       salic_recibo_sem_proponente_em_massa (severity error) trava o build
       quando a perda passa de 1% dos recibos.
 
-      Lê a Bronze do SALIC (salic.bronze_sac_*). Até 21/10/2026 lia a v1
-      (schema `bronze`) e usava sac__tbapiprojetorouanet como reserva de
-      proponente; a v2 não ingere essa tabela, e o cadastro sozinho já
-      resolvia 100% dos recibos válidos.
+      LIMITAÇÕES: proponente_nome é sempre nulo hoje, porque o cadastro não
+      traz o nome. valor_captado vem como a origem registra, inclusive zero
+      e negativo.
+
+      HISTÓRICO: lê a Bronze do SALIC (salic.bronze_sac_*). Até 21/10/2026
+      lia a v1 (schema `bronze`) e usava sac__tbapiprojetorouanet como
+      reserva de proponente; a v2 não ingere essa tabela, e o cadastro
+      sozinho já resolvia 100% dos recibos válidos.
+
+      ZONA RESTRITA. Carrega o CPF/CNPJ do proponente em claro: não
+      publicável e proibida em corpus de RAG. A anonimização no momento do
+      acesso é responsabilidade do Apache Ranger (ADR 0009).
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [silver, salic, rouanet]
       meta:
         status: Active
+        meta_objetivo: 'Meta 5 — recibos de captação da Rouanet com o proponente'
         origem_dados: 'salic.bronze_sac_captacao + salic.bronze_sac_projetos'
         governance:
           produto_dados: 'SALIC — Rouanet'
@@ -57,8 +83,9 @@ models:
           - not_null
       - name: proponente_nome
         description: >
-          Nome do proponente. Sempre nulo hoje: o cadastro (sac__projetos)
-          não traz o nome; a coluna fica pelo contrato do modelo.
+          Nome do proponente. Sempre nulo hoje: o cadastro
+          (salic.bronze_sac_projetos) não traz o nome; a coluna fica pelo
+          contrato do modelo.
         data_type: text
         meta:
           openmetadata:

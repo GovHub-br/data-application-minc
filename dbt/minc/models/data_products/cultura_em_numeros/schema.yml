@@ -19,38 +19,61 @@ version: 2
 models:
   - name: eixo2_meta5_evento_fomento
     description: >
-      Camada Gold — Meta 5. Espinha do indicador: um evento por vez que um
-      agente cultural recebeu recurso de uma política federal de fomento, já
-      com a política classificada. É a tabela que permite perguntar "este
-      agente já havia sido contemplado antes?" acima do mecanismo, que é o
-      que a pergunta da meta exige. Grão: 1 linha por (documento, mecanismo,
-      data, valor).
+      Camada Gold / Meta 5 do Cultura em Números. Espinha do indicador de
+      novos entrantes: um evento por vez que um agente cultural recebeu
+      recurso de uma política federal de fomento, já com a política
+      classificada.
 
-      Lê int_ancine_bbagil_salic, que só junta as fontes, e concentra a regra
-      de negócio (ADR 0010). O que é pagamento efetivo: no extrato do BB
-      Ágil, só o débito e fora os dois lados de um estorno (débito e crédito
-      da mesma conta, documento e valor); no sublançamento, só o status
-      'Pago'. Quem conta: no BB Ágil, fora repasse a ente
-      público, devolução ao FNC, transferência ao Banco do Brasil e
-      lançamento interno, com a política (LPG, PNAB, LAB) derivada do código
-      do programa; na Ancine, só FSA e o fomento federal ao audiovisual
-      (fora ART25/ART18, que já entram pelo SALIC); na Rouanet e na Ancine,
-      só valor positivo.
+      GRÃO: uma linha por (documento, mecanismo, data, valor). UNIVERSO: os
+      eventos de int_ancine_bbagil_salic que passam pelas regras abaixo, em
+      seis mecanismos — AUDIOVISUAL, FSA, LAB, LPG, PNAB e ROUANET.
 
-      Janelas de observação, muito assimétricas: ROUANET 1993+, AUDIOVISUAL
-      2005+, FSA 2011+, LAB/LPG/PNAB 2023+. Por isso a coluna
-      ano_inicio_observacao, que a gold anual usa para marcar os anos
-      censurados à esquerda.
+      PARA QUE SERVE: é a tabela que permite perguntar "este agente já havia
+      sido contemplado antes?" acima do mecanismo, que é o que a pergunta da
+      meta exige. Não responde pergunta sozinha:
+      eixo2_meta5_primeiro_acesso_agente aplica sobre ela a definição de
+      novo entrante. É aqui que a regra de negócio da Meta 5 se concentra
+      (ADR 0010); a intermediate de origem só junta as fontes.
 
-      O piso de valor (var limiar_valor_fomento, padrão 375) é aplicado sobre
-      o TOTAL do agente naquele mecanismo, não por transação, e só ao BB Ágil
-      — é lá que existe resíduo de transação que não é repasse de fomento.
+      O QUE É PAGAMENTO EFETIVO: no extrato do BB Ágil, só o débito, e fora
+      os dois lados de um estorno (débito e crédito da mesma conta,
+      documento e valor); no sublançamento, só o status 'Pago'.
+
+      QUEM CONTA: no BB Ágil, fora repasse a ente público, devolução ao FNC,
+      transferência ao Banco do Brasil e lançamento interno, com a política
+      (LPG, PNAB, LAB) derivada do código do programa; na Ancine, só FSA e o
+      fomento federal ao audiovisual (fora ART25/ART18, que já entram pelo
+      SALIC); na Rouanet e na Ancine, só valor positivo.
+
+      PISO DE VALOR: a var limiar_valor_fomento (padrão 375) é aplicada
+      sobre o TOTAL do agente naquele mecanismo, não por transação, e só ao
+      BB Ágil — é lá que existe resíduo de transação que não é repasse de
+      fomento.
+
+      LIMITAÇÕES: as janelas de observação são muito assimétricas — ROUANET
+      1993+, AUDIOVISUAL 2005+, FSA 2011+, LAB/LPG/PNAB 2023+. Por isso a
+      coluna ano_inicio_observacao, que a gold anual usa para marcar os anos
+      censurados à esquerda. Faltam o FSA por planilha da Ancine e a Lei
+      Aldir Blanc I emergencial (2020-2021), que não existem em nenhuma
+      fonte do banco. A identidade entre fontes é só o CPF/CNPJ normalizado;
+      não há resolução por nome.
+
+      ZONA RESTRITA. Carrega CPF/CNPJ em claro em beneficiario_documento:
+      não publicável e proibida em corpus de RAG. A anonimização no momento
+      do acesso é responsabilidade do Apache Ranger (ADR 0009).
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [gold, agentes, meta5, primeiro_acesso]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — espinha de eventos de acesso a fomento federal'
         origem_dados: 'int_ancine_bbagil_salic'
+        governance:
+          produto_dados: 'Cultura em Números — Meta 5'
+          classificacao_uso: restrito
+          rag_publication: prohibited
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier1
@@ -131,29 +154,54 @@ models:
 
   - name: eixo2_meta5_primeiro_acesso_agente
     description: >
-      Camada Gold — Meta 5. Grão fino do indicador de novos entrantes: uma
-      linha por (agente × mecanismo), com a data em que ele entrou naquele
-      mecanismo e se aquela entrada foi a porta de entrada dele no fomento
-      federal como um todo. Substitui primeiro_pagamento_bancario, que
-      comparava datas apenas entre LPG e PNAB — num universo de dois
-      programas, "não é novo entrante" só conseguia significar "recebeu o
-      outro programa antes", e quem aparecia num programa só era sempre
-      classificado como novo. Aqui a comparação é cross-mecanismo de
-      verdade, e inclui a Rouanet desde 1993.
+      Camada Gold / Meta 5 do Cultura em Números. Grão fino do indicador de
+      novos entrantes: a data em que cada agente entrou em cada mecanismo e
+      se aquela entrada foi a porta de entrada dele no fomento federal como
+      um todo.
 
-      Exatamente uma linha por agente tem eh_porta_de_entrada = true;
-      empates de data no mesmo dia são desempatados por ordem de mecanismo
-      (ROUANET, AUDIOVISUAL, FSA, LAB, LPG, PNAB) para que ninguém conte duas
-      vezes.
+      GRÃO: uma linha por (agente × mecanismo). UNIVERSO: todo agente com ao
+      menos um evento em eixo2_meta5_evento_fomento.
 
-      É Gold, e não Intermediate, porque não cruza base: aplica a definição
-      de novo entrante. Lê eixo2_meta5_evento_fomento, Gold do mesmo produto.
+      PARA QUE SERVE: é a definição de novo entrante da Meta 5, e a base de
+      eixo2_meta5_primeiro_acesso_anual, da trajetória, da coorte e dos
+      contemplados. A comparação é cross-mecanismo de verdade e inclui a
+      Rouanet desde 1993.
+
+      PORTA DE ENTRADA É ÚNICA: exatamente uma linha por agente tem
+      eh_porta_de_entrada = true. Empate de data no mesmo dia é desempatado
+      pela ordem de mecanismo (ROUANET, AUDIOVISUAL, FSA, LAB, LPG, PNAB),
+      para que ninguém conte duas vezes.
+
+      POR QUE É GOLD E NÃO INTERMEDIATE: não cruza base, aplica a definição
+      de novo entrante. Lê eixo2_meta5_evento_fomento, Gold do mesmo
+      produto.
+
+      O QUE SUBSTITUI: primeiro_pagamento_bancario, que comparava datas só
+      entre LPG e PNAB. Num universo de dois programas, "não é novo
+      entrante" só conseguia significar "recebeu o outro programa antes", e
+      quem aparecia num programa só era sempre classificado como novo.
+
+      LIMITAÇÕES: herda as janelas de observação de
+      eixo2_meta5_evento_fomento. Fonte ausente só transforma veterano em
+      falso novo entrante, nunca o contrário. entrada_em_ano_censurado marca
+      a entrada que caiu no primeiro ano observável do mecanismo.
+
+      ZONA RESTRITA. Carrega CPF/CNPJ em claro em beneficiario_documento:
+      não publicável e proibida em corpus de RAG. A anonimização no momento
+      do acesso é responsabilidade do Apache Ranger (ADR 0009).
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [gold, agentes, meta5, primeiro_acesso]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — Primeiro Acesso ao Fomento Federal (por agente)'
         origem_dados: 'eixo2_meta5_evento_fomento'
+        governance:
+          produto_dados: 'Cultura em Números — Meta 5'
+          classificacao_uso: restrito
+          rag_publication: prohibited
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier1
@@ -296,25 +344,48 @@ models:
 
   - name: eixo2_meta5_primeiro_acesso_anual
     description: >
-      Camada Gold — Meta 5. A série que responde às perguntas 1, 2.1 e 2.2:
-      percentual anual de agentes de primeiro acesso, no total
-      (programa_fomento = 'TODOS') e por mecanismo (AUDIOVISUAL, FSA, LAB,
-      LPG, PNAB, ROUANET). Grão: 1 linha por (ano × mecanismo) mais o roll-up.
+      Camada Gold / Meta 5 do Cultura em Números. Série anual do percentual
+      de agentes de primeiro acesso ao fomento federal, no total e por
+      mecanismo.
 
-      A linha 'TODOS' não é a soma das linhas por mecanismo — um agente
-      atendido por dois mecanismos no mesmo ano conta uma vez só nela.
+      GRÃO: uma linha por (ano × mecanismo), mais o roll-up com
+      programa_fomento = 'TODOS'. UNIVERSO: todo ano em que algum agente
+      teve evento em eixo2_meta5_evento_fomento, nos mecanismos AUDIOVISUAL,
+      FSA, LAB, LPG, PNAB e ROUANET.
 
-      Os percentuais são TETO, não estimativa pontual: falta o FSA por
-      planilha da Ancine (fora do banco) e a Lei Aldir Blanc I emergencial
-      de 2020-2021 (não existe em nenhuma fonte do banco). Fonte ausente
-      só transforma veterano em falso novo entrante, nunca o contrário,
-      então o valor real é menor ou igual ao publicado.
+      PARA QUE SERVE: responde às perguntas 1, 2.1 e 2.2 da Meta 5. O
+      denominador é agentes_atendidos; o numerador, novos_entrantes.
+
+      'TODOS' NÃO É SOMA: um agente atendido por dois mecanismos no mesmo ano
+      conta uma vez só na linha 'TODOS'.
+
+      MEDIDA E UNIDADE: percentual_primeiro_acesso em %, sobre agentes
+      distintos — não sobre eventos nem sobre valor.
+
+      LIMITAÇÕES: os percentuais são TETO, não estimativa pontual. Faltam o
+      FSA por planilha da Ancine (fora do banco) e a Lei Aldir Blanc I
+      emergencial de 2020-2021 (não existe em nenhuma fonte do banco). Fonte
+      ausente só transforma veterano em falso novo entrante, nunca o
+      contrário, então o valor real é menor ou igual ao publicado.
+      ano_censurado marca o ano em que a janela de extração cortou passado;
+      ano_parcial marca o último ano, que ainda não terminou e não se compara
+      com anos fechados.
+
+      PUBLICAÇÃO: agregada, sem identificador de pessoa. Elegível para RAG
+      só depois da validação de segurança.
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [gold, agentes, meta5, primeiro_acesso, serie_anual]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — Percentual anual de proponentes de primeiro acesso'
         origem_dados: 'eixo2_meta5_evento_fomento + eixo2_meta5_primeiro_acesso_agente'
+        governance:
+          produto_dados: 'Cultura em Números — Meta 5'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier1
@@ -396,21 +467,46 @@ models:
 
   - name: eixo2_meta5_trajetoria_fomento_direto_rouanet
     description: >
-      Camada Gold — Meta 5, pergunta 2.3: há novos entrantes pelo fomento
-      direto (LAB/LPG/PNAB) que depois acessaram a Lei Rouanet? Grão: 1
-      linha por (trajetória × tipo de pessoa × mecanismo de porta de entrada).
+      Camada Gold / Meta 5 do Cultura em Números. Trajetória dos agentes
+      entre o fomento direto (LAB/LPG/PNAB) e a Lei Rouanet, nas duas
+      direções.
 
-      Mede as duas direções. DIRETO_DEPOIS_ROUANET responde a pergunta 2.3
-      literalmente. ROUANET_ANTES_DIRETO é a direção oposta e vale como
-      controle do indicador inteiro: são agentes que já acessavam recurso
-      público federal antes de 2023 e que, sem a fonte do SALIC, seriam
-      contados como novos entrantes do fomento direto.
+      GRÃO: uma linha por (trajetória × tipo de pessoa × mecanismo de porta
+      de entrada). UNIVERSO: os agentes de eixo2_meta5_primeiro_acesso_agente,
+      distribuídos nos baldes de trajetória — inclusive quem só passou por
+      um dos lados.
+
+      PARA QUE SERVE: responde à pergunta 2.3 da Meta 5 — há novos entrantes
+      pelo fomento direto que depois acessaram a Rouanet?
+      DIRETO_DEPOIS_ROUANET responde a pergunta literalmente.
+
+      A DIREÇÃO OPOSTA É CONTROLE: ROUANET_ANTES_DIRETO são agentes que já
+      acessavam recurso público federal antes de 2023 e que, sem a fonte do
+      SALIC, seriam contados como novos entrantes do fomento direto. Vale
+      como controle do indicador inteiro.
+
+      LIMITAÇÕES: é contagem bruta e não controla tempo de exposição — cada
+      coorte do fomento direto teve uma janela diferente para chegar à
+      Rouanet. Para comparar taxas, use
+      eixo2_meta5_conversao_direto_rouanet_coorte. DIRETO_DEPOIS_ROUANET com
+      porta em AUDIOVISUAL ou FSA não responde à 2.3: é agente que já
+      acessava recurso federal antes de 2023.
+
+      PUBLICAÇÃO: agregada, sem identificador de pessoa. Elegível para RAG
+      só depois da validação de segurança.
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [gold, agentes, meta5, primeiro_acesso, rouanet]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — Trajetória entre fomento direto e Rouanet'
         origem_dados: 'eixo2_meta5_primeiro_acesso_agente'
+        governance:
+          produto_dados: 'Cultura em Números — Meta 5'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier1
@@ -435,7 +531,7 @@ models:
               arguments:
                 values: ['SO_DIRETO', 'SO_ROUANET', 'SO_AUDIOVISUAL', 'DIRETO_DEPOIS_ROUANET', 'ROUANET_ANTES_DIRETO', 'MESMO_DIA']
       - name: tipo_pessoa
-        description: "'PF' ou 'PJ'."
+        description: "'PF' quando o documento tem 11 dígitos, 'PJ' quando tem 14."
         data_type: text
         tests:
           - not_null
@@ -492,27 +588,47 @@ models:
 
   - name: eixo2_meta5_conversao_direto_rouanet_coorte
     description: >
-      Camada Gold — Meta 5, pergunta 2.3 com tempo de exposição controlado:
-      dos agentes que ENTRARAM no fomento federal pelo fomento direto
-      (LAB/LPG/PNAB), quantos depois captaram na Lei Rouanet? Grão: 1 linha
-      por (coorte de entrada × porta de entrada × tipo de pessoa).
+      Camada Gold / Meta 5 do Cultura em Números. Conversão do fomento
+      direto para a Lei Rouanet por coorte de entrada, com tempo de
+      exposição controlado.
 
-      Existe separada de eixo2_meta5_trajetoria_fomento_direto_rouanet porque a contagem
-      bruta é enganosa: o fomento direto nasceu em 2023, então cada coorte
-      teve uma janela diferente para converter. converteram_ate_12m dá a
-      todas a mesma janela; coorte_com_12m_completos marca quais coortes já
-      a cumpriram por inteiro — nas que não cumpriram, a taxa é piso.
+      GRÃO: uma linha por (coorte de entrada × porta de entrada × tipo de
+      pessoa). UNIVERSO: os agentes cuja porta de entrada no fomento federal
+      foi LAB, LPG ou PNAB, segundo eixo2_meta5_primeiro_acesso_agente.
 
-      Denominador é porta de entrada, não passagem: quem já aparecia na
-      trilha da Ancine antes de 2023 não é novo entrante e fica fora.
-      Numerador é captação real na Rouanet, não projeto protocolado nem
-      aprovado.
+      PARA QUE SERVE: responde à pergunta 2.3 da Meta 5 de forma comparável
+      entre coortes — dos agentes que ENTRARAM pelo fomento direto, quantos
+      depois captaram na Rouanet?
+
+      POR QUE EXISTE SEPARADA DA TRAJETÓRIA: a contagem bruta de
+      eixo2_meta5_trajetoria_fomento_direto_rouanet é enganosa. O fomento
+      direto nasceu em 2023, então cada coorte teve uma janela diferente para
+      converter. converteram_ate_12m dá a todas a mesma janela de 365 dias.
+
+      DENOMINADOR E NUMERADOR: o denominador é porta de entrada, não
+      passagem — quem já aparecia na trilha da Ancine antes de 2023 não é
+      novo entrante e fica fora. O numerador é captação real na Rouanet, não
+      projeto protocolado nem aprovado.
+
+      LIMITAÇÕES: nas coortes com coorte_com_12m_completos falso, a taxa de
+      12 meses é piso, não taxa final — parte da coorte ainda está dentro da
+      janela. pct_converteram não é comparável entre coortes.
+
+      PUBLICAÇÃO: agregada, sem identificador de pessoa. Elegível para RAG
+      só depois da validação de segurança.
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [gold, agentes, meta5, primeiro_acesso, rouanet]
       meta:
         status: Active
         meta_objetivo: 'Meta 5 — Conversão do fomento direto para a Rouanet, por coorte'
         origem_dados: 'eixo2_meta5_primeiro_acesso_agente'
+        governance:
+          produto_dados: 'Cultura em Números — Meta 5'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier1
@@ -544,7 +660,7 @@ models:
               arguments:
                 values: ['LAB', 'LPG', 'PNAB']
       - name: tipo_pessoa
-        description: "'PF' ou 'PJ'."
+        description: "'PF' quando o documento tem 11 dígitos, 'PJ' quando tem 14."
         data_type: text
         tests:
           - not_null
@@ -608,33 +724,51 @@ models:
 
   - name: eixo2_meta5_primeiro_acesso_contemplados
     description: >
-      Camada Gold — Meta 5. O mesmo indicador de novos entrantes, restrito a
-      quem aparece nas listas oficiais de contemplados dos editais (LPG e
-      PNAB), em vez de a todo agente visto recebendo dinheiro. Grão: 1 linha
-      por (programa × categoria de primeiro acesso).
+      Camada Gold / Meta 5 do Cultura em Números. O mesmo indicador de novos
+      entrantes, restrito a quem aparece nas listas oficiais de contemplados
+      dos editais, em vez de a todo agente visto recebendo dinheiro.
 
-      A classificação vem de eixo2_meta5_primeiro_acesso_agente, então já é
-      cross-mecanismo e já considera a Rouanet desde 1993.
+      GRÃO: uma linha por (programa × categoria de primeiro acesso).
+      UNIVERSO: os contemplados das listas da LPG e da PNAB (ciclo 1) que têm
+      ao menos um evento observável em eixo2_meta5_primeiro_acesso_agente.
 
-      Cobertura parcial e medida: a interseção entre lista de contemplados e
-      extrato bancário fica em torno de 46% na LPG e 89% no PNAB. A causa
-      não é atraso de pagamento nem filtro agressivo — o BB Ágil só enxerga
-      contas administradas pelo Banco do Brasil, e o município frequentemente
-      declara ter pago um contemplado cujo pagamento não passou por lá.
-      Contemplado sem evento observável fica de fora, sem fallback
-      autodeclarado.
+      PARA QUE SERVE: mede a proporção de novos entrantes entre os
+      contemplados de edital. A classificação vem de
+      eixo2_meta5_primeiro_acesso_agente, então já é cross-mecanismo e já
+      considera a Rouanet desde 1993.
+
+      COBERTURA PARCIAL E MEDIDA: a interseção entre lista de contemplados e
+      extrato bancário fica em torno de 46% na LPG e 89% no PNAB. A causa não
+      é atraso de pagamento nem filtro agressivo — o BB Ágil só enxerga
+      contas administradas pelo Banco do Brasil, e o município
+      frequentemente declara ter pago um contemplado cujo pagamento não
+      passou por lá. Contemplado sem evento observável fica de fora, sem
+      fallback autodeclarado.
+
+      DESABILITADO (enabled=false): depende de
+      int_ancine_bbagil_salic_transferegov e, por ela, das planilhas de
+      contemplados da cadeia de anexos do TransfereGov, que ainda não rodou
+      neste banco.
+
+      PUBLICAÇÃO: agregada, sem identificador de pessoa. Elegível para RAG
+      só depois da validação de segurança.
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build` quando habilitada;
+      não há carga incremental.
     config:
       tags: [gold, agentes, bbagil, meta5, contemplados, primeiro_acesso]
       meta:
-        status: Active
+        status: Disabled
         meta_objetivo: 'Meta 5 — Novos Entrantes entre contemplados de edital'
         origem_dados: 'eixo2_meta5_primeiro_acesso_agente + int_ancine_bbagil_salic_transferegov'
+        governance:
+          produto_dados: 'Cultura em Números — Meta 5'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier1
           owner: minc-data-engineering
-          tags:
-            - Certification.Gold
           glossary:
             - MinC.Agentes.Contemplado
             - MinC.Agentes.PrimeiroAcesso

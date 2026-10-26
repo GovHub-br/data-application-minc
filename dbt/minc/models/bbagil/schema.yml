@@ -65,17 +65,45 @@ models:
 
   - name: silver_controle_extracao_bbagil_extrato
     description: >
-      Camada silver tipada de bbagil.controle_extracao_bbagil_extrato, lida de bronze_controle_extracao_bbagil_extrato. 7 colunas, 5 com cast
-      aplicado. Uma linha por plano de acao + conta + periodo tentado.
+      Camada Silver / BB Ágil. Controle da extração do extrato bancário:
+      cada tentativa da DAG de buscar o extrato de uma conta num período, com
+      o resultado.
+
+      GRÃO: uma linha por (plano de ação × conta × período tentado).
+      UNIVERSO: toda tentativa registrada pela extração do extrato, com
+      sucesso ou com erro.
+
+      PARA QUE SERVE: auditoria e retomada da extração — saber o que já foi
+      buscado, com que resultado e quantas transações vieram. Não é dado de
+      fomento e não entra na Meta 5.
+
+      TIPAGEM: lida de bronze_controle_extracao_bbagil_extrato. 5 das 7
+      colunas recebem cast; o cast vem do padrão medido no dado
+      (scripts/perfilar_padroes.py), não do nome da coluna, e exige 100% dos
+      valores preenchidos casando.
+
+      LIMITAÇÕES: registra a tentativa, não o conteúdo do extrato. Uma conta
+      sem linha aqui não foi tentada; uma conta com status de erro pode ter
+      extrato parcial.
+
+      ATUALIZAÇÃO: view sobre a bronze; reflete a tabela de controle no
+      momento da consulta.
     config:
       tags:
         - silver
         - bbagil
-    meta:
-      openmetadata:
-        domain: Cultura.Repasse Federativo
-        tier: Tier.Tier4
-        owner: minc-data-engineering
+      meta:
+        status: Active
+        meta_objetivo: 'Auditoria da extração do extrato do BB Ágil'
+        origem_dados: 'bronze_controle_extracao_bbagil_extrato'
+        governance:
+          produto_dados: 'BB Ágil — pagamentos'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Repasse Federativo
+          tier: Tier.Tier4
+          owner: minc-data-engineering
     columns:
       - name: id_plano_acao
         description: >
@@ -109,17 +137,44 @@ models:
 
   - name: silver_controle_extracao_bbagil_subtransacoes
     description: >
-      Camada silver tipada de bbagil.controle_extracao_bbagil_subtransacoes, lida de bronze_controle_extracao_bbagil_subtransacoes. 6 colunas, 0 com
-      cast aplicado. Uma linha por plano de acao + conta + transacao-mae tentada.
+      Camada Silver / BB Ágil. Controle da extração dos sublançamentos:
+      cada tentativa da DAG de buscar as subtransações de uma transação-mãe,
+      com o resultado.
+
+      GRÃO: uma linha por (plano de ação × conta × transação-mãe tentada).
+      UNIVERSO: toda tentativa registrada pela extração dos sublançamentos,
+      com sucesso ou com erro.
+
+      PARA QUE SERVE: auditoria e retomada da extração — saber quais
+      transações-mãe já tiveram os sublançamentos buscados e com que
+      resultado. Não é dado de fomento e não entra na Meta 5.
+
+      TIPAGEM: lida de bronze_controle_extracao_bbagil_subtransacoes. As 6
+      colunas ficam como texto: o padrão do dado não pôde ser medido no
+      perfilamento, e sem medida não se tipa.
+
+      LIMITAÇÕES: registra a tentativa, não o conteúdo dos sublançamentos.
+      Os identificadores chegam como texto, então junção com as tabelas
+      tipadas exige cast.
+
+      ATUALIZAÇÃO: view sobre a bronze; reflete a tabela de controle no
+      momento da consulta.
     config:
       tags:
         - silver
         - bbagil
-    meta:
-      openmetadata:
-        domain: Cultura.Repasse Federativo
-        tier: Tier.Tier4
-        owner: minc-data-engineering
+      meta:
+        status: Active
+        meta_objetivo: 'Auditoria da extração dos sublançamentos do BB Ágil'
+        origem_dados: 'bronze_controle_extracao_bbagil_subtransacoes'
+        governance:
+          produto_dados: 'BB Ágil — pagamentos'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          domain: Cultura.Repasse Federativo
+          tier: Tier.Tier4
+          owner: minc-data-engineering
     columns:
       - name: id_plano_acao
         description: >
@@ -154,16 +209,51 @@ models:
 
   - name: silver_extrato_bbagil
     description: >
-      Camada silver tipada de bbagil.extrato_bbagil, lida de bronze_extrato_bbagil. 42 colunas, 22 com cast aplicado.
+      Camada Silver / BB Ágil. Extrato bancário das contas dos planos de ação
+      administradas no BB Gestão Ágil, tipado, com todas as colunas da API.
+
+      GRÃO: uma linha por transação do extrato; a chave da origem é
+      (id_plano_acao, id_plano_acao_dado_bancario, id). UNIVERSO: todo
+      lançamento, débito e crédito, das contas extraídas pela DAG do BB
+      Ágil, sem filtro.
+
+      PARA QUE SERVE: é a base de silver_pagamento_extrato_bbagil e a
+      transação-mãe de silver_pagamento_subtransacao_bbagil. Não limpa nem
+      recorta — só tipa.
+
+      TIPAGEM: lida de bronze_extrato_bbagil. 22 das 42 colunas recebem
+      cast; o cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
+      não do nome da coluna, e exige 100% dos valores preenchidos casando.
+      beneficiarydocumentid fica texto mesmo casando com inteiro: é CPF/CNPJ,
+      identificador e não número, e como integer perdia o zero à esquerda.
+
+      LIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do
+      Brasil; pagamento que o ente fez por outro banco não aparece. A
+      extração começa em 2023.
+
+      ZONA RESTRITA. Carrega documento, nome, agência e conta do
+      beneficiário em claro: não publicável e proibida em corpus de RAG. A
+      anonimização no momento do acesso é responsabilidade do Apache Ranger
+      (ADR 0009).
+
+      ATUALIZAÇÃO: view sobre a bronze; reflete o extrato carregado no
+      momento da consulta.
     config:
       tags:
         - silver
         - bbagil
-    meta:
-      openmetadata:
-        domain: Cultura.Repasse Federativo
-        tier: Tier.Tier4
-        owner: minc-data-engineering
+      meta:
+        status: Active
+        meta_objetivo: 'Meta 5 — extrato bancário das contas do fomento direto (base)'
+        origem_dados: 'bronze_extrato_bbagil'
+        governance:
+          produto_dados: 'BB Ágil — pagamentos'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          domain: Cultura.Repasse Federativo
+          tier: Tier.Tier4
+          owner: minc-data-engineering
     columns:
       - name: errors
         description: >
@@ -360,16 +450,50 @@ models:
 
   - name: silver_subtransacao_bbagil
     description: >
-      Camada silver tipada de bbagil.subtransacao_bbagil, lida de bronze_subtransacao_bbagil. 33 colunas, 0 com cast aplicado.
+      Camada Silver / BB Ágil. Sublançamentos das transações do extrato que
+      se desdobram em vários pagamentos, com todas as colunas da API.
+
+      GRÃO: uma linha por sublançamento; a chave da origem é
+      (id_plano_acao, id_transacao_pai, id). UNIVERSO: todo sublançamento,
+      de qualquer status, das transações-mãe com subtransactionquantity > 0
+      que a DAG do BB Ágil extraiu.
+
+      PARA QUE SERVE: é a base de silver_pagamento_subtransacao_bbagil. Numa
+      transação desdobrada, o beneficiário real só aparece aqui, não no
+      extrato.
+
+      TIPAGEM: lida de bronze_subtransacao_bbagil. As 33 colunas ficam como
+      texto: o padrão do dado não pôde ser medido no perfilamento, e sem
+      medida não se tipa. Data e valor chegam como texto e são convertidos
+      em silver_pagamento_subtransacao_bbagil.
+
+      LIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do
+      Brasil. O sinal do valor indica o lado da partida dobrada, não
+      devolução.
+
+      ZONA RESTRITA. Carrega documento, nome, agência e conta do
+      beneficiário em claro: não publicável e proibida em corpus de RAG. A
+      anonimização no momento do acesso é responsabilidade do Apache Ranger
+      (ADR 0009).
+
+      ATUALIZAÇÃO: view sobre a bronze; reflete os sublançamentos carregados
+      no momento da consulta.
     config:
       tags:
         - silver
         - bbagil
-    meta:
-      openmetadata:
-        domain: Cultura.Repasse Federativo
-        tier: Tier.Tier4
-        owner: minc-data-engineering
+      meta:
+        status: Active
+        meta_objetivo: 'Meta 5 — sublançamentos das contas do fomento direto (base)'
+        origem_dados: 'bronze_subtransacao_bbagil'
+        governance:
+          produto_dados: 'BB Ágil — pagamentos'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          domain: Cultura.Repasse Federativo
+          tier: Tier.Tier4
+          owner: minc-data-engineering
     columns:
       - name: errors
         description: >
@@ -559,28 +683,50 @@ models:
 
   - name: silver_pagamento_extrato_bbagil
     description: >
-      Camada Silver — lançamentos do extrato bancário do BB Gestão Ágil,
-      débito e crédito, sem subtransação e com beneficiário informado. Lê a
-      silver_extrato_bbagil e só limpa.
+      Camada Silver / BB Ágil. Lançamentos do extrato bancário do BB Gestão
+      Ágil, débito e crédito, sem subtransação e com beneficiário informado.
+      Lê silver_extrato_bbagil e só limpa.
 
-      Grão: 1 linha por transação do extrato — a chave da origem é
-      (id_plano_acao, id_plano_acao_dado_bancario, id). Transações com
-      subtransactionquantity > 0 ficam fora de propósito: nelas o
-      beneficiário real só aparece no sublançamento, e quem os traz é
-      silver_pagamento_subtransacao_bbagil.
+      GRÃO: uma linha por transação do extrato; a chave da origem é
+      (id_plano_acao, id_plano_acao_dado_bancario, id). UNIVERSO: as
+      transações de silver_extrato_bbagil com beneficiário informado e sem
+      subtransação.
 
-      O que é pagamento efetivo não é decidido aqui: o crédito fica, com
-      creditdebitindicator e a chave do pareamento (conta, documento bruto,
-      valor), e a Gold eixo2_meta5_evento_fomento descarta os dois lados de
-      um estorno e fica só com o débito. Quem conta como pagamento a agente
-      cultural também não: repasse a ente público, devolução ao FNC,
-      transferência ao Banco do Brasil e lançamento interno continuam na
-      tabela, para a Gold filtrar.
+      PARA QUE SERVE: é o lado do extrato de silver_pagamento_bbagil, que
+      alimenta a Meta 5.
+
+      POR QUE A TRANSAÇÃO DESDOBRADA FICA DE FORA: nas transações com
+      subtransactionquantity > 0, o beneficiário real só aparece no
+      sublançamento, e quem as traz é silver_pagamento_subtransacao_bbagil.
+      Trazê-las aqui contaria o mesmo dinheiro duas vezes.
+
+      O QUE NÃO É DECIDIDO AQUI: o que é pagamento efetivo — o crédito fica,
+      com creditdebitindicator e a chave do pareamento (conta, documento
+      bruto, valor), e a Gold eixo2_meta5_evento_fomento descarta os dois
+      lados de um estorno e fica só com o débito. Quem conta como pagamento
+      a agente cultural também não: repasse a ente público, devolução ao
+      FNC, transferência ao Banco do Brasil e lançamento interno continuam
+      na tabela, para a Gold filtrar.
+
+      LIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do
+      Brasil, e a extração começa em 2023.
+
+      ZONA RESTRITA. Carrega documento e nome do beneficiário em claro: não
+      publicável e proibida em corpus de RAG. A anonimização no momento do
+      acesso é responsabilidade do Apache Ranger (ADR 0009).
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [silver, bbagil]
       meta:
         status: Active
+        meta_objetivo: 'Meta 5 — lançamentos do extrato do fomento direto, limpos'
         origem_dados: 'silver_extrato_bbagil'
+        governance:
+          produto_dados: 'BB Ágil — pagamentos'
+          classificacao_uso: restrito
+          rag_publication: prohibited
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier3
@@ -696,23 +842,46 @@ models:
 
   - name: silver_pagamento_subtransacao_bbagil
     description: >
-      Camada Silver — sublançamentos do BB Gestão Ágil, usados quando a
-      transação-mãe do extrato tem subtransactionquantity > 0 (o
-      beneficiário real só aparece aqui), com beneficiário informado. Todos
-      os status ficam: o recorte do 'Pago' é da Gold.
+      Camada Silver / BB Ágil. Sublançamentos do BB Gestão Ágil das
+      transações-mãe desdobradas (subtransactionquantity > 0), com
+      beneficiário informado.
 
-      Grão: 1 linha por sublançamento. Complementa
-      silver_pagamento_extrato_bbagil sem sobrepô-lo; os dois juntos formam
-      silver_pagamento_bbagil.
+      GRÃO: uma linha por sublançamento. UNIVERSO: os sublançamentos de
+      silver_subtransacao_bbagil com beneficiário informado, de todos os
+      status.
 
-      O valor vem em módulo (ABS): no sublançamento o sinal indica o lado da
-      partida dobrada, não devolução. Repasse a ente público continua na
-      tabela, para a Gold filtrar.
+      PARA QUE SERVE: é o lado dos sublançamentos de silver_pagamento_bbagil,
+      que alimenta a Meta 5. Complementa silver_pagamento_extrato_bbagil sem
+      sobrepô-lo: numa transação desdobrada, o beneficiário real só aparece
+      aqui.
+
+      O QUE NÃO É DECIDIDO AQUI: todos os status ficam — o recorte do 'Pago'
+      é da Gold. Repasse a ente público continua na tabela, para a Gold
+      filtrar.
+
+      MEDIDA E UNIDADE: o valor vem em módulo (ABS), em reais. No
+      sublançamento o sinal indica o lado da partida dobrada, não devolução.
+
+      LIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do
+      Brasil, e a extração começa em 2023.
+
+      ZONA RESTRITA. Carrega documento e nome do beneficiário em claro: não
+      publicável e proibida em corpus de RAG. A anonimização no momento do
+      acesso é responsabilidade do Apache Ranger (ADR 0009).
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [silver, bbagil]
       meta:
         status: Active
+        meta_objetivo: 'Meta 5 — sublançamentos do fomento direto, limpos'
         origem_dados: 'silver_subtransacao_bbagil + silver_extrato_bbagil'
+        governance:
+          produto_dados: 'BB Ágil — pagamentos'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes: [status_prestacao_contas]
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier3
@@ -816,20 +985,44 @@ models:
 
   - name: silver_pagamento_bbagil
     description: >
-      Camada Silver — une silver_pagamento_extrato_bbagil e
-      silver_pagamento_subtransacao_bbagil em 1 linha por movimento de
-      dinheiro com beneficiário informado, com tipo_lancamento dizendo de
-      qual lado a linha veio.
+      Camada Silver / BB Ágil. Os movimentos de dinheiro com beneficiário
+      informado das contas do fomento direto, do extrato e dos
+      sublançamentos numa tabela só, com tipo_lancamento dizendo de qual
+      lado a linha veio.
 
-      Não decide o que é pagamento efetivo (estorno, só débito, status
-      'Pago'), não classifica programa nem decide quem conta como agente
-      cultural: as linhas saem como a limpeza deixou, com as colunas que a
-      Gold usa para essas decisões. Alimenta int_ancine_bbagil_salic.
+      GRÃO: uma linha por movimento de dinheiro. UNIVERSO: a união de
+      silver_pagamento_extrato_bbagil e silver_pagamento_subtransacao_bbagil,
+      sem sobreposição entre elas.
+
+      PARA QUE SERVE: é a entrada do BB Ágil (LPG, PNAB e LAB) na Meta 5, via
+      int_ancine_bbagil_salic.
+
+      O QUE NÃO É DECIDIDO AQUI: não decide o que é pagamento efetivo
+      (estorno, só débito, status 'Pago'), não classifica programa nem
+      decide quem conta como agente cultural. As linhas saem como a limpeza
+      deixou, com as colunas que a Gold usa para essas decisões.
+
+      LIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do
+      Brasil, e a extração começa em 2023 — a Aldir Blanc emergencial de
+      2020-2021 não está aqui.
+
+      ZONA RESTRITA. Carrega documento e nome do beneficiário em claro: não
+      publicável e proibida em corpus de RAG. A anonimização no momento do
+      acesso é responsabilidade do Apache Ranger (ADR 0009).
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [silver, bbagil]
       meta:
         status: Active
+        meta_objetivo: 'Meta 5 — pagamentos do fomento direto, extrato e sublançamento juntos'
         origem_dados: 'silver_pagamento_extrato_bbagil + silver_pagamento_subtransacao_bbagil'
+        governance:
+          produto_dados: 'BB Ágil — pagamentos'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes: [status_prestacao_contas]
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier2
