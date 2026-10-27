@@ -1,4 +1,4 @@
-{{ config(materialized="table") }}
+{{ config(materialized='table') }}
 
 -- Gold — a resposta da pergunta 2.3 da Meta 5 com o tempo de exposição
 -- controlado: "há novos entrantes pelo fomento direto que depois acessaram a
@@ -26,51 +26,49 @@
 -- a mesma definição de evento usada no resto da meta (ver
 -- eixo2_meta5_evento_fomento) — não é projeto protocolado nem aprovado. Um
 -- agente que submeteu projeto e não captou não conta como convertido.
-with
-    agente as (
-        select
-            beneficiario_documento,
-            tipo_pessoa,
-            max(programa_fomento) filter (where eh_porta_de_entrada) as porta_de_entrada,
-            min(data_primeiro_acesso_geral) as data_entrada,
-            min(data_primeiro_acesso_mecanismo) filter (
-                where programa_fomento = 'ROUANET'
-            ) as data_rouanet
-        from {{ ref("eixo2_meta5_primeiro_acesso_agente") }}
-        group by beneficiario_documento, tipo_pessoa
-    ),
 
-    novos_entrantes_direto as (
-        select
-            *,
-            -- a entrada é a porta, então data_entrada É a entrada no direto:
-            -- basta a Rouanet vir estritamente depois
-            (data_rouanet is not null and data_rouanet > data_entrada) as converteu,
-            data_rouanet - data_entrada as dias_ate_rouanet
-        from agente
-        where porta_de_entrada in ('LAB', 'LPG', 'PNAB')
-    )
+WITH agente AS (
+    SELECT
+        beneficiario_documento,
+        tipo_pessoa,
+        MAX(programa_fomento) FILTER (WHERE eh_porta_de_entrada) AS porta_de_entrada,
+        MIN(data_primeiro_acesso_geral) AS data_entrada,
+        MIN(data_primeiro_acesso_mecanismo)
+            FILTER (WHERE programa_fomento = 'ROUANET') AS data_rouanet
+    FROM {{ ref('eixo2_meta5_primeiro_acesso_agente') }}
+    GROUP BY beneficiario_documento, tipo_pessoa
+),
 
-select
-    extract(year from data_entrada)::int as coorte_entrada,
+novos_entrantes_direto AS (
+    SELECT
+        *,
+        -- a entrada é a porta, então data_entrada É a entrada no direto:
+        -- basta a Rouanet vir estritamente depois
+        (data_rouanet IS NOT NULL AND data_rouanet > data_entrada) AS converteu,
+        data_rouanet - data_entrada AS dias_ate_rouanet
+    FROM agente
+    WHERE porta_de_entrada IN ('LAB', 'LPG', 'PNAB')
+)
+
+SELECT
+    EXTRACT(YEAR FROM data_entrada)::INT AS coorte_entrada,
     porta_de_entrada,
     tipo_pessoa,
-    count(*) as entrantes,
-    count(*) filter (where converteu) as converteram_rouanet,
+    COUNT(*) AS entrantes,
+    COUNT(*) FILTER (WHERE converteu) AS converteram_rouanet,
     -- janela fixa: comparável entre coortes. A coorte mais recente ainda não
     -- completou 12 meses, então o valor dela é piso, não taxa final.
-    count(*) filter (where converteu and dias_ate_rouanet <= 365) as converteram_ate_12m,
-    round(100.0 * count(*) filter (where converteu) / count(*), 3) as pct_converteram,
-    round(
-        100.0 * count(*) filter (where converteu and dias_ate_rouanet <= 365) / count(*),
-        3
-    ) as pct_converteram_ate_12m,
-    percentile_disc(0.5) within group (order by dias_ate_rouanet) filter (
-        where converteu
-    ) as mediana_dias_ate_rouanet,
+    COUNT(*) FILTER (WHERE converteu AND dias_ate_rouanet <= 365)
+        AS converteram_ate_12m,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE converteu) / COUNT(*), 3)
+        AS pct_converteram,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE converteu AND dias_ate_rouanet <= 365) / COUNT(*), 3)
+        AS pct_converteram_ate_12m,
+    PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY dias_ate_rouanet)
+        FILTER (WHERE converteu) AS mediana_dias_ate_rouanet,
     -- a coorte só está madura quando já teve 12 meses inteiros de exposição;
     -- sem esta marca a última linha da série parece uma queda de conversão
-    (max(data_entrada) + 365 <= current_date) as coorte_com_12m_completos
-from novos_entrantes_direto
-group by coorte_entrada, porta_de_entrada, tipo_pessoa
-order by coorte_entrada, porta_de_entrada, tipo_pessoa
+    (MAX(data_entrada) + 365 <= CURRENT_DATE) AS coorte_com_12m_completos
+FROM novos_entrantes_direto
+GROUP BY coorte_entrada, porta_de_entrada, tipo_pessoa
+ORDER BY coorte_entrada, porta_de_entrada, tipo_pessoa

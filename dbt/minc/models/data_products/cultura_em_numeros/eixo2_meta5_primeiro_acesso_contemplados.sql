@@ -1,4 +1,4 @@
-{{ config(enabled=false, materialized="table") }}
+{{ config(enabled=false, materialized='table') }}
 
 -- DESABILITADO junto com int_ancine_bbagil_salic_transferegov,
 -- seu único insumo, e com silver_planilha_contemplados — ver lá o motivo por
@@ -8,10 +8,10 @@
 -- anexada ao relatório de gestão do TransfereGov, e essa cadeia não rodou
 -- neste banco. Nenhum dos três gold que respondem à Meta 5 depende deste
 -- modelo — ele confere o indicador, não o produz.
+
 -- Gold — o mesmo indicador de novos entrantes de
 -- eixo2_meta5_primeiro_acesso_anual, mas restrito a quem aparece nas LISTAS
--- OFICIAIS DE CONTEMPLADOS dos editais (LPG e PNAB), em vez de a todo agente visto
--- recebendo dinheiro. Serve para
+-- OFICIAIS DE CONTEMPLADOS dos editais (LPG e PNAB), em vez de a todo agente visto recebendo dinheiro. Serve para
 -- a leitura "dos contemplados de edital, quantos eram novos", e para expor a
 -- cobertura entre as duas populações.
 --
@@ -39,41 +39,38 @@
 -- A classificação vem de eixo2_meta5_primeiro_acesso_agente, então já é
 -- CROSS-MECANISMO e já considera a Rouanet desde 1993 — um contemplado da LPG que captou
 -- Rouanet em 2010 aparece aqui corretamente como "Não".
+
 -- O cruzamento com a lista de contemplados é feito na intermediate
 -- (int_ancine_bbagil_salic_transferegov), que só marca em que lista cada
 -- documento aparece. A regra fica aqui: o contemplado entra no programa da
 -- lista em que foi selecionado, com a classificação de primeiro acesso
 -- daquele mecanismo.
-with
-    contemplados as (
-        select distinct beneficiario_documento, contemplado_lpg, contemplado_pnab
-        from {{ ref("int_ancine_bbagil_salic_transferegov") }}
-        where contemplado_lpg or contemplado_pnab
-    ),
+WITH contemplados AS (
+    SELECT DISTINCT beneficiario_documento, contemplado_lpg, contemplado_pnab
+    FROM {{ ref('int_ancine_bbagil_salic_transferegov') }}
+    WHERE contemplado_lpg OR contemplado_pnab
+),
 
-    acesso_contemplado as (
-        select
-            pa.programa_fomento, pa.beneficiario_documento, pa.categoria_primeiro_acesso
-        from {{ ref("eixo2_meta5_primeiro_acesso_agente") }} pa
-        inner join
-            contemplados c
-            on pa.beneficiario_documento = c.beneficiario_documento
-            and (
-                (pa.programa_fomento = 'LPG' and c.contemplado_lpg)
-                or (pa.programa_fomento = 'PNAB' and c.contemplado_pnab)
-            )
-    )
+acesso_contemplado AS (
+    SELECT pa.programa_fomento, pa.beneficiario_documento, pa.categoria_primeiro_acesso
+    FROM {{ ref('eixo2_meta5_primeiro_acesso_agente') }} pa
+    INNER JOIN contemplados c
+        ON pa.beneficiario_documento = c.beneficiario_documento
+        AND (
+            (pa.programa_fomento = 'LPG' AND c.contemplado_lpg)
+            OR (pa.programa_fomento = 'PNAB' AND c.contemplado_pnab)
+        )
+)
 
-select
+SELECT
     programa_fomento,
     categoria_primeiro_acesso,
-    count(distinct beneficiario_documento) as total_proponentes,
-    round(
-        count(distinct beneficiario_documento)::numeric
-        / sum(count(distinct beneficiario_documento)) over (partition by programa_fomento)
-        * 100,
-        2
-    ) as percentual
-from acesso_contemplado
-group by programa_fomento, categoria_primeiro_acesso
-order by programa_fomento, total_proponentes desc
+    COUNT(DISTINCT beneficiario_documento) AS total_proponentes,
+    ROUND(
+        COUNT(DISTINCT beneficiario_documento)::NUMERIC
+        / SUM(COUNT(DISTINCT beneficiario_documento)) OVER (PARTITION BY programa_fomento)
+        * 100, 2
+    ) AS percentual
+FROM acesso_contemplado
+GROUP BY programa_fomento, categoria_primeiro_acesso
+ORDER BY programa_fomento, total_proponentes DESC

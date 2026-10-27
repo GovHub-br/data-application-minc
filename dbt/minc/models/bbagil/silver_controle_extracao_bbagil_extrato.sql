@@ -1,7 +1,5 @@
 -- Silver bbagil — controle_extracao_bbagil_extrato.
--- Origem: bronze_controle_extracao_bbagil_extrato, cópia fiel de
--- bbagil.controle_extracao_bbagil_extrato, onde tudo chega como text da ingestão via
--- API.
+-- Origem: bronze_controle_extracao_bbagil_extrato, cópia fiel de bbagil.controle_extracao_bbagil_extrato, onde tudo chega como text da ingestão via API.
 -- Tipar é o trabalho desta camada.
 -- 7 colunas: 5 tipadas, 2 mantidas como texto.
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),

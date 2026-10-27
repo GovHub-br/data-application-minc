@@ -1,13 +1,13 @@
-{{ config(materialized="table") }}
+{{ config(materialized='table') }}
 
 -- Silver — lançamentos do extrato bancário do BB Gestão Ágil com beneficiário
 -- informado, débito e crédito, uma linha por lançamento. Lê a silver tipada
 -- (silver_extrato_bbagil) e só limpa:
--- 1. fica só o lançamento sem subtransações (subtransactionquantity = 0).
--- Os que têm subtransação são abertos em silver_pagamento_subtransacao_bbagil;
--- mantê-los aqui contaria o mesmo dinheiro duas vezes.
--- 2. descarta beneficiário ausente (documento nulo ou '0'), que é lixo da
--- origem, não pagamento.
+--   1. fica só o lançamento sem subtransações (subtransactionquantity = 0).
+--      Os que têm subtransação são abertos em silver_pagamento_subtransacao_bbagil;
+--      mantê-los aqui contaria o mesmo dinheiro duas vezes.
+--   2. descarta beneficiário ausente (documento nulo ou '0'), que é lixo da
+--      origem, não pagamento.
 --
 -- O que conta como pagamento efetivo NÃO é decidido aqui (ADR 0010, regra de
 -- negócio só na Gold): o par débito/crédito de estorno e o recorte de só
@@ -28,25 +28,25 @@
 -- beneficiario_documento normalizado via beneficiarypersontype (1=PF/CPF,
 -- 2=PJ/CNPJ) + LPAD, porque uma fração relevante das linhas chega sem o
 -- zero à esquerda (CNPJ com 12-13 dígitos, CPF com 10).
-select
+
+SELECT
     id_plano_acao,
     id_plano_acao_dado_bancario,
     id,
-    governmentprogramname as programa_curto,
-    beneficiarydocumentid as beneficiario_documento_bruto,
-    case
-        when beneficiarypersontype = 1
-        then lpad(regexp_replace(beneficiarydocumentid, '[^0-9]', '', 'g'), 11, '0')
-        when beneficiarypersontype = 2
-        then lpad(regexp_replace(beneficiarydocumentid, '[^0-9]', '', 'g'), 14, '0')
-    end as beneficiario_documento,
-    beneficiaryname as beneficiario_nome,
+    governmentprogramname AS programa_curto,
+    beneficiarydocumentid AS beneficiario_documento_bruto,
+    CASE
+        WHEN beneficiarypersontype = 1
+            THEN LPAD(REGEXP_REPLACE(beneficiarydocumentid, '[^0-9]', '', 'g'), 11, '0')
+        WHEN beneficiarypersontype = 2
+            THEN LPAD(REGEXP_REPLACE(beneficiarydocumentid, '[^0-9]', '', 'g'), 14, '0')
+    END AS beneficiario_documento,
+    beneficiaryname AS beneficiario_nome,
     creditdebitindicator,
     descriptionname,
-    value as valor,
-    {{ data_texto("bookingdate") }} as data_pagamento
-from {{ ref("silver_extrato_bbagil") }}
-where
-    subtransactionquantity = 0
-    and beneficiarydocumentid is not null
-    and beneficiarydocumentid != '0'
+    value AS valor,
+    {{ data_texto('bookingdate') }} AS data_pagamento
+FROM {{ ref('silver_extrato_bbagil') }}
+WHERE subtransactionquantity = 0
+  AND beneficiarydocumentid IS NOT NULL
+  AND beneficiarydocumentid != '0'
