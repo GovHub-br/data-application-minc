@@ -6,8 +6,8 @@ sources:
     description: >
       Schema de ingestão do extrato bancário BB Gestão Ágil/SERPRO — pouso dos
       lançamentos financeiros brutos, anterior à agregação/filtragem que gera
-      bsc_pnab.fato_bbagil (a fonte de fato lida pelo model, hoje desabilitado,
-      silver_fato_bbagil). Não consumido diretamente por nenhum model deste projeto.
+      bsc_pnab.fato_bbagil, agregado que a DAG não gera mais e que nenhum
+      modelo lê. Não consumido diretamente por nenhum model deste projeto.
     tables:
       - name: raw_ingestao_financeira_lancamentos
         description: >
@@ -470,7 +470,7 @@ sources:
       nesta revisão.] Schema não integrado a nenhum model deste projeto dbt;
       hipótese não confirmada: pode ser a fonte dos números do "painel
       oficial" (recebido/gasto) citados nos comentários de
-      eixo2_meta3_distribuicao_cotas_pnab.sql e silver_fato_bbagil.sql.
+      eixo2_meta3_distribuicao_cotas_pnab.sql.
     tables:
       - name: distribuicao_territorial_pnab
         description: "[Inferido do nome, não verificado] Distribuição territorial (provavelmente por UF/município) da execução do PNAB."
@@ -2036,19 +2036,6 @@ sources:
   - name: bbagil
     schema: bbagil
     tables:
-      # Declarada só para `silver_fato_bbagil` continuar parseando: a tabela não é mais
-      # produzida por ninguém (a DAG parou de gerar o fato_bbagil) e o modelo
-      # que a lê está enabled=false. Sai junto com o modelo, quando ele for
-      # reescrito sobre extrato_bbagil.
-      - name: fato_bbagil
-        meta:
-          openmetadata:
-            domain: Cultura.Repasse Federativo
-            tier: Tier.Tier4
-            owner: minc-data-engineering
-        config:
-          tags:
-            - pendente_ingestao
       - name: extrato_bbagil
         description: >
           Uma linha por transacao do extrato bancario do BB Gestao Agil

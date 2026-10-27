@@ -14,8 +14,10 @@ minc:
     # Validacao de branch nao mergeada contra o banco de producao. Com target
     # != prod, generate_schema_name_for_env (macros/get_custom_schema.sql)
     # ignora o +schema de cada pasta e poe todo modelo num schema so: o abaixo.
-    # Precisa de CREATE so nele. Rode com DB_DW_SCHEMA explicito (se a variavel
-    # ja estiver exportada com outro schema, ela vence o padrao).
+    # Precisa de CREATE so nele. O schema vem de DBT_DEV_SCHEMA, variavel propria
+    # e sem padrao: onde DB_DW_SCHEMA ja esta exportada (container do Airflow,
+    # por exemplo), o dbt falha em vez de gravar o projeto inteiro no schema de
+    # producao. Ex.: DBT_DEV_SCHEMA=dev_cotas dbt build --target dev --select ...
     dev:
       type: postgres
       host: "{{ env_var('DB_DW_HOST', 'postgres') }}"
@@ -23,5 +25,5 @@ minc:
       password: "{{ env_var('DB_DW_PASSWORD', 'postgres_dw') }}"
       port: "{{ env_var('DB_DW_PORT', '5432') | int }}"
       dbname: "{{ env_var('DB_DW_DBNAME', 'data_warehouse') }}"
-      schema: "{{ env_var('DB_DW_SCHEMA', 'dev_cotas') }}"
+      schema: "{{ env_var('DBT_DEV_SCHEMA') }}"
       threads: 4
