@@ -10,3 +10,18 @@ minc:
       dbname: "{{ env_var('DB_DW_DBNAME', 'data_warehouse') }}"
       schema: "{{ env_var('DB_DW_SCHEMA', 'minc') }}"
       threads: 4
+
+    # Validacao de branch nao mergeada contra o banco de producao. Com target
+    # != prod, generate_schema_name_for_env (macros/get_custom_schema.sql)
+    # ignora o +schema de cada pasta e poe todo modelo num schema so: o abaixo.
+    # Precisa de CREATE so nele. Rode com DB_DW_SCHEMA explicito (se a variavel
+    # ja estiver exportada com outro schema, ela vence o padrao).
+    dev:
+      type: postgres
+      host: "{{ env_var('DB_DW_HOST', 'postgres') }}"
+      user: "{{ env_var('DB_DW_USER', 'postgres_dw') }}"
+      password: "{{ env_var('DB_DW_PASSWORD', 'postgres_dw') }}"
+      port: "{{ env_var('DB_DW_PORT', '5432') | int }}"
+      dbname: "{{ env_var('DB_DW_DBNAME', 'data_warehouse') }}"
+      schema: "{{ env_var('DB_DW_SCHEMA', 'dev_cotas') }}"
+      threads: 4
