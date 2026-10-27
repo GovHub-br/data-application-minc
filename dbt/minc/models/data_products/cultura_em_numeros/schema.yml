@@ -14,7 +14,7 @@ version: 2
 # A Meta 3 (cotas e reservas da LPG e do PNAB) é eixo2_meta3_*. Duas golds-base:
 # eixo2_meta3_perfil_agente (quem é negra, indígena, PCD) e
 # eixo2_meta3_pagamento_elegivel (o denominador, 1 linha por pagamento, com as
-# flags e o território). As demais leem delas. Migrado do cotas_dbt sem mudança
+# flags e o território). As demais leem delas. Migrado da antiga pasta de cotas sem mudança
 # de número; o que ainda mistura limpeza com regra está dito em cada description.
 models:
   - name: eixo2_meta5_evento_fomento
@@ -688,20 +688,22 @@ models:
 
   - name: eixo2_meta3_perfil_agente
     description: >
-      Perfil unificado LPG + PNAB — une os 5 bronzes de agentes (pf, pj,
-      coletivos, pnab_pf, pnab_pj). Deduplicado por identificador_unico
+      Perfil unificado LPG + PNAB — une as 5 silvers de agentes
+      (silver_agentes_pf, _pj, _coletivos, _pnab_pf, _pnab_pj). Deduplicado por identificador_unico
       (1 linha por documento, não por tipo de proponente, para permitir join
       1:1 com pagamentos): prioriza, na desambiguação, a linha que já traz
       raça preenchida, depois por origem. Normaliza raça/cor em 5 categorias
       (negra, indigena, branca, amarela, nao_declarada) via regex sobre texto
       sem acento. Deriva as flags flag_negra, flag_indigena (raça normalizada
       OU campo indígena explícito) e is_pcd. cidade/uf só existem nas fontes
-      LPG (os stg do PNAB não trazem localização do agente) e ficam NULL para
+      LPG (as silvers do PNAB não trazem localização do agente) e ficam NULL para
       PNAB; são propagadas até aqui exclusivamente para viabilizar a 4ª cota
       territorial (só aplicável à LPG). chave_municipio_uf (cidade+UF sem
       acento, minúsculo) é a chave de join com silver_territorio_municipio; fica NULL
       quando não há localização — nesse caso o agente não é classificável pela
-      cota territorial.
+      cota territorial. Mistura limpeza (união e dedup das cinco silvers) com regra de
+      produto (as flags de quem conta em cada cota); separar a limpeza numa silver é dívida
+      registrada no PR da migração.
 
     config:
       tags: [gold, cotas, meta3]
@@ -1348,7 +1350,7 @@ models:
   - name: eixo2_meta3_pagamento_bbagil
     description: >
       [MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com
-      silver_fato_bbagil/silver_plano_acao_ente_ano, até a extração bbágil rodar. Reativar
+      bronze_fato_bbagil, até a extração bbágil rodar. Reativar
       (enabled=true) junto.
 
       Fato de pagamentos via extrato bancário (valor PAGO ao beneficiário
@@ -1460,7 +1462,7 @@ models:
   - name: eixo2_meta3_comparativo_recebido_vs_pago
     description: >
       [MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com
-      silver_fato_bbagil, pois depende de eixo2_meta3_pagamento_bbagil. Reativar
+      bronze_fato_bbagil, pois depende de eixo2_meta3_pagamento_bbagil. Reativar
       (enabled=true) junto.
 
       Valida o "Diagnóstico 4": confronta os dois lados-valor.

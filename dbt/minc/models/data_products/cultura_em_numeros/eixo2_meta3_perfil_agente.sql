@@ -1,6 +1,6 @@
 -- Gold — Meta 3, gold-base: perfil unificado LPG + PNAB, 1 linha por documento, com as flags de quem conta em cada cota (negra, indígena, PCD). A união e o dedup das cinco silvers de perfil estão aqui junto com a regra; separar a limpeza numa silver é dívida registrada no PR da migração.
 -- Dedup por identificador (não por tipo) p/ join 1:1 com pagamentos.
--- cidade/uf só existem nos stg LPG (têm CEP/cidade/UF); os stg PNAB não trazem
+-- cidade/uf só existem nos silvers LPG (têm CEP/cidade/UF); os silvers PNAB não trazem
 -- localização do agente -> NULL. Propagados até aqui p/ a cota territorial (LPG).
 with todos as (
     select identificador_unico, tipo_proponente, origem, raca_bruto, pcd_bruto, indigena_bruto, quilombola_bruto, cidade, uf from {{ ref('silver_agentes_pf') }}
