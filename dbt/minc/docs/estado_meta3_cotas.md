@@ -1,5 +1,7 @@
 # Meta 3 — Cotas de ações afirmativas (domínio `cotas_dbt`)
 
+> **Migrado em 2026-10-27 para a estrutura do ADR 0010.** Os modelos deste documento vivem hoje em `models/transferegov/` (bronze_*, silver_*) e `models/data_products/cultura_em_numeros/` (eixo2_meta3_*); os nomes abaixo são os antigos. Mapa de nomes no PR da migração e em `docs/superpowers/plans/2026-10-26-cotas-adr-0010.md`.
+
 > Estado do pipeline dbt que audita o cumprimento das cotas de ações afirmativas
 > (raça/cor, PCD, indígena e território) da **LPG** (Lei Paulo Gustavo) e da **PNAB**
 > (Política Nacional Aldir Blanc). Documento vivo — foco em **cobertura de dados**.

@@ -24,7 +24,7 @@ with
             municipio,
             uf,
             -- extrai o ano (AAAA) da vigência, validando faixa [2013,2026].
-            -- TEXT (como ano_final do fct_pagamentos_elegiveis) p/ os dois fatos
+            -- TEXT (como ano_final do eixo2_meta3_pagamento_elegivel) p/ os dois fatos
             -- serem compatíveis e o comparativo/uniões não quebrarem por tipo.
             case
                 when

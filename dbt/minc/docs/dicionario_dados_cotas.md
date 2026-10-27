@@ -1,5 +1,7 @@
 # Dicionário de dados — schema `cotas`
 
+> **Migrado em 2026-10-27 para a estrutura do ADR 0010.** Os modelos deste documento vivem hoje em `models/transferegov/` (bronze_*, silver_*) e `models/data_products/cultura_em_numeros/` (eixo2_meta3_*); os nomes abaixo são os antigos. Mapa de nomes no PR da migração e em `docs/superpowers/plans/2026-10-26-cotas-adr-0010.md`.
+
 > Todas as tabelas/views do domínio `cotas_dbt` (Meta 3 — cotas de ações afirmativas).
 > Derivado do código dbt (não do banco). Tipos marcados como *(inf.)* são inferidos do SQL.
 > Convenções: **grão** = o que 1 linha representa. Chave de junção entre perfil e valor =

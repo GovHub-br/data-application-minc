@@ -4,7 +4,7 @@
 -- information_schema. A introspecção olha a tabela de origem (origem_da_bronze),
 -- não a bronze: a bronze é view e pode não existir na hora do compile; o grafo
 -- continua lendo só a bronze, por ref(). `table`: corta linha sem documento e
--- sem valor, e três modelos leem daqui.
+-- sem valor, e dois modelos leem daqui.
 {% set src = (
     origem_da_bronze("bronze_planilha_contemplados_lpg")
     if execute
