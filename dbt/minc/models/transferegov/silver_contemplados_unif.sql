@@ -1,4 +1,4 @@
--- Contemplados unificados LPG + PNAB (núcleo do lado-valor).
+-- Silver transferegov — Contemplados unificados LPG + PNAB (núcleo do lado-valor).
 -- ANO (edital-year): 1) nome_edital "NN/AAAA"; 2) número do edital por ANEXO
 -- (abas de definição PNAB); 3) NOVO fallback = ano no NOME DO ARQUIVO por anexo.
 -- Todos validados [2013,2026]. anexo_id propagado até aqui p/ rastreio no fct.
@@ -16,9 +16,9 @@
 -- identificado (vira sem_ano no denominador), não lixo. Cortá-lo removeria valor
 -- legítimo. Só subtotal e instrução são lixo de fato.
 with contemplados_raw as (
-    select * from {{ ref('stg_contemplados_lpg') }}
+    select * from {{ ref('silver_contemplados_lpg') }}
     union all
-    select * from {{ ref('stg_contemplados_pnab') }}
+    select * from {{ ref('silver_contemplados_pnab') }}
 ),
 contemplados as (
     select *
@@ -40,9 +40,9 @@ com_ano as (
         ea.ano_edital                     as ano_anexo,
         ar.ano_edital                     as ano_arquivo
     from contemplados c
-    left join {{ ref('edital_ano_por_anexo') }} ea
+    left join {{ ref('silver_edital_ano_por_anexo') }} ea
         on c.anexo_id = ea.anexo_id
-    left join {{ ref('edital_ano_por_arquivo') }} ar
+    left join {{ ref('silver_edital_ano_por_arquivo') }} ar
         on c.anexo_id = ar.anexo_id
 )
 select

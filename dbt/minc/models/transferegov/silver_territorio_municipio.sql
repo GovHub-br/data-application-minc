@@ -1,11 +1,16 @@
--- Território a nível de MUNICÍPIO (a partir do crosswalk de setores IBGE CD2022).
--- A fonte territorio_fcu_setores é grão setor censitário; aqui colapsa p/ município
--- e classifica se o município é (ou não) concentração urbana FCU.
+-- Silver transferegov — território a nível de MUNICÍPIO, a partir do crosswalk
+-- de setores IBGE CD2022 (bronze_territorio_fcu_setores). A fonte é grão setor
+-- censitário; aqui colapsa p/ município e marca se o município tem área de
+-- concentração urbana FCU.
 --
 -- CHAVE DE JUNÇÃO com os agentes = nome do município + UF normalizados (sem_acento
 -- + lower + trim), porque os contemplados/agentes LPG NÃO têm código IBGE, só
 -- cidade/uf em texto. Junção por nome é imperfeita (grafias divergentes), por isso
 -- o modelo expõe a chave normalizada p/ auditar o casamento.
+--
+-- Dimensão territorial numa pasta de fonte: o ADR 0010 deixou em aberto como as
+-- dimensões comuns se compartilham; enquanto não há ADR, fica Silver da fonte
+-- de onde vem, lendo uma source só.
 with setores as (
     select
         cd_mun,
@@ -14,7 +19,7 @@ with setores as (
         nm_uf,
         cd_fcu,
         nm_fcu
-    from {{ source('transferegov', 'territorio_fcu_setores') }}
+    from {{ ref('bronze_territorio_fcu_setores') }}
 ),
 por_municipio as (
     select
