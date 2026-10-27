@@ -50,7 +50,10 @@ minc_cosmos_dag = DbtDag(
     #
     # A alternativa era LoadMode.DBT_MANIFEST lendo um manifest.json
     # versionado. Saiu em 06/09/2026 -- ver ADR 0007.
-    render_config=RenderConfig(load_method=LoadMode.DBT_LS),
+    render_config=RenderConfig(
+        load_method=LoadMode.DBT_LS,
+        group_nodes_by_folder=True,
+    ),
     profile_config=profile_config,
     execution_config=ExecutionConfig(
         dbt_executable_path=f"{os.environ['AIRFLOW_REPO_BASE']}/.local/bin/dbt",
