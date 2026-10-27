@@ -41,10 +41,12 @@ models:
       +schema: ancine
       +materialized: view
     # TransfereGov: as entidades da API do Fundo a Fundo (source no schema
-    # `transferegov`, gravada pelas pontes do ADR 0011) e as planilhas de
-    # contemplados anexadas ao relatorio de gestao (source no schema
-    # `relatorio_gestao`). Nao colide com as tabelas de origem do schema
-    # `transferegov`: aqui tudo comeca com bronze_ ou silver_.
+    # `transferegov`, gravada pelas pontes do ADR 0011) e as planilhas que os
+    # entes anexam ao relatorio de gestao (source no schema `relatorio_gestao`,
+    # onde a extracao_anexos_dag grava). Nao colide com as tabelas de origem do
+    # schema `transferegov`: aqui tudo comeca com bronze_ ou silver_. View por
+    # padrao; as silvers da Meta 3 que cortam lixo de parsing declaram `table`
+    # no arquivo.
     transferegov:
       +schema: transferegov
       +materialized: view
@@ -66,17 +68,6 @@ models:
       cultura_em_numeros:
         +schema: cultura_em_numeros
         +materialized: table
-    # Meta 3 — cotas/reservas (LPG + PNAB). Domínio próprio, schema minc_cotas,
-    # separado da Meta 5 (meta 5 do colega). Bronze materializado como table
-    # porque filtra o lixo de parsing (fica ~20k linhas em vez de milhões).
-    cotas_dbt:
-      +schema: cotas
-      bronze:
-        +materialized: table
-      silver:
-        +materialized: view
-      gold:
-        +materialized: table
     # Mapas Culturais, na estrutura do ADR 0010: pasta por fonte, arquivos planos
     # e o schema é o nome da pasta. O nome do arquivo é o nome da tabela
     # (silver_<entidade>), sem alias.
@@ -91,8 +82,8 @@ models:
     mapas:
       +schema: mapas
       +materialized: table
-    # SALIC — Lei Rouanet. Um dominio, as camadas separadas por PASTA, como em
-    # cotas_dbt.
+    # SALIC — Lei Rouanet. Legado: um dominio, as camadas separadas por PASTA
+    # (o unico que ainda esta assim; migra conforme o ADR 0010).
     #
     # Schema `salic`, NAO `salic_bronze`. Com target `prod` o
     # generate_schema_name_for_env aplica o custom schema literal, entao

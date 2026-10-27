@@ -123,11 +123,10 @@ Projeto em `dbt/minc/`, perfil `minc`. Modelo novo segue o
 por fonte (`bbagil/`, `salic/`, `ancine/`, `mapas/`…) com `bronze_*` e `silver_*`,
 `intermediate/` com `int_*` e uma pasta por produto em `data_products/`
 (`data_products/cultura_em_numeros/`), schema igual ao nome da pasta. Use a skill `arquitetura-lakehouse-minc` antes de criar ou
-mover modelo. A Meta 5 já está nessa estrutura; o legado por domínio ainda existe:
+mover modelo. As Metas 3 e 5 já estão nessa estrutura; o legado por domínio ainda existe:
 
 | Domínio legado | Schema | Assunto |
 |---|---|---|
-| `cotas_dbt` | `minc_cotas` | Meta 3 — diversidade, cotas e territórios |
 | `metadata` | `metadata` | metadados do próprio pipeline |
 
 No legado, as camadas são subpastas, em ordem: `bronze/` (o bruto tipado e limpo
@@ -136,8 +135,7 @@ consumo).
 
 Materialização já vem definida por camada no `dbt_project.yml` — **não repita
 `+materialized` no modelo** a menos que ele seja exceção, e nesse caso comente por
-quê. O `cotas_dbt/bronze` é materializado como `table`, e não `incremental`, porque
-filtra lixo de parsing e cai de milhões para ~20 mil linhas; está escrito lá.
+quê.
 
 Macros reaproveitáveis em `dbt/minc/macros/` antes de escrever SQL novo:
 `sem_acento`, `normaliza_documento`, `parse_valor`, `parse_financial_value`,

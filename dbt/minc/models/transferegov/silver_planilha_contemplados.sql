@@ -1,4 +1,4 @@
-{{ config(enabled=false, materialized='view') }}
+{{ config(enabled=false, materialized="view") }}
 
 -- DESABILITADO. Depende de relatorio_gestao.planilha_contemplados_lpg e
 -- planilha_contemplados_pnab_ciclo_1, que não existem no banco: elas só nascem
@@ -24,10 +24,9 @@
 -- limitação dele deixa de ser mensurável.
 --
 -- Para reativar: rode a cadeia de anexos acima e troque para enabled=true aqui,
--- nas duas bronze_planilha_contemplados_* desta pasta, em
--- int_ancine_bbagil_salic_transferegov e em
--- eixo2_meta5_primeiro_acesso_contemplados.
-
+-- em int_ancine_bbagil_salic_transferegov e em
+-- eixo2_meta5_primeiro_acesso_contemplados. As duas bronze_planilha_contemplados_*
+-- desta pasta já estão habilitadas: a Meta 3 (cotas) lê delas.
 -- Silver — unifica os identificadores (CPF/CNPJ normalizados) das listas
 -- oficiais de contemplados de edital, LPG + PNAB, que os entes anexam ao
 -- relatório de gestão do plano de ação no TransfereGov Fundo a Fundo.
@@ -41,10 +40,10 @@
 -- não normaliza espaços nem caracteres invisíveis nos nomes de coluna, então
 -- o mesmo cabeçalho em arquivos diferentes vira colunas distintas no
 -- Postgres, cada uma com parte dos dados. O que existe hoje, de fato:
---   planilha_contemplados_lpg              "cpf ou cnpj", "cpf ou cnpj<NBSP>",
---                                          "cnpj<NBSP>"
---   planilha_contemplados_pnab_ciclo_1     "cpf", "cnpj", "cnpj<SP>",
---                                          "cpf/ cnpj", "cpf ou cnpj<NBSP>"
+-- planilha_contemplados_lpg              "cpf ou cnpj", "cpf ou cnpj<NBSP>",
+-- "cnpj<NBSP>"
+-- planilha_contemplados_pnab_ciclo_1     "cpf", "cnpj", "cnpj<SP>",
+-- "cpf/ cnpj", "cpf ou cnpj<NBSP>"
 -- (<NBSP> = U+00A0, espaço não separável — não é o espaço comum.)
 --
 -- As duas listas do PNAB (geral e Cultura Viva) viraram fatias da mesma
@@ -55,7 +54,8 @@
 -- Por isso a resolução é dinâmica via information_schema, e não uma lista
 -- fixa de nomes. A varredura olha a tabela de origem de cada bronze (macro
 -- origem_da_bronze), e não a bronze: a bronze é view e, num ambiente novo,
--- ainda não existe na hora do `dbt compile`. O padrão anterior, ILIKE '%cpf%cnpj%', exigia "cpf" ANTES de
+-- ainda não existe na hora do `dbt compile`. O padrão anterior, ILIKE '%cpf%cnpj%',
+-- exigia "cpf" ANTES de
 -- "cnpj" na mesma string: não casava "cnpj" sozinho nem "cpf/ cnpj", e
 -- deixava de fora ~2.100 contemplados do PNAB (a maioria deles COM pagamento
 -- comprovado no extrato bancário) e as colunas só-CNPJ da LPG.
@@ -66,16 +66,19 @@
 -- NORMALIZAÇÃO: só dígitos + LPAD para 11 (CPF) ou 14 (CNPJ). O LPAD é
 -- obrigatório porque o lado bancário sempre normaliza assim; sem ele um CPF
 -- que chegou com 10 dígitos (sem o zero à esquerda) nunca casa.
-
 {% set fontes = [
-    ('planilha_contemplados_lpg', 'LPG'),
-    ('planilha_contemplados_pnab_ciclo_1', 'PNAB')
+    ("planilha_contemplados_lpg", "LPG"),
+    ("planilha_contemplados_pnab_ciclo_1", "PNAB"),
 ] %}
 
 {# lista plana de (tabela, programa, coluna) para gerar um UNION ALL simples #}
 {% set pares = [] %}
 {% for tabela, programa in fontes %}
-    {% set src = origem_da_bronze('bronze_' ~ tabela) if execute else ref('bronze_' ~ tabela) %}
+    {% set src = (
+        origem_da_bronze("bronze_" ~ tabela)
+        if execute
+        else ref("bronze_" ~ tabela)
+    ) %}
     {% set consulta %}
         SELECT column_name
         FROM information_schema.columns
@@ -100,43 +103,47 @@
   `dbt run` com um erro de sintaxe que não diz nada sobre a causa.
 #}
 {% if execute and pares | length == 0 %}
-    {{ exceptions.raise_compiler_error(
-        "silver_planilha_contemplados: nenhuma coluna de CPF/CNPJ encontrada em "
-        ~ fontes | map(attribute=0) | join(', ') ~ ". As tabelas de contemplados "
-        ~ "existem no banco alvo? Rode a cadeia de anexos do TransfereGov antes deste modelo."
-    ) }}
+    {{
+        exceptions.raise_compiler_error(
+            "silver_planilha_contemplados: nenhuma coluna de CPF/CNPJ encontrada em "
+            ~ fontes
+            | map(attribute=0)
+            | join(", ")
+            ~ ". As tabelas de contemplados "
+            ~ "existem no banco alvo? Rode a cadeia de anexos do TransfereGov antes deste modelo."
+        )
+    }}
 {% endif %}
 
-WITH bruto AS (
-    {% for tabela, programa, col in pares %}
-    SELECT
-        NULLIF(TRIM("{{ col }}"), '') AS doc_bruto,
-        '{{ programa }}' AS programa_fomento
-    FROM {{ ref('bronze_' ~ tabela) }}
-    {%- if not loop.last %}
-    UNION ALL
-    {% endif %}
-    {% endfor %}
-),
+with
+    bruto as (
+        {% for tabela, programa, col in pares %}
+            select
+                nullif(trim("{{ col }}"), '') as doc_bruto,
+                '{{ programa }}' as programa_fomento
+            from {{ ref("bronze_" ~ tabela) }}
+            {%- if not loop.last %}
+                union all
+            {% endif %}
+        {% endfor %}
+    ),
 
-limpo AS (
-    SELECT
-        REGEXP_REPLACE(doc_bruto, '[^0-9]', '', 'g') AS digitos,
-        programa_fomento
-    FROM bruto
-    WHERE doc_bruto IS NOT NULL
-      -- linhas de cabeçalho repetido e placeholders de leitura de planilha
-      AND LOWER(doc_bruto) NOT IN ('nan', 'none', 'null', 'cpf', 'cnpj', 'cpf ou cnpj', 'cpf/ cnpj')
-)
+    limpo as (
+        select regexp_replace(doc_bruto, '[^0-9]', '', 'g') as digitos, programa_fomento
+        from bruto
+        where
+            doc_bruto is not null
+            -- linhas de cabeçalho repetido e placeholders de leitura de planilha
+            and lower(doc_bruto)
+            not in ('nan', 'none', 'null', 'cpf', 'cnpj', 'cpf ou cnpj', 'cpf/ cnpj')
+    )
 
-SELECT DISTINCT
-    CASE
-        WHEN LENGTH(digitos) <= 11 THEN LPAD(digitos, 11, '0')
-        ELSE LPAD(digitos, 14, '0')
-    END AS id_normalizado,
+select distinct
+    case
+        when length(digitos) <= 11 then lpad(digitos, 11, '0') else lpad(digitos, 14, '0')
+    end as id_normalizado,
     programa_fomento
-FROM limpo
+from limpo
 -- 9 dígitos é o menor CPF plausível já visto sem zeros à esquerda; abaixo
 -- disso é lixo de parsing (número de ordem, ano, célula vazia lida como 0)
-WHERE LENGTH(digitos) BETWEEN 9 AND 14
-  AND digitos !~ '^0+$'
+where length(digitos) between 9 and 14 and digitos !~ '^0+$'

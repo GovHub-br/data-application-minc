@@ -791,534 +791,11 @@
       "linhas_sql": 42
     },
     {
-      "nome": "stg_agentes_coletivos",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_coletivos.sql",
-      "descricao": "Perfil LPG Coletivos/Grupos — une 4 fontes (base + variantes grupo_coletivo, audiovisual e multicultural) via UNION ALL. Demografia = raça/PCD da maioria do grupo/coletivo (não do indivíduo). Documento normalizado via macro normaliza_documento (só dígitos, vazio → NULL); linhas sem documento válido são descartadas. indigena_bruto e quilombola_bruto não existem na fonte LPG — ficam sempre NULL (só preenchidos no PNAB).",
-      "colunas": [
-        {
-          "nome": "identificador_unico",
-          "descricao": "Documento do coletivo (CPF do representante ou CNPJ) normalizado por normaliza_documento."
-        },
-        {
-          "nome": "tipo_proponente",
-          "descricao": "Natureza do proponente. Coletivo/grupo aqui."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política que originou o registro. Constante 'lpg'."
-        },
-        {
-          "nome": "raca_bruto",
-          "descricao": "Raça/cor da MAIORIA do grupo/coletivo, autodeclarada em texto livre — característica coletiva, não individual."
-        },
-        {
-          "nome": "pcd_bruto",
-          "descricao": "Declaração de PCD referida à maioria do grupo, texto livre."
-        },
-        {
-          "nome": "indigena_bruto",
-          "descricao": "SEMPRE NULL — campo inexistente na fonte LPG."
-        },
-        {
-          "nome": "quilombola_bruto",
-          "descricao": "SEMPRE NULL — campo inexistente na fonte LPG."
-        },
-        {
-          "nome": "cep",
-          "descricao": "CEP declarado do coletivo, texto livre."
-        },
-        {
-          "nome": "cidade",
-          "descricao": "Município do coletivo em texto livre, insumo da cota territorial."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF do coletivo, normalmente sigla."
-        },
-        {
-          "nome": "origem_tabela",
-          "descricao": "Aba/tabela de origem da linha após o UNION ALL das 4 fontes."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa. Constante 'LPG'."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 1,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_dados_lpg"
-      ],
-      "linhas_sql": 37
-    },
-    {
-      "nome": "stg_agentes_pf",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_pf.sql",
-      "descricao": "Perfil LPG Pessoa Física — une 3 fontes (base + variantes audiovisual e multicultural) via UNION ALL. Filtra o \"lixo\" de parsing: linhas sem CPF válido são descartadas após normalização (macro normaliza_documento). indigena_bruto e quilombola_bruto ficam sempre NULL (exclusivos do PNAB).",
-      "colunas": [
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF do agente normalizado pela macro normaliza_documento (só dígitos, vazio vira NULL). Chave de ligação com contemplados e pagamentos. Linhas sem documento válido não chegam a este modelo."
-        },
-        {
-          "nome": "tipo_proponente",
-          "descricao": "Natureza do proponente nesta fonte. Sempre pessoa física aqui."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política que originou o registro. Constante 'lpg' neste modelo."
-        },
-        {
-          "nome": "raca_bruto",
-          "descricao": "Raça/cor autodeclarada, exatamente como veio da planilha — texto livre, sem normalização, com grafias divergentes e valores como 'nan'. A normalização em 5 categorias acontece só em perfil_agentes_normalizado."
-        },
-        {
-          "nome": "pcd_bruto",
-          "descricao": "Autodeclaração de pessoa com deficiência, texto livre da planilha (variações de 'sim'/'não'/vazio). Vira booleano só na silver."
-        },
-        {
-          "nome": "indigena_bruto",
-          "descricao": "Autodeclaração indígena. SEMPRE NULL neste modelo — a fonte LPG não coleta o campo; ele só existe no PNAB (ver stg_agentes_pnab_pf)."
-        },
-        {
-          "nome": "quilombola_bruto",
-          "descricao": "Autodeclaração quilombola. SEMPRE NULL neste modelo, mesma razão de indigena_bruto — campo exclusivo do PNAB."
-        },
-        {
-          "nome": "cep",
-          "descricao": "CEP declarado pelo agente, texto livre e sem validação de formato."
-        },
-        {
-          "nome": "cidade",
-          "descricao": "Município do agente em texto livre, sem código IBGE. É o insumo da 4ª cota (território vulnerabilizado), casado por nome em territorio_municipio — join imperfeito por natureza."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF do agente, normalmente a sigla ('RO'). O crosswalk do IBGE traz a UF por extenso, daí o mapeamento sigla↔nome em territorio_municipio."
-        },
-        {
-          "nome": "origem_tabela",
-          "descricao": "Qual das 3 abas/tabelas de origem produziu a linha (base, audiovisual ou multicultural). Serve para rastrear de onde veio cada registro depois do UNION ALL."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa para leitura humana. Constante 'LPG' aqui."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 1,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_dados_lpg"
-      ],
-      "linhas_sql": 37
-    },
-    {
-      "nome": "stg_agentes_pj",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_pj.sql",
-      "descricao": "Perfil LPG Pessoa Jurídica — une 3 fontes (base + variantes audiovisual e multicultural) via UNION ALL. Demografia = raça/PCD do corpo diretivo da PJ (não de um indivíduo isolado). Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
-      "colunas": [
-        {
-          "nome": "identificador_unico",
-          "descricao": "CNPJ da organização normalizado por normaliza_documento (só dígitos). Chave de ligação com contemplados e pagamentos."
-        },
-        {
-          "nome": "tipo_proponente",
-          "descricao": "Natureza do proponente. Sempre pessoa jurídica aqui."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política que originou o registro. Constante 'lpg'."
-        },
-        {
-          "nome": "raca_bruto",
-          "descricao": "Raça/cor do CORPO DIRETIVO da PJ, autodeclarada em texto livre — não é a raça de um indivíduo. Ler como característica da organização."
-        },
-        {
-          "nome": "pcd_bruto",
-          "descricao": "Declaração de PCD referida ao corpo diretivo, texto livre."
-        },
-        {
-          "nome": "indigena_bruto",
-          "descricao": "SEMPRE NULL — campo inexistente na fonte LPG."
-        },
-        {
-          "nome": "quilombola_bruto",
-          "descricao": "SEMPRE NULL — campo inexistente na fonte LPG."
-        },
-        {
-          "nome": "cep",
-          "descricao": "CEP declarado da organização, texto livre."
-        },
-        {
-          "nome": "cidade",
-          "descricao": "Município da organização em texto livre, insumo da cota territorial."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF da organização, normalmente sigla."
-        },
-        {
-          "nome": "origem_tabela",
-          "descricao": "Aba/tabela de origem da linha após o UNION ALL das 3 fontes."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa. Constante 'LPG'."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 1,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_dados_lpg"
-      ],
-      "linhas_sql": 36
-    },
-    {
-      "nome": "stg_agentes_pnab_pf",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_pnab_pf.sql",
-      "descricao": "Perfil PNAB Pessoa Física (fonte pnab_pessoas) — CPF real (não mascarado) + raça/PCD/indígena/quilombola do próprio indivíduo. Viabiliza cotas demográficas para o PNAB que antes eram impossíveis de calcular (LPG não traz indígena/quilombola). Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
-      "colunas": [
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF REAL do agente (a fonte PNAB não mascara), normalizado por normaliza_documento. É o que permite casar perfil e pagamento no PNAB."
-        },
-        {
-          "nome": "tipo_proponente",
-          "descricao": "Natureza do proponente. Pessoa física aqui."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política que originou o registro. Constante 'pnab'."
-        },
-        {
-          "nome": "raca_bruto",
-          "descricao": "Raça/cor autodeclarada DO PRÓPRIO INDIVÍDUO, em texto livre. Diferente da LPG PJ/coletivos, aqui a demografia é individual."
-        },
-        {
-          "nome": "pcd_bruto",
-          "descricao": "Autodeclaração de deficiência do indivíduo, texto livre."
-        },
-        {
-          "nome": "indigena_bruto",
-          "descricao": "Autodeclaração indígena — PREENCHIDO neste modelo (exclusivo do PNAB). Alimenta flag_indigena na silver mesmo quando raca_bruto não diz 'indígena', por isso a flag é um OR entre raça normalizada e este campo."
-        },
-        {
-          "nome": "quilombola_bruto",
-          "descricao": "Autodeclaração quilombola — PREENCHIDO neste modelo (exclusivo do PNAB). Hoje é coletado e preservado, mas ainda não vira cota própria."
-        },
-        {
-          "nome": "cep",
-          "descricao": "CEP declarado. Na prática vem vazio no PNAB."
-        },
-        {
-          "nome": "cidade",
-          "descricao": "Município do agente. O PNAB NÃO traz localização do agente — na prática fica NULL, e é por isso que a cota territorial só se aplica à LPG."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF do agente. Vazia no PNAB, mesma razão de cidade."
-        },
-        {
-          "nome": "origem_tabela",
-          "descricao": "Tabela de origem. Constante 'pnab_pessoas' aqui."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa. Constante 'PNAB'."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 1,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_dados_pnab_ciclo_1"
-      ],
-      "linhas_sql": 31
-    },
-    {
-      "nome": "stg_agentes_pnab_pj",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_agentes_pnab_pj.sql",
-      "descricao": "Perfil PNAB Organizações (fonte pnab_organizacoes) — CNPJ real + raça/PCD/ indígena/quilombola do representante legal da organização. Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
-      "colunas": [
-        {
-          "nome": "identificador_unico",
-          "descricao": "CNPJ real da organização, normalizado por normaliza_documento."
-        },
-        {
-          "nome": "tipo_proponente",
-          "descricao": "Natureza do proponente. Pessoa jurídica aqui."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política que originou o registro. Constante 'pnab'."
-        },
-        {
-          "nome": "raca_bruto",
-          "descricao": "Raça/cor autodeclarada DO REPRESENTANTE LEGAL da organização — não da organização nem do corpo diretivo inteiro. Semântica diferente da LPG PJ, cuidado ao somar os dois programas."
-        },
-        {
-          "nome": "pcd_bruto",
-          "descricao": "Autodeclaração de deficiência do representante legal."
-        },
-        {
-          "nome": "indigena_bruto",
-          "descricao": "Autodeclaração indígena do representante legal. Preenchido no PNAB."
-        },
-        {
-          "nome": "quilombola_bruto",
-          "descricao": "Autodeclaração quilombola do representante legal. Preenchido no PNAB."
-        },
-        {
-          "nome": "cep",
-          "descricao": "CEP declarado. Vazio no PNAB na prática."
-        },
-        {
-          "nome": "cidade",
-          "descricao": "Município. NULL no PNAB — sem localização do agente."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF. NULL no PNAB."
-        },
-        {
-          "nome": "origem_tabela",
-          "descricao": "Tabela de origem. Constante 'pnab_organizacoes'."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa. Constante 'PNAB'."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 1,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_dados_pnab_ciclo_1"
-      ],
-      "linhas_sql": 30
-    },
-    {
-      "nome": "stg_bbagil",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_bbagil.sql",
-      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Aguarda a DAG extracao_bbagil_dag rodar com sucesso (hoje falha na autenticação SCA por SCA_TOKEN_URL vazio no .env); reativar (enabled=true) quando bsc_pnab.fato_bbagil existir.\nLado-valor via extrato bancário (BB Gestão Ágil/SERPRO): mede o valor efetivamente PAGO ao beneficiário final (pessoa), não o repasse a entes públicos. Fonte já vem agregada e filtrada na origem (grão ente+documento, só débito ao beneficiário, sem repasse entre entes públicos, valores ≥R$375).\nPor que importa: fct_pagamentos_elegiveis (lado das listas de contemplados) mede valor RECEBIDO pelos entes (~R$2,7bi, painel \"recebido\"); o bbágil mede o valor GASTO/pago às pessoas (~R$447mi, painel \"gasto\") — o denominador correto para as cotas. O documento do beneficiário vem real (não mascarado), normalizado pela mesma macro normaliza_documento usada em perfil_agentes_normalizado, garantindo join direto e consistente entre as duas bases.",
-      "colunas": [
-        {
-          "nome": "ente_bbagil",
-          "descricao": "Ente federado (município/estado) titular da conta no BB Gestão Ágil. Chave de junção com bbagil_ente_ano, que traz ano e código IBGE."
-        },
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF/CNPJ do beneficiário final normalizado por normaliza_documento — a MESMA macro usada em perfil_agentes_normalizado, o que garante casamento maçã com maçã entre extrato bancário e perfil."
-        },
-        {
-          "nome": "documento_raw",
-          "descricao": "Documento do beneficiário exatamente como veio do extrato, antes da normalização. Preservado para auditoria do casamento."
-        },
-        {
-          "nome": "chave_anonimizada",
-          "descricao": "True quando o documento do extrato contém máscara ('*')."
-        },
-        {
-          "nome": "valor_pago_num",
-          "descricao": "Valor da transação convertido por parse_valor. Diferente do lado das listas, aqui é o valor EFETIVAMENTE PAGO à pessoa — o denominador correto para as cotas quando o modelo for reativado."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bbagil.fato_bbagil"
-      ],
-      "linhas_sql": 26
-    },
-    {
-      "nome": "stg_contemplados_lpg",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_contemplados_lpg.sql",
-      "descricao": "Contemplados LPG (lado-valor) — colunas duplicadas por schema-drift na ingestão de planilhas são resolvidas via coalesce_por_nome (lê pelo nome real da coluna, imune a espaço/trailing). Extrai anexo_id do id_anexo da fonte. Documento mascarado (contém '*') não vira chave casável (identificador_unico = NULL), mas o valor é preservado e a linha é marcada via chave_anonimizada. Valor monetário convertido por parse_valor, com teto padrão de R$10M (valores acima disso viram NULL em valor_pago_num, mas ficam preservados em valor_bruto_num para diagnóstico).",
-      "colunas": [
-        {
-          "nome": "anexo_id",
-          "descricao": "Identificador do anexo (planilha) do relatório de gestão que originou a linha. É a chave que liga o pagamento ao ano do edital derivado em edital_ano_por_anexo / edital_ano_por_arquivo."
-        },
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF/CNPJ do contemplado normalizado. NULL quando o documento veio mascarado na planilha — nesse caso a linha NÃO casa com perfil, mas continua contando no denominador de valor."
-        },
-        {
-          "nome": "chave_anonimizada",
-          "descricao": "True quando o documento de origem estava mascarado (contém '*'). Marca explicitamente por que identificador_unico é NULL, separando \"dado ausente\" de \"dado protegido\"."
-        },
-        {
-          "nome": "valor_pago_num",
-          "descricao": "Valor pago convertido para número por parse_valor, com teto de R$10M. Acima do teto vira NULL (sai do denominador) — o valor original fica em valor_bruto_num. É a coluna que soma no cálculo das cotas."
-        },
-        {
-          "nome": "valor_bruto_num",
-          "descricao": "Valor convertido SEM aplicar o teto de R$10M. Existe para auditar o que o teto cortou (ver diag_valores_cortados) — não use para somar."
-        },
-        {
-          "nome": "nome_edital",
-          "descricao": "Nome do edital como veio na planilha. 1ª fonte da cascata de datação (padrão \"NN/AAAA\"). Também é o campo usado na silver para descartar linhas-fantasma (rodapé de subtotal e texto de template)."
-        },
-        {
-          "nome": "link",
-          "descricao": "URL do edital ou do documento de origem, quando a planilha traz."
-        },
-        {
-          "nome": "nome_arquivo",
-          "descricao": "Nome do arquivo xlsx de origem. 3ª fonte da cascata de datação — o nome costuma carregar o ano (ex.: \"Contemplados 2024.xlsx\")."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa. Constante 'LPG'."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política de origem. Constante 'lpg'."
-        }
-      ],
-      "colunas_descritas": 10,
-      "testes": 1,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_contemplados_lpg"
-      ],
-      "linhas_sql": 34
-    },
-    {
-      "nome": "stg_contemplados_pnab",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_contemplados_pnab.sql",
-      "descricao": "Contemplados PNAB (lado-valor) — une as listas geral + pncv via coalesce_por_nome (mesma técnica de stg_contemplados_lpg). Chave = CNPJ real (sempre casável) ou CPF real do PNCV; CPF anonimizado (***XXXXXX**) da lista geral não vira chave (fica NULL, flagado por chave_anonimizada), mas o valor é preservado. anexo_id liga este modelo ao ano do edital derivado por anexo (edital_ano_por_anexo / edital_ano_por_arquivo). Valor monetário convertido por parse_valor (mesmo teto de R$10M).",
-      "colunas": [
-        {
-          "nome": "anexo_id",
-          "descricao": "Identificador do anexo do relatório de gestão que originou a linha. Chave para derivar o ano do edital por anexo."
-        },
-        {
-          "nome": "identificador_unico",
-          "descricao": "CNPJ real (lista geral) ou CPF real (PNCV) normalizado. NULL quando o CPF da lista geral veio anonimizado no padrão ***XXXXXX**."
-        },
-        {
-          "nome": "chave_anonimizada",
-          "descricao": "True quando o documento de origem estava mascarado."
-        },
-        {
-          "nome": "valor_pago_num",
-          "descricao": "Valor pago convertido por parse_valor com teto de R$10M. ATENÇÃO: no PNAB este valor mede o RECEBIDO pelos entes (repasse), não o pago à pessoa — ver a ressalva do Diagnóstico 4 em distribuicao_cotas_pnab."
-        },
-        {
-          "nome": "valor_bruto_num",
-          "descricao": "Valor sem o teto de R$10M, só para auditoria do corte."
-        },
-        {
-          "nome": "nome_edital",
-          "descricao": "Nome do edital como veio na planilha. 1ª fonte de datação e campo de corte das linhas-fantasma na silver. 'nan' aqui NÃO é lixo — é pagamento real sem edital identificado."
-        },
-        {
-          "nome": "link",
-          "descricao": "URL do edital ou documento de origem, quando presente."
-        },
-        {
-          "nome": "nome_arquivo",
-          "descricao": "Nome do xlsx de origem, 3ª fonte da cascata de datação."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa. Constante 'PNAB'."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política de origem. Constante 'pnab'."
-        }
-      ],
-      "colunas_descritas": 10,
-      "testes": 1,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_contemplados_pnab_ciclo_1"
-      ],
-      "linhas_sql": 56
-    },
-    {
-      "nome": "stg_editais",
-      "dominio": "cotas",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/bronze/stg_editais.sql",
-      "descricao": "Editais LPG — une lpg_editais + 4 tabelas de instrumentos via UNION ALL; resolve colunas duplicadas (ex.: \"valor total do edital\" aparece repetida em lpg_editais) via coalesce_por_nome. Base de denominador e de derivação de ano (nome/número do edital) para o reconciliador editais_unif — não é o caminho de ano efetivamente usado pelo fluxo principal das cotas (ver contemplados_unif).",
-      "colunas": [
-        {
-          "nome": "nome_edital",
-          "descricao": "Nome do edital em texto livre, como veio da planilha de definição."
-        },
-        {
-          "nome": "numero_edital",
-          "descricao": "Número do edital, normalmente no padrão \"NN/AAAA\" — é dele que editais_unif deriva o ano, com fallback para nome_edital."
-        },
-        {
-          "nome": "valor_total",
-          "descricao": "Valor total do edital, já resolvido por coalesce_por_nome (a coluna aparece duplicada na origem). Base de denominador para reconciliação."
-        },
-        {
-          "nome": "nome_arquivo",
-          "descricao": "Nome do xlsx de origem da linha."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa. Constante 'LPG'."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_dados_lpg",
-        "relatorio_gestao.planilha_editais_lpg"
-      ],
-      "linhas_sql": 39
-    },
-    {
-      "nome": "cobertura_pagamentos",
-      "dominio": "cotas",
+      "nome": "eixo2_meta3_cobertura_pagamento",
+      "dominio": "cultura_em_numeros",
       "camada": "gold",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/gold/cobertura_pagamentos.sql",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_cobertura_pagamento.sql",
       "descricao": "Cobertura por ano — teto de confiabilidade das cotas; leitura recomendada antes de consultar as tabelas de distribuição de cotas. Por ano (ano_final, com 'sem_ano' quando não há ano derivado), reporta quantidade de pagamentos, pessoas distintas (documentos, já excluindo mascarados), pessoas com perfil casado, valor total e valor com perfil, e três percentuais (0–100): cobertura_pessoas_pct (pessoas com perfil sobre o total de pessoas), cobertura_valor_pct (valor com perfil sobre valor total) e cobertura_temporal_pct (valor com ano derivado sobre valor total).",
       "colunas": [
         {
@@ -1362,53 +839,49 @@
       "testes": 0,
       "materializacao": "",
       "depende_de": [
-        "fct_pagamentos_elegiveis"
+        "eixo2_meta3_pagamento_elegivel"
       ],
       "sources": [],
-      "linhas_sql": 24
+      "linhas_sql": 36
     },
     {
-      "nome": "comparativo_recebido_vs_pago",
-      "dominio": "cotas",
+      "nome": "eixo2_meta3_diag_valores_cortados",
+      "dominio": "cultura_em_numeros",
       "camada": "gold",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/gold/comparativo_recebido_vs_pago.sql",
-      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com stg_bbagil, pois depende de fct_pagamentos_bbagil. Reativar (enabled=true) junto.\nValida o \"Diagnóstico 4\": confronta os dois lados-valor. fct_pagamentos_elegiveis (listas de contemplados) mede o valor RECEBIDO pelos entes (esperado ~R$2,7bi, ≈ painel oficial \"recebido\"); fct_pagamentos_bbagil (extrato bancário) mede o valor PAGO ao beneficiário final (esperado ~R$447mi, ≈ painel oficial \"gasto\"). Se o bbágil bater com o \"gasto\" do painel, ele passa a ser o denominador correto para as cotas. Enquanto a extração bbágil estiver parcial (amostra de 1 programa/ano), o total do bbágil será menor que o real — este modelo serve para acompanhar a convergência à medida que a extração avança.",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_diag_valores_cortados.sql",
+      "descricao": "Diagnóstico de valores por magnitude — audita o que o teto de R$10M do parse_valor cortou (valores acima do teto viram NULL em valor_pago_num e saem do denominador de valor). Classifica cada linha de silver_contemplados_lpg/pnab em faixas (sem valor; até R$10M/ok; R$10M–100M cortado; R$100M–1tri cortado; acima de 1tri cortado) e conta por origem.",
       "colunas": [
         {
-          "nome": "fonte",
-          "descricao": "Qual lado-valor a linha resume: 'recebido (listas/contemplados)' ou 'pago (bbágil/extrato bancário)'. A tabela tem exatamente 2 linhas."
+          "nome": "origem",
+          "descricao": "Política de origem das linhas contadas ('lpg' ou 'pnab')."
         },
         {
-          "nome": "linhas",
-          "descricao": "Quantidade de linhas de pagamento naquele lado."
+          "nome": "faixa_valor",
+          "descricao": "Faixa de magnitude do valor bruto: sem valor, até R$10M (ok), e as três faixas cortadas pelo teto (R$10M–100M, R$100M–1tri, acima de 1tri). Valor absurdo em geral é erro de parsing da planilha."
         },
         {
-          "nome": "docs_distintos",
-          "descricao": "Documentos distintos naquele lado — mede sobreposição de público."
-        },
-        {
-          "nome": "valor_total",
-          "descricao": "Soma de valor_pago_num do lado, arredondada a 2 casas. É a comparação que decide se o bbágil pode virar o denominador oficial das cotas."
+          "nome": "qtd",
+          "descricao": "Quantidade de linhas naquela faixa e origem."
         }
       ],
-      "colunas_descritas": 4,
-      "testes": 0,
+      "colunas_descritas": 3,
+      "testes": 1,
       "materializacao": "",
       "depende_de": [
-        "fct_pagamentos_bbagil",
-        "fct_pagamentos_elegiveis"
+        "silver_contemplados_lpg",
+        "silver_contemplados_pnab"
       ],
       "sources": [],
-      "linhas_sql": 34
+      "linhas_sql": 29
     },
     {
-      "nome": "distribuicao_cotas_lpg",
-      "dominio": "cotas",
+      "nome": "eixo2_meta3_distribuicao_cotas_lpg",
+      "dominio": "cultura_em_numeros",
       "camada": "gold",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/gold/distribuicao_cotas_lpg.sql",
-      "descricao": "Cotas SOMENTE LPG, via macro compartilhada distribuicao_cotas (mesma lógica de distribuicao_cotas_pnab, sem duplicar SQL). Valor ponderado (não por contagem de agentes) por ano, para 4 grupos com meta legal mínima: negra 25%, indígena 10%, PCD 5%, território vulnerabilizado (periférico) 20% — só a LPG tem a cota territorial, pois depende de flag_territorio_vulneravel (exige cidade/UF do agente). Reporta o percentual do grupo sobre o valor total do ano E sobre o valor total-com-perfil, além do veredito ('alcancada'/'descumprida') comparando o percentual sobre valor-com-perfil contra a meta.",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_distribuicao_cotas_lpg.sql",
+      "descricao": "Cotas SOMENTE LPG, via macro compartilhada distribuicao_cotas (mesma lógica de eixo2_meta3_distribuicao_cotas_pnab, sem duplicar SQL). Valor ponderado (não por contagem de agentes) por ano, para 4 grupos com meta legal mínima: negra 25%, indígena 10%, PCD 5%, território vulnerabilizado (periférico) 20% — só a LPG tem a cota territorial, pois depende de flag_territorio_vulneravel (exige cidade/UF do agente). Reporta o percentual do grupo sobre o valor total do ano E sobre o valor total-com-perfil, além do veredito ('alcancada'/'descumprida') comparando o percentual sobre valor-com-perfil contra a meta.",
       "colunas": [
         {
           "nome": "programa",
@@ -1463,12 +936,12 @@
       "linhas_sql": 5
     },
     {
-      "nome": "distribuicao_cotas_pnab",
-      "dominio": "cotas",
+      "nome": "eixo2_meta3_distribuicao_cotas_pnab",
+      "dominio": "cultura_em_numeros",
       "camada": "gold",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/gold/distribuicao_cotas_pnab.sql",
-      "descricao": "Cotas SOMENTE PNAB, via macro compartilhada distribuicao_cotas. 3 grupos com meta legal mínima (negra 25%, indígena 10%, PCD 5%), sem a cota territorial — flag_territorio_vulneravel exige cidade/UF do agente, que o lado-valor do PNAB (listas/bbágil) não traz. Ressalva (Diagnóstico 4): enquanto o lado-valor do PNAB vier das listas de contemplados, o denominador mede o valor RECEBIDO pelos entes (repasse, ~R$2,7bi), não o valor efetivamente PAGO a pessoas (~R$447mi). Quando fct_pagamentos_bbagil estiver ativo, este modelo deve passar a ler o valor pago real.",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_distribuicao_cotas_pnab.sql",
+      "descricao": "Cotas SOMENTE PNAB, via macro compartilhada distribuicao_cotas. 3 grupos com meta legal mínima (negra 25%, indígena 10%, PCD 5%), sem a cota territorial — flag_territorio_vulneravel exige cidade/UF do agente, que o lado-valor do PNAB (listas/bbágil) não traz. Ressalva (Diagnóstico 4): enquanto o lado-valor do PNAB vier das listas de contemplados, o denominador mede o valor RECEBIDO pelos entes (repasse, ~R$2,7bi), não o valor efetivamente PAGO a pessoas (~R$447mi). Quando a medida sobre o valor pago pelo BB Ágil existir (lendo eixo2_meta5_evento_fomento), este modelo deve passar a ler o valor pago real.",
       "colunas": [
         {
           "nome": "programa",
@@ -1520,91 +993,45 @@
       "materializacao": "",
       "depende_de": [],
       "sources": [],
-      "linhas_sql": 11
+      "linhas_sql": 12
     },
     {
-      "nome": "fct_pagamentos_bbagil",
-      "dominio": "cotas",
+      "nome": "eixo2_meta3_identificador_agente",
+      "dominio": "cultura_em_numeros",
       "camada": "gold",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/gold/fct_pagamentos_bbagil.sql",
-      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com stg_bbagil/bbagil_ente_ano, até a extração bbágil rodar. Reativar (enabled=true) junto.\nFato de pagamentos via extrato bancário (valor PAGO ao beneficiário final) cruzado com o perfil de raça/PCD. Espelha fct_pagamentos_elegiveis (payment-first, LEFT JOIN, preserva órfãos sem perfil), mas usa o bbágil como lado-valor — o denominador correto para as cotas (pago a pessoas, não repasse a entes). Projetado para rodar em PARALELO a fct_pagamentos_elegiveis, não substituí-lo ainda; comparativo_recebido_vs_pago confronta os dois. A decisão de trocar o denominador oficial das cotas para este modelo é do lab (ver plano_integracao_meta3).",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_identificador_agente.sql",
+      "descricao": "Chaves distintas de agentes (identificador_unico, tipo_proponente, origem) extraídas de eixo2_meta3_perfil_agente — usada para teste de unicidade e para contagem secundária de proponentes.",
       "colunas": [
         {
           "nome": "identificador_unico",
-          "descricao": "CPF/CNPJ do beneficiário final, normalizado pela mesma macro do perfil. Aqui o documento vem real (não mascarado), então o casamento com perfil é muito melhor que no lado das listas."
+          "descricao": "CPF/CNPJ normalizado. Como o perfil já é deduplicado por este campo, o teste de unicidade aqui é uma segunda barreira: se falhar, a dedup do perfil quebrou e todo cálculo de cota a jusante está inflado."
         },
         {
-          "nome": "ente_bbagil",
-          "descricao": "Ente federado que efetuou o pagamento, vindo do extrato."
-        },
-        {
-          "nome": "valor_pago_num",
-          "descricao": "Valor EFETIVAMENTE PAGO à pessoa. É a diferença essencial em relação a fct_pagamentos_elegiveis, que mede o repasse recebido pelo ente."
-        },
-        {
-          "nome": "chave_anonimizada",
-          "descricao": "True quando o documento do extrato veio mascarado."
-        },
-        {
-          "nome": "ano_final",
-          "descricao": "Ano de início da vigência do plano de ação, vindo de bbagil_ente_ano. Aproximação do ano do edital, não o ano exato."
-        },
-        {
-          "nome": "origem_ano",
-          "descricao": "Constante 'vigencia_plano' — marca explicitamente que a datação aqui é menos precisa que a cascata usada no lado das listas."
-        },
-        {
-          "nome": "codigo_ibge",
-          "descricao": "Código IBGE do município do ente, de bbagil_ente_ano."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "Município do ente federado pagador."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF do ente federado pagador."
+          "nome": "tipo_proponente",
+          "descricao": "Natureza do proponente (pf, pj, coletivo), herdada do perfil."
         },
         {
           "nome": "origem",
-          "descricao": "Constante 'pnab_bbagil' — distingue esta trilha da das listas."
-        },
-        {
-          "nome": "tem_perfil",
-          "descricao": "True quando o beneficiário casou com perfil_agentes_normalizado."
-        },
-        {
-          "nome": "flag_negra",
-          "descricao": "Beneficiário autodeclarado negro. Numerador da cota de 25%."
-        },
-        {
-          "nome": "flag_indigena",
-          "descricao": "Beneficiário autodeclarado indígena. Numerador da cota de 10%."
-        },
-        {
-          "nome": "flag_pcd",
-          "descricao": "Beneficiário autodeclarado PCD. Numerador da cota de 5%."
+          "descricao": "Política de origem da linha ('lpg' ou 'pnab'), herdada do perfil."
         }
       ],
-      "colunas_descritas": 14,
-      "testes": 0,
+      "colunas_descritas": 3,
+      "testes": 2,
       "materializacao": "",
       "depende_de": [
-        "bbagil_ente_ano",
-        "perfil_agentes_normalizado",
-        "stg_bbagil"
+        "eixo2_meta3_perfil_agente"
       ],
       "sources": [],
-      "linhas_sql": 42
+      "linhas_sql": 5
     },
     {
-      "nome": "fct_pagamentos_elegiveis",
-      "dominio": "cotas",
+      "nome": "eixo2_meta3_pagamento_elegivel",
+      "dominio": "cultura_em_numeros",
       "camada": "gold",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/gold/fct_pagamentos_elegiveis.sql",
-      "descricao": "1 linha por pagamento (payment-first) — base do denominador das cotas. Parte de contemplados_unif com LEFT JOIN para perfil_agentes_normalizado e territorio_municipio, preservando todos os pagamentos (inclusive órfãos sem perfil casado, marcados por tem_perfil=false, e pagamentos sem ano derivado, 'sem_ano'). Carrega flag_negra, flag_indigena, flag_pcd e, exclusivo da LPG, flag_territorio_vulneravel: true quando o município do agente casa (por nome + UF normalizados) com o crosswalk IBGE de zonas periféricas (territorio_municipio); NULL quando o agente não tem cidade informada (majoritariamente PNAB). O casamento por nome cobre cerca de 47,5% dos agentes com perfil — grafias divergentes ainda não refinadas. Meta da cota territorial: 20% (ver distribuicao_cotas_lpg).",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_pagamento_elegivel.sql",
+      "descricao": "1 linha por pagamento (payment-first) — base do denominador das cotas. Parte de silver_contemplados_unif com LEFT JOIN para eixo2_meta3_perfil_agente e silver_territorio_municipio, preservando todos os pagamentos (inclusive órfãos sem perfil casado, marcados por tem_perfil=false, e pagamentos sem ano derivado, 'sem_ano'). Carrega flag_negra, flag_indigena, flag_pcd e, exclusivo da LPG, flag_territorio_vulneravel: true quando o município do agente casa (por nome + UF normalizados) com o crosswalk IBGE de zonas periféricas (silver_territorio_municipio); NULL quando o agente não tem cidade informada (majoritariamente PNAB). O casamento por nome cobre cerca de 47,5% dos agentes com perfil — grafias divergentes ainda não refinadas. Meta da cota territorial: 20% (ver eixo2_meta3_distribuicao_cotas_lpg).",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -1616,7 +1043,7 @@
         },
         {
           "nome": "ano_final",
-          "descricao": "Ano do edital resolvido pela cascata de datação, ou 'sem_ano'. Os 'sem_ano' entram no total geral mas ficam fora de qualquer recorte anual — ver cobertura_temporal_pct em cobertura_pagamentos."
+          "descricao": "Ano do edital resolvido pela cascata de datação, ou 'sem_ano'. Os 'sem_ano' entram no total geral mas ficam fora de qualquer recorte anual — ver cobertura_temporal_pct em eixo2_meta3_cobertura_pagamento."
         },
         {
           "nome": "origem_ano",
@@ -1648,7 +1075,7 @@
         },
         {
           "nome": "tem_perfil",
-          "descricao": "True quando o pagamento casou com perfil_agentes_normalizado. É o divisor de águas da leitura: as cotas calculadas \"sobre com perfil\" usam só estas linhas; as calculadas \"sobre total\" incluem os órfãos."
+          "descricao": "True quando o pagamento casou com eixo2_meta3_perfil_agente. É o divisor de águas da leitura: as cotas calculadas \"sobre com perfil\" usam só estas linhas; as calculadas \"sobre total\" incluem os órfãos."
         },
         {
           "nome": "flag_negra",
@@ -1683,271 +1110,20 @@
       "testes": 2,
       "materializacao": "",
       "depende_de": [
-        "contemplados_unif",
-        "perfil_agentes_normalizado",
-        "territorio_municipio"
+        "eixo2_meta3_perfil_agente",
+        "silver_contemplados_unif",
+        "silver_territorio_municipio"
       ],
       "sources": [],
-      "linhas_sql": 48
+      "linhas_sql": 47
     },
     {
-      "nome": "bbagil_ente_ano",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/bbagil_ente_ano.sql",
-      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com stg_bbagil, mesmo motivo (DAG bbágil bloqueada). Reativar (enabled=true) junto.\nDatação e localização do bbágil por ente (id_plano_acao), buscadas em raw_planos_acao — o fato_bbagil não traz ano nem município diretamente. ano_plano é o ano de INÍCIO DA VIGÊNCIA do plano de ação: uma aproximação (mede o ciclo do plano, não a data exata do edital), por isso é marcado com menor precisão via origem_ano='vigencia_plano'. codigo_ibge destrava o cruzamento com município (e uma futura ponte com o Querido Diário, que busca por território via código IBGE).",
-      "colunas": [
-        {
-          "nome": "ente_bbagil",
-          "descricao": "Ente federado titular da conta no BB Gestão Ágil. Chave de junção com stg_bbagil, que não traz ano nem localização."
-        },
-        {
-          "nome": "codigo_ibge",
-          "descricao": "Código IBGE do município do ente, vindo de raw_planos_acao. Destrava o cruzamento territorial do PNAB e uma futura ponte com o Querido Diário."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "Nome do município do ente federado."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF do ente federado."
-        },
-        {
-          "nome": "ano_plano",
-          "descricao": "Ano de INÍCIO DA VIGÊNCIA do plano de ação — aproximação do ano do edital, não o ano exato. Por isso o fato marca origem_ano = 'vigencia_plano', sinalizando menor precisão que a cascata de datação das listas."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.plano_acao_minc"
-      ],
-      "linhas_sql": 44
-    },
-    {
-      "nome": "contemplados_unif",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/contemplados_unif.sql",
-      "descricao": "Contemplados unificados LPG + PNAB — núcleo do lado-valor das cotas. Deriva o ANO do edital em cascata de 3 fontes, todas validadas em [2013, 2026]: 1) nome_edital no padrão \"NN/AAAA\"; 2) ano por ANEXO via número do edital nas abas de definição PNAB (edital_ano_por_anexo); 3) fallback pelo ano no NOME DO ARQUIVO por anexo (edital_ano_por_arquivo). anexo_id é propagado até o fato para rastreio.\nLimpeza de linhas-fantasma: as planilhas PNAB trazem linhas que não são pagamentos individuais mas carregam valor e por isso escapam do filtro do bronze (que só descarta linha sem documento E sem valor). São descartadas aqui por padrão de texto em nome_edital: (a) rodapé de subtotal (\"TOTAL DE RECURSOS APLICADOS:\"), que somado como pagamento duplicaria o dinheiro (medido: ~R$492M de fantasma, mais que o total real do PNAB de ~R$447M no painel oficial); (b) texto de instrução do template (\"Insira informações na aba...\"). O corte é feito na silver (não no bronze, que permanece raw-fiel) para cobrir o fato e os golds num único ponto. IMPORTANTE: nome_edital = 'nan' NÃO é cortado — é pagamento real sem edital identificado (vira 'sem_ano' no denominador), não lixo.",
-      "colunas": [
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF/CNPJ do contemplado, normalizado. NULL quando o documento veio mascarado — a linha permanece no denominador de valor, mas não casa com perfil e portanto não entra em nenhum numerador de cota."
-        },
-        {
-          "nome": "chave_anonimizada",
-          "descricao": "True quando o documento de origem estava mascarado. Distingue \"sem perfil porque o dado é protegido\" de \"sem perfil porque não casou\"."
-        },
-        {
-          "nome": "valor_pago_num",
-          "descricao": "Valor pago em reais, já com o teto de R$10M do parse_valor aplicado. É a medida somada em todos os golds de cota."
-        },
-        {
-          "nome": "nome_edital",
-          "descricao": "Nome do edital. 1ª fonte da cascata de datação e campo usado para cortar as linhas-fantasma. 'nan' aqui é pagamento real sem edital identificado — não é lixo e não é cortado."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política de origem do pagamento."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa para leitura humana ('LPG' ou 'PNAB')."
-        },
-        {
-          "nome": "anexo_id",
-          "descricao": "Anexo do relatório de gestão que originou a linha. Propagado até o fato para permitir rastrear qualquer número de volta à planilha."
-        },
-        {
-          "nome": "nome_arquivo",
-          "descricao": "Nome do xlsx de origem — insumo da 3ª fonte de datação."
-        },
-        {
-          "nome": "ano_final",
-          "descricao": "Ano do edital resolvido pela cascata de 3 fontes, validado em [2013, 2026]. Assume 'sem_ano' quando nenhuma fonte resolve — esses pagamentos continuam no total, mas ficam fora do recorte anual."
-        },
-        {
-          "nome": "origem_ano",
-          "descricao": "Qual etapa da cascata resolveu ano_final. Serve para medir confiança: 'nome_edital' é a mais precisa, 'nome_arquivo' a mais frágil (pode refletir data de publicação, defasada até ~1 ano)."
-        }
-      ],
-      "colunas_descritas": 10,
-      "testes": 2,
-      "materializacao": "",
-      "depende_de": [
-        "edital_ano_por_anexo",
-        "edital_ano_por_arquivo",
-        "stg_contemplados_lpg",
-        "stg_contemplados_pnab"
-      ],
-      "sources": [],
-      "linhas_sql": 65
-    },
-    {
-      "nome": "diag_valores_cortados",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/diag_valores_cortados.sql",
-      "descricao": "Diagnóstico de valores por magnitude — audita o que o teto de R$10M do parse_valor cortou (valores acima do teto viram NULL em valor_pago_num e saem do denominador de valor). Classifica cada linha de stg_contemplados_lpg/pnab em faixas (sem valor; até R$10M/ok; R$10M–100M cortado; R$100M–1tri cortado; acima de 1tri cortado) e conta por origem.",
-      "colunas": [
-        {
-          "nome": "origem",
-          "descricao": "Política de origem das linhas contadas ('lpg' ou 'pnab')."
-        },
-        {
-          "nome": "faixa_valor",
-          "descricao": "Faixa de magnitude do valor bruto: sem valor, até R$10M (ok), e as três faixas cortadas pelo teto (R$10M–100M, R$100M–1tri, acima de 1tri). Valor absurdo em geral é erro de parsing da planilha."
-        },
-        {
-          "nome": "qtd",
-          "descricao": "Quantidade de linhas naquela faixa e origem."
-        }
-      ],
-      "colunas_descritas": 3,
-      "testes": 1,
-      "materializacao": "",
-      "depende_de": [
-        "stg_contemplados_lpg",
-        "stg_contemplados_pnab"
-      ],
-      "sources": [],
-      "linhas_sql": 21
-    },
-    {
-      "nome": "editais_unif",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/editais_unif.sql",
-      "descricao": "Editais unificados a partir de stg_editais, com ano derivado (numero_edital, com fallback para nome_edital), validado em [2013, 2026]. Mantido para reconciliação/auditoria — não é o caminho de ano efetivamente usado pelas cotas (esse é o de contemplados_unif, via edital_ano_por_anexo/edital_ano_por_arquivo).",
-      "colunas": [
-        {
-          "nome": "nome_edital",
-          "descricao": "Nome do edital em texto livre."
-        },
-        {
-          "nome": "numero_edital",
-          "descricao": "Número do edital (\"NN/AAAA\") — 1ª fonte do ano aqui."
-        },
-        {
-          "nome": "valor_total",
-          "descricao": "Valor total previsto do edital. Denominador alternativo para reconciliação; não é o denominador usado nas cotas."
-        },
-        {
-          "nome": "nome_programa",
-          "descricao": "Rótulo do programa."
-        },
-        {
-          "nome": "ano_edital",
-          "descricao": "Ano derivado de numero_edital, com fallback para nome_edital, validado em [2013, 2026]. NULL quando nenhum dos dois resolve."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [
-        "stg_editais"
-      ],
-      "sources": [],
-      "linhas_sql": 10
-    },
-    {
-      "nome": "edital_ano_por_anexo",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/edital_ano_por_anexo.sql",
-      "descricao": "Ano do edital por ANEXO (PNAB) — 2ª fonte na cascata de datação de contemplados_unif. Extraído do campo \"número do edital\" nas abas de definição PNAB (raw_pnab_acoes_gerais + raw_pnab_acoes_cultura_viva), mais completo que o nome do edital na planilha de contemplados. Só mantém anexos com ano ÚNICO e consistente entre linhas — descarta anexo multi-ano por ambiguidade.",
-      "colunas": [
-        {
-          "nome": "anexo_id",
-          "descricao": "Anexo do relatório de gestão. Chave primária: um anexo resolve no máximo um ano. Anexos com mais de um ano são descartados na origem, não desempatados — ambiguidade aqui viraria erro silencioso de cota."
-        },
-        {
-          "nome": "ano_edital",
-          "descricao": "Ano extraído do número do edital nas abas de definição do PNAB, validado em [2013, 2026]. Mais confiável que o ano por nome de arquivo."
-        }
-      ],
-      "colunas_descritas": 2,
-      "testes": 2,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_editais_pnab_ciclo_1"
-      ],
-      "linhas_sql": 32
-    },
-    {
-      "nome": "edital_ano_por_arquivo",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/edital_ano_por_arquivo.sql",
-      "descricao": "Ano do edital por ANEXO via NOME DO ARQUIVO — 3ª fonte (fallback) na cascata de datação de contemplados_unif, usada só quando nome_edital e o número do edital por anexo não resolvem o ano. O nome do xlsx de origem costuma carregar o ano (ex.: \"Contemplados 2024.xlsx\"). Mesma regra de edital_ano_por_anexo: agrega por anexo_id e só mantém anexos com ano único, na faixa [2013, 2026]. Ganho medido (jul/2026): cobre 1.036 anexos contra 477 do método por número do edital — 849 anexos adicionais. É deliberadamente a fonte de menor prioridade: o nome do arquivo pode refletir a data de publicação, defasada em até ~1 ano em relação ao edital em si.",
-      "colunas": [
-        {
-          "nome": "anexo_id",
-          "descricao": "Anexo do relatório de gestão. Chave primária, mesma regra do edital_ano_por_anexo: anexo multi-ano é descartado."
-        },
-        {
-          "nome": "ano_edital",
-          "descricao": "Ano extraído do NOME DO ARQUIVO xlsx, validado em [2013, 2026]. Use com ressalva: pode ser o ano de publicação do arquivo, não do edital."
-        }
-      ],
-      "colunas_descritas": 2,
-      "testes": 2,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "relatorio_gestao.planilha_contemplados_lpg",
-        "relatorio_gestao.planilha_contemplados_pnab_ciclo_1"
-      ],
-      "linhas_sql": 45
-    },
-    {
-      "nome": "identificadores_agentes_cotas",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/identificadores_agentes_cotas.sql",
-      "descricao": "Chaves distintas de agentes (identificador_unico, tipo_proponente, origem) extraídas de perfil_agentes_normalizado — usada para teste de unicidade e para contagem secundária de proponentes.",
-      "colunas": [
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF/CNPJ normalizado. Como o perfil já é deduplicado por este campo, o teste de unicidade aqui é uma segunda barreira: se falhar, a dedup do perfil quebrou e todo cálculo de cota a jusante está inflado."
-        },
-        {
-          "nome": "tipo_proponente",
-          "descricao": "Natureza do proponente (pf, pj, coletivo), herdada do perfil."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Política de origem da linha ('lpg' ou 'pnab'), herdada do perfil."
-        }
-      ],
-      "colunas_descritas": 3,
-      "testes": 2,
-      "materializacao": "",
-      "depende_de": [
-        "perfil_agentes_normalizado"
-      ],
-      "sources": [],
-      "linhas_sql": 7
-    },
-    {
-      "nome": "perfil_agentes_normalizado",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/perfil_agentes_normalizado.sql",
-      "descricao": "Perfil unificado LPG + PNAB — une os 5 bronzes de agentes (pf, pj, coletivos, pnab_pf, pnab_pj). Deduplicado por identificador_unico (1 linha por documento, não por tipo de proponente, para permitir join 1:1 com pagamentos): prioriza, na desambiguação, a linha que já traz raça preenchida, depois por origem. Normaliza raça/cor em 5 categorias (negra, indigena, branca, amarela, nao_declarada) via regex sobre texto sem acento. Deriva as flags flag_negra, flag_indigena (raça normalizada OU campo indígena explícito) e is_pcd. cidade/uf só existem nas fontes LPG (os stg do PNAB não trazem localização do agente) e ficam NULL para PNAB; são propagadas até aqui exclusivamente para viabilizar a 4ª cota territorial (só aplicável à LPG). chave_municipio_uf (cidade+UF sem acento, minúsculo) é a chave de join com territorio_municipio; fica NULL quando não há localização — nesse caso o agente não é classificável pela cota territorial.",
+      "nome": "eixo2_meta3_perfil_agente",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_perfil_agente.sql",
+      "descricao": "Perfil unificado LPG + PNAB — une as 5 silvers de agentes (silver_agentes_pf, _pj, _coletivos, _pnab_pf, _pnab_pj). Deduplicado por identificador_unico (1 linha por documento, não por tipo de proponente, para permitir join 1:1 com pagamentos): prioriza, na desambiguação, a linha que já traz raça preenchida, depois por origem. Normaliza raça/cor em 5 categorias (negra, indigena, branca, amarela, nao_declarada) via regex sobre texto sem acento. Deriva as flags flag_negra, flag_indigena (raça normalizada OU campo indígena explícito) e is_pcd. cidade/uf só existem nas fontes LPG (as silvers do PNAB não trazem localização do agente) e ficam NULL para PNAB; são propagadas até aqui exclusivamente para viabilizar a 4ª cota territorial (só aplicável à LPG). chave_municipio_uf (cidade+UF sem acento, minúsculo) é a chave de join com silver_territorio_municipio; fica NULL quando não há localização — nesse caso o agente não é classificável pela cota territorial. Mistura limpeza (união e dedup das cinco silvers) com regra de produto (as flags de quem conta em cada cota); separar a limpeza numa silver é dívida registrada no PR da migração.",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -1979,7 +1155,7 @@
         },
         {
           "nome": "chave_municipio_uf",
-          "descricao": "Chave de junção com territorio_municipio no formato \"municipio_sem_acento|uf_sem_acento\", ambos em minúsculo. NULL quando cidade ou UF faltam — e agente sem esta chave não é classificável pela cota territorial, entrando como não-coberto, não como fora da cota."
+          "descricao": "Chave de junção com silver_territorio_municipio no formato \"municipio_sem_acento|uf_sem_acento\", ambos em minúsculo. NULL quando cidade ou UF faltam — e agente sem esta chave não é classificável pela cota territorial, entrando como não-coberto, não como fora da cota."
         },
         {
           "nome": "flag_negra",
@@ -1998,60 +1174,14 @@
       "testes": 3,
       "materializacao": "",
       "depende_de": [
-        "stg_agentes_coletivos",
-        "stg_agentes_pf",
-        "stg_agentes_pj",
-        "stg_agentes_pnab_pf",
-        "stg_agentes_pnab_pj"
+        "silver_agentes_coletivos",
+        "silver_agentes_pf",
+        "silver_agentes_pj",
+        "silver_agentes_pnab_pf",
+        "silver_agentes_pnab_pj"
       ],
       "sources": [],
-      "linhas_sql": 65
-    },
-    {
-      "nome": "territorio_municipio",
-      "dominio": "cotas",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/cotas_dbt/silver/territorio_municipio.sql",
-      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor com código FCU preenchido (zona periférica). Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
-      "colunas": [
-        {
-          "nome": "cd_mun",
-          "descricao": "Código IBGE do município (7 dígitos). Chave primária do crosswalk depois do colapso do grão setor para o grão município."
-        },
-        {
-          "nome": "nm_mun",
-          "descricao": "Nome do município conforme o IBGE, com acentuação original."
-        },
-        {
-          "nome": "cd_uf",
-          "descricao": "Código IBGE da UF (2 dígitos)."
-        },
-        {
-          "nome": "nm_uf",
-          "descricao": "Nome da UF por extenso, como vem do IBGE (\"Rondônia\"). É a razão de existir o mapeamento para sigla — os agentes LPG registram \"RO\"."
-        },
-        {
-          "nome": "sigla_uf",
-          "descricao": "Sigla da UF derivada de cd_uf, para casar com o texto dos agentes."
-        },
-        {
-          "nome": "em_concentracao_urbana",
-          "descricao": "True quando o município tem ao menos UM setor censitário com código FCU preenchido — isto é, alguma zona periférica. É um indicador no grão município, não no grão setor: um município grande marcado como true não é periférico por inteiro."
-        },
-        {
-          "nome": "chave_municipio_uf",
-          "descricao": "Chave de junção por nome (município+UF normalizados) com perfil_agentes_normalizado. É a entidade `primary` do semantic model: duplicata aqui multiplicaria o valor pago no cálculo da cota territorial. NULL quando a sigla da UF não resolve — o teste `unique` ignora nulos."
-        }
-      ],
-      "colunas_descritas": 7,
-      "testes": 3,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.territorio_fcu_setores"
-      ],
-      "linhas_sql": 55
+      "linhas_sql": 133
     },
     {
       "nome": "eixo2_meta5_conversao_direto_rouanet_coorte",
@@ -43218,6 +42348,23 @@
       "linhas_sql": 82
     },
     {
+      "nome": "bronze_anexos_relatorios",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_anexos_relatorios.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.anexos_relatorios, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.anexos_relatorios"
+      ],
+      "linhas_sql": 6
+    },
+    {
       "nome": "bronze_planilha_contemplados_lpg",
       "dominio": "transferegov",
       "camada": "bronze",
@@ -43232,7 +42379,7 @@
       "sources": [
         "relatorio_gestao.planilha_contemplados_lpg"
       ],
-      "linhas_sql": 11
+      "linhas_sql": 9
     },
     {
       "nome": "bronze_planilha_contemplados_pnab_ciclo_1",
@@ -43249,42 +42396,515 @@
       "sources": [
         "relatorio_gestao.planilha_contemplados_pnab_ciclo_1"
       ],
-      "linhas_sql": 12
+      "linhas_sql": 10
     },
     {
-      "nome": "silver_planilha_contemplados",
+      "nome": "bronze_planilha_dados_lpg",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_planilha_dados_lpg.sql",
+      "descricao": "Camada Bronze — cópia fiel de relatorio_gestao.planilha_dados_lpg, sem cast, filtro nem join (ADR 0010). As abas de dados das planilhas da LPG (perfil de PF, PJ e coletivos; instrumentos), uma fatia por tabela_origem. Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "relatorio_gestao.planilha_dados_lpg"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_planilha_dados_pnab_ciclo_1",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_planilha_dados_pnab_ciclo_1.sql",
+      "descricao": "Camada Bronze — cópia fiel de relatorio_gestao.planilha_dados_pnab_ciclo_1, sem cast, filtro nem join (ADR 0010). As abas de pessoas e organizações das planilhas do PNAB (ciclo 1), uma fatia por tabela_origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "relatorio_gestao.planilha_dados_pnab_ciclo_1"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_planilha_editais_lpg",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_planilha_editais_lpg.sql",
+      "descricao": "Camada Bronze — cópia fiel de relatorio_gestao.planilha_editais_lpg, sem cast, filtro nem join (ADR 0010). A aba de editais das planilhas da LPG.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "relatorio_gestao.planilha_editais_lpg"
+      ],
+      "linhas_sql": 5
+    },
+    {
+      "nome": "bronze_planilha_editais_pnab_ciclo_1",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_planilha_editais_pnab_ciclo_1.sql",
+      "descricao": "Camada Bronze — cópia fiel de relatorio_gestao.planilha_editais_pnab_ciclo_1, sem cast, filtro nem join (ADR 0010). As abas de definição de edital do PNAB (ações gerais e Cultura Viva), uma fatia por tabela_origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "relatorio_gestao.planilha_editais_pnab_ciclo_1"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_plano_acao_dado_bancario_minc",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_plano_acao_dado_bancario_minc.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.plano_acao_dado_bancario_minc, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.plano_acao_dado_bancario_minc"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_plano_acao_meta_minc",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_plano_acao_meta_minc.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.plano_acao_meta_minc, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.plano_acao_meta_minc"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_plano_acao_minc",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_plano_acao_minc.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.plano_acao_minc, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.plano_acao_minc"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_programa_minc",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_programa_minc.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.programa_minc, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.programa_minc"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_relatorios_gestao",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_relatorios_gestao.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.relatorios_gestao, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.relatorios_gestao"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_territorio_fcu_setores",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_territorio_fcu_setores.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.territorio_fcu_setores, sem cast, filtro nem join (ADR 0010). Crosswalk do IBGE (Censo 2022) de setor censitário para Favela e Comunidade Urbana, grão setor.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.territorio_fcu_setores"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "silver_agentes_coletivos",
       "dominio": "transferegov",
       "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov/silver_planilha_contemplados.sql",
-      "descricao": "Camada Silver — unifica identificadores (CPF/CNPJ normalizados) das listas oficiais de contemplados de edital, LPG + PNAB, que os entes anexam ao relatório de gestão do plano de ação no TransfereGov Fundo a Fundo. Grão: 1 linha por (documento × programa), já distinta.\nAs colunas de documento são resolvidas dinamicamente via information_schema nas tabelas de origem (e não nas bronzes, que são view e podem não existir na hora do `dbt compile`), porque a ingestão de planilhas não normaliza espaços nem NBSP nos cabeçalhos e o mesmo campo vira várias colunas, cada uma com parte dos dados. O padrão anterior (ILIKE '%cpf%cnpj%') exigia \"cpf\" antes de \"cnpj\" e não casava \"cnpj\" sozinho nem \"cpf/ cnpj\", deixando de fora ~2.100 contemplados do PNAB — a maioria deles com pagamento comprovado no extrato bancário.\nSão duas fontes hoje: planilha_contemplados_lpg e planilha_contemplados_pnab_ciclo_1. Se nenhuma coluna de documento for encontrada nelas, o modelo aborta na compilação com mensagem explícita, em vez de gerar um UNION ALL vazio e quebrar com erro de sintaxe.\nColunas \"cpf (anonimizado)\" são excluídas de propósito: trazem ***XXXXXX** no lugar do documento. Continua valendo que o CPF de PF da lista geral do PNAB, fora do PNCV, não é rastreável.\nMaterializado como VIEW — a varredura do information_schema roda em tempo de compilação e o resultado é pequeno. A view existe no banco, então o conector do OpenMetadata a enxerga normalmente.",
+      "caminho": "dbt/minc/models/transferegov/silver_agentes_coletivos.sql",
+      "descricao": "Camada Silver — Perfil LPG Coletivos/Grupos — une 4 fontes (base + variantes grupo_coletivo, audiovisual e multicultural) via UNION ALL. Demografia = raça/PCD da maioria do grupo/coletivo (não do indivíduo). Documento normalizado via macro normaliza_documento (só dígitos, vazio → NULL); linhas sem documento válido são descartadas. indigena_bruto e quilombola_bruto não existem na fonte LPG — ficam sempre NULL (só preenchidos no PNAB).",
       "colunas": [
         {
-          "nome": "id_normalizado",
-          "descricao": "CPF ou CNPJ do contemplado, normalizado (só dígitos, LPAD para 11 ou 14). Descarta documento com menos de 9 ou mais de 14 dígitos e documento só de zeros."
+          "nome": "identificador_unico",
+          "descricao": "Documento do coletivo (CPF do representante ou CNPJ) normalizado por normaliza_documento."
         },
         {
-          "nome": "programa_fomento",
-          "descricao": "Programa da planilha de onde o documento veio — 'LPG' (planilha_contemplados_lpg) ou 'PNAB' (planilha_contemplados_pnab_ciclo_1)."
+          "nome": "tipo_proponente",
+          "descricao": "Natureza do proponente. Coletivo/grupo aqui."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política que originou o registro. Constante 'lpg'."
+        },
+        {
+          "nome": "raca_bruto",
+          "descricao": "Raça/cor da MAIORIA do grupo/coletivo, autodeclarada em texto livre — característica coletiva, não individual."
+        },
+        {
+          "nome": "pcd_bruto",
+          "descricao": "Declaração de PCD referida à maioria do grupo, texto livre."
+        },
+        {
+          "nome": "indigena_bruto",
+          "descricao": "SEMPRE NULL — campo inexistente na fonte LPG."
+        },
+        {
+          "nome": "quilombola_bruto",
+          "descricao": "SEMPRE NULL — campo inexistente na fonte LPG."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP declarado do coletivo, texto livre."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Município do coletivo em texto livre, insumo da cota territorial."
+        },
+        {
+          "nome": "uf",
+          "descricao": "UF do coletivo, normalmente sigla."
+        },
+        {
+          "nome": "origem_tabela",
+          "descricao": "Aba/tabela de origem da linha após o UNION ALL das 4 fontes."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa. Constante 'LPG'."
         }
       ],
-      "colunas_descritas": 2,
-      "testes": 3,
-      "materializacao": "view",
+      "colunas_descritas": 12,
+      "testes": 1,
+      "materializacao": "table",
       "depende_de": [
-        "bronze_planilha_contemplados_lpg",
-        "bronze_planilha_contemplados_pnab_ciclo_1"
+        "bronze_planilha_dados_lpg"
       ],
       "sources": [],
-      "linhas_sql": 143
+      "linhas_sql": 41
     },
     {
-      "nome": "anexos_relatorios",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_agentes_pf",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/anexos_relatorios.sql",
-      "descricao": "Camada bronze tipada de transferegov.anexos_relatorios. 23 colunas, 3 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_agentes_pf.sql",
+      "descricao": "Camada Silver — Perfil LPG Pessoa Física — une 3 fontes (base + variantes audiovisual e multicultural) via UNION ALL. Filtra o \"lixo\" de parsing: linhas sem CPF válido são descartadas após normalização (macro normaliza_documento). indigena_bruto e quilombola_bruto ficam sempre NULL (exclusivos do PNAB).",
+      "colunas": [
+        {
+          "nome": "identificador_unico",
+          "descricao": "CPF do agente normalizado pela macro normaliza_documento (só dígitos, vazio vira NULL). Chave de ligação com contemplados e pagamentos. Linhas sem documento válido não chegam a este modelo."
+        },
+        {
+          "nome": "tipo_proponente",
+          "descricao": "Natureza do proponente nesta fonte. Sempre pessoa física aqui."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política que originou o registro. Constante 'lpg' neste modelo."
+        },
+        {
+          "nome": "raca_bruto",
+          "descricao": "Raça/cor autodeclarada, exatamente como veio da planilha — texto livre, sem normalização, com grafias divergentes e valores como 'nan'. A normalização em 5 categorias acontece só em eixo2_meta3_perfil_agente."
+        },
+        {
+          "nome": "pcd_bruto",
+          "descricao": "Autodeclaração de pessoa com deficiência, texto livre da planilha (variações de 'sim'/'não'/vazio). Vira booleano só na silver."
+        },
+        {
+          "nome": "indigena_bruto",
+          "descricao": "Autodeclaração indígena. SEMPRE NULL neste modelo — a fonte LPG não coleta o campo; ele só existe no PNAB (ver silver_agentes_pnab_pf)."
+        },
+        {
+          "nome": "quilombola_bruto",
+          "descricao": "Autodeclaração quilombola. SEMPRE NULL neste modelo, mesma razão de indigena_bruto — campo exclusivo do PNAB."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP declarado pelo agente, texto livre e sem validação de formato."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Município do agente em texto livre, sem código IBGE. É o insumo da 4ª cota (território vulnerabilizado), casado por nome em silver_territorio_municipio — join imperfeito por natureza."
+        },
+        {
+          "nome": "uf",
+          "descricao": "UF do agente, normalmente a sigla ('RO'). O crosswalk do IBGE traz a UF por extenso, daí o mapeamento sigla↔nome em silver_territorio_municipio."
+        },
+        {
+          "nome": "origem_tabela",
+          "descricao": "Qual das 3 abas/tabelas de origem produziu a linha (base, audiovisual ou multicultural). Serve para rastrear de onde veio cada registro depois do UNION ALL."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa para leitura humana. Constante 'LPG' aqui."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 1,
+      "materializacao": "table",
+      "depende_de": [
+        "bronze_planilha_dados_lpg"
+      ],
+      "sources": [],
+      "linhas_sql": 41
+    },
+    {
+      "nome": "silver_agentes_pj",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_agentes_pj.sql",
+      "descricao": "Camada Silver — Perfil LPG Pessoa Jurídica — une 3 fontes (base + variantes audiovisual e multicultural) via UNION ALL. Demografia = raça/PCD do corpo diretivo da PJ (não de um indivíduo isolado). Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
+      "colunas": [
+        {
+          "nome": "identificador_unico",
+          "descricao": "CNPJ da organização normalizado por normaliza_documento (só dígitos). Chave de ligação com contemplados e pagamentos."
+        },
+        {
+          "nome": "tipo_proponente",
+          "descricao": "Natureza do proponente. Sempre pessoa jurídica aqui."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política que originou o registro. Constante 'lpg'."
+        },
+        {
+          "nome": "raca_bruto",
+          "descricao": "Raça/cor do CORPO DIRETIVO da PJ, autodeclarada em texto livre — não é a raça de um indivíduo. Ler como característica da organização."
+        },
+        {
+          "nome": "pcd_bruto",
+          "descricao": "Declaração de PCD referida ao corpo diretivo, texto livre."
+        },
+        {
+          "nome": "indigena_bruto",
+          "descricao": "SEMPRE NULL — campo inexistente na fonte LPG."
+        },
+        {
+          "nome": "quilombola_bruto",
+          "descricao": "SEMPRE NULL — campo inexistente na fonte LPG."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP declarado da organização, texto livre."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Município da organização em texto livre, insumo da cota territorial."
+        },
+        {
+          "nome": "uf",
+          "descricao": "UF da organização, normalmente sigla."
+        },
+        {
+          "nome": "origem_tabela",
+          "descricao": "Aba/tabela de origem da linha após o UNION ALL das 3 fontes."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa. Constante 'LPG'."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 1,
+      "materializacao": "table",
+      "depende_de": [
+        "bronze_planilha_dados_lpg"
+      ],
+      "sources": [],
+      "linhas_sql": 40
+    },
+    {
+      "nome": "silver_agentes_pnab_pf",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_agentes_pnab_pf.sql",
+      "descricao": "Camada Silver — Perfil PNAB Pessoa Física (fonte pnab_pessoas) — CPF real (não mascarado) + raça/PCD/indígena/quilombola do próprio indivíduo. Viabiliza cotas demográficas para o PNAB que antes eram impossíveis de calcular (LPG não traz indígena/quilombola). Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
+      "colunas": [
+        {
+          "nome": "identificador_unico",
+          "descricao": "CPF REAL do agente (a fonte PNAB não mascara), normalizado por normaliza_documento. É o que permite casar perfil e pagamento no PNAB."
+        },
+        {
+          "nome": "tipo_proponente",
+          "descricao": "Natureza do proponente. Pessoa física aqui."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política que originou o registro. Constante 'pnab'."
+        },
+        {
+          "nome": "raca_bruto",
+          "descricao": "Raça/cor autodeclarada DO PRÓPRIO INDIVÍDUO, em texto livre. Diferente da LPG PJ/coletivos, aqui a demografia é individual."
+        },
+        {
+          "nome": "pcd_bruto",
+          "descricao": "Autodeclaração de deficiência do indivíduo, texto livre."
+        },
+        {
+          "nome": "indigena_bruto",
+          "descricao": "Autodeclaração indígena — PREENCHIDO neste modelo (exclusivo do PNAB). Alimenta flag_indigena na silver mesmo quando raca_bruto não diz 'indígena', por isso a flag é um OR entre raça normalizada e este campo."
+        },
+        {
+          "nome": "quilombola_bruto",
+          "descricao": "Autodeclaração quilombola — PREENCHIDO neste modelo (exclusivo do PNAB). Hoje é coletado e preservado, mas ainda não vira cota própria."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP declarado. Na prática vem vazio no PNAB."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Município do agente. O PNAB NÃO traz localização do agente — na prática fica NULL, e é por isso que a cota territorial só se aplica à LPG."
+        },
+        {
+          "nome": "uf",
+          "descricao": "UF do agente. Vazia no PNAB, mesma razão de cidade."
+        },
+        {
+          "nome": "origem_tabela",
+          "descricao": "Tabela de origem. Constante 'pnab_pessoas' aqui."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa. Constante 'PNAB'."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 1,
+      "materializacao": "table",
+      "depende_de": [
+        "bronze_planilha_dados_pnab_ciclo_1"
+      ],
+      "sources": [],
+      "linhas_sql": 35
+    },
+    {
+      "nome": "silver_agentes_pnab_pj",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_agentes_pnab_pj.sql",
+      "descricao": "Camada Silver — Perfil PNAB Organizações (fonte pnab_organizacoes) — CNPJ real + raça/PCD/ indígena/quilombola do representante legal da organização. Documento normalizado via normaliza_documento; linhas sem documento válido são descartadas.",
+      "colunas": [
+        {
+          "nome": "identificador_unico",
+          "descricao": "CNPJ real da organização, normalizado por normaliza_documento."
+        },
+        {
+          "nome": "tipo_proponente",
+          "descricao": "Natureza do proponente. Pessoa jurídica aqui."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política que originou o registro. Constante 'pnab'."
+        },
+        {
+          "nome": "raca_bruto",
+          "descricao": "Raça/cor autodeclarada DO REPRESENTANTE LEGAL da organização — não da organização nem do corpo diretivo inteiro. Semântica diferente da LPG PJ, cuidado ao somar os dois programas."
+        },
+        {
+          "nome": "pcd_bruto",
+          "descricao": "Autodeclaração de deficiência do representante legal."
+        },
+        {
+          "nome": "indigena_bruto",
+          "descricao": "Autodeclaração indígena do representante legal. Preenchido no PNAB."
+        },
+        {
+          "nome": "quilombola_bruto",
+          "descricao": "Autodeclaração quilombola do representante legal. Preenchido no PNAB."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP declarado. Vazio no PNAB na prática."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Município. NULL no PNAB — sem localização do agente."
+        },
+        {
+          "nome": "uf",
+          "descricao": "UF. NULL no PNAB."
+        },
+        {
+          "nome": "origem_tabela",
+          "descricao": "Tabela de origem. Constante 'pnab_organizacoes'."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa. Constante 'PNAB'."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 1,
+      "materializacao": "table",
+      "depende_de": [
+        "bronze_planilha_dados_pnab_ciclo_1"
+      ],
+      "sources": [],
+      "linhas_sql": 35
+    },
+    {
+      "nome": "silver_anexos_relatorios",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_anexos_relatorios.sql",
+      "descricao": "Camada Silver — transferegov.anexos_relatorios tipada, lida de bronze_anexos_relatorios. 23 colunas, 3 com cast aplicado.",
       "colunas": [
         {
           "nome": "versao",
@@ -43382,19 +43002,353 @@
       "colunas_descritas": 23,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.anexos_relatorios"
+      "depende_de": [
+        "bronze_anexos_relatorios"
       ],
-      "linhas_sql": 32
+      "sources": [],
+      "linhas_sql": 33
     },
     {
-      "nome": "plano_acao_dado_bancario_minc",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_contemplados_lpg",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/plano_acao_dado_bancario_minc.sql",
-      "descricao": "Camada bronze tipada de transferegov.plano_acao_dado_bancario_minc. 17 colunas, 7 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_contemplados_lpg.sql",
+      "descricao": "Camada Silver — Contemplados LPG (lado-valor) — colunas duplicadas por schema-drift na ingestão de planilhas são resolvidas via coalesce_por_nome (lê pelo nome real da coluna, imune a espaço/trailing). Extrai anexo_id do id_anexo da fonte. Documento mascarado (contém '*') não vira chave casável (identificador_unico = NULL), mas o valor é preservado e a linha é marcada via chave_anonimizada. Valor monetário convertido por parse_valor, com teto padrão de R$10M (valores acima disso viram NULL em valor_pago_num, mas ficam preservados em valor_bruto_num para diagnóstico).",
+      "colunas": [
+        {
+          "nome": "anexo_id",
+          "descricao": "Identificador do anexo (planilha) do relatório de gestão que originou a linha. É a chave que liga o pagamento ao ano do edital derivado em silver_edital_ano_por_anexo / silver_edital_ano_por_arquivo."
+        },
+        {
+          "nome": "identificador_unico",
+          "descricao": "CPF/CNPJ do contemplado normalizado. NULL quando o documento veio mascarado na planilha — nesse caso a linha NÃO casa com perfil, mas continua contando no denominador de valor."
+        },
+        {
+          "nome": "chave_anonimizada",
+          "descricao": "True quando o documento de origem estava mascarado (contém '*'). Marca explicitamente por que identificador_unico é NULL, separando \"dado ausente\" de \"dado protegido\"."
+        },
+        {
+          "nome": "valor_pago_num",
+          "descricao": "Valor pago convertido para número por parse_valor, com teto de R$10M. Acima do teto vira NULL (sai do denominador) — o valor original fica em valor_bruto_num. É a coluna que soma no cálculo das cotas."
+        },
+        {
+          "nome": "valor_bruto_num",
+          "descricao": "Valor convertido SEM aplicar o teto de R$10M. Existe para auditar o que o teto cortou (ver eixo2_meta3_diag_valores_cortados) — não use para somar."
+        },
+        {
+          "nome": "nome_edital",
+          "descricao": "Nome do edital como veio na planilha. 1ª fonte da cascata de datação (padrão \"NN/AAAA\"). Também é o campo usado na silver para descartar linhas-fantasma (rodapé de subtotal e texto de template)."
+        },
+        {
+          "nome": "link",
+          "descricao": "URL do edital ou do documento de origem, quando a planilha traz."
+        },
+        {
+          "nome": "nome_arquivo",
+          "descricao": "Nome do arquivo xlsx de origem. 3ª fonte da cascata de datação — o nome costuma carregar o ano (ex.: \"Contemplados 2024.xlsx\")."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa. Constante 'LPG'."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política de origem. Constante 'lpg'."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 1,
+      "materializacao": "table",
+      "depende_de": [
+        "bronze_planilha_contemplados_lpg"
+      ],
+      "sources": [],
+      "linhas_sql": 48
+    },
+    {
+      "nome": "silver_contemplados_pnab",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_contemplados_pnab.sql",
+      "descricao": "Camada Silver — Contemplados PNAB (lado-valor) — une as listas geral + pncv via coalesce_por_nome (mesma técnica de silver_contemplados_lpg). Chave = CNPJ real (sempre casável) ou CPF real do PNCV; CPF anonimizado (***XXXXXX**) da lista geral não vira chave (fica NULL, flagado por chave_anonimizada), mas o valor é preservado. anexo_id liga este modelo ao ano do edital derivado por anexo (silver_edital_ano_por_anexo / silver_edital_ano_por_arquivo). Valor monetário convertido por parse_valor (mesmo teto de R$10M).",
+      "colunas": [
+        {
+          "nome": "anexo_id",
+          "descricao": "Identificador do anexo do relatório de gestão que originou a linha. Chave para derivar o ano do edital por anexo."
+        },
+        {
+          "nome": "identificador_unico",
+          "descricao": "CNPJ real (lista geral) ou CPF real (PNCV) normalizado. NULL quando o CPF da lista geral veio anonimizado no padrão ***XXXXXX**."
+        },
+        {
+          "nome": "chave_anonimizada",
+          "descricao": "True quando o documento de origem estava mascarado."
+        },
+        {
+          "nome": "valor_pago_num",
+          "descricao": "Valor pago convertido por parse_valor com teto de R$10M. ATENÇÃO: no PNAB este valor mede o RECEBIDO pelos entes (repasse), não o pago à pessoa — ver a ressalva do Diagnóstico 4 em eixo2_meta3_distribuicao_cotas_pnab."
+        },
+        {
+          "nome": "valor_bruto_num",
+          "descricao": "Valor sem o teto de R$10M, só para auditoria do corte."
+        },
+        {
+          "nome": "nome_edital",
+          "descricao": "Nome do edital como veio na planilha. 1ª fonte de datação e campo de corte das linhas-fantasma na silver. 'nan' aqui NÃO é lixo — é pagamento real sem edital identificado."
+        },
+        {
+          "nome": "link",
+          "descricao": "URL do edital ou documento de origem, quando presente."
+        },
+        {
+          "nome": "nome_arquivo",
+          "descricao": "Nome do xlsx de origem, 3ª fonte da cascata de datação."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa. Constante 'PNAB'."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política de origem. Constante 'pnab'."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 1,
+      "materializacao": "table",
+      "depende_de": [
+        "bronze_planilha_contemplados_pnab_ciclo_1"
+      ],
+      "sources": [],
+      "linhas_sql": 76
+    },
+    {
+      "nome": "silver_contemplados_unif",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_contemplados_unif.sql",
+      "descricao": "Contemplados unificados LPG + PNAB — núcleo do lado-valor das cotas. Deriva o ANO do edital em cascata de 3 fontes, todas validadas em [2013, 2026]: 1) nome_edital no padrão \"NN/AAAA\"; 2) ano por ANEXO via número do edital nas abas de definição PNAB (silver_edital_ano_por_anexo); 3) fallback pelo ano no NOME DO ARQUIVO por anexo (silver_edital_ano_por_arquivo). anexo_id é propagado até o fato para rastreio.\nLimpeza de linhas-fantasma: as planilhas PNAB trazem linhas que não são pagamentos individuais mas carregam valor e por isso escapam do filtro do bronze (que só descarta linha sem documento E sem valor). São descartadas aqui por padrão de texto em nome_edital: (a) rodapé de subtotal (\"TOTAL DE RECURSOS APLICADOS:\"), que somado como pagamento duplicaria o dinheiro (medido: ~R$492M de fantasma, mais que o total real do PNAB de ~R$447M no painel oficial); (b) texto de instrução do template (\"Insira informações na aba...\"). O corte é feito na silver (não no bronze, que permanece raw-fiel) para cobrir o fato e os golds num único ponto. IMPORTANTE: nome_edital = 'nan' NÃO é cortado — é pagamento real sem edital identificado (vira 'sem_ano' no denominador), não lixo.",
+      "colunas": [
+        {
+          "nome": "identificador_unico",
+          "descricao": "CPF/CNPJ do contemplado, normalizado. NULL quando o documento veio mascarado — a linha permanece no denominador de valor, mas não casa com perfil e portanto não entra em nenhum numerador de cota."
+        },
+        {
+          "nome": "chave_anonimizada",
+          "descricao": "True quando o documento de origem estava mascarado. Distingue \"sem perfil porque o dado é protegido\" de \"sem perfil porque não casou\"."
+        },
+        {
+          "nome": "valor_pago_num",
+          "descricao": "Valor pago em reais, já com o teto de R$10M do parse_valor aplicado. É a medida somada em todos os golds de cota."
+        },
+        {
+          "nome": "nome_edital",
+          "descricao": "Nome do edital. 1ª fonte da cascata de datação e campo usado para cortar as linhas-fantasma. 'nan' aqui é pagamento real sem edital identificado — não é lixo e não é cortado."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política de origem do pagamento."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa para leitura humana ('LPG' ou 'PNAB')."
+        },
+        {
+          "nome": "anexo_id",
+          "descricao": "Anexo do relatório de gestão que originou a linha. Propagado até o fato para permitir rastrear qualquer número de volta à planilha."
+        },
+        {
+          "nome": "nome_arquivo",
+          "descricao": "Nome do xlsx de origem — insumo da 3ª fonte de datação."
+        },
+        {
+          "nome": "ano_final",
+          "descricao": "Ano do edital resolvido pela cascata de 3 fontes, validado em [2013, 2026]. Assume 'sem_ano' quando nenhuma fonte resolve — esses pagamentos continuam no total, mas ficam fora do recorte anual."
+        },
+        {
+          "nome": "origem_ano",
+          "descricao": "Qual etapa da cascata resolveu ano_final. Serve para medir confiança: 'nome_edital' é a mais precisa, 'nome_arquivo' a mais frágil (pode refletir data de publicação, defasada até ~1 ano)."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [
+        "silver_contemplados_lpg",
+        "silver_contemplados_pnab",
+        "silver_edital_ano_por_anexo",
+        "silver_edital_ano_por_arquivo"
+      ],
+      "sources": [],
+      "linhas_sql": 71
+    },
+    {
+      "nome": "silver_editais",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_editais.sql",
+      "descricao": "Camada Silver — Editais LPG — une lpg_editais + 4 tabelas de instrumentos via UNION ALL; resolve colunas duplicadas (ex.: \"valor total do edital\" aparece repetida em lpg_editais) via coalesce_por_nome. Base de denominador e de derivação de ano (nome/número do edital) para o reconciliador silver_editais_unif — não é o caminho de ano efetivamente usado pelo fluxo principal das cotas (ver silver_contemplados_unif).",
+      "colunas": [
+        {
+          "nome": "nome_edital",
+          "descricao": "Nome do edital em texto livre, como veio da planilha de definição."
+        },
+        {
+          "nome": "numero_edital",
+          "descricao": "Número do edital, normalmente no padrão \"NN/AAAA\" — é dele que silver_editais_unif deriva o ano, com fallback para nome_edital."
+        },
+        {
+          "nome": "valor_total",
+          "descricao": "Valor total do edital, já resolvido por coalesce_por_nome (a coluna aparece duplicada na origem). Base de denominador para reconciliação."
+        },
+        {
+          "nome": "nome_arquivo",
+          "descricao": "Nome do xlsx de origem da linha."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa. Constante 'LPG'."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 0,
+      "materializacao": "table",
+      "depende_de": [
+        "bronze_planilha_dados_lpg",
+        "bronze_planilha_editais_lpg"
+      ],
+      "sources": [],
+      "linhas_sql": 52
+    },
+    {
+      "nome": "silver_editais_unif",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_editais_unif.sql",
+      "descricao": "Editais unificados a partir de silver_editais, com ano derivado (numero_edital, com fallback para nome_edital), validado em [2013, 2026]. Mantido para reconciliação/auditoria — não é o caminho de ano efetivamente usado pelas cotas (esse é o de silver_contemplados_unif, via silver_edital_ano_por_anexo/silver_edital_ano_por_arquivo).",
+      "colunas": [
+        {
+          "nome": "nome_edital",
+          "descricao": "Nome do edital em texto livre."
+        },
+        {
+          "nome": "numero_edital",
+          "descricao": "Número do edital (\"NN/AAAA\") — 1ª fonte do ano aqui."
+        },
+        {
+          "nome": "valor_total",
+          "descricao": "Valor total previsto do edital. Denominador alternativo para reconciliação; não é o denominador usado nas cotas."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Rótulo do programa."
+        },
+        {
+          "nome": "ano_edital",
+          "descricao": "Ano derivado de numero_edital, com fallback para nome_edital, validado em [2013, 2026]. NULL quando nenhum dos dois resolve."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "silver_editais"
+      ],
+      "sources": [],
+      "linhas_sql": 13
+    },
+    {
+      "nome": "silver_edital_ano_por_anexo",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_edital_ano_por_anexo.sql",
+      "descricao": "Ano do edital por ANEXO (PNAB) — 2ª fonte na cascata de datação de silver_contemplados_unif. Extraído do campo \"número do edital\" nas abas de definição PNAB (raw_pnab_acoes_gerais + raw_pnab_acoes_cultura_viva), mais completo que o nome do edital na planilha de contemplados. Só mantém anexos com ano ÚNICO e consistente entre linhas — descarta anexo multi-ano por ambiguidade.",
+      "colunas": [
+        {
+          "nome": "anexo_id",
+          "descricao": "Anexo do relatório de gestão. Chave primária: um anexo resolve no máximo um ano. Anexos com mais de um ano são descartados na origem, não desempatados — ambiguidade aqui viraria erro silencioso de cota."
+        },
+        {
+          "nome": "ano_edital",
+          "descricao": "Ano extraído do número do edital nas abas de definição do PNAB, validado em [2013, 2026]. Mais confiável que o ano por nome de arquivo."
+        }
+      ],
+      "colunas_descritas": 2,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_planilha_editais_pnab_ciclo_1"
+      ],
+      "sources": [],
+      "linhas_sql": 39
+    },
+    {
+      "nome": "silver_edital_ano_por_arquivo",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_edital_ano_por_arquivo.sql",
+      "descricao": "Ano do edital por ANEXO via NOME DO ARQUIVO — 3ª fonte (fallback) na cascata de datação de silver_contemplados_unif, usada só quando nome_edital e o número do edital por anexo não resolvem o ano. O nome do xlsx de origem costuma carregar o ano (ex.: \"Contemplados 2024.xlsx\"). Mesma regra de silver_edital_ano_por_anexo: agrega por anexo_id e só mantém anexos com ano único, na faixa [2013, 2026]. Ganho medido (jul/2026): cobre 1.036 anexos contra 477 do método por número do edital — 849 anexos adicionais. É deliberadamente a fonte de menor prioridade: o nome do arquivo pode refletir a data de publicação, defasada em até ~1 ano em relação ao edital em si.",
+      "colunas": [
+        {
+          "nome": "anexo_id",
+          "descricao": "Anexo do relatório de gestão. Chave primária, mesma regra do silver_edital_ano_por_anexo: anexo multi-ano é descartado."
+        },
+        {
+          "nome": "ano_edital",
+          "descricao": "Ano extraído do NOME DO ARQUIVO xlsx, validado em [2013, 2026]. Use com ressalva: pode ser o ano de publicação do arquivo, não do edital."
+        }
+      ],
+      "colunas_descritas": 2,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_planilha_contemplados_lpg",
+        "bronze_planilha_contemplados_pnab_ciclo_1"
+      ],
+      "sources": [],
+      "linhas_sql": 40
+    },
+    {
+      "nome": "silver_planilha_contemplados",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_planilha_contemplados.sql",
+      "descricao": "Camada Silver — unifica identificadores (CPF/CNPJ normalizados) das listas oficiais de contemplados de edital, LPG + PNAB, que os entes anexam ao relatório de gestão do plano de ação no TransfereGov Fundo a Fundo. Grão: 1 linha por (documento × programa), já distinta.\nAs colunas de documento são resolvidas dinamicamente via information_schema nas tabelas de origem (e não nas bronzes, que são view e podem não existir na hora do `dbt compile`), porque a ingestão de planilhas não normaliza espaços nem NBSP nos cabeçalhos e o mesmo campo vira várias colunas, cada uma com parte dos dados. O padrão anterior (ILIKE '%cpf%cnpj%') exigia \"cpf\" antes de \"cnpj\" e não casava \"cnpj\" sozinho nem \"cpf/ cnpj\", deixando de fora ~2.100 contemplados do PNAB — a maioria deles com pagamento comprovado no extrato bancário.\nSão duas fontes hoje: planilha_contemplados_lpg e planilha_contemplados_pnab_ciclo_1. Se nenhuma coluna de documento for encontrada nelas, o modelo aborta na compilação com mensagem explícita, em vez de gerar um UNION ALL vazio e quebrar com erro de sintaxe.\nColunas \"cpf (anonimizado)\" são excluídas de propósito: trazem ***XXXXXX** no lugar do documento. Continua valendo que o CPF de PF da lista geral do PNAB, fora do PNCV, não é rastreável.\nMaterializado como VIEW — a varredura do information_schema roda em tempo de compilação e o resultado é pequeno. A view existe no banco, então o conector do OpenMetadata a enxerga normalmente.",
+      "colunas": [
+        {
+          "nome": "id_normalizado",
+          "descricao": "CPF ou CNPJ do contemplado, normalizado (só dígitos, LPAD para 11 ou 14). Descarta documento com menos de 9 ou mais de 14 dígitos e documento só de zeros."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Programa da planilha de onde o documento veio — 'LPG' (planilha_contemplados_lpg) ou 'PNAB' (planilha_contemplados_pnab_ciclo_1)."
+        }
+      ],
+      "colunas_descritas": 2,
+      "testes": 3,
+      "materializacao": "view",
+      "depende_de": [
+        "bronze_planilha_contemplados_lpg",
+        "bronze_planilha_contemplados_pnab_ciclo_1"
+      ],
+      "sources": [],
+      "linhas_sql": 150
+    },
+    {
+      "nome": "silver_plano_acao_dado_bancario_minc",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_plano_acao_dado_bancario_minc.sql",
+      "descricao": "Camada Silver — transferegov.plano_acao_dado_bancario_minc tipada, lida de bronze_plano_acao_dado_bancario_minc. 17 colunas, 7 com cast aplicado.",
       "colunas": [
         {
           "nome": "cod_ibge",
@@ -43468,19 +43422,19 @@
       "colunas_descritas": 17,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.plano_acao_dado_bancario_minc"
+      "depende_de": [
+        "bronze_plano_acao_dado_bancario_minc"
       ],
-      "linhas_sql": 26
+      "sources": [],
+      "linhas_sql": 27
     },
     {
-      "nome": "plano_acao_meta_minc",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_plano_acao_meta_minc",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/plano_acao_meta_minc.sql",
-      "descricao": "Camada bronze tipada de transferegov.plano_acao_meta_minc. 11 colunas, 8 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_plano_acao_meta_minc.sql",
+      "descricao": "Camada Silver — transferegov.plano_acao_meta_minc tipada, lida de bronze_plano_acao_meta_minc. 11 colunas, 8 com cast aplicado.",
       "colunas": [
         {
           "nome": "cod_ibge",
@@ -43530,19 +43484,19 @@
       "colunas_descritas": 11,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.plano_acao_meta_minc"
+      "depende_de": [
+        "bronze_plano_acao_meta_minc"
       ],
-      "linhas_sql": 20
+      "sources": [],
+      "linhas_sql": 21
     },
     {
-      "nome": "plano_acao_minc",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_plano_acao_minc",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/plano_acao_minc.sql",
-      "descricao": "Camada bronze tipada de transferegov.plano_acao_minc. 56 colunas, 19 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_plano_acao_minc.sql",
+      "descricao": "Camada Silver — transferegov.plano_acao_minc tipada, lida de bronze_plano_acao_minc. 56 colunas, 19 com cast aplicado.",
       "colunas": [
         {
           "nome": "id_plano_acao",
@@ -43772,19 +43726,19 @@
       "colunas_descritas": 56,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.plano_acao_minc"
+      "depende_de": [
+        "bronze_plano_acao_minc"
       ],
-      "linhas_sql": 65
+      "sources": [],
+      "linhas_sql": 66
     },
     {
-      "nome": "programa_minc",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_programa_minc",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/programa_minc.sql",
-      "descricao": "Camada bronze tipada de transferegov.programa_minc. 40 colunas, 11 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_programa_minc.sql",
+      "descricao": "Camada Silver — transferegov.programa_minc tipada, lida de bronze_programa_minc. 40 colunas, 11 com cast aplicado.",
       "colunas": [
         {
           "nome": "sigla",
@@ -43950,19 +43904,19 @@
       "colunas_descritas": 40,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.programa_minc"
+      "depende_de": [
+        "bronze_programa_minc"
       ],
-      "linhas_sql": 49
+      "sources": [],
+      "linhas_sql": 50
     },
     {
-      "nome": "relatorios_gestao",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_relatorios_gestao",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/relatorios_gestao.sql",
-      "descricao": "Camada bronze tipada de transferegov.relatorios_gestao. 14 colunas, 8 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_relatorios_gestao.sql",
+      "descricao": "Camada Silver — transferegov.relatorios_gestao tipada, lida de bronze_relatorios_gestao. 14 colunas, 8 com cast aplicado.",
       "colunas": [
         {
           "nome": "dt_ingest",
@@ -44024,11 +43978,57 @@
       "colunas_descritas": 14,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.relatorios_gestao"
+      "depende_de": [
+        "bronze_relatorios_gestao"
       ],
-      "linhas_sql": 23
+      "sources": [],
+      "linhas_sql": 24
+    },
+    {
+      "nome": "silver_territorio_municipio",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_territorio_municipio.sql",
+      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor classificado como Favela e Comunidade Urbana (FCU, Censo 2022). O nome da coluna é legado: FCU não é \"concentração urbana\". Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
+      "colunas": [
+        {
+          "nome": "cd_mun",
+          "descricao": "Código IBGE do município (7 dígitos). Chave primária do crosswalk depois do colapso do grão setor para o grão município."
+        },
+        {
+          "nome": "nm_mun",
+          "descricao": "Nome do município conforme o IBGE, com acentuação original."
+        },
+        {
+          "nome": "cd_uf",
+          "descricao": "Código IBGE da UF (2 dígitos)."
+        },
+        {
+          "nome": "nm_uf",
+          "descricao": "Nome da UF por extenso, como vem do IBGE (\"Rondônia\"). É a razão de existir o mapeamento para sigla — os agentes LPG registram \"RO\"."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla da UF derivada de cd_uf, para casar com o texto dos agentes."
+        },
+        {
+          "nome": "em_concentracao_urbana",
+          "descricao": "True quando o município tem ao menos UM setor censitário classificado como Favela e Comunidade Urbana (FCU, Censo 2022). A origem só traz setores de FCU, então é true para todo município presente nela. O nome da coluna é legado (FCU não é \"concentração urbana\"). É um indicador no grão município, não no grão setor: um município grande marcado como true não é periférico por inteiro."
+        },
+        {
+          "nome": "chave_municipio_uf",
+          "descricao": "Chave de junção por nome (município+UF normalizados) com eixo2_meta3_perfil_agente. É a entidade `primary` do semantic model: duplicata aqui multiplicaria o valor pago no cálculo da cota territorial. NULL quando a sigla da UF não resolve — o teste `unique` ignora nulos."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_territorio_fcu_setores"
+      ],
+      "sources": [],
+      "linhas_sql": 82
     }
   ],
   "dominios": {
@@ -44056,20 +44056,11 @@
         "silver": 7
       }
     },
-    "cotas": {
-      "modelos": 24,
-      "testes": 28,
-      "camadas": {
-        "bronze": 9,
-        "gold": 6,
-        "silver": 9
-      }
-    },
     "cultura_em_numeros": {
-      "modelos": 6,
-      "testes": 57,
+      "modelos": 13,
+      "testes": 69,
       "camadas": {
-        "gold": 6
+        "gold": 13
       }
     },
     "ibge_sidra": {
@@ -44118,18 +44109,11 @@
       }
     },
     "transferegov": {
-      "modelos": 3,
-      "testes": 3,
+      "modelos": 33,
+      "testes": 19,
       "camadas": {
-        "bronze": 2,
-        "silver": 1
-      }
-    },
-    "transferegov_bronze": {
-      "modelos": 6,
-      "testes": 0,
-      "camadas": {
-        "outros": 6
+        "bronze": 13,
+        "silver": 20
       }
     }
   },
@@ -44137,7 +44121,7 @@
     {
       "nome": "bb_agil",
       "schema": "bb_agil",
-      "descricao": "Schema de ingestão do extrato bancário BB Gestão Ágil/SERPRO — pouso dos lançamentos financeiros brutos, anterior à agregação/filtragem que gera bsc_pnab.fato_bbagil (a fonte de fato lida pelo model, hoje desabilitado, stg_bbagil). Não consumido diretamente por nenhum model deste projeto.",
+      "descricao": "Schema de ingestão do extrato bancário BB Gestão Ágil/SERPRO — pouso dos lançamentos financeiros brutos, anterior à agregação/filtragem que gera bsc_pnab.fato_bbagil, agregado que a DAG não gera mais e que nenhum modelo lê. Não consumido diretamente por nenhum model deste projeto.",
       "tabelas": [
         {
           "nome": "raw_ingestao_financeira_lancamentos",
@@ -44369,7 +44353,7 @@
     {
       "nome": "execucao_pnab",
       "schema": "execucao_pnab",
-      "descricao": "Base de dados de execução do PNAB. [Descrição anterior — \"contemplados, editais, instrumentos e anexos\" — era copiada de outro schema; corrigida nesta revisão.] Schema não integrado a nenhum model deste projeto dbt; hipótese não confirmada: pode ser a fonte dos números do \"painel oficial\" (recebido/gasto) citados nos comentários de distribuicao_cotas_pnab.sql e stg_bbagil.sql.",
+      "descricao": "Base de dados de execução do PNAB. [Descrição anterior — \"contemplados, editais, instrumentos e anexos\" — era copiada de outro schema; corrigida nesta revisão.] Schema não integrado a nenhum model deste projeto dbt; hipótese não confirmada: pode ser a fonte dos números do \"painel oficial\" (recebido/gasto) citados nos comentários de eixo2_meta3_distribuicao_cotas_pnab.sql.",
       "tabelas": [
         {
           "nome": "distribuicao_territorial_pnab",
@@ -44470,10 +44454,6 @@
       "descricao": "",
       "tabelas": [
         {
-          "nome": "fato_bbagil",
-          "descricao": ""
-        },
-        {
           "nome": "extrato_bbagil",
           "descricao": "Uma linha por transacao do extrato bancario do BB Gestao Agil (orgao de controle), persistida por ``extracao_bbagil_dag`` direto da resposta da API do BSC/SERPRO. O extrato e consultado por CONTA, e um plano de acao tem mais de uma (os da LPG tem duas): a chave e ``id_plano_acao`` + ``id_plano_acao_dado_bancario`` + ``id``, e todo join com esta tabela precisa carregar a conta, senao duplica."
         },
@@ -44535,9 +44515,9 @@
     }
   ],
   "totais": {
-    "modelos": 729,
+    "modelos": 736,
     "testes": 5183,
-    "com_descricao": 728,
-    "sources": 79
+    "com_descricao": 735,
+    "sources": 78
   }
 }
