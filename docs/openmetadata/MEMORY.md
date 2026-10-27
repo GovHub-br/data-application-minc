@@ -387,6 +387,7 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | F14 | Meta 4 — IBGE, capitais, vulnerabilidade e bridge de execução | minc | 🟠 PARCIAL · Codex · 2026-09-03 — bridge entregue como `Disabled`; cobertura de PRONAC é só 4.269 projetos |
 | F15 | Meta 5 — histórico do proponente e golds de primeiro acesso | minc | 🟢 LIVRE — depende de `fct_evento_acesso_rouanet` e da chave HMAC |
 | F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | ✅ FEITO · Claude · 2026-09-02 20:20 -03 |
+| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | 🟣 EM CURSO · Claude + Luiza · 2026-10-27 · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
 
 ### F1 — Credencial (cidades) 🔴
 **Arquivos/refs:** HEAD e histórico de
@@ -551,6 +552,35 @@ reconferidos**.
 
 **Próximo passo.** Distribuir as frentes de §9. F1 e F2 são as de maior retorno
 imediato e não colidem entre si.
+
+### 2026-10-27 · Claude · F17 — plano da migração do salic_dbt
+
+**Decisão.** O SALIC é um banco interno do Ministério, copiado pelo Trino
+direto para o schema `salic_bronze` (ADR 0005), sem raw no MinIO. Decisão da
+equipe em 2026-10-27: `salic_bronze` **é** a Bronze, e os 589 modelos de
+`salic_dbt/bronze/` (que tipam) são Silver e continuam lendo
+`source('bronze_<origem>', ...)`. Virou o ADR 0016, que faz a R3 do
+`verificar.py` aceitar `source()` cujo nome comece com `bronze_`. Criar 589
+`bronze_*` foi descartado: como `table` duplica 52,7 GB sem leitor; como
+`view` prende o `DROP TABLE` da ingestão v2.
+
+**Sequência.** PR 0 = ADR 0016 + `verificar.py` (a CI proíbe ADR e modelo no
+mesmo PR). PR 1 a 5 = um lote por origem (`controledeacesso` 3,
+`bdcorporativo` 5, `agentes` 23, `tabelas` 77, `sac` 481), movidos por
+`scripts/migrar_lote_salic.py` para `salic/silver_<origem>_<tabela>.sql`, com
+corpo SQL idêntico, `dbt run --target dev` em `dev_salic` e `count(*)` origem
+versus silver. PR 6 = os 10 modelos manuais de `core/meta3/meta4/meta5` e o
+fim do `salic_dbt/`. Plano completo em
+`docs/superpowers/plans/2026-10-27-salic-adr-0010.md`.
+
+**O que o diagnóstico no dbanalytics mostrou (2026-10-27).** O schema `salic`
+tem 589 views e 9 tabelas; 588 views têm o nome de um modelo do lote (a outra
+é `sac__bcoagmar2011_`, arquivo com `_` no lugar do `$` da tabela). As 589
+views dependem de 589 tabelas do `salic_bronze`, ou seja, o `DROP TABLE` da
+ingestão v2 está bloqueado para todas elas hoje; isso é anterior à migração e
+vira issue própria. As 589 tabelas do lote existem no banco; tamanhos: sac
+58 GB, bdcorporativo 764 MB, agentes 643 MB, tabelas 391 MB,
+controledeacesso 73 MB.
 
 ---
 

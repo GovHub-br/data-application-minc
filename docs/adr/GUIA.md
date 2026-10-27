@@ -37,6 +37,7 @@ código da DAG.
 | [0012](0012-fontes-estaticas-no-schema-seeds.md) | Fonte estática vai de raw a Parquet no MinIO e chega ao Postgres no schema `seeds` |
 | [0014](0014-siconfi-grava-so-o-raw-e-controla-pelo-trino.md) | A ingestão do SICONFI grava só o raw no MinIO e controla a fila pelo Trino |
 | [0015](0015-produtos-em-data-products-e-gold-lendo-gold.md) | Produtos em `data_products/`, Intermediate nomeada pelas fontes, Gold lendo Gold do mesmo produto e o que é regra de negócio (substitui partes do 0010) |
+| [0016](0016-salic-sem-raw-a-source-e-a-bronze.md) | Fonte sem raw: quando a ingestão já grava a cópia fiel, a source é a Bronze e a Silver a lê por `source()` (substitui parte da R3 do 0010) |
 
 Para escrever um novo, existe a skill
 [`architecture-decision-records`](../../.claude/skills/architecture-decision-records/).
