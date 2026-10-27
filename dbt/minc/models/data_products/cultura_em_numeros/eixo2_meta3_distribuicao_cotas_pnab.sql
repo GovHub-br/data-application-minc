@@ -5,7 +5,7 @@
 --
 -- RESSALVA (Diag. 4): enquanto o lado-valor PNAB vier das listas de contemplados,
 -- o denominador mede valor RECEBIDO (repasse a entes ~R$2,7bi), não o valor PAGO
--- a pessoas (~R$447mi). Quando o bbágil (eixo2_meta3_pagamento_bbagil) estiver ativo,
--- este
--- modelo deve passar a ler o valor pago real — ver plano_integracao_meta3.
+-- a pessoas (~R$447mi). Quando a medida sobre o valor pago pelo BB Ágil existir
+-- (lendo eixo2_meta5_evento_fomento; PR seguinte a este), este modelo deve
+-- passar a ler o valor pago real — ver plano_integracao_meta3.
 {{ distribuicao_cotas("PNAB", incluir_territorio=false) }}

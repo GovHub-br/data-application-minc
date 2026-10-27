@@ -166,23 +166,6 @@
       "linhas_sql": 5
     },
     {
-      "nome": "bronze_fato_bbagil",
-      "dominio": "bbagil",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/bbagil/bronze_fato_bbagil.sql",
-      "descricao": "Camada Bronze — cópia fiel de bbagil.fato_bbagil, sem cast, filtro nem join (ADR 0010). Agregado (ente, documento) do valor pago a beneficiário final, gerado pela extracao_bbagil_dag. [MODELO DESABILITADO — config(enabled=false)] A tabela ainda não existe no banco.",
-      "colunas": [],
-      "colunas_descritas": 0,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bbagil.fato_bbagil"
-      ],
-      "linhas_sql": 10
-    },
-    {
       "nome": "bronze_subtransacao_bbagil",
       "dominio": "bbagil",
       "camada": "bronze",
@@ -472,44 +455,6 @@
       ],
       "sources": [],
       "linhas_sql": 54
-    },
-    {
-      "nome": "silver_fato_bbagil",
-      "dominio": "bbagil",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/bbagil/silver_fato_bbagil.sql",
-      "descricao": "Camada Silver — [MODELO DESABILITADO — config(enabled=false)] Aguarda a DAG extracao_bbagil_dag rodar com sucesso (hoje falha na autenticação SCA por SCA_TOKEN_URL vazio no .env); reativar (enabled=true) quando bsc_pnab.fato_bbagil existir.\nLado-valor via extrato bancário (BB Gestão Ágil/SERPRO): mede o valor efetivamente PAGO ao beneficiário final (pessoa), não o repasse a entes públicos. Fonte já vem agregada e filtrada na origem (grão ente+documento, só débito ao beneficiário, sem repasse entre entes públicos, valores ≥R$375).\nPor que importa: eixo2_meta3_pagamento_elegivel (lado das listas de contemplados) mede valor RECEBIDO pelos entes (~R$2,7bi, painel \"recebido\"); o bbágil mede o valor GASTO/pago às pessoas (~R$447mi, painel \"gasto\") — o denominador correto para as cotas. O documento do beneficiário vem real (não mascarado), normalizado pela mesma macro normaliza_documento usada em eixo2_meta3_perfil_agente, garantindo join direto e consistente entre as duas bases.",
-      "colunas": [
-        {
-          "nome": "ente_bbagil",
-          "descricao": "Ente federado (município/estado) titular da conta no BB Gestão Ágil. Chave de junção com silver_plano_acao_ente_ano, que traz ano e código IBGE."
-        },
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF/CNPJ do beneficiário final normalizado por normaliza_documento — a MESMA macro usada em eixo2_meta3_perfil_agente, o que garante casamento maçã com maçã entre extrato bancário e perfil."
-        },
-        {
-          "nome": "documento_raw",
-          "descricao": "Documento do beneficiário exatamente como veio do extrato, antes da normalização. Preservado para auditoria do casamento."
-        },
-        {
-          "nome": "chave_anonimizada",
-          "descricao": "True quando o documento do extrato contém máscara ('*')."
-        },
-        {
-          "nome": "valor_pago_num",
-          "descricao": "Valor da transação convertido por parse_valor. Diferente do lado das listas, aqui é o valor EFETIVAMENTE PAGO à pessoa — o denominador correto para as cotas quando o modelo for reativado."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [
-        "bronze_fato_bbagil"
-      ],
-      "sources": [],
-      "linhas_sql": 25
     },
     {
       "nome": "silver_pagamento_bbagil",
@@ -900,41 +845,6 @@
       "linhas_sql": 36
     },
     {
-      "nome": "eixo2_meta3_comparativo_recebido_vs_pago",
-      "dominio": "cultura_em_numeros",
-      "camada": "gold",
-      "meta": 3,
-      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_comparativo_recebido_vs_pago.sql",
-      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com bronze_fato_bbagil, pois depende de eixo2_meta3_pagamento_bbagil. Reativar (enabled=true) junto.\nValida o \"Diagnóstico 4\": confronta os dois lados-valor. eixo2_meta3_pagamento_elegivel (listas de contemplados) mede o valor RECEBIDO pelos entes (esperado ~R$2,7bi, ≈ painel oficial \"recebido\"); eixo2_meta3_pagamento_bbagil (extrato bancário) mede o valor PAGO ao beneficiário final (esperado ~R$447mi, ≈ painel oficial \"gasto\"). Se o bbágil bater com o \"gasto\" do painel, ele passa a ser o denominador correto para as cotas. Enquanto a extração bbágil estiver parcial (amostra de 1 programa/ano), o total do bbágil será menor que o real — este modelo serve para acompanhar a convergência à medida que a extração avança.",
-      "colunas": [
-        {
-          "nome": "fonte",
-          "descricao": "Qual lado-valor a linha resume: 'recebido (listas/contemplados)' ou 'pago (bbágil/extrato bancário)'. A tabela tem exatamente 2 linhas."
-        },
-        {
-          "nome": "linhas",
-          "descricao": "Quantidade de linhas de pagamento naquele lado."
-        },
-        {
-          "nome": "docs_distintos",
-          "descricao": "Documentos distintos naquele lado — mede sobreposição de público."
-        },
-        {
-          "nome": "valor_total",
-          "descricao": "Soma de valor_pago_num do lado, arredondada a 2 casas. É a comparação que decide se o bbágil pode virar o denominador oficial das cotas."
-        }
-      ],
-      "colunas_descritas": 4,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [
-        "eixo2_meta3_pagamento_bbagil",
-        "eixo2_meta3_pagamento_elegivel"
-      ],
-      "sources": [],
-      "linhas_sql": 38
-    },
-    {
       "nome": "eixo2_meta3_diag_valores_cortados",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -1031,7 +941,7 @@
       "camada": "gold",
       "meta": 3,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_distribuicao_cotas_pnab.sql",
-      "descricao": "Cotas SOMENTE PNAB, via macro compartilhada distribuicao_cotas. 3 grupos com meta legal mínima (negra 25%, indígena 10%, PCD 5%), sem a cota territorial — flag_territorio_vulneravel exige cidade/UF do agente, que o lado-valor do PNAB (listas/bbágil) não traz. Ressalva (Diagnóstico 4): enquanto o lado-valor do PNAB vier das listas de contemplados, o denominador mede o valor RECEBIDO pelos entes (repasse, ~R$2,7bi), não o valor efetivamente PAGO a pessoas (~R$447mi). Quando eixo2_meta3_pagamento_bbagil estiver ativo, este modelo deve passar a ler o valor pago real.",
+      "descricao": "Cotas SOMENTE PNAB, via macro compartilhada distribuicao_cotas. 3 grupos com meta legal mínima (negra 25%, indígena 10%, PCD 5%), sem a cota territorial — flag_territorio_vulneravel exige cidade/UF do agente, que o lado-valor do PNAB (listas/bbágil) não traz. Ressalva (Diagnóstico 4): enquanto o lado-valor do PNAB vier das listas de contemplados, o denominador mede o valor RECEBIDO pelos entes (repasse, ~R$2,7bi), não o valor efetivamente PAGO a pessoas (~R$447mi). Quando a medida sobre o valor pago pelo BB Ágil existir (lendo eixo2_meta5_evento_fomento), este modelo deve passar a ler o valor pago real.",
       "colunas": [
         {
           "nome": "programa",
@@ -1114,81 +1024,6 @@
       ],
       "sources": [],
       "linhas_sql": 5
-    },
-    {
-      "nome": "eixo2_meta3_pagamento_bbagil",
-      "dominio": "cultura_em_numeros",
-      "camada": "gold",
-      "meta": 3,
-      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_pagamento_bbagil.sql",
-      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com bronze_fato_bbagil, até a extração bbágil rodar. Reativar (enabled=true) junto.\nFato de pagamentos via extrato bancário (valor PAGO ao beneficiário final) cruzado com o perfil de raça/PCD. Espelha eixo2_meta3_pagamento_elegivel (payment-first, LEFT JOIN, preserva órfãos sem perfil), mas usa o bbágil como lado-valor — o denominador correto para as cotas (pago a pessoas, não repasse a entes). Projetado para rodar em PARALELO a eixo2_meta3_pagamento_elegivel, não substituí-lo ainda; eixo2_meta3_comparativo_recebido_vs_pago confronta os dois. A decisão de trocar o denominador oficial das cotas para este modelo é do lab (ver plano_integracao_meta3).",
-      "colunas": [
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF/CNPJ do beneficiário final, normalizado pela mesma macro do perfil. Aqui o documento vem real (não mascarado), então o casamento com perfil é muito melhor que no lado das listas."
-        },
-        {
-          "nome": "ente_bbagil",
-          "descricao": "Ente federado que efetuou o pagamento, vindo do extrato."
-        },
-        {
-          "nome": "valor_pago_num",
-          "descricao": "Valor EFETIVAMENTE PAGO à pessoa. É a diferença essencial em relação a eixo2_meta3_pagamento_elegivel, que mede o repasse recebido pelo ente."
-        },
-        {
-          "nome": "chave_anonimizada",
-          "descricao": "True quando o documento do extrato veio mascarado."
-        },
-        {
-          "nome": "ano_final",
-          "descricao": "Ano de início da vigência do plano de ação, vindo de silver_plano_acao_ente_ano. Aproximação do ano do edital, não o ano exato."
-        },
-        {
-          "nome": "origem_ano",
-          "descricao": "Constante 'vigencia_plano' — marca explicitamente que a datação aqui é menos precisa que a cascata usada no lado das listas."
-        },
-        {
-          "nome": "codigo_ibge",
-          "descricao": "Código IBGE do município do ente, de silver_plano_acao_ente_ano."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "Município do ente federado pagador."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF do ente federado pagador."
-        },
-        {
-          "nome": "origem",
-          "descricao": "Constante 'pnab_bbagil' — distingue esta trilha da das listas."
-        },
-        {
-          "nome": "tem_perfil",
-          "descricao": "True quando o beneficiário casou com eixo2_meta3_perfil_agente."
-        },
-        {
-          "nome": "flag_negra",
-          "descricao": "Beneficiário autodeclarado negro. Numerador da cota de 25%."
-        },
-        {
-          "nome": "flag_indigena",
-          "descricao": "Beneficiário autodeclarado indígena. Numerador da cota de 10%."
-        },
-        {
-          "nome": "flag_pcd",
-          "descricao": "Beneficiário autodeclarado PCD. Numerador da cota de 5%."
-        }
-      ],
-      "colunas_descritas": 14,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [
-        "eixo2_meta3_perfil_agente",
-        "int_bbagil_transferegov"
-      ],
-      "sources": [],
-      "linhas_sql": 36
     },
     {
       "nome": "eixo2_meta3_pagamento_elegivel",
@@ -2059,61 +1894,6 @@
       ],
       "sources": [],
       "linhas_sql": 29
-    },
-    {
-      "nome": "int_bbagil_transferegov",
-      "dominio": "intermediate",
-      "camada": "intermediate",
-      "meta": null,
-      "caminho": "dbt/minc/models/intermediate/int_bbagil_transferegov.sql",
-      "descricao": "Camada Intermediate. Cada pagamento do BB Ágil (silver_fato_bbagil) com o ano de vigência e o município do plano de ação do ente pagador (silver_plano_acao_ente_ano). Só junta as duas fontes, por LEFT JOIN; a regra de quem conta em cada cota fica em eixo2_meta3_pagamento_bbagil. Grão: 1 linha por (ente, documento), o de silver_fato_bbagil. [MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com bronze_fato_bbagil; reativar junto.",
-      "colunas": [
-        {
-          "nome": "ente_bbagil",
-          "descricao": "Identificador do plano de ação (id_plano_acao) dono da conta, em texto."
-        },
-        {
-          "nome": "identificador_unico",
-          "descricao": "CPF/CNPJ do beneficiário normalizado (só dígitos), chave de casamento com o perfil."
-        },
-        {
-          "nome": "documento_raw",
-          "descricao": "Documento como veio do BB Ágil."
-        },
-        {
-          "nome": "chave_anonimizada",
-          "descricao": "Verdadeiro quando o documento veio mascarado com '*'."
-        },
-        {
-          "nome": "valor_pago_num",
-          "descricao": "Valor pago ao beneficiário, parseado por parse_valor (teto R$10M)."
-        },
-        {
-          "nome": "ano_plano",
-          "descricao": "Ano do início da vigência do plano de ação, texto 'AAAA'; NULL quando não casou."
-        },
-        {
-          "nome": "codigo_ibge",
-          "descricao": "Código IBGE do município do ente recebedor do plano de ação."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "Nome do município do ente recebedor."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF do ente recebedor."
-        }
-      ],
-      "colunas_descritas": 9,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [
-        "silver_fato_bbagil",
-        "silver_plano_acao_ente_ano"
-      ],
-      "sources": [],
-      "linhas_sql": 25
     },
     {
       "nome": "silver_agent",
@@ -42684,7 +42464,7 @@
       "sources": [
         "transferegov.plano_acao_minc"
       ],
-      "linhas_sql": 5
+      "linhas_sql": 6
     },
     {
       "nome": "bronze_territorio_fcu_setores",
@@ -43368,50 +43148,12 @@
       "linhas_sql": 150
     },
     {
-      "nome": "silver_plano_acao_ente_ano",
-      "dominio": "transferegov",
-      "camada": "silver",
-      "meta": null,
-      "caminho": "dbt/minc/models/transferegov/silver_plano_acao_ente_ano.sql",
-      "descricao": "[MODELO DESABILITADO — config(enabled=false)] Desabilitado junto com silver_fato_bbagil, mesmo motivo (DAG bbágil bloqueada). Reativar (enabled=true) junto.\nDatação e localização do bbágil por ente (id_plano_acao), buscadas em raw_planos_acao — o fato_bbagil não traz ano nem município diretamente. ano_plano é o ano de INÍCIO DA VIGÊNCIA do plano de ação: uma aproximação (mede o ciclo do plano, não a data exata do edital), por isso é marcado com menor precisão via origem_ano='vigencia_plano'. codigo_ibge destrava o cruzamento com município (e uma futura ponte com o Querido Diário, que busca por território via código IBGE).",
-      "colunas": [
-        {
-          "nome": "ente_bbagil",
-          "descricao": "Ente federado titular da conta no BB Gestão Ágil. Chave de junção com silver_fato_bbagil, que não traz ano nem localização."
-        },
-        {
-          "nome": "codigo_ibge",
-          "descricao": "Código IBGE do município do ente, vindo de raw_planos_acao. Destrava o cruzamento territorial do PNAB e uma futura ponte com o Querido Diário."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "Nome do município do ente federado."
-        },
-        {
-          "nome": "uf",
-          "descricao": "UF do ente federado."
-        },
-        {
-          "nome": "ano_plano",
-          "descricao": "Ano de INÍCIO DA VIGÊNCIA do plano de ação — aproximação do ano do edital, não o ano exato. Por isso o fato marca origem_ano = 'vigencia_plano', sinalizando menor precisão que a cascata de datação das listas."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [
-        "bronze_plano_acao_minc"
-      ],
-      "sources": [],
-      "linhas_sql": 42
-    },
-    {
       "nome": "silver_territorio_municipio",
       "dominio": "transferegov",
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/transferegov/silver_territorio_municipio.sql",
-      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor com código FCU preenchido (zona periférica). Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
+      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor classificado como Favela e Comunidade Urbana (FCU, Censo 2022). O nome da coluna é legado: FCU não é \"concentração urbana\". Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
       "colunas": [
         {
           "nome": "cd_mun",
@@ -43435,7 +43177,7 @@
         },
         {
           "nome": "em_concentracao_urbana",
-          "descricao": "True quando o município tem ao menos UM setor censitário com código FCU preenchido — isto é, alguma zona periférica. É um indicador no grão município, não no grão setor: um município grande marcado como true não é periférico por inteiro."
+          "descricao": "True quando o município tem ao menos UM setor censitário classificado como Favela e Comunidade Urbana (FCU, Censo 2022). A origem só traz setores de FCU, então é true para todo município presente nela. O nome da coluna é legado (FCU não é \"concentração urbana\"). É um indicador no grão município, não no grão setor: um município grande marcado como true não é periférico por inteiro."
         },
         {
           "nome": "chave_municipio_uf",
@@ -43449,7 +43191,7 @@
         "bronze_territorio_fcu_setores"
       ],
       "sources": [],
-      "linhas_sql": 80
+      "linhas_sql": 82
     },
     {
       "nome": "anexos_relatorios",
@@ -44222,18 +43964,18 @@
       }
     },
     "bbagil": {
-      "modelos": 13,
+      "modelos": 11,
       "testes": 21,
       "camadas": {
-        "bronze": 5,
-        "silver": 8
+        "bronze": 4,
+        "silver": 7
       }
     },
     "cultura_em_numeros": {
-      "modelos": 15,
+      "modelos": 13,
       "testes": 69,
       "camadas": {
-        "gold": 15
+        "gold": 13
       }
     },
     "ibge_sidra": {
@@ -44245,10 +43987,10 @@
       }
     },
     "intermediate": {
-      "modelos": 3,
+      "modelos": 2,
       "testes": 7,
       "camadas": {
-        "intermediate": 3
+        "intermediate": 2
       }
     },
     "mapas": {
@@ -44282,11 +44024,11 @@
       }
     },
     "transferegov": {
-      "modelos": 23,
+      "modelos": 22,
       "testes": 19,
       "camadas": {
         "bronze": 8,
-        "silver": 15
+        "silver": 14
       }
     },
     "transferegov_bronze": {
@@ -44699,9 +44441,9 @@
     }
   ],
   "totais": {
-    "modelos": 737,
+    "modelos": 731,
     "testes": 5183,
-    "com_descricao": 736,
+    "com_descricao": 730,
     "sources": 79
   }
 }
