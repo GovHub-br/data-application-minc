@@ -5,5 +5,5 @@
 -- Quando existir, enabled=true aqui, em silver_fato_bbagil, em
 -- silver_plano_acao_ente_ano, em int_bbagil_transferegov e nas golds
 -- eixo2_meta3_pagamento_bbagil e eixo2_meta3_comparativo_recebido_vs_pago.
-select *
+select *  -- noqa: AM04
 from {{ source("bbagil", "fato_bbagil") }}

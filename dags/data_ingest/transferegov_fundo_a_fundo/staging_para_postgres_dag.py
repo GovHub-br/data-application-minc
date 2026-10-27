@@ -1,7 +1,7 @@
 """Ponte staging -> Postgres das entidades do TransfereGov.
 
 As DAGs de API gravam no datalakehouse; o dbt (``transferegov_bronze`` e as
-silvers de ``cotas_dbt``) continua lendo a source ``transferegov`` do
+silvers em ``models/transferegov/``) continua lendo a source ``transferegov`` do
 Postgres. Esta ponte mantém as duas pontas ligadas: a cada Parquet novo no
 staging, faz upsert na tabela que a ingestão alimentava antes.
 

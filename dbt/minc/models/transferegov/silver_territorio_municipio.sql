@@ -1,7 +1,7 @@
 -- Silver transferegov — território a nível de MUNICÍPIO, a partir do crosswalk
 -- de setores IBGE CD2022 (bronze_territorio_fcu_setores). A fonte é grão setor
--- censitário; aqui colapsa p/ município e marca se o município tem área de
--- concentração urbana FCU.
+-- censitário; aqui colapsa p/ município e marca se o município tem setor classificado
+-- como Favela e Comunidade Urbana (FCU, Censo 2022).
 --
 -- CHAVE DE JUNÇÃO com os agentes = nome do município + UF normalizados (sem_acento
 -- + lower + trim), porque os contemplados/agentes LPG NÃO têm código IBGE, só
@@ -22,8 +22,10 @@ with
             max(nm_mun) as nm_mun,
             max(cd_uf) as cd_uf,
             max(nm_uf) as nm_uf,
-            -- um município está numa concentração urbana se tem ao menos um setor
-            -- com FCU preenchida (cd_fcu não nulo)
+            -- um município tem FCU se tem ao menos um setor com cd_fcu preenchido.
+            -- A origem só traz setores de FCU, então hoje é true para todo município
+            -- presente nela: o que marca o território é estar na tabela. O nome da
+            -- coluna é legado; FCU não é "concentração urbana".
             bool_or(cd_fcu is not null) as em_concentracao_urbana
         from setores
         group by cd_mun

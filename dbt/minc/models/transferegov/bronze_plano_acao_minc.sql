@@ -1,4 +1,5 @@
--- Bronze transferegov — cópia fiel de transferegov.plano_acao_minc, como a
--- api_planos_acao_dag grava. Sem cast, filtro nem join (ADR 0010). Quem lê é
--- silver_plano_acao_ente_ano.
-select * from {{ source("transferegov", "plano_acao_minc") }}
+-- Bronze transferegov — cópia fiel de transferegov.plano_acao_minc,
+-- como a ponte staging_para_postgres_plano_acao_minc_dag grava (ADR 0011).
+-- Sem cast, filtro nem join (ADR 0010): tudo continua text. Quem tipa é
+-- silver_plano_acao_minc.
+select * from {{ source("transferegov", "plano_acao_minc") }}  -- noqa: AM04

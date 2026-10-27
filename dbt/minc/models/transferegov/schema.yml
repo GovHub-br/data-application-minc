@@ -1207,7 +1207,8 @@ models:
     description: >
       Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão
       MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos
-      um setor com código FCU preenchido (zona periférica). Constrói
+      um setor classificado como Favela e Comunidade Urbana (FCU, Censo 2022).
+      O nome da coluna é legado: FCU não é "concentração urbana". Constrói
       chave_municipio_uf (nome do município + sigla da UF, normalizados sem
       acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em
       texto livre, sem código IBGE — o join por nome é por natureza imperfeito
@@ -1262,8 +1263,10 @@ models:
 
       - name: em_concentracao_urbana
         description: >
-          True quando o município tem ao menos UM setor censitário com código
-          FCU preenchido — isto é, alguma zona periférica. É um indicador no
+          True quando o município tem ao menos UM setor censitário classificado
+          como Favela e Comunidade Urbana (FCU, Censo 2022). A origem só traz
+          setores de FCU, então é true para todo município presente nela. O nome
+          da coluna é legado (FCU não é "concentração urbana"). É um indicador no
           grão município, não no grão setor: um município grande marcado como
           true não é periférico por inteiro.
         data_type: boolean
