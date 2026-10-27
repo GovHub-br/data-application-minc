@@ -1,5 +1,6 @@
--- Bronze transferegov — anexos_relatorios.
--- Origem: transferegov.anexos_relatorios, onde tudo chega como text da ingestão via API.
+-- Silver transferegov — anexos_relatorios.
+-- Origem: bronze_anexos_relatorios, cópia fiel de transferegov.anexos_relatorios, onde tudo chega
+-- como text da ingestão via API.
 -- Tipar é o trabalho desta camada.
 -- 23 colunas: 3 tipadas, 20 mantidas como texto.
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
@@ -28,4 +29,4 @@ select
     {{ bronze_texto("tipoanexo__indicadorobrigatoriedade") }} as tipoanexo__indicadorobrigatoriedade,
     {{ bronze_texto("tipoanexo__idprograma") }} as tipoanexo__idprograma,
     {{ bronze_texto("tipoanexo__utilizado") }} as tipoanexo__utilizado
-from {{ source("transferegov", "anexos_relatorios") }}
+from {{ ref("bronze_anexos_relatorios") }}

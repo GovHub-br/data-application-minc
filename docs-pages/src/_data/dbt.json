@@ -42348,6 +42348,23 @@
       "linhas_sql": 82
     },
     {
+      "nome": "bronze_anexos_relatorios",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_anexos_relatorios.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.anexos_relatorios, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.anexos_relatorios"
+      ],
+      "linhas_sql": 6
+    },
+    {
       "nome": "bronze_planilha_contemplados_lpg",
       "dominio": "transferegov",
       "camada": "bronze",
@@ -42450,12 +42467,46 @@
       "linhas_sql": 6
     },
     {
+      "nome": "bronze_plano_acao_dado_bancario_minc",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_plano_acao_dado_bancario_minc.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.plano_acao_dado_bancario_minc, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.plano_acao_dado_bancario_minc"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_plano_acao_meta_minc",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_plano_acao_meta_minc.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.plano_acao_meta_minc, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.plano_acao_meta_minc"
+      ],
+      "linhas_sql": 6
+    },
+    {
       "nome": "bronze_plano_acao_minc",
       "dominio": "transferegov",
       "camada": "bronze",
       "meta": null,
       "caminho": "dbt/minc/models/transferegov/bronze_plano_acao_minc.sql",
-      "descricao": "Camada Bronze — cópia fiel de transferegov.plano_acao_minc, sem cast, filtro nem join (ADR 0010). Um plano de ação do Fundo a Fundo por linha, como a api_planos_acao_dag grava.",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.plano_acao_minc, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
       "colunas": [],
       "colunas_descritas": 0,
       "testes": 0,
@@ -42463,6 +42514,40 @@
       "depende_de": [],
       "sources": [
         "transferegov.plano_acao_minc"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_programa_minc",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_programa_minc.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.programa_minc, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.programa_minc"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_relatorios_gestao",
+      "dominio": "transferegov",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/bronze_relatorios_gestao.sql",
+      "descricao": "Camada Bronze — cópia fiel de transferegov.relatorios_gestao, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "transferegov.relatorios_gestao"
       ],
       "linhas_sql": 6
     },
@@ -42814,6 +42899,116 @@
       "linhas_sql": 35
     },
     {
+      "nome": "silver_anexos_relatorios",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_anexos_relatorios.sql",
+      "descricao": "Camada Silver — transferegov.anexos_relatorios tipada, lida de bronze_anexos_relatorios. 23 colunas, 3 com cast aplicado.",
+      "colunas": [
+        {
+          "nome": "versao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "auditlogin",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "id",
+          "descricao": "Tipagem: 100% dos 95162 valores casam com inteiro."
+        },
+        {
+          "nome": "nome",
+          "descricao": "Tipagem: valores heterogeneos."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Tipagem: zero a esquerda: tipar como inteiro perderia o dado."
+        },
+        {
+          "nome": "arquivo",
+          "descricao": "Tipagem: coluna sempre nula."
+        },
+        {
+          "nome": "arquivocontenttype",
+          "descricao": "Tipagem: coluna sempre nula."
+        },
+        {
+          "nome": "tamanho",
+          "descricao": "Tipagem: coluna sempre nula."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Tipagem: coluna sempre nula."
+        },
+        {
+          "nome": "tipoanexo",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "tipoanexoid",
+          "descricao": "Tipagem: 36192 valores 'NaN' gravados como texto."
+        },
+        {
+          "nome": "inadministrativo",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "id_relatorio_gestao",
+          "descricao": "Tipagem: 100% dos 95162 valores casam com inteiro."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: 100% dos 95162 valores casam com timestamp."
+        },
+        {
+          "nome": "tipoanexo__versao",
+          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
+        },
+        {
+          "nome": "tipoanexo__auditlogin",
+          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
+        },
+        {
+          "nome": "tipoanexo__statusedicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "tipoanexo__id",
+          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
+        },
+        {
+          "nome": "tipoanexo__nome",
+          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
+        },
+        {
+          "nome": "tipoanexo__funcionalidade",
+          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
+        },
+        {
+          "nome": "tipoanexo__indicadorobrigatoriedade",
+          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
+        },
+        {
+          "nome": "tipoanexo__idprograma",
+          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
+        },
+        {
+          "nome": "tipoanexo__utilizado",
+          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
+        }
+      ],
+      "colunas_descritas": 23,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_anexos_relatorios"
+      ],
+      "sources": [],
+      "linhas_sql": 33
+    },
+    {
       "nome": "silver_contemplados_lpg",
       "dominio": "transferegov",
       "camada": "silver",
@@ -43148,168 +43343,12 @@
       "linhas_sql": 150
     },
     {
-      "nome": "silver_territorio_municipio",
+      "nome": "silver_plano_acao_dado_bancario_minc",
       "dominio": "transferegov",
       "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov/silver_territorio_municipio.sql",
-      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor classificado como Favela e Comunidade Urbana (FCU, Censo 2022). O nome da coluna é legado: FCU não é \"concentração urbana\". Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
-      "colunas": [
-        {
-          "nome": "cd_mun",
-          "descricao": "Código IBGE do município (7 dígitos). Chave primária do crosswalk depois do colapso do grão setor para o grão município."
-        },
-        {
-          "nome": "nm_mun",
-          "descricao": "Nome do município conforme o IBGE, com acentuação original."
-        },
-        {
-          "nome": "cd_uf",
-          "descricao": "Código IBGE da UF (2 dígitos)."
-        },
-        {
-          "nome": "nm_uf",
-          "descricao": "Nome da UF por extenso, como vem do IBGE (\"Rondônia\"). É a razão de existir o mapeamento para sigla — os agentes LPG registram \"RO\"."
-        },
-        {
-          "nome": "sigla_uf",
-          "descricao": "Sigla da UF derivada de cd_uf, para casar com o texto dos agentes."
-        },
-        {
-          "nome": "em_concentracao_urbana",
-          "descricao": "True quando o município tem ao menos UM setor censitário classificado como Favela e Comunidade Urbana (FCU, Censo 2022). A origem só traz setores de FCU, então é true para todo município presente nela. O nome da coluna é legado (FCU não é \"concentração urbana\"). É um indicador no grão município, não no grão setor: um município grande marcado como true não é periférico por inteiro."
-        },
-        {
-          "nome": "chave_municipio_uf",
-          "descricao": "Chave de junção por nome (município+UF normalizados) com eixo2_meta3_perfil_agente. É a entidade `primary` do semantic model: duplicata aqui multiplicaria o valor pago no cálculo da cota territorial. NULL quando a sigla da UF não resolve — o teste `unique` ignora nulos."
-        }
-      ],
-      "colunas_descritas": 7,
-      "testes": 3,
-      "materializacao": "",
-      "depende_de": [
-        "bronze_territorio_fcu_setores"
-      ],
-      "sources": [],
-      "linhas_sql": 82
-    },
-    {
-      "nome": "anexos_relatorios",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/anexos_relatorios.sql",
-      "descricao": "Camada bronze tipada de transferegov.anexos_relatorios. 23 colunas, 3 com cast aplicado.",
-      "colunas": [
-        {
-          "nome": "versao",
-          "descricao": "Tipagem: coluna constante."
-        },
-        {
-          "nome": "auditlogin",
-          "descricao": "Tipagem: coluna constante."
-        },
-        {
-          "nome": "id",
-          "descricao": "Tipagem: 100% dos 95162 valores casam com inteiro."
-        },
-        {
-          "nome": "nome",
-          "descricao": "Tipagem: valores heterogeneos."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "Tipagem: zero a esquerda: tipar como inteiro perderia o dado."
-        },
-        {
-          "nome": "arquivo",
-          "descricao": "Tipagem: coluna sempre nula."
-        },
-        {
-          "nome": "arquivocontenttype",
-          "descricao": "Tipagem: coluna sempre nula."
-        },
-        {
-          "nome": "tamanho",
-          "descricao": "Tipagem: coluna sempre nula."
-        },
-        {
-          "nome": "situacao",
-          "descricao": "Tipagem: coluna sempre nula."
-        },
-        {
-          "nome": "tipoanexo",
-          "descricao": "Tipagem: coluna constante."
-        },
-        {
-          "nome": "tipoanexoid",
-          "descricao": "Tipagem: 36192 valores 'NaN' gravados como texto."
-        },
-        {
-          "nome": "inadministrativo",
-          "descricao": "Tipagem: coluna constante."
-        },
-        {
-          "nome": "id_relatorio_gestao",
-          "descricao": "Tipagem: 100% dos 95162 valores casam com inteiro."
-        },
-        {
-          "nome": "dt_ingest",
-          "descricao": "Tipagem: 100% dos 95162 valores casam com timestamp."
-        },
-        {
-          "nome": "tipoanexo__versao",
-          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
-        },
-        {
-          "nome": "tipoanexo__auditlogin",
-          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
-        },
-        {
-          "nome": "tipoanexo__statusedicao",
-          "descricao": "Tipagem: coluna constante."
-        },
-        {
-          "nome": "tipoanexo__id",
-          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
-        },
-        {
-          "nome": "tipoanexo__nome",
-          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
-        },
-        {
-          "nome": "tipoanexo__funcionalidade",
-          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
-        },
-        {
-          "nome": "tipoanexo__indicadorobrigatoriedade",
-          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
-        },
-        {
-          "nome": "tipoanexo__idprograma",
-          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
-        },
-        {
-          "nome": "tipoanexo__utilizado",
-          "descricao": "Tipagem: 13036 valores 'NaN' gravados como texto."
-        }
-      ],
-      "colunas_descritas": 23,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.anexos_relatorios"
-      ],
-      "linhas_sql": 32
-    },
-    {
-      "nome": "plano_acao_dado_bancario_minc",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/plano_acao_dado_bancario_minc.sql",
-      "descricao": "Camada bronze tipada de transferegov.plano_acao_dado_bancario_minc. 17 colunas, 7 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_plano_acao_dado_bancario_minc.sql",
+      "descricao": "Camada Silver — transferegov.plano_acao_dado_bancario_minc tipada, lida de bronze_plano_acao_dado_bancario_minc. 17 colunas, 7 com cast aplicado.",
       "colunas": [
         {
           "nome": "cod_ibge",
@@ -43383,19 +43422,19 @@
       "colunas_descritas": 17,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.plano_acao_dado_bancario_minc"
+      "depende_de": [
+        "bronze_plano_acao_dado_bancario_minc"
       ],
-      "linhas_sql": 26
+      "sources": [],
+      "linhas_sql": 27
     },
     {
-      "nome": "plano_acao_meta_minc",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_plano_acao_meta_minc",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/plano_acao_meta_minc.sql",
-      "descricao": "Camada bronze tipada de transferegov.plano_acao_meta_minc. 11 colunas, 8 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_plano_acao_meta_minc.sql",
+      "descricao": "Camada Silver — transferegov.plano_acao_meta_minc tipada, lida de bronze_plano_acao_meta_minc. 11 colunas, 8 com cast aplicado.",
       "colunas": [
         {
           "nome": "cod_ibge",
@@ -43445,19 +43484,19 @@
       "colunas_descritas": 11,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.plano_acao_meta_minc"
+      "depende_de": [
+        "bronze_plano_acao_meta_minc"
       ],
-      "linhas_sql": 20
+      "sources": [],
+      "linhas_sql": 21
     },
     {
-      "nome": "plano_acao_minc",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_plano_acao_minc",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/plano_acao_minc.sql",
-      "descricao": "Camada bronze tipada de transferegov.plano_acao_minc. 56 colunas, 19 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_plano_acao_minc.sql",
+      "descricao": "Camada Silver — transferegov.plano_acao_minc tipada, lida de bronze_plano_acao_minc. 56 colunas, 19 com cast aplicado.",
       "colunas": [
         {
           "nome": "id_plano_acao",
@@ -43687,19 +43726,19 @@
       "colunas_descritas": 56,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.plano_acao_minc"
+      "depende_de": [
+        "bronze_plano_acao_minc"
       ],
-      "linhas_sql": 65
+      "sources": [],
+      "linhas_sql": 66
     },
     {
-      "nome": "programa_minc",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_programa_minc",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/programa_minc.sql",
-      "descricao": "Camada bronze tipada de transferegov.programa_minc. 40 colunas, 11 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_programa_minc.sql",
+      "descricao": "Camada Silver — transferegov.programa_minc tipada, lida de bronze_programa_minc. 40 colunas, 11 com cast aplicado.",
       "colunas": [
         {
           "nome": "sigla",
@@ -43865,19 +43904,19 @@
       "colunas_descritas": 40,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.programa_minc"
+      "depende_de": [
+        "bronze_programa_minc"
       ],
-      "linhas_sql": 49
+      "sources": [],
+      "linhas_sql": 50
     },
     {
-      "nome": "relatorios_gestao",
-      "dominio": "transferegov_bronze",
-      "camada": "outros",
+      "nome": "silver_relatorios_gestao",
+      "dominio": "transferegov",
+      "camada": "silver",
       "meta": null,
-      "caminho": "dbt/minc/models/transferegov_bronze/relatorios_gestao.sql",
-      "descricao": "Camada bronze tipada de transferegov.relatorios_gestao. 14 colunas, 8 com cast aplicado.",
+      "caminho": "dbt/minc/models/transferegov/silver_relatorios_gestao.sql",
+      "descricao": "Camada Silver — transferegov.relatorios_gestao tipada, lida de bronze_relatorios_gestao. 14 colunas, 8 com cast aplicado.",
       "colunas": [
         {
           "nome": "dt_ingest",
@@ -43939,11 +43978,57 @@
       "colunas_descritas": 14,
       "testes": 0,
       "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "transferegov.relatorios_gestao"
+      "depende_de": [
+        "bronze_relatorios_gestao"
       ],
-      "linhas_sql": 23
+      "sources": [],
+      "linhas_sql": 24
+    },
+    {
+      "nome": "silver_territorio_municipio",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_territorio_municipio.sql",
+      "descricao": "Crosswalk IBGE (CD2022) colapsado do grão setor censitário para o grão MUNICÍPIO. em_concentracao_urbana é true quando o município tem ao menos um setor classificado como Favela e Comunidade Urbana (FCU, Censo 2022). O nome da coluna é legado: FCU não é \"concentração urbana\". Constrói chave_municipio_uf (nome do município + sigla da UF, normalizados sem acento/minúsculo) porque agentes e contemplados LPG só têm cidade/UF em texto livre, sem código IBGE — o join por nome é por natureza imperfeito (grafias divergentes), por isso a chave normalizada é exposta para auditoria do casamento. Inclui tabela de mapeamento código-UF → sigla, já que o crosswalk traz a UF por extenso (\"Rondônia\") enquanto os agentes LPG normalmente registram a sigla (\"RO\").",
+      "colunas": [
+        {
+          "nome": "cd_mun",
+          "descricao": "Código IBGE do município (7 dígitos). Chave primária do crosswalk depois do colapso do grão setor para o grão município."
+        },
+        {
+          "nome": "nm_mun",
+          "descricao": "Nome do município conforme o IBGE, com acentuação original."
+        },
+        {
+          "nome": "cd_uf",
+          "descricao": "Código IBGE da UF (2 dígitos)."
+        },
+        {
+          "nome": "nm_uf",
+          "descricao": "Nome da UF por extenso, como vem do IBGE (\"Rondônia\"). É a razão de existir o mapeamento para sigla — os agentes LPG registram \"RO\"."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla da UF derivada de cd_uf, para casar com o texto dos agentes."
+        },
+        {
+          "nome": "em_concentracao_urbana",
+          "descricao": "True quando o município tem ao menos UM setor censitário classificado como Favela e Comunidade Urbana (FCU, Censo 2022). A origem só traz setores de FCU, então é true para todo município presente nela. O nome da coluna é legado (FCU não é \"concentração urbana\"). É um indicador no grão município, não no grão setor: um município grande marcado como true não é periférico por inteiro."
+        },
+        {
+          "nome": "chave_municipio_uf",
+          "descricao": "Chave de junção por nome (município+UF normalizados) com eixo2_meta3_perfil_agente. É a entidade `primary` do semantic model: duplicata aqui multiplicaria o valor pago no cálculo da cota territorial. NULL quando a sigla da UF não resolve — o teste `unique` ignora nulos."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_territorio_fcu_setores"
+      ],
+      "sources": [],
+      "linhas_sql": 82
     }
   ],
   "dominios": {
@@ -44024,18 +44109,11 @@
       }
     },
     "transferegov": {
-      "modelos": 22,
+      "modelos": 33,
       "testes": 19,
       "camadas": {
-        "bronze": 8,
-        "silver": 14
-      }
-    },
-    "transferegov_bronze": {
-      "modelos": 6,
-      "testes": 0,
-      "camadas": {
-        "outros": 6
+        "bronze": 13,
+        "silver": 20
       }
     }
   },
@@ -44437,9 +44515,9 @@
     }
   ],
   "totais": {
-    "modelos": 731,
+    "modelos": 736,
     "testes": 5183,
-    "com_descricao": 730,
+    "com_descricao": 735,
     "sources": 78
   }
 }

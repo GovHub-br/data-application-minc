@@ -1,5 +1,6 @@
--- Bronze transferegov — plano_acao_minc.
--- Origem: transferegov.plano_acao_minc, onde tudo chega como text da ingestão via API.
+-- Silver transferegov — plano_acao_minc.
+-- Origem: bronze_plano_acao_minc, cópia fiel de transferegov.plano_acao_minc, onde tudo chega
+-- como text da ingestão via API.
 -- Tipar é o trabalho desta camada.
 -- 56 colunas: 19 tipadas, 37 mantidas como texto.
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
@@ -61,4 +62,4 @@ select
     {{ bronze_inteiro("cod_ibge_uf") }} as cod_ibge_uf,
     {{ bronze_inteiro("cod_ibge_municipio") }} as cod_ibge_municipio,
     {{ bronze_timestamp("dt_ingest") }} as dt_ingest
-from {{ source("transferegov", "plano_acao_minc") }}
+from {{ ref("bronze_plano_acao_minc") }}

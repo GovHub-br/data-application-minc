@@ -1,5 +1,6 @@
--- Bronze transferegov — relatorios_gestao.
--- Origem: transferegov.relatorios_gestao, onde tudo chega como text da ingestão via API.
+-- Silver transferegov — relatorios_gestao.
+-- Origem: bronze_relatorios_gestao, cópia fiel de transferegov.relatorios_gestao, onde tudo chega
+-- como text da ingestão via API.
 -- Tipar é o trabalho desta camada.
 -- 14 colunas: 8 tipadas, 6 mantidas como texto.
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
@@ -19,4 +20,4 @@ select
     {{ bronze_booleano("declaracao_conformidade_relatorio_gestao") }} as declaracao_conformidade_relatorio_gestao,
     {{ bronze_texto("resultados_alcancados_metas_relatorio_gestao") }} as resultados_alcancados_metas_relatorio_gestao,
     {{ bronze_texto("endereco_eletronico_publicidade_acoes_relatorio_gestao") }} as endereco_eletronico_publicidade_acoes_relatorio_gestao
-from {{ source("transferegov", "relatorios_gestao") }}
+from {{ ref("bronze_relatorios_gestao") }}
