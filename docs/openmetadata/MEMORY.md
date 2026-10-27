@@ -582,6 +582,18 @@ vira issue própria. As 589 tabelas do lote existem no banco; tamanhos: sac
 58 GB, bdcorporativo 764 MB, agentes 643 MB, tabelas 391 MB,
 controledeacesso 73 MB.
 
+### 2026-10-27 · Claude · F17 — PR 1, lote `controledeacesso`
+
+Primeiro lote migrado com `scripts/migrar_lote_salic.py`: 3 modelos de
+`salic_dbt/bronze/controledeacesso/` viraram
+`salic/silver_controledeacesso_<tabela>.sql`, corpo SQL idêntico, `schema.yml`
+→ `salic/schema_controledeacesso.yml`, `sources_controledeacesso.yml` junto.
+`verificar.py --tudo`: 661 → 658. Validação no dbanalytics (`dbt run --target
+dev` em `dev_salic`, schema apagado ao fim): origem = silver nas 3 tabelas
+(409.093, 8 e 17.118 linhas), iguais ao diagnóstico do mesmo dia. Lição para
+os próximos lotes: o cabeçalho novo passa de 88 colunas em nome longo, então o
+passo inclui `sqlfmt` nos arquivos movidos; só comentário muda.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG
