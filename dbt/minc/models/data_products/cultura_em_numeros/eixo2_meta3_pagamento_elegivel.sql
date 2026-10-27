@@ -1,13 +1,13 @@
--- Base do denominador: 1 linha por pagamento (payment-first / LEFT JOIN).
+-- Gold — Meta 3, gold-base do denominador: 1 linha por pagamento (payment-first / LEFT JOIN) de silver_contemplados_unif, com o perfil (eixo2_meta3_perfil_agente) e o território (silver_territorio_municipio).
 -- Preserva TODOS os pagamentos; expõe órfãos (tem_perfil=false), inclui sem_ano.
 with pagamentos as (
-    select * from {{ ref('contemplados_unif') }}
+    select * from {{ ref('silver_contemplados_unif') }}
 ),
 perfil as (
-    select * from {{ ref('perfil_agentes_normalizado') }}
+    select * from {{ ref('eixo2_meta3_perfil_agente') }}
 ),
 territorio as (
-    select * from {{ ref('territorio_municipio') }}
+    select * from {{ ref('silver_territorio_municipio') }}
 )
 select
     p.identificador_unico,
@@ -24,7 +24,7 @@ select
     coalesce(pf.flag_negra, false)         as flag_negra,
     coalesce(pf.flag_indigena, false)      as flag_indigena,
     coalesce(pf.is_pcd, false)             as flag_pcd,
-    -- Território vulnerabilizado (LPG, cota 20%): o crosswalk territorio_municipio
+    -- Território vulnerabilizado (LPG, cota 20%): o crosswalk silver_territorio_municipio
     -- vem da tabela IBGE de FCU = territórios PERIFÉRICOS. A regra (definição do
     -- edital LPG, confirmada pela usuária) é POR MUNICÍPIO: município que aparece
     -- no crosswalk (tem área periférica) => território vulnerabilizado. Casamento

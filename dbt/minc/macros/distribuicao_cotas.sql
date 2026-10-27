@@ -11,7 +11,7 @@
       no PNAB o flag é sempre NULL, então a 4ª cota (20%) só faz sentido p/ LPG.
 -#}
 with fct as (
-    select * from {{ ref('fct_pagamentos_elegiveis') }}
+    select * from {{ ref('eixo2_meta3_pagamento_elegivel') }}
     where nome_programa = '{{ programa }}'
 ),
 totais as (

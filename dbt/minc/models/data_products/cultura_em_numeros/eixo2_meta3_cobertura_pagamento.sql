@@ -1,4 +1,4 @@
--- Cobertura por ano: teto de confiabilidade das cotas (ler ANTES das cotas).
+-- Gold — Meta 3: cobertura por ano, teto de confiabilidade das cotas (ler ANTES das cotas).
 -- ano_final NULL (= sem ano derivado) é rotulado 'sem_ano' para leitura direta.
 -- Pessoas: qtd_pessoas (docs distintos, mascarados já viram NULL) vs com perfil.
 -- Percentuais em % (0-100).
@@ -18,6 +18,6 @@ select
     round(
         sum(valor_pago_num) filter (where origem_ano <> 'sem_ano')
         / nullif(sum(valor_pago_num), 0) * 100, 2)                  as cobertura_temporal_pct
-from {{ ref('fct_pagamentos_elegiveis') }}
+from {{ ref('eixo2_meta3_pagamento_elegivel') }}
 group by coalesce(ano_final, 'sem_ano')
 order by coalesce(ano_final, 'sem_ano')

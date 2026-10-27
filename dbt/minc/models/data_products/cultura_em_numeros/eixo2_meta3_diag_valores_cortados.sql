@@ -1,9 +1,9 @@
--- Diagnóstico de valores por magnitude: audita o que o teto de R$10M cortou.
+-- Gold — Meta 3, diagnóstico: audita o que o teto de R$10M do parse_valor cortou nas silvers de contemplados.
 -- Faixas 'CORTADO*' viraram NULL em valor_pago_num (saem do denominador de valor).
 with base as (
-    select origem, valor_bruto_num from {{ ref('stg_contemplados_lpg') }}
+    select origem, valor_bruto_num from {{ ref('silver_contemplados_lpg') }}
     union all
-    select origem, valor_bruto_num from {{ ref('stg_contemplados_pnab') }}
+    select origem, valor_bruto_num from {{ ref('silver_contemplados_pnab') }}
 )
 select
     origem,
