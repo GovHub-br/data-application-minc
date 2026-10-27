@@ -37,9 +37,7 @@ RE_HEADER = re.compile(
 )
 RE_DESC = re.compile(r"Camada bronze tipada a partir de\s+salic_bronze\.")
 LINHA_ADR = "-- Lê salic_bronze, a Bronze do SALIC (ADR 0016)."
-DESC_NOVA = (
-    "Camada Silver tipada (ADR 0016: a Bronze é a source) a partir de salic_bronze."
-)
+DESC_NOVA = "Camada Silver tipada a partir de salic_bronze."
 
 
 def git_mv(de: Path, para: Path) -> None:
