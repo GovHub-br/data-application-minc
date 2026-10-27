@@ -9,33 +9,30 @@
 -- edital. É FALLBACK, menos preciso (ano de publicação defasa ~1 ano do edital),
 -- por isso entra depois de nome_edital e anexo_edital no coalesce de
 -- silver_contemplados_unif.
-with fontes as (
-    select
-        id_anexo as anexo_id,
-        nome_arquivo
-    from {{ ref('bronze_planilha_contemplados_lpg') }}
-    union all
-    select
-        id_anexo,
-        nome_arquivo
-    from {{ ref('bronze_planilha_contemplados_pnab_ciclo_1') }}
-),
-anos as (
-    select
-        anexo_id,
-        -- retorna TEXT (como a macro ano_edital e silver_edital_ano_por_anexo) p/ o
-        -- coalesce em silver_contemplados_unif não misturar text com integer.
-        case
-            when substring(nome_arquivo from '(20[12][0-9])') ~ '^20[12][0-9]$'
-                 and substring(nome_arquivo from '(20[12][0-9])')::int between 2013 and 2026
+with
+    fontes as (
+        select id_anexo as anexo_id, nome_arquivo
+        from {{ ref("bronze_planilha_contemplados_lpg") }}
+        union all
+        select id_anexo, nome_arquivo
+        from {{ ref("bronze_planilha_contemplados_pnab_ciclo_1") }}
+    ),
+    anos as (
+        select
+            anexo_id,
+            -- retorna TEXT (como a macro ano_edital e silver_edital_ano_por_anexo) p/ o
+            -- coalesce em silver_contemplados_unif não misturar text com integer.
+            case
+                when
+                    substring(nome_arquivo from '(20[12][0-9])') ~ '^20[12][0-9]$'
+                    and substring(nome_arquivo from '(20[12][0-9])')::int
+                    between 2013 and 2026
                 then substring(nome_arquivo from '(20[12][0-9])')
-        end as ano
-    from fontes
-    where anexo_id is not null
-)
-select
-    anexo_id,
-    min(ano) as ano_edital
+            end as ano
+        from fontes
+        where anexo_id is not null
+    )
+select anexo_id, min(ano) as ano_edital
 from anos
 where ano is not null
 group by anexo_id

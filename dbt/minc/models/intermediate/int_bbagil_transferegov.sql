@@ -7,12 +7,9 @@
 -- ano_plano NULL, não some. Grão: o de silver_fato_bbagil (1 linha por ente ×
 -- documento), porque o plano de ação é único por ente_bbagil.
 -- DESABILITADO junto com bronze_fato_bbagil (ver bbagil/).
-with pagamentos as (
-    select * from {{ ref('silver_fato_bbagil') }}
-),
-ente_ano as (
-    select * from {{ ref('silver_plano_acao_ente_ano') }}
-)
+with
+    pagamentos as (select * from {{ ref("silver_fato_bbagil") }}),
+    ente_ano as (select * from {{ ref("silver_plano_acao_ente_ano") }})
 select
     p.ente_bbagil,
     p.identificador_unico,
@@ -24,5 +21,4 @@ select
     ea.municipio,
     ea.uf
 from pagamentos p
-left join ente_ano ea
-    on p.ente_bbagil = ea.ente_bbagil
+left join ente_ano ea on p.ente_bbagil = ea.ente_bbagil

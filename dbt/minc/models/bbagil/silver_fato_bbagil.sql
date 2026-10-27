@@ -14,10 +14,11 @@
 -- eixo2_meta3_perfil_agente via a MESMA macro normaliza_documento.
 select
     ente_bbagil,
-    {{ normaliza_documento('documento_beneficiario_bbagil') }}          as identificador_unico,
-    documento_beneficiario_bbagil                                        as documento_raw,
-    (documento_beneficiario_bbagil like '%*%')                           as chave_anonimizada,
-    {{ parse_valor('valor_transacao_total_bbagil') }}                    as valor_pago_num
-from {{ ref('bronze_fato_bbagil') }}
-where {{ normaliza_documento('documento_beneficiario_bbagil') }} is not null
-   or {{ parse_valor('valor_transacao_total_bbagil') }} is not null
+    {{ normaliza_documento("documento_beneficiario_bbagil") }} as identificador_unico,
+    documento_beneficiario_bbagil as documento_raw,
+    (documento_beneficiario_bbagil like '%*%') as chave_anonimizada,
+    {{ parse_valor("valor_transacao_total_bbagil") }} as valor_pago_num
+from {{ ref("bronze_fato_bbagil") }}
+where
+    {{ normaliza_documento("documento_beneficiario_bbagil") }} is not null
+    or {{ parse_valor("valor_transacao_total_bbagil") }} is not null

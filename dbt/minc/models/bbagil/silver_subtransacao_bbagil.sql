@@ -1,5 +1,6 @@
 -- Silver bbagil — subtransacao_bbagil.
--- Origem: bronze_subtransacao_bbagil, cópia fiel de bbagil.subtransacao_bbagil, onde tudo chega como text da ingestão via API.
+-- Origem: bronze_subtransacao_bbagil, cópia fiel de bbagil.subtransacao_bbagil, onde
+-- tudo chega como text da ingestão via API.
 -- Tipar é o trabalho desta camada.
 -- 33 colunas: 0 tipadas, 33 mantidas como texto.
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
@@ -28,10 +29,13 @@ select
     {{ bronze_texto("beneficiarypersontype") }} as beneficiarypersontype,
     {{ bronze_texto("beneficiarydocumentid") }} as beneficiarydocumentid,
     {{ bronze_texto("beneficiaryname") }} as beneficiaryname,
-    {{ bronze_texto("attachedexpensedocumentindicator") }} as attachedexpensedocumentindicator,
+    {{ bronze_texto("attachedexpensedocumentindicator") }}
+    as attachedexpensedocumentindicator,
     {{ bronze_texto("expensecategorycode") }} as expensecategorycode,
-    {{ bronze_texto("subtransactionaccountabilityindicator") }} as subtransactionaccountabilityindicator,
-    {{ bronze_texto("subtransactionaccountabilityname") }} as subtransactionaccountabilityname,
+    {{ bronze_texto("subtransactionaccountabilityindicator") }}
+    as subtransactionaccountabilityindicator,
+    {{ bronze_texto("subtransactionaccountabilityname") }}
+    as subtransactionaccountabilityname,
     {{ bronze_texto("bankorderpurposecode") }} as bankorderpurposecode,
     {{ bronze_texto("bankorderrulecode") }} as bankorderrulecode,
     {{ bronze_texto("bankorderpurposedescription") }} as bankorderpurposedescription,

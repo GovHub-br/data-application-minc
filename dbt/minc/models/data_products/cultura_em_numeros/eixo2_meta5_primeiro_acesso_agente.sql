@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized="table") }}
 
 -- Gold — grão fino da Meta 5: uma linha por (agente × mecanismo), dizendo
 -- quando ele entrou naquele mecanismo e se aquela entrada foi a porta de
@@ -24,62 +24,71 @@
 -- política mais antiga primeiro — ROUANET (1991) < AUDIOVISUAL (Lei 8.685/93)
 -- < FSA (2006) < LAB (2020) < LPG (2022) < PNAB (2023) — via ROW_NUMBER,
 -- garantindo exatamente uma porta de entrada por agente.
+with
+    por_agente_mecanismo as (
+        select
+            beneficiario_documento,
+            programa_fomento,
+            tipo_pessoa,
+            min(data_evento) as data_primeiro_acesso_mecanismo,
+            max(data_evento) as data_ultimo_acesso_mecanismo,
+            min(ano_inicio_observacao) as ano_inicio_observacao,
+            count(*) as qtd_eventos,
+            sum(valor) as valor_total
+        from {{ ref("eixo2_meta5_evento_fomento") }}
+        group by beneficiario_documento, programa_fomento, tipo_pessoa
+    ),
 
-WITH por_agente_mecanismo AS (
-    SELECT
-        beneficiario_documento,
-        programa_fomento,
-        tipo_pessoa,
-        MIN(data_evento) AS data_primeiro_acesso_mecanismo,
-        MAX(data_evento) AS data_ultimo_acesso_mecanismo,
-        MIN(ano_inicio_observacao) AS ano_inicio_observacao,
-        COUNT(*) AS qtd_eventos,
-        SUM(valor) AS valor_total
-    FROM {{ ref('eixo2_meta5_evento_fomento') }}
-    GROUP BY beneficiario_documento, programa_fomento, tipo_pessoa
-),
+    com_geral as (
+        select
+            *,
+            min(data_primeiro_acesso_mecanismo) over (
+                partition by beneficiario_documento
+            ) as data_primeiro_acesso_geral,
+            count(*) over (partition by beneficiario_documento) as qtd_mecanismos_agente,
+            row_number() over (
+                partition by beneficiario_documento
+                order by
+                    data_primeiro_acesso_mecanismo,
+                    case
+                        programa_fomento
+                        when 'ROUANET'
+                        then 1
+                        when 'AUDIOVISUAL'
+                        then 2
+                        when 'FSA'
+                        then 3
+                        when 'LAB'
+                        then 4
+                        when 'LPG'
+                        then 5
+                        when 'PNAB'
+                        then 6
+                    end
+            ) as ordem_entrada
+        from por_agente_mecanismo
+    )
 
-com_geral AS (
-    SELECT
-        *,
-        MIN(data_primeiro_acesso_mecanismo)
-            OVER (PARTITION BY beneficiario_documento) AS data_primeiro_acesso_geral,
-        COUNT(*) OVER (PARTITION BY beneficiario_documento) AS qtd_mecanismos_agente,
-        ROW_NUMBER() OVER (
-            PARTITION BY beneficiario_documento
-            ORDER BY
-                data_primeiro_acesso_mecanismo,
-                CASE programa_fomento
-                    WHEN 'ROUANET' THEN 1
-                    WHEN 'AUDIOVISUAL' THEN 2
-                    WHEN 'FSA' THEN 3
-                    WHEN 'LAB' THEN 4
-                    WHEN 'LPG' THEN 5
-                    WHEN 'PNAB' THEN 6
-                END
-        ) AS ordem_entrada
-    FROM por_agente_mecanismo
-)
-
-SELECT
+select
     beneficiario_documento,
     programa_fomento,
     tipo_pessoa,
     data_primeiro_acesso_mecanismo,
     data_ultimo_acesso_mecanismo,
-    EXTRACT(YEAR FROM data_primeiro_acesso_mecanismo)::INT AS ano_entrada_mecanismo,
+    extract(year from data_primeiro_acesso_mecanismo)::int as ano_entrada_mecanismo,
     data_primeiro_acesso_geral,
-    EXTRACT(YEAR FROM data_primeiro_acesso_geral)::INT AS ano_primeiro_acesso_geral,
+    extract(year from data_primeiro_acesso_geral)::int as ano_primeiro_acesso_geral,
     qtd_mecanismos_agente,
     qtd_eventos,
     valor_total,
     -- exatamente uma linha por agente tem TRUE: o mecanismo pelo qual ele
     -- entrou no fomento federal
-    (ordem_entrada = 1) AS eh_porta_de_entrada,
-    CASE WHEN ordem_entrada = 1 THEN 'Sim' ELSE 'Não' END AS categoria_primeiro_acesso,
+    (ordem_entrada = 1) as eh_porta_de_entrada,
+    case when ordem_entrada = 1 then 'Sim' else 'Não' end as categoria_primeiro_acesso,
     -- no primeiro ano observável de um mecanismo não existe passado para
     -- comparar; todo mundo parece estreante por construção. A gold anual usa
     -- esta marca para não vender artefato de janela como resultado.
-    (EXTRACT(YEAR FROM data_primeiro_acesso_mecanismo)::INT = ano_inicio_observacao)
-        AS entrada_em_ano_censurado
-FROM com_geral
+    (
+        extract(year from data_primeiro_acesso_mecanismo)::int = ano_inicio_observacao
+    ) as entrada_em_ano_censurado
+from com_geral

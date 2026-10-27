@@ -5,5 +5,4 @@
 -- Habilitada pela migração da Meta 3 (cotas): silver_contemplados_lpg e
 -- silver_edital_ano_por_arquivo leem daqui. silver_planilha_contemplados (Meta 5)
 -- continua enabled=false por decisão própria, ver lá.
-select *
-from {{ source("relatorio_gestao", "planilha_contemplados_lpg") }}
+select * from {{ source("relatorio_gestao", "planilha_contemplados_lpg") }}

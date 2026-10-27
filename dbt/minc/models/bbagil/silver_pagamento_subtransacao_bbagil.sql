@@ -1,11 +1,11 @@
-{{ config(materialized='table') }}
+{{ config(materialized="table") }}
 
 -- Silver — sublançamentos do BB Gestão Ágil, usados quando a transação-mãe
 -- do extrato tem subtransactionquantity > 0 (o beneficiário real do
 -- pagamento só aparece aqui, não na linha agregada do extrato). Lê as
 -- silvers tipadas e só limpa:
---   1. descarta beneficiário ausente (documento nulo ou '0').
---   2. valor em módulo (subtransação pode vir negativa na fonte).
+-- 1. descarta beneficiário ausente (documento nulo ou '0').
+-- 2. valor em módulo (subtransação pode vir negativa na fonte).
 --
 -- Todos os status ficam, em status_prestacao_contas
 -- (subtransactionaccountabilityname): recortar o 'Pago', o sublançamento que
@@ -25,26 +25,26 @@
 -- As colunas da silver_subtransacao_bbagil são todas texto (a tabela não pôde
 -- ser perfilada), então as chaves do join e o valor ganham cast aqui, com a
 -- mesma guarda das macros bronze_*.
-
-SELECT
-    {{ bronze_inteiro("s.id_plano_acao") }} AS id_plano_acao,
-    {{ bronze_inteiro("s.id_plano_acao_dado_bancario") }} AS id_plano_acao_dado_bancario,
-    e.governmentprogramname AS programa_curto,
-    s.beneficiarydocumentid AS beneficiario_documento_bruto,
-    CASE
-        WHEN s.beneficiarypersontype = '1'
-            THEN LPAD(REGEXP_REPLACE(s.beneficiarydocumentid, '[^0-9]', '', 'g'), 11, '0')
-        WHEN s.beneficiarypersontype = '2'
-            THEN LPAD(REGEXP_REPLACE(s.beneficiarydocumentid, '[^0-9]', '', 'g'), 14, '0')
-    END AS beneficiario_documento,
-    s.beneficiaryname AS beneficiario_nome,
-    ABS({{ bronze_numerico("s.value") }}) AS valor,
-    {{ data_texto('s.paymentdate') }} AS data_pagamento,
-    s.subtransactionaccountabilityname AS status_prestacao_contas
-FROM {{ ref('silver_subtransacao_bbagil') }} s
-JOIN {{ ref('silver_extrato_bbagil') }} e
-    ON {{ bronze_inteiro("s.id_plano_acao") }} = e.id_plano_acao
-    AND {{ bronze_inteiro("s.id_plano_acao_dado_bancario") }} = e.id_plano_acao_dado_bancario
-    AND {{ bronze_inteiro("s.id_transacao_pai", "bigint") }} = e.id
-WHERE s.beneficiarydocumentid IS NOT NULL
-  AND s.beneficiarydocumentid != '0'
+select
+    {{ bronze_inteiro("s.id_plano_acao") }} as id_plano_acao,
+    {{ bronze_inteiro("s.id_plano_acao_dado_bancario") }} as id_plano_acao_dado_bancario,
+    e.governmentprogramname as programa_curto,
+    s.beneficiarydocumentid as beneficiario_documento_bruto,
+    case
+        when s.beneficiarypersontype = '1'
+        then lpad(regexp_replace(s.beneficiarydocumentid, '[^0-9]', '', 'g'), 11, '0')
+        when s.beneficiarypersontype = '2'
+        then lpad(regexp_replace(s.beneficiarydocumentid, '[^0-9]', '', 'g'), 14, '0')
+    end as beneficiario_documento,
+    s.beneficiaryname as beneficiario_nome,
+    abs({{ bronze_numerico("s.value") }}) as valor,
+    {{ data_texto("s.paymentdate") }} as data_pagamento,
+    s.subtransactionaccountabilityname as status_prestacao_contas
+from {{ ref("silver_subtransacao_bbagil") }} s
+join
+    {{ ref("silver_extrato_bbagil") }} e
+    on {{ bronze_inteiro("s.id_plano_acao") }} = e.id_plano_acao
+    and {{ bronze_inteiro("s.id_plano_acao_dado_bancario") }}
+    = e.id_plano_acao_dado_bancario
+    and {{ bronze_inteiro("s.id_transacao_pai", "bigint") }} = e.id
+where s.beneficiarydocumentid is not null and s.beneficiarydocumentid != '0'
