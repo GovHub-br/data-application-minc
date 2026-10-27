@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verifica o projeto dbt contra as regras dos ADRs 0010, 0015 e 0016.
+"""Verifica o projeto dbt contra as regras dos ADRs 0010, 0015 e 0017.
 
 Camadas e nomenclatura.
 
@@ -223,15 +223,16 @@ def _regra_silver(
     m: Modelo, rel: str, refs: dict[str, Modelo | None], r: Relatorio
 ) -> None:
     """R3 — silver só referencia bronze/silver da mesma fonte. `source()` só
-    quando a source é a própria Bronze, declarada com nome `bronze_<fonte>`
-    (ADR 0016: fonte sem raw, a ingestão já grava a cópia fiel)."""
+    quando é a Bronze que a ingestão grava no schema da fonte: source com o
+    nome da pasta e tabela `bronze_<entidade>` (ADR 0017, fonte sem raw)."""
     for nome_source, tabela in m.sources:
-        if not nome_source.startswith("bronze_"):
-            r.viola(
-                "R3 silver",
-                f"{rel}: source('{nome_source}', '{tabela}') não é Bronze; "
-                "silver lê a bronze por ref(), ou por source() nomeada bronze_<fonte>",
-            )
+        if nome_source == m.pasta and tabela.startswith("bronze_"):
+            continue
+        r.viola(
+            "R3 silver",
+            f"{rel}: source('{nome_source}', '{tabela}') não é a Bronze da fonte; "
+            "silver lê a bronze por ref(), ou por source('<pasta>', 'bronze_<entidade>')",
+        )
     for ref, alvo in refs.items():
         if alvo is None:
             continue

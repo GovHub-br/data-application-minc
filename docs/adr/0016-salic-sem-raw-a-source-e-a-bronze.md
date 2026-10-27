@@ -1,7 +1,7 @@
 # ADR 0016 — Fonte sem raw: quando a ingestão já grava a cópia fiel, a source é a Bronze
 
 - **Data:** 2026-10-27
-- **Status:** proposto
+- **Status:** substituído pelo [ADR 0017](0017-salic-bronze-no-schema-salic.md)
 - **Escopo:** regra R3 do ADR 0010 (o que a Silver pode ler) e a Bronze do SALIC
 - **Substitui em parte:** [ADR 0010](0010-camadas-e-schemas-do-data-lakehouse.md),
   regra transversal "Silver lê a Bronze por `ref()`"; o resto continua valendo

@@ -11,7 +11,7 @@ primeiro (ADR novo, não edição), depois o script, depois esta lista.
 |---|---|---|---|
 | R1 | Pasta de fonte só tem `bronze_*` e `silver_*`; `intermediate/` só `int_*`; produto é subpasta de `data_products/` e não tem prefixo de camada. Arquivos planos, sem subpasta (ADR 0015, decisão 1) | automática | nome e profundidade do caminho |
 | R2 | Bronze lê exatamente uma `source()`, nenhum `ref()`, e não tem `join`, `where`, `case`, `cast`, `::`, `distinct`, `union`, `group by` | automática | regex no SQL sem comentários |
-| R3 | Silver não lê `source()`, salvo source nomeada `bronze_<fonte>` (a Bronze gravada pela ingestão, ADR 0016); só faz `ref()` a bronze ou silver **da mesma pasta** | automática | nome da source e refs resolvidos contra o índice do projeto |
+| R3 | Silver não lê `source()`, salvo `source('<pasta>', 'bronze_<entidade>')`, a Bronze que a ingestão grava no schema da fonte (ADR 0017); só faz `ref()` a bronze ou silver **da mesma pasta** | automática | nome da source, nome da tabela e refs resolvidos contra o índice do projeto |
 | R4 | Intermediate não lê `source()`; só faz `ref()` a silver ou intermediate | automática | idem |
 | R5 | Gold não lê `source()` nem bronze; só `ref()` a silver, intermediate ou gold do mesmo produto (ADR 0015, decisão 4) | automática | idem |
 | R6 | Valor ausente fica nulo, nunca vira falso | **aviso** automático | `coalesce(..., false)`; o script não lê semântica, só o padrão |

@@ -14,11 +14,12 @@ metade — e ninguém percebe até o número aparecer errado num painel.
 from math import ceil
 from typing import Any, Iterable
 
-# Schema de destino no Postgres. É só o PADRÃO: o valor real vem da Variable
-# ``salic_trino_bronze_schema`` e viaja no dict do alvo, porque em produção o
-# banco pode ser compartilhado e o usuário do Trino só ter permissão num schema
-# específico.
-DEFAULT_BRONZE_SCHEMA = "bronze"
+# Schema de destino no Postgres: o da fonte, ``salic`` (ADR 0010/0017). É só o
+# PADRÃO: o valor real vem da Variable ``salic_trino_bronze_schema`` e viaja no
+# dict do alvo, porque em produção o banco pode ser compartilhado e o usuário do
+# Trino só ter permissão num schema específico. Até o ADR 0017 era ``bronze`` no
+# código e ``salic_bronze`` no ambiente.
+DEFAULT_BRONZE_SCHEMA = "salic"
 
 # Nome do catálogo do Trino que aponta para o data warehouse. É só o PADRÃO: o
 # valor real vem da Variable ``salic_trino_target_catalog`` e viaja no dict do
@@ -168,11 +169,14 @@ def slice_delete_clause(slice_index: int) -> str:
 
 
 def bronze_table_name(database: str, table: str) -> str:
-    """Nome da tabela na bronze: ``<banco>__<tabela>``, tudo em minúsculas.
+    """Nome da tabela na bronze: ``bronze_<banco>_<tabela>``, tudo em minúsculas.
 
-    Mesmo formato da v1. As 561 fontes do dbt dependem dele.
+    O schema de destino é a fonte (``salic``) e o nome carrega a camada e a
+    entidade ``<banco>_<tabela>`` do ADR 0010 — ``bronze_sac_projetos``. Até o
+    ADR 0017 era ``<banco>__<tabela>`` num schema próprio (``salic_bronze``);
+    é este nome que as sources do dbt em ``models/salic/`` declaram.
     """
-    return f"{database.lower()}__{table.lower()}"
+    return f"bronze_{database.lower()}_{table.lower()}"
 
 
 def source_fqtn(target: dict) -> str:
@@ -199,6 +203,21 @@ def bronze_fqtn(target: dict) -> str:
         f"{target_catalog(target)}.{bronze_schema(target)}."
         f"{quote_ident(target['bronze_table'])}"
     )
+
+
+def bronze_truncate(target: dict) -> str:
+    """TRUNCATE da tabela bronze. Mantém a tabela — e as views que dependem dela."""
+    return f"TRUNCATE TABLE {bronze_fqtn(target)}"
+
+
+def columns_match(existing: list[str], columns: list[tuple[str, str]]) -> bool:
+    """A tabela existente tem exatamente as colunas que a carga vai gravar, na ordem?
+
+    Compara o nome em minúsculas; a última coluna da tabela é a técnica
+    :data:`SLICE_COLUMN`. Tipo não entra: na bronze tudo é ``varchar``.
+    """
+    esperado = [name.lower() for name, _ in columns] + [SLICE_COLUMN]
+    return [c.lower() for c in existing] == esperado
 
 
 # ── Montagem dos comandos ────────────────────────────────────────────────────

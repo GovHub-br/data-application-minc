@@ -10,7 +10,10 @@ from trino_bronze import (
     DEFAULT_TARGET_CATALOG,
     SLICE_COLUMN,
     bronze_ddl,
+    bronze_table_name,
+    bronze_truncate,
     build_statements,
+    columns_match,
     index_row_counts,
     metadata_key,
     cast_to_text,
@@ -29,9 +32,7 @@ def _cobertura(slices: list[tuple[int | None, int | None]], chaves: range) -> li
     contagem = []
     for k in chaves:
         n = sum(
-            1
-            for lo, hi in slices
-            if (lo is None or k >= lo) and (hi is None or k < hi)
+            1 for lo, hi in slices if (lo is None or k >= lo) and (hi is None or k < hi)
         )
         contagem.append(n)
     return contagem
@@ -45,9 +46,7 @@ def test_tabela_menor_que_a_fatia_carrega_de_uma_vez() -> None:
 
 
 def test_tabela_sem_chave_carrega_de_uma_vez() -> None:
-    assert plan_slices(None, None, row_count=10**9, rows_per_slice=1000) == [
-        (None, None)
-    ]
+    assert plan_slices(None, None, row_count=10**9, rows_per_slice=1000) == [(None, None)]
 
 
 def test_as_fatias_cobrem_toda_a_chave_exatamente_uma_vez() -> None:
@@ -197,7 +196,7 @@ def _alvo(key_column: str | None = "Id") -> dict:
         "database": "SAC",
         "schema": "dbo",
         "table": "Projetos",
-        "bronze_table": "sac__projetos",
+        "bronze_table": "bronze_sac_projetos",
         "key_column": key_column,
     }
 
@@ -209,7 +208,7 @@ def test_insert_escreve_em_coluna_minuscula_lendo_o_nome_original() -> None:
     insert = statements[0]["insert"]
 
     assert (
-        'INSERT INTO dw.bronze."sac__projetos" '
+        'INSERT INTO dw.salic."bronze_sac_projetos" '
         '("idpronac", "nomeprojeto", "_fatia")' in insert
     )
     assert 'CAST("IdPRONAC" AS varchar)' in insert
@@ -227,7 +226,7 @@ def test_cada_fatia_grava_o_proprio_numero() -> None:
         select = st["insert"].split("SELECT", 1)[1].split("\nFROM", 1)[0]
         assert select.strip().split(",")[-1].strip() == str(i)
         assert st["delete"] == (
-            f'DELETE FROM dw.bronze."sac__projetos" WHERE "_fatia" = {i}'
+            f'DELETE FROM dw.salic."bronze_sac_projetos" WHERE "_fatia" = {i}'
         )
 
 
@@ -239,7 +238,7 @@ def test_tabela_sem_chave_gera_um_comando_sem_where() -> None:
     assert len(statements) == 1
     assert "WHERE" not in statements[0]["insert"].split("SELECT")[0]
     assert statements[0]["delete"] == (
-        'DELETE FROM dw.bronze."sac__projetos" WHERE "_fatia" = 0'
+        'DELETE FROM dw.salic."bronze_sac_projetos" WHERE "_fatia" = 0'
     )
 
 
@@ -252,26 +251,48 @@ def test_catalogo_de_destino_nao_e_fixo() -> None:
     _, create = bronze_ddl(alvo, [("Id", "integer")])
     statements = build_statements(alvo, [("Id", "integer")], [(None, None)])
 
-    assert create.startswith('CREATE TABLE warehouse.bronze."sac__projetos"')
-    assert 'INSERT INTO warehouse.bronze."sac__projetos"' in statements[0]["insert"]
-    assert statements[0]["delete"].startswith('DELETE FROM warehouse.bronze.')
+    assert create.startswith('CREATE TABLE warehouse.salic."bronze_sac_projetos"')
+    assert 'INSERT INTO warehouse.salic."bronze_sac_projetos"' in statements[0]["insert"]
+    assert statements[0]["delete"].startswith("DELETE FROM warehouse.salic.")
 
 
 def test_sem_catalogo_configurado_usa_o_padrao() -> None:
     _, create = bronze_ddl(_alvo(), [("Id", "integer")])
 
-    assert create.startswith(f'CREATE TABLE {DEFAULT_TARGET_CATALOG}.bronze.')
+    assert create.startswith(f"CREATE TABLE {DEFAULT_TARGET_CATALOG}.salic.")
 
 
 def test_ddl_cria_tudo_varchar_mais_a_coluna_tecnica() -> None:
     drop, create = bronze_ddl(_alvo(), [("IdPRONAC", "integer"), ("Nome", "varchar(80)")])
 
-    assert drop == 'DROP TABLE IF EXISTS dw.bronze."sac__projetos"'
+    assert drop == 'DROP TABLE IF EXISTS dw.salic."bronze_sac_projetos"'
     assert create == (
-        'CREATE TABLE dw.bronze."sac__projetos" '
+        'CREATE TABLE dw.salic."bronze_sac_projetos" '
         '("idpronac" varchar, "nome" varchar, "_fatia" integer)'
     )
     assert SLICE_COLUMN in create
+
+
+def test_nome_da_bronze_leva_camada_banco_e_tabela() -> None:
+    # ADR 0010/0017: schema da fonte, camada e entidade <banco>_<tabela> no nome.
+    assert bronze_table_name("SAC", "Projetos") == "bronze_sac_projetos"
+    assert (
+        bronze_table_name("ControleDeAcesso", "sgcAcesso")
+        == "bronze_controledeacesso_sgcacesso"
+    )
+
+
+def test_truncate_mantem_a_tabela() -> None:
+    assert bronze_truncate(_alvo()) == 'TRUNCATE TABLE dw.salic."bronze_sac_projetos"'
+
+
+def test_forma_igual_ignora_tipo_e_caixa_e_exige_a_fatia_no_fim() -> None:
+    cols = [("IdPRONAC", "integer"), ("Nome", "varchar(80)")]
+    assert columns_match(["idpronac", "nome", "_fatia"], cols)
+    assert not columns_match(["idpronac", "nome"], cols)
+    assert not columns_match(["nome", "idpronac", "_fatia"], cols)
+    assert not columns_match(["idpronac", "nome", "_fatia", "extra"], cols)
+    assert not columns_match([], cols)
 
 
 # ── Metadados ────────────────────────────────────────────────────────────────
