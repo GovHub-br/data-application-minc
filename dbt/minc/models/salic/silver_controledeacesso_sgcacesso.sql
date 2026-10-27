@@ -1,4 +1,5 @@
--- Bronze SALIC — controledeacesso__sgcacesso.
+-- Silver SALIC — silver_controledeacesso_sgcacesso (ex-controledeacesso__sgcacesso).
+-- Lê salic_bronze, a Bronze do SALIC (ADR 0016).
 -- Origem: salic_bronze.controledeacesso__sgcacesso, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 10 colunas: 5 tipadas, 4 mantidas como texto.
