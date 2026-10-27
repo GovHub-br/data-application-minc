@@ -1,5 +1,6 @@
--- Bronze transferegov — programa_minc.
--- Origem: transferegov.programa_minc, onde tudo chega como text da ingestão via API.
+-- Silver transferegov — programa_minc.
+-- Origem: bronze_programa_minc, cópia fiel de transferegov.programa_minc, onde tudo chega
+-- como text da ingestão via API.
 -- Tipar é o trabalho desta camada.
 -- 40 colunas: 11 tipadas, 29 mantidas como texto.
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
@@ -45,4 +46,4 @@ select
     {{ bronze_texto("data_inicio_recebimento_planos_acao_beneficiarios_voluntarios") }} as data_inicio_recebimento_planos_acao_beneficiarios_voluntarios,
     {{ bronze_texto("programa_natureza_despesa") }} as programa_natureza_despesa,
     {{ bronze_texto("programa_acao_orcamentaria") }} as programa_acao_orcamentaria
-from {{ source("transferegov", "programa_minc") }}
+from {{ ref("bronze_programa_minc") }}

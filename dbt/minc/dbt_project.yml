@@ -40,9 +40,10 @@ models:
     ancine:
       +schema: ancine
       +materialized: view
-    # TransfereGov. Por ora so as planilhas de contemplados que os entes anexam
-    # ao relatorio de gestao (a source fica no schema `relatorio_gestao`, onde a
-    # extracao_anexos_dag grava). Nao colide com as tabelas de origem do schema
+    # TransfereGov: as entidades da API do Fundo a Fundo (source no schema
+    # `transferegov`, gravada pelas pontes do ADR 0011) e as planilhas de
+    # contemplados anexadas ao relatorio de gestao (source no schema
+    # `relatorio_gestao`). Nao colide com as tabelas de origem do schema
     # `transferegov`: aqui tudo comeca com bronze_ ou silver_.
     transferegov:
       +schema: transferegov
@@ -120,21 +121,6 @@ models:
       meta5:
         +materialized: table
 
-    # Fontes de API (TransfereGov, SIDRA/IBGE, SGS/Bacen). Chegam 100% como
-    # `text`, entao precisam da mesma camada de tipagem do SALIC -- as macros
-    # bronze_* sao as mesmas, e o cast de cada coluna foi decidido pelo padrao
-    # medido no dado, nao pelo nome (scripts/perfilar_padroes.py).
-    #
-    # Aqui o schema de destino repete o nome da PASTA, e nao o dominio, pelo
-    # mesmo motivo explicado acima no salic_bronze -- so que invertido: la o
-    # raw e `salic_bronze` e sobra o nome limpo `salic`; aqui o raw ja ocupa o
-    # nome limpo (`transferegov`), entao `+schema: transferegov` faria a view
-    # colidir com a tabela de origem.
-    #
-    # View pelo mesmo motivo do salic_bronze: a camada so aplica cast.
-    transferegov_bronze:
-      +materialized: view
-      +schema: transferegov_bronze
     # SIDRA/IBGE e SGS/Bacen ja na estrutura do ADR 0010: pasta por fonte,
     # bronze_<tabela> copia fiel e silver_<tabela> com o cast. Caem no MESMO
     # schema da tabela que a ingestao grava (bacen.serie_sgs), e nao colidem

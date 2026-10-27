@@ -1,5 +1,6 @@
--- Bronze transferegov — plano_acao_dado_bancario_minc.
--- Origem: transferegov.plano_acao_dado_bancario_minc, onde tudo chega como text da ingestão via API.
+-- Silver transferegov — plano_acao_dado_bancario_minc.
+-- Origem: bronze_plano_acao_dado_bancario_minc, cópia fiel de transferegov.plano_acao_dado_bancario_minc, onde tudo chega
+-- como text da ingestão via API.
 -- Tipar é o trabalho desta camada.
 -- 17 colunas: 7 tipadas, 10 mantidas como texto.
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
@@ -22,4 +23,4 @@ select
     {{ bronze_texto("nome_programa_agil_conta_plano_acao_dado_bancario") }} as nome_programa_agil_conta_plano_acao_dado_bancario,
     {{ bronze_texto("saldo_final_dado_bancario__saldo_final_gestao_financeira") }} as saldo_final_dado_bancario__saldo_final_gestao_financeira,
     {{ bronze_texto("saldo_final_dado_bancario") }} as saldo_final_dado_bancario
-from {{ source("transferegov", "plano_acao_dado_bancario_minc") }}
+from {{ ref("bronze_plano_acao_dado_bancario_minc") }}
