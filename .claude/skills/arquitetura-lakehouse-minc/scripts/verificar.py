@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Verifica o projeto dbt contra as regras do ADR 0010 (camadas e nomenclatura).
+"""Verifica o projeto dbt contra as regras dos ADRs 0010, 0015 e 0016.
+
+Camadas e nomenclatura.
 
 Só apura — não interpreta, não sugere refactor além do destino mecânico de um
 arquivo fora do padrão. É de propósito: os números da verificação saem daqui,
@@ -220,9 +222,16 @@ def _regra_bronze(m: Modelo, rel: str, r: Relatorio) -> None:
 def _regra_silver(
     m: Modelo, rel: str, refs: dict[str, Modelo | None], r: Relatorio
 ) -> None:
-    """R3 — silver só referencia bronze/silver da mesma fonte; não lê source."""
-    if m.sources:
-        r.viola("R3 silver", f"{rel}: silver com source(); silver lê a bronze por ref()")
+    """R3 — silver só referencia bronze/silver da mesma fonte. `source()` só
+    quando a source é a própria Bronze, declarada com nome `bronze_<fonte>`
+    (ADR 0016: fonte sem raw, a ingestão já grava a cópia fiel)."""
+    for nome_source, tabela in m.sources:
+        if not nome_source.startswith("bronze_"):
+            r.viola(
+                "R3 silver",
+                f"{rel}: source('{nome_source}', '{tabela}') não é Bronze; "
+                "silver lê a bronze por ref(), ou por source() nomeada bronze_<fonte>",
+            )
     for ref, alvo in refs.items():
         if alvo is None:
             continue
