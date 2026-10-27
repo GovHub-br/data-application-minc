@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Gera os modelos da camada bronze das fontes que nao vem do SALIC.
+Gera os modelos bronze e silver das fontes de API que nao vem do SALIC.
 
 Essas fontes chegam 100% como `text` -- pior que o SALIC, que ao menos tipa
-a coluna tecnica. Tipar e o trabalho desta camada, com as mesmas macros
-`bronze_*` ja usadas em models/salic_dbt/bronze/.
+a coluna tecnica. Na estrutura do ADR 0010 cada tabela vira um par na pasta
+da fonte: bronze_<tabela>, copia fiel (select * da source), e
+silver_<tabela>, que tipa com as macros `bronze_*` lendo a bronze por ref().
 
 O cast NAO e inferido pelo nome da coluna: e decidido pelo padrao medido em
 scripts/perfilar_padroes.py, exigindo que 100% dos valores preenchidos casem.
@@ -15,10 +16,15 @@ Duas travas explicitas:
   - zero a esquerda nunca vira inteiro (codigo de banco, CEP, IBGE)
   - coluna sempre nula ou constante vira texto, sem cast
 
+O SQL vai para models/<fonte>/. O schema.yml NAO: as pastas de fonte ja tem
+descricao escrita a mao, e o gerador nao pode sobrescreve-la. Os blocos vao
+para --yaml-saida/<fonte>.yml, fora de models/ (senao o dbt le o mesmo
+modelo duas vezes), e quem roda junta no schema.yml da pasta.
+
 Uso:
     python3 scripts/gerar_modelos_bronze_apis.py \\
         --perfil perfil.json --padroes padroes.json \\
-        --schemas transferegov ibge_sidra bacen
+        --schemas transferegov ibge_sidra bacen --yaml-saida /tmp/gerado
 """
 import argparse
 import collections
@@ -85,6 +91,9 @@ def main():
                    help="CSV do catalogo; usado como fallback para tabela sem perfil "
                         "medido (ex.: sem permissao de leitura), que entra toda como texto")
     p.add_argument("--saida", default="dbt/minc/models")
+    p.add_argument("--yaml-saida", required=True,
+                   help="pasta, fora de models/, onde gravar <fonte>.yml com os "
+                        "blocos para juntar no schema.yml da pasta da fonte")
     a = p.parse_args()
 
     perfil = json.load(open(a.perfil, encoding="utf-8"))
@@ -115,9 +124,9 @@ def main():
         por_schema[s].append((t, cs))
 
     for s, tabelas in sorted(por_schema.items()):
-        d = os.path.join(a.saida, f"{s}_bronze")
+        d = os.path.join(a.saida, s)
         os.makedirs(d, exist_ok=True)
-        Y = ["version: 2", "", "models:"]
+        Y = ["models:"]
         for t, cs in tabelas:
             linhas_sql, ncast = [], 0
             docs = []
@@ -134,10 +143,17 @@ def main():
                     ncast += 1
                 linhas_sql.append(f'    {{{{ {macro}("{c}") }}}} as {c},')
                 docs.append((c, TIPO_SQL[macro], motivo))
+            open(os.path.join(d, f"bronze_{t}.sql"), "w", encoding="utf-8").write(
+                f"-- Bronze {s} — cópia fiel de {s}.{t}.\n"
+                "-- Sem cast, filtro nem join (ADR 0010): tudo continua text.\n"
+                f"-- Quem tipa é silver_{t}.\n"
+                f'select * from {{{{ source("{s}", "{t}") }}}}  -- noqa: AM04\n')
+
             sql = [
-                f"-- Bronze {s} — {t}.",
-                f"-- Origem: {s}.{t}, onde tudo chega como text da ingestão via API.",
-                f"-- Tipar é o trabalho desta camada.",
+                f"-- Silver {s} — {t}.",
+                f"-- Origem: bronze_{t}, cópia fiel de {s}.{t}, onde tudo chega",
+                "-- como text da ingestão via API.",
+                "-- Tipar é o trabalho desta camada.",
                 f"-- {len(cs)} colunas: {ncast} tipadas, {len(cs) - ncast} mantidas como texto.",
                 "-- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),",
                 "-- não do nome da coluna: exige 100% dos valores preenchidos casando.",
@@ -145,24 +161,32 @@ def main():
             ]
             sql += linhas_sql
             sql[-1] = sql[-1].rstrip(",")
-            sql.append(f'from {{{{ source("{s}", "{t}") }}}}')
-            open(os.path.join(d, f"{t}.sql"), "w", encoding="utf-8").write(
+            sql.append(f'from {{{{ ref("bronze_{t}") }}}}')
+            open(os.path.join(d, f"silver_{t}.sql"), "w", encoding="utf-8").write(
                 "\n".join(sql) + "\n")
 
-            Y.append(f"  - name: {t}")
-            Y.append("    description: >")
-            Y += dobrar(
-                f"Camada bronze tipada de {s}.{t}. {len(cs)} colunas, "
-                f"{ncast} com cast aplicado.", 94, "      ")
-            Y.append("    config:")
-            Y.append("      tags:")
-            Y.append("        - bronze")
-            Y.append(f"        - {s}")
-            Y.append("    meta:")
-            Y.append("      openmetadata:")
-            Y.append(f"        domain: {DOMINIO.get(s, 'Cultura')}")
-            Y.append("        tier: Tier.Tier4")
-            Y.append("        owner: minc-data-engineering")
+            for camada, tier, descricao in (
+                ("bronze", "Tier.Tier3",
+                 f"Camada Bronze — cópia fiel de {s}.{t}, sem cast, filtro nem join "
+                 "(ADR 0010). Todas as colunas chegam como na origem."),
+                ("silver", "Tier.Tier2",
+                 f"Camada Silver — {s}.{t} tipada, lida de bronze_{t}. "
+                 f"{len(cs)} colunas, {ncast} com cast aplicado."),
+            ):
+                Y.append(f"  - name: {camada}_{t}")
+                Y.append("    description: >")
+                Y += dobrar(descricao, 94, "      ")
+                Y.append("    config:")
+                Y.append("      tags:")
+                Y.append(f"        - {camada}")
+                Y.append(f"        - {s}")
+                Y.append("      meta:")
+                Y.append("        openmetadata:")
+                Y.append(f"          domain: {DOMINIO.get(s, 'Cultura')}")
+                Y.append(f"          tier: {tier}")
+                Y.append("          owner: minc-data-engineering")
+                Y.append("")
+            Y.pop()
             Y.append("    columns:")
             for c, tipo, motivo in docs:
                 Y.append(f"      - name: {c}")
@@ -173,8 +197,9 @@ def main():
             tot["modelos"] += 1
             tot["colunas"] += len(cs)
             tot["tipadas"] += ncast
-            print(f"{s + '_bronze/' + t:46} {len(cs):8} {ncast:8}")
-        open(os.path.join(d, "schema.yml"), "w", encoding="utf-8").write(
+            print(f"{s + '/silver_' + t:46} {len(cs):8} {ncast:8}")
+        os.makedirs(a.yaml_saida, exist_ok=True)
+        open(os.path.join(a.yaml_saida, f"{s}.yml"), "w", encoding="utf-8").write(
             "\n".join(Y) + "\n")
 
     print(f"\n{tot['modelos']} modelos, {tot['colunas']} colunas, "

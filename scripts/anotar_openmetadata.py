@@ -8,6 +8,7 @@ arquivos. Rodar de novo e idempotente: so escreve o que falta ou diverge.
     python scripts/anotar_openmetadata.py [--dry-run]
 """
 
+import re
 import sys
 from pathlib import Path
 
@@ -81,6 +82,13 @@ DOMINIO_POR_PASTA = {
     "intermediate": FOMENTO,
     "cultura_em_numeros": FOMENTO,
 }
+
+# Numa pasta de fonte cabem origens de subdominios diferentes: em
+# transferegov/, as entidades da API do Fundo a Fundo sao repasse federativo e
+# as planilhas de contemplados (schema relatorio_gestao) sao fomento. Por isso
+# o par bronze_<entidade>/silver_<entidade> herda o subdominio do schema que a
+# bronze copia, e so o que nao tem bronze propria cai no DOMINIO_POR_PASTA.
+SOURCE_DA_BRONZE = re.compile(r"""\{\{\s*source\(\s*["'](\w+)["']""")
 
 # Produtos de dados (Gold, ADR 0010) moram em `data_products/<produto>/`, e o
 # modelo nao leva prefixo de camada. O produto e a subpasta: nao ha lista a
@@ -189,6 +197,34 @@ def pasta_do_modelo(rel: Path) -> str | None:
     return rel.parts[0] if len(rel.parts) > 1 else None
 
 
+def schemas_das_sources() -> dict[str, str]:
+    """Nome da source no dbt -> schema no banco."""
+    schemas = {}
+    for caminho in MODELOS.rglob("*.yml"):
+        with caminho.open(encoding="utf-8") as f:
+            doc = yaml.load(f)
+        for source in (doc or {}).get("sources") or []:
+            schemas[source["name"]] = source.get("schema", source["name"])
+    return schemas
+
+
+def dominio_pela_bronze(pasta: Path, nome: str, schemas: dict[str, str]) -> str | None:
+    """Subdominio do schema que a bronze da entidade copia, se ela existe."""
+    entidade = next(
+        (nome.removeprefix(p) for p in ("bronze_", "silver_") if nome.startswith(p)),
+        None,
+    )
+    if entidade is None:
+        return None
+    bronze = pasta / f"bronze_{entidade}.sql"
+    if not bronze.exists():
+        return None
+    achado = SOURCE_DA_BRONZE.search(bronze.read_text(encoding="utf-8"))
+    if not achado:
+        return None
+    return DOMINIO_POR_SCHEMA.get(schemas.get(achado.group(1), achado.group(1)))
+
+
 def main() -> int:
     dry = "--dry-run" in sys.argv
     contagem = {
@@ -199,6 +235,7 @@ def main() -> int:
         "migrado_para_config": 0,
     }
     tocados = []
+    schemas = schemas_das_sources()
 
     for caminho in sorted(MODELOS.rglob("*.yml")):
         with caminho.open(encoding="utf-8") as f:
@@ -225,7 +262,10 @@ def main() -> int:
                 tier = TIER_POR_CAMADA.get(camada) if camada else None
                 anotar(
                     modelo,
-                    dominio=dominio,
+                    dominio=dominio_pela_bronze(
+                        caminho.parent, modelo.get("name", ""), schemas
+                    )
+                    or dominio,
                     tier=tier,
                     contagem=contagem,
                     em_config=True,
