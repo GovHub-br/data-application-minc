@@ -1,6 +1,8 @@
--- Perfil LPG Coletivos/Grupos: base + variantes. Demografia = maioria do grupo.
--- As variantes eram tabelas separadas; hoje são fatias de planilha_dados_lpg
--- identificadas por tabela_origem.
+{{ config(materialized='table') }}
+-- Silver transferegov — perfil LPG Coletivos/Grupos: base + variantes, fatias de
+-- bronze_planilha_dados_lpg por tabela_origem. Demografia = maioria do grupo.
+-- Corta linha sem CPF do representante e normaliza a chave. `table` pelo mesmo
+-- motivo de silver_agentes_pf.
 with unioned as (
     select
         "nº do cpf do representante do grupo/coletivo"       as documento,
@@ -11,7 +13,7 @@ with unioned as (
         uf,
         tabela_origem                                        as origem_tabela,
         nome_programa
-    from {{ source('relatorio_gestao', 'planilha_dados_lpg') }}
+    from {{ ref('bronze_planilha_dados_lpg') }}
     where tabela_origem in (
         'lpg_dados_coletivos',
         'lpg_dados_grupo_coletivo',

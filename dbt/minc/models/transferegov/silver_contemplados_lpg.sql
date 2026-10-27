@@ -1,6 +1,11 @@
--- Contemplados LPG (lado-valor). Colunas duplicadas por schema-drift resolvidas
--- via coalesce_por_nome (lê nomes reais, imune a espaço/trailing).
-{% set src = source('relatorio_gestao', 'planilha_contemplados_lpg') %}
+{{ config(materialized='table') }}
+-- Silver transferegov — contemplados LPG (lado-valor). Colunas duplicadas por
+-- schema-drift resolvidas via coalesce_por_nome, que lê os nomes reais no
+-- information_schema. A introspecção olha a tabela de origem (origem_da_bronze),
+-- não a bronze: a bronze é view e pode não existir na hora do compile; o grafo
+-- continua lendo só a bronze, por ref(). `table`: corta linha sem documento e
+-- sem valor, e três modelos leem daqui.
+{% set src = origem_da_bronze('bronze_planilha_contemplados_lpg') if execute else ref('bronze_planilha_contemplados_lpg') %}
 with base as (
     select
         id_anexo                                                                    as anexo_id,
@@ -10,7 +15,7 @@ with base as (
         {{ coalesce_por_nome(src, ['link da publicação do resultado do edital']) }} as link,
         nome_arquivo,
         nome_programa
-    from {{ src }}
+    from {{ ref('bronze_planilha_contemplados_lpg') }}
 ),
 final as (
     select

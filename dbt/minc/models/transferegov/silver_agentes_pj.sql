@@ -1,6 +1,8 @@
--- Perfil LPG Pessoa Jurídica: base + variantes. Demografia = corpo diretivo.
--- As variantes eram tabelas separadas; hoje são fatias de planilha_dados_lpg
--- identificadas por tabela_origem.
+{{ config(materialized='table') }}
+-- Silver transferegov — perfil LPG Pessoa Jurídica: base + variantes, fatias de
+-- bronze_planilha_dados_lpg por tabela_origem. Demografia = corpo diretivo.
+-- Corta linha sem CNPJ e normaliza a chave. `table` pelo mesmo motivo de
+-- silver_agentes_pf.
 with unioned as (
     select
         "nº do cnpj"                                               as documento,
@@ -11,7 +13,7 @@ with unioned as (
         uf,
         tabela_origem                                              as origem_tabela,
         nome_programa
-    from {{ source('relatorio_gestao', 'planilha_dados_lpg') }}
+    from {{ ref('bronze_planilha_dados_lpg') }}
     where tabela_origem in (
         'lpg_dados_pessoa_juridica',
         'lpg_dados_pessoa_juridica_audiovisu',

@@ -1,5 +1,8 @@
--- Perfil PNAB Pessoa Física (pnab_pessoas): CPF real + raça/PCD + indígena/quilombola.
--- Reaproveitamento novo: viabiliza cotas demográficas do PNAB (antes impossível).
+{{ config(materialized='table') }}
+-- Silver transferegov — perfil PNAB Pessoa Física (aba pnab_pessoas de
+-- bronze_planilha_dados_pnab_ciclo_1): CPF real + raça/PCD + indígena/quilombola.
+-- Corta linha sem CPF e normaliza a chave. `table` pelo mesmo motivo de
+-- silver_agentes_pf.
 with base as (
     select
         "nº do cpf"                       as documento,
@@ -10,7 +13,7 @@ with base as (
         cep,
         "cidade / uf"                     as cidade,
         nome_programa
-    from {{ source('relatorio_gestao', 'planilha_dados_pnab_ciclo_1') }}
+    from {{ ref('bronze_planilha_dados_pnab_ciclo_1') }}
     where tabela_origem = 'pnab_pessoas'
 )
 select

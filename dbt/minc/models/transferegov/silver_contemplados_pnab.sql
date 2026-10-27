@@ -1,8 +1,11 @@
--- Contemplados PNAB (lado-valor): geral + pncv. Colunas via coalesce_por_nome.
--- Chave = CNPJ real (casável) ou CPF anonimizado (flag, não casável).
--- anexo_id: liga ao ano-do-edital-por-anexo (abas de definição do mesmo arquivo).
--- As duas listas viraram fatias da mesma tabela, separadas por tabela_origem.
-{% set geral = source('relatorio_gestao', 'planilha_contemplados_pnab_ciclo_1') %}
+{{ config(materialized='table') }}
+-- Silver transferegov — contemplados PNAB (lado-valor): lista geral + PNCV, fatias
+-- de bronze_planilha_contemplados_pnab_ciclo_1 por tabela_origem. Colunas via
+-- coalesce_por_nome sobre a tabela de origem (origem_da_bronze; ver
+-- silver_contemplados_lpg). Chave = CNPJ real (casável) ou CPF anonimizado
+-- (flag, não casável). anexo_id liga ao ano-do-edital-por-anexo. `table` pelo
+-- mesmo motivo de silver_contemplados_lpg.
+{% set geral = origem_da_bronze('bronze_planilha_contemplados_pnab_ciclo_1') if execute else ref('bronze_planilha_contemplados_pnab_ciclo_1') %}
 {% set pncv = geral %}
 with base as (
     select
@@ -13,7 +16,7 @@ with base as (
         {{ coalesce_por_nome(geral, ['nome da atividade', 'nome do edital']) }}              as nome_edital,
         nome_arquivo,
         nome_programa
-    from {{ geral }}
+    from {{ ref('bronze_planilha_contemplados_pnab_ciclo_1') }}
     where tabela_origem = 'raw_pnab_lista_contemplados_geral'
     union all
     select
@@ -24,7 +27,7 @@ with base as (
         {{ coalesce_por_nome(pncv, ['número e título do edital']) }},
         nome_arquivo,
         nome_programa
-    from {{ pncv }}
+    from {{ ref('bronze_planilha_contemplados_pnab_ciclo_1') }}
     where tabela_origem = 'raw_pnab_lista_contemplados_pncv'
 ),
 norm as (

@@ -1,4 +1,8 @@
--- Perfil PNAB Organizações (pnab_organizacoes): CNPJ real + raça/PCD do representante.
+{{ config(materialized='table') }}
+-- Silver transferegov — perfil PNAB Organizações (aba pnab_organizacoes de
+-- bronze_planilha_dados_pnab_ciclo_1): CNPJ real + raça/PCD do representante.
+-- Corta linha sem CNPJ e normaliza a chave. `table` pelo mesmo motivo de
+-- silver_agentes_pf.
 with base as (
     select
         "nº do cnpj"                                                as documento,
@@ -9,7 +13,7 @@ with base as (
         cep,
         "cidade/uf"                                                 as cidade,
         nome_programa
-    from {{ source('relatorio_gestao', 'planilha_dados_pnab_ciclo_1') }}
+    from {{ ref('bronze_planilha_dados_pnab_ciclo_1') }}
     where tabela_origem = 'pnab_organizacoes'
 )
 select

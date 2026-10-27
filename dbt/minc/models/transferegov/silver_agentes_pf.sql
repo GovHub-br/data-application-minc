@@ -1,7 +1,9 @@
--- Perfil LPG Pessoa Física: base + variantes audiovisual/multicultural.
--- Filtra o lixo de parsing (linhas sem CPF). Chave normalizada.
--- As três variantes eram tabelas separadas; hoje são fatias de
--- planilha_dados_lpg identificadas por tabela_origem — o union all virou filtro.
+{{ config(materialized='table') }}
+-- Silver transferegov — perfil LPG Pessoa Física: base + variantes audiovisual e
+-- multicultural, fatias de bronze_planilha_dados_lpg por tabela_origem.
+-- Corta o lixo de parsing (linha sem CPF) e normaliza a chave. `table`, e não
+-- view: o corte reduz milhões de linhas da planilha a ~20 mil, e quem lê é a
+-- gold eixo2_meta3_perfil_agente, que faz union e dedup em cima.
 with unioned as (
     select
         "nº do cpf"                      as documento,
@@ -12,7 +14,7 @@ with unioned as (
         uf,
         tabela_origem                    as origem_tabela,
         nome_programa
-    from {{ source('relatorio_gestao', 'planilha_dados_lpg') }}
+    from {{ ref('bronze_planilha_dados_lpg') }}
     where tabela_origem in (
         'lpg_dados_pessoa_fisica',
         'lpg_dados_pessoa_fisica_audiovisual',
