@@ -28,7 +28,7 @@ Escopo, pela pasta afetada:
 | Caminho | Escopo |
 |---|---|
 | `dags/data_ingest/<fonte>/` | o nome da fonte — `bbagil`, `territorio`, `transferegov` |
-| `dbt/minc/models/<dominio>/` | `cotas`, `agentes` |
+| `dbt/minc/models/<pasta>/` | `transferegov`, `cultura_em_numeros` |
 | `plugins/cliente_*.py` | o sistema de origem |
 | `helpers/` | `helpers` |
 | `infra/`, `.github/workflows/` | `infra`, `ci` |

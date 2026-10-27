@@ -1,9 +1,9 @@
 """Ponte staging -> Postgres das entidades do TransfereGov.
 
-As DAGs de API gravam no datalakehouse; o dbt (``transferegov_bronze`` e as
-silvers de ``cotas_dbt``) continua lendo a source ``transferegov`` do
-Postgres. Esta ponte mantém as duas pontas ligadas: a cada Parquet novo no
-staging, faz upsert na tabela que a ingestão alimentava antes.
+As DAGs de API gravam no datalakehouse; o dbt (as bronzes e silvers de
+``models/transferegov``) continua lendo a source ``transferegov`` do Postgres.
+Esta ponte mantém as duas pontas ligadas: a cada Parquet novo no staging, faz
+upsert na tabela que a ingestão alimentava antes.
 
 Uma DAG por entidade, cada uma disparada pelo Asset do staging dela. A key do
 arquivo vem no ``extra`` do evento -- nunca "o mais recente do prefixo" --,

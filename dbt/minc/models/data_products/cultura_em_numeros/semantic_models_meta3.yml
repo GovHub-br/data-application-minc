@@ -1,0 +1,186 @@
+semantic_models:
+  # ---------------------------------------------------------------------------
+  # DIMENSÃO de agente da Meta 3. Grão: 1 linha por documento. Aponta para a
+  # gold-base do perfil; a dimensão territorial aponta para a silver do
+  # transferegov porque não há gold de território (exceção prevista: sem gold,
+  # usar silver; bronze segue vetada como base semântica).
+  #
+  # Sem `measures`: é tabela de dimensão. Além disso, não há nenhuma coluna
+  # temporal aqui — e toda measure do MetricFlow exige uma dimensão de tempo
+  # associada (agg_time_dimension).
+  # ---------------------------------------------------------------------------
+  - name: eixo2_meta3_perfil_agente
+    model: ref('eixo2_meta3_perfil_agente')
+    description: >
+      Perfil demográfico unificado dos agentes culturais (LPG + PNAB), com 1
+      linha por documento e raça/PCD normalizados. É a dimensão que qualifica os
+      pagamentos do fato eixo2_meta3_pagamento_elegivel para o cálculo das cotas de
+      ações afirmativas.
+    entities:
+      # `primary`: 1 linha por documento (garantido por teste `unique`+`not_null`
+      # em schema.yml). É o alvo da entidade `foreign` de mesmo nome no fato.
+      - name: agente_documento
+        type: primary
+        expr: identificador_unico
+      # `foreign` para silver_territorio_municipio. Completa a cadeia de junção
+      # eixo2_meta3_pagamento_elegivel → perfil → território, que é o que permite
+      # agrupar valor pago por município/UF do IBGE (o fato não carrega a chave
+      # territorial, só a flag booleana derivada dela).
+      # NULL para agentes PNAB (sem cidade/uf) — nesses casos simplesmente não
+      # casa, sem descartar o pagamento.
+      - name: municipio
+        type: foreign
+        expr: chave_municipio_uf
+    dimensions:
+      - name: raca_normalizada
+        type: categorical
+        description: >
+          Raça/cor do agente normalizada em 5 categorias — 'negra' (preta ou
+          parda), 'indigena', 'branca', 'amarela' ou 'nao_declarada'. Derivada
+          por regex sobre o texto autodeclarado sem acento.
+      - name: tipo_proponente
+        type: categorical
+        description: "Natureza do proponente — 'pf', 'pj' ou 'coletivo'."
+      - name: origem_cadastro
+        type: categorical
+        expr: origem
+        description: >
+          Programa de onde veio o cadastro do perfil — 'lpg' ou 'pnab'. Quando o
+          mesmo documento existe nos dois, a deduplicação prioriza o registro que
+          já traz raça preenchida.
+      - name: agente_uf
+        type: categorical
+        expr: uf
+        description: >
+          UF do agente. Só existe para agentes LPG — as fontes PNAB não trazem
+          localização do agente, logo fica NULL e o agente não é classificável
+          pela cota territorial.
+      - name: agente_cidade
+        type: categorical
+        expr: cidade
+        description: >
+          Município do agente (texto livre, sem código IBGE). Só existe para
+          agentes LPG. É a base do casamento por nome com o crosswalk
+          territorial, que hoje cobre ~47,5% dos agentes com perfil.
+
+  - name: silver_territorio_municipio
+    model: ref('silver_territorio_municipio')
+    description: >
+      Crosswalk territorial do IBGE (Censo 2022) no grão de município, indicando
+      se o município possui Favela ou Comunidade Urbana (FCU, Censo 2022;
+      território periférico). É a dimensão que sustenta a 4ª cota da LPG (território
+      vulnerabilizado, meta de 20%).
+    entities:
+      # `primary` sobre a chave de junção por nome. A unicidade NÃO era testada
+      # antes desta declaração — teste `unique` adicionado em schema.yml, porque
+      # chave duplicada aqui viraria fan-out silencioso no valor pago.
+      - name: municipio
+        type: primary
+        expr: chave_municipio_uf
+    dimensions:
+      - name: municipio_nome
+        type: categorical
+        expr: nm_mun
+        description: "Nome do município conforme o IBGE."
+      - name: municipio_uf
+        type: categorical
+        expr: sigla_uf
+        description: "Sigla da UF do município (derivada do código IBGE da UF)."
+      - name: municipio_codigo_ibge
+        type: categorical
+        expr: cd_mun
+        description: >
+          Código IBGE do município. Chave oficial do crosswalk, mas não é a
+          chave de junção com os agentes — estes só têm cidade/UF em texto.
+      - name: em_concentracao_urbana
+        type: categorical
+        description: >
+          Verdadeiro quando o município tem ao menos um setor censitário com
+          classificado como Favela e Comunidade Urbana (FCU, Censo 2022). O nome
+          da coluna é legado; FCU não é "concentração urbana". É o critério
+          que define território vulnerabilizado para a cota territorial da LPG.
+
+  - name: eixo2_meta3_pagamento_elegivel
+    model: ref('eixo2_meta3_pagamento_elegivel')
+    primary_entity: pagamento
+    description: >
+      Fato de pagamentos elegíveis às cotas de ações afirmativas (LPG + PNAB).
+      Grão: 1 linha por pagamento (payment-first) — todo pagamento é preservado,
+      inclusive os sem perfil demográfico casado (tem_perfil=false) e os sem ano
+      de edital derivado. É o denominador oficial das cotas no estado atual do
+      projeto. ATENÇÃO: para o PNAB este denominador mede valor RECEBIDO pelos
+      entes (repasse), não o valor PAGO a pessoas — ver ressalva do Diagnóstico 4
+      em eixo2_meta3_distribuicao_cotas_pnab.
+    defaults:
+      agg_time_dimension: ano_edital
+    entities:
+      # `foreign`, não `primary`: um mesmo agente recebe vários pagamentos.
+      # Casa com a entidade `primary` de mesmo nome em eixo2_meta3_perfil_agente.
+      - name: agente_documento
+        type: foreign
+        expr: identificador_unico
+    dimensions:
+      - name: ano_edital
+        type: time
+        type_params:
+          time_granularity: year
+        # ano_final é TEXT ('AAAA') ou NULL — o MetricFlow exige um tipo de data
+        # real na dimensão de tempo, daí o cast explícito.
+        expr: "cast(ano_final || '-01-01' as date)"
+        description: >
+          Ano do edital do pagamento, derivado em cascata (nome do edital →
+          número do edital por anexo → nome do arquivo). NULL quando nenhuma das
+          três fontes resolveu o ano ('sem_ano' no relatório de cobertura).
+      - name: programa_fomento
+        type: categorical
+        expr: nome_programa
+        description: "Programa de fomento do pagamento — 'LPG' ou 'PNAB'."
+      - name: origem_registro
+        type: categorical
+        expr: origem
+        description: "Base de origem do pagamento — 'lpg' ou 'pnab'."
+      - name: origem_ano
+        type: categorical
+        description: >
+          Qual camada da cascata datou o pagamento — 'nome_edital',
+          'anexo_edital', 'nome_arquivo' ou 'sem_ano'. Indicador de confiança da
+          datação: 'nome_arquivo' é o fallback menos preciso.
+      - name: tem_perfil
+        type: categorical
+        description: >
+          Se o pagamento casou com um perfil demográfico. Pagamento sem perfil
+          entra no denominador mas nunca no numerador de nenhuma cota — por isso
+          as cotas também são reportadas sobre o total-com-perfil.
+      - name: chave_anonimizada
+        type: categorical
+        description: >
+          Se o documento do contemplado veio mascarado na origem (CPF
+          anonimizado). Documento mascarado não é casável com perfil.
+      - name: flag_negra
+        type: categorical
+        description: "Se o agente do pagamento é de raça/cor negra (preta ou parda). Meta legal da cota: 25%."
+      - name: flag_indigena
+        type: categorical
+        description: "Se o agente do pagamento é indígena. Meta legal da cota: 10%."
+      - name: flag_pcd
+        type: categorical
+        description: "Se o agente do pagamento é pessoa com deficiência. Meta legal da cota: 5%."
+      - name: flag_territorio_vulneravel
+        type: categorical
+        description: >
+          Se o município do agente é território vulnerabilizado (periférico, via
+          crosswalk IBGE FCU). Meta legal da cota: 20%, SOMENTE LPG. NULL quando
+          o agente não tem cidade informada (majoritariamente PNAB).
+    measures:
+      - name: valor_pago
+        agg: sum
+        expr: valor_pago_num
+        description: >
+          Soma dos valores pagos, em R$. Valores acima do teto de R$10M viram
+          NULL na origem (macro parse_valor) e não entram nesta soma.
+      - name: qtd_agentes_distintos
+        agg: count_distinct
+        expr: identificador_unico
+        description: >
+          Quantidade de agentes distintos (por documento normalizado).
+          count_distinct, nunca count(*): há vários pagamentos por agente.

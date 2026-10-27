@@ -36,7 +36,6 @@ DOMINIO_POR_SCHEMA = {
     "bronze": INCENTIVO,
     "dados_salic": INCENTIVO,
     "agentes": FOMENTO,
-    "cotas": FOMENTO,
     "relatorio_gestao": FOMENTO,
     "transferegov": FEDERATIVO,
     "bbagil": FEDERATIVO,
@@ -67,7 +66,6 @@ TIER_SOURCE = "Tier.Tier4"
 # fonte segue o subdominio do schema de origem; intermediate e produto sao
 # fomento, que e o que a Meta 5 mede.
 DOMINIO_POR_PASTA = {
-    "cotas_dbt": FOMENTO,
     "metadata": FOMENTO,
     "bbagil": FEDERATIVO,
     "salic": INCENTIVO,
