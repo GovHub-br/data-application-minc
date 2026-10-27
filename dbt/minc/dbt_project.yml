@@ -40,10 +40,11 @@ models:
     ancine:
       +schema: ancine
       +materialized: view
-    # TransfereGov. Por ora so as planilhas de contemplados que os entes anexam
-    # ao relatorio de gestao (a source fica no schema `relatorio_gestao`, onde a
-    # extracao_anexos_dag grava). Nao colide com as tabelas de origem do schema
-    # `transferegov`: aqui tudo comeca com bronze_ ou silver_.
+    # TransfereGov: as planilhas que os entes anexam ao relatorio de gestao
+    # (source no schema `relatorio_gestao`, onde a extracao_anexos_dag grava) e
+    # as tabelas da API (schema `transferegov`). Nao colide com as tabelas de
+    # origem: aqui tudo comeca com bronze_ ou silver_. View por padrao; as
+    # silvers da Meta 3 que cortam lixo de parsing declaram `table` no arquivo.
     transferegov:
       +schema: transferegov
       +materialized: view

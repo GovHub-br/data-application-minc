@@ -24,9 +24,9 @@
 -- limitação dele deixa de ser mensurável.
 --
 -- Para reativar: rode a cadeia de anexos acima e troque para enabled=true aqui,
--- nas duas bronze_planilha_contemplados_* desta pasta, em
--- int_ancine_bbagil_salic_transferegov e em
--- eixo2_meta5_primeiro_acesso_contemplados.
+-- em int_ancine_bbagil_salic_transferegov e em
+-- eixo2_meta5_primeiro_acesso_contemplados. As duas bronze_planilha_contemplados_*
+-- desta pasta já estão habilitadas: a Meta 3 (cotas) lê delas.
 
 -- Silver — unifica os identificadores (CPF/CNPJ normalizados) das listas
 -- oficiais de contemplados de edital, LPG + PNAB, que os entes anexam ao

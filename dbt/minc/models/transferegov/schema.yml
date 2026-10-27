@@ -1,10 +1,14 @@
 version: 2
 
-# TransfereGov, na estrutura do ADR 0010. Por ora só as planilhas que os entes
-# anexam ao relatório de gestão do plano de ação no Fundo a Fundo, que a
-# extracao_anexos_dag grava no schema `relatorio_gestao`. Tudo enabled=false:
-# as tabelas só nascem da cadeia de anexos, que não rodou neste banco (ver
-# silver_planilha_contemplados).
+# TransfereGov, na estrutura do ADR 0010. Duas famílias de tabela de origem:
+# - as planilhas que os entes anexam ao relatório de gestão do plano de ação no
+#   Fundo a Fundo (LPG e PNAB), que a extracao_anexos_dag grava no schema
+#   `relatorio_gestao`: perfil de agentes, contemplados e editais;
+# - as tabelas da API do TransfereGov (schema `transferegov`): plano de ação e
+#   o crosswalk territorial de setores do IBGE.
+# A Meta 3 (cotas) lê as silvers daqui; a regra de quem conta em cada cota fica
+# nas golds eixo2_meta3_* de data_products/cultura_em_numeros.
+# silver_planilha_contemplados (Meta 5) segue enabled=false, ver o modelo.
 models:
   - name: bronze_planilha_contemplados_lpg
     description: >
@@ -24,6 +28,100 @@ models:
     description: >
       Camada Bronze — cópia fiel de relatorio_gestao.planilha_contemplados_pnab_ciclo_1, sem cast, filtro nem join
       (ADR 0010). Todas as colunas chegam como na origem.
+    config:
+      tags:
+        - bronze
+        - transferegov
+    meta:
+      openmetadata:
+        domain: Cultura.Fomento Direto
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+
+  - name: bronze_planilha_dados_lpg
+    description: >
+      Camada Bronze — cópia fiel de relatorio_gestao.planilha_dados_lpg, sem cast,
+      filtro nem join (ADR 0010). As abas de dados das planilhas da LPG (perfil
+      de PF, PJ e coletivos; instrumentos), uma fatia por tabela_origem. Todas as
+      colunas chegam como na origem.
+    config:
+      tags:
+        - bronze
+        - transferegov
+    meta:
+      openmetadata:
+        domain: Cultura.Fomento Direto
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+        tags:
+          - PII.Sensitive
+
+  - name: bronze_planilha_dados_pnab_ciclo_1
+    description: >
+      Camada Bronze — cópia fiel de relatorio_gestao.planilha_dados_pnab_ciclo_1,
+      sem cast, filtro nem join (ADR 0010). As abas de pessoas e organizações
+      das planilhas do PNAB (ciclo 1), uma fatia por tabela_origem.
+    config:
+      tags:
+        - bronze
+        - transferegov
+    meta:
+      openmetadata:
+        domain: Cultura.Fomento Direto
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+        tags:
+          - PII.Sensitive
+
+  - name: bronze_planilha_editais_lpg
+    description: >
+      Camada Bronze — cópia fiel de relatorio_gestao.planilha_editais_lpg, sem
+      cast, filtro nem join (ADR 0010). A aba de editais das planilhas da LPG.
+    config:
+      tags:
+        - bronze
+        - transferegov
+    meta:
+      openmetadata:
+        domain: Cultura.Fomento Direto
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+
+  - name: bronze_planilha_editais_pnab_ciclo_1
+    description: >
+      Camada Bronze — cópia fiel de relatorio_gestao.planilha_editais_pnab_ciclo_1,
+      sem cast, filtro nem join (ADR 0010). As abas de definição de edital do
+      PNAB (ações gerais e Cultura Viva), uma fatia por tabela_origem.
+    config:
+      tags:
+        - bronze
+        - transferegov
+    meta:
+      openmetadata:
+        domain: Cultura.Fomento Direto
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+
+  - name: bronze_plano_acao_minc
+    description: >
+      Camada Bronze — cópia fiel de transferegov.plano_acao_minc, sem cast,
+      filtro nem join (ADR 0010). Um plano de ação do Fundo a Fundo por linha,
+      como a api_planos_acao_dag grava.
+    config:
+      tags:
+        - bronze
+        - transferegov
+    meta:
+      openmetadata:
+        domain: Cultura.Repasse Federativo
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+
+  - name: bronze_territorio_fcu_setores
+    description: >
+      Camada Bronze — cópia fiel de transferegov.territorio_fcu_setores, sem
+      cast, filtro nem join (ADR 0010). Crosswalk do IBGE (Censo 2022) de setor
+      censitário para Favela e Comunidade Urbana, grão setor.
     config:
       tags:
         - bronze
