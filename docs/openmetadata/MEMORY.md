@@ -609,6 +609,32 @@ truncada, não derrubada: era o `DROP TABLE` sem CASCADE que travava com as 589
 views do dbt em cima. `DROP` + `CREATE` só quando a forma da origem mudou. O
 plano inteiro está na versão 2 de `docs/superpowers/plans/2026-10-27-salic-adr-0010.md`.
 
+### 2026-10-27 · Claude · F17 — PR B: saem as duas bronzes dbt, entra o SQL de rename
+
+**O que o PR faz.** Remove `salic/bronze_sac_projetos.sql` e
+`salic/bronze_sac_captacao.sql`, os únicos modelos bronze do SALIC, e
+`silver_sac_captacao_proponente` (mais os testes singulares
+`salic_recibo_sem_proponente` e `_em_massa`) passa a ler
+`source('salic', 'bronze_sac_*')`. Nasce `salic/sources_sac.yml` mínimo: source
+`salic`, schema `salic`, só as duas tabelas, com as descrições copiadas de
+`salic_dbt/bronze/sources_sac.yml`. O lote `sac` traz o resto.
+
+**O rename.** `scripts/gerar_mover_bronze_salic.py` lê os `sources_*.yml` do
+`salic_dbt/bronze` com `schema: salic_bronze` (589 tabelas; `sources_sac_legado`
+aponta para `bronze`, a v1, e fica de fora) ou um arquivo colado do banco
+(`--todas`, para as 656) e escreve `scripts/salic_mover_bronze.sql`: guarda de
+colisão, `ALTER TABLE ... SET SCHEMA salic` + `RENAME TO bronze_<banco>_<tabela>`
+por tabela, numa transação, e a conferência no fim. O destino sai de
+`plugins.trino_bronze.bronze_table_name`, a mesma função da DAG.
+
+**Operação que fica para a Luiza (Task 3 do plano), nesta ordem.** 1. merge do
+PR A e deste; 2. Variable `salic_trino_bronze_schema` = `salic`; 3. `drop table
+salic.bronze_sac_projetos, salic.bronze_sac_captacao` (as tables do dbt, senão a
+guarda do SQL para); 4. `psql -f scripts/salic_mover_bronze.sql`, ou a versão
+`--todas` se quiser levar as 67 não declaradas; 5. DAG com `only_tables` de uma
+tabela pequena para provar o TRUNCATE. A contagem antes/depois da silver em
+`dev_salic` só dá para medir depois do passo 4, porque antes a source não existe.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG
