@@ -582,6 +582,33 @@ vira issue própria. As 589 tabelas do lote existem no banco; tamanhos: sac
 58 GB, bdcorporativo 764 MB, agentes 643 MB, tabelas 391 MB,
 controledeacesso 73 MB.
 
+### 2026-10-27 · Claude · F17 — correção de rumo: a Bronze do SALIC vai para o schema `salic` (ADR 0017)
+
+**O que mudou e por quê.** A leitura do ADR 0016 estava errada: o ADR 0010
+pede um schema só por fonte, `salic`, com `bronze_<banco>_<tabela>` e
+`silver_<banco>_<tabela>` dentro, e a Luiza confirmou que `salic_bronze` deixa
+de existir. Desenho fechado (o mesmo do Mapas): a DAG `salic_ingestion_trino`
+grava `salic.bronze_<banco>_<tabela>`; no dbt, uma source `salic` e só
+`silver_*.sql` lendo `source('salic', 'bronze_...')`. Sem raw, sem modelo
+bronze. O ADR 0017 substitui o 0016 inteiro; a R3 do `verificar.py` aceita
+`source('<pasta>', 'bronze_*')`, o que zera também os 59 do Mapas. O PR #107
+(lote `controledeacesso` na leitura antiga) foi fechado; o lote volta refeito.
+
+**A colisão e a ordem.** `salic/bronze_sac_projetos` e `salic/bronze_sac_captacao`
+existem hoje como tables do dbt, com o mesmo nome que a ingestão vai usar. Com
+`target: prod` modelo e tabela resolvem para a mesma relação: se a ingestão
+gravasse antes, o `dbt run` seguinte derrubaria a carga. Ordem: PR B remove os
+dois modelos; a Luiza dropa as duas tables; a Luiza roda o rename das 656
+tabelas de `salic_bronze` (`ALTER TABLE ... SET SCHEMA salic` + `RENAME`,
+gerado por script, sem recarga); só então os lotes.
+
+**A mudança na DAG.** `bronze_table_name` passa a `bronze_<banco>_<tabela>`,
+schema padrão `salic` (a Variable `salic_trino_bronze_schema` do ambiente
+precisa ir para `salic`). Tabela que já existe com a mesma lista de colunas é
+truncada, não derrubada: era o `DROP TABLE` sem CASCADE que travava com as 589
+views do dbt em cima. `DROP` + `CREATE` só quando a forma da origem mudou. O
+plano inteiro está na versão 2 de `docs/superpowers/plans/2026-10-27-salic-adr-0010.md`.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG

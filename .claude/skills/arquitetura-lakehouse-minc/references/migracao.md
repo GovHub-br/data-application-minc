@@ -23,8 +23,8 @@ aparecem no dado real.
 A tabela está no ADR 0010, seção "Consequências". Em resumo: o que só tipa é
 Silver; o que cruza fontes é Intermediate; o que está em `gold/` é Gold do
 `cultura_em_numeros`; a bronze SALIC de hoje (589 modelos que tipam) é Silver
-e continua lendo `source('bronze_<origem>', ...)`, que pelo ADR 0016 é a
-Bronze.
+e passa a ler `source('salic', 'bronze_<banco>_<tabela>')`, a tabela que a
+ingestão grava no schema `salic` (ADR 0017).
 
 Decida a camada pelo que o SQL faz. `stg_agentes_pf` filtra e normaliza →
 Silver. `eventos_fomento` unia BB Ágil, SALIC e Ancine e aplicava as regras
@@ -89,8 +89,9 @@ faz as duas coisas vira dois.
 - **Não mude a tipagem de uma silver sem olhar o dado real.** Ao passar a ler
   a silver tipada em vez da `source`, um cast que ninguém exercitava passa a
   rodar. Siga as regras de tipagem em `references/regras.md` (R16 a R18).
-- **Não crie `bronze_*` para o SALIC nem para o Mapas**: a ingestão já grava
-  a Bronze (ADR 0016). A Silver dessas fontes lê `source('bronze_<fonte>', ...)`.
+- **Não crie `bronze_*` para o SALIC nem para o Mapas**: a ingestão grava a
+  Bronze no schema da fonte, como `bronze_<entidade>` (ADR 0017). A Silver
+  dessas fontes lê `source('<fonte>', 'bronze_<entidade>')`.
 - **Não deixe a pasta velha pela metade** por mais de um PR. Pasta com dois
   padrões é pior que pasta com um padrão errado.
 - **Não leia a ingestão SALIC v1** (schema `bronze`, `sources_sac_legado.yml`)

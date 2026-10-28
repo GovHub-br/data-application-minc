@@ -86,13 +86,27 @@ Daí vêm duas consequências que parecem detalhe e não são:
 Qualquer ``psycopg2``/``PostgresHook`` reintroduzido aqui quebra em produção,
 mesmo passando no ambiente local, onde tudo divide a mesma máquina.
 
+Onde a bronze fica
+------------------
+No schema da fonte, ``salic``, como ``bronze_<banco>_<tabela>``
+(``salic.bronze_sac_projetos``) — ADR 0010 e ADR 0017. É a Bronze do SALIC: não
+há raw nem modelo dbt ``bronze_*``; a source ``salic`` do dbt declara estas
+tabelas e as silvers (``models/salic/silver_<banco>_<tabela>.sql``) as leem. A
+v1 gravava ``bronze.<banco>__<tabela>`` e, até o ADR 0017, esta DAG gravava
+``salic_bronze.<banco>__<tabela>``; nenhum dos dois é lido pelo dbt.
+
+Uma tabela que já existe com a mesma forma é **truncada**, não derrubada
+(``_prepare_bronze_table``): as silvers são views sobre ela, e o Postgres recusa
+``DROP TABLE`` com view dependente — o Trino não tem ``CASCADE``. ``DROP`` +
+``CREATE`` só quando a lista de colunas da origem mudou; se aí o ``DROP`` falhar
+por view dependente, o aviso é correto: a silver precisa ser recriada para a
+forma nova.
+
 Diferenças de conteúdo em relação à v1
 --------------------------------------
-Nome da tabela bronze, nome das colunas e tipo ``TEXT`` são idênticos aos da
-v1 — as 561 fontes declaradas em ``dbt/minc/models/salic_dbt/bronze/`` continuam
-valendo sem alteração. O texto dentro das colunas muda em três tipos
-(``bit``, ``char(n)`` e ``varbinary``); o porquê de cada um está no docstring
-de ``trino_bronze.cast_to_text``.
+Nome das colunas e tipo ``TEXT`` são idênticos aos da v1. O texto dentro das
+colunas muda em três tipos (``bit``, ``char(n)`` e ``varbinary``); o porquê de
+cada um está no docstring de ``trino_bronze.cast_to_text``.
 """
 
 import logging
@@ -116,7 +130,9 @@ from trino_bronze import (
     TSQL_ROW_COUNTS,
     bronze_ddl,
     bronze_table_name,
+    bronze_truncate,
     build_statements,
+    columns_match,
     index_row_counts,
     metadata_key,
     parse_only_tables,
@@ -222,6 +238,7 @@ def source_metadata(catalog: str, schema: str, tsql: str) -> list[Any]:
 
 
 # ── Log de controle ──────────────────────────────────────────────────────────
+
 
 def _target_catalog() -> str:
     """Catálogo de destino configurado, ou o padrão."""
@@ -435,7 +452,10 @@ def salic_ingestion_trino() -> None:
         controle = _control_schema()
         logging.info(
             "[salic_trino] destino: %s.%s (bronze) e %s.%s (controle)",
-            catalogo, bronze, catalogo, controle,
+            catalogo,
+            bronze,
+            catalogo,
+            controle,
         )
         trino_run(f"CREATE SCHEMA IF NOT EXISTS {catalogo}.{bronze}")
         trino_run(f"CREATE SCHEMA IF NOT EXISTS {catalogo}.{controle}")
@@ -453,9 +473,7 @@ def salic_ingestion_trino() -> None:
         catalogo = _target_catalog()
         bronze = _bronze_schema()
         controle = _control_schema()
-        done = (
-            set() if params["full_refresh"] else tables_done_today(catalogo, controle)
-        )
+        done = set() if params["full_refresh"] else tables_done_today(catalogo, controle)
         destino = {
             "target_catalog": catalogo,
             "bronze_schema": bronze,
@@ -503,7 +521,6 @@ def salic_ingestion_trino() -> None:
                 + (" ..." if len(falhas) > 10 else "")
             )
         return total
-
 
     configs = load_config()
     schemas_ready = ensure_schemas()
@@ -571,7 +588,7 @@ def _load_one(target: dict) -> int:
             write_log(target, "dry_run", _stats(started_at, slices=len(statements)))
             return 0
 
-        _recreate_bronze_table(target, columns)
+        _prepare_bronze_table(target, columns)
         rows = _run_statements(target, statements)
 
         logging.info(
@@ -708,9 +725,7 @@ def _slices_for(target: dict) -> list[tuple[int | None, int | None]]:
         return [(None, None)]
 
     ident = quote_ident(key)
-    rows = trino_records(
-        f"SELECT min({ident}), max({ident}) FROM {source_fqtn(target)}"
-    )
+    rows = trino_records(f"SELECT min({ident}), max({ident}) FROM {source_fqtn(target)}")
     key_min, key_max = (rows[0][0], rows[0][1]) if rows else (None, None)
     slices = plan_slices(
         None if key_min is None else int(key_min),
@@ -734,15 +749,46 @@ def _slices_for(target: dict) -> list[tuple[int | None, int | None]]:
 # ── Execução ─────────────────────────────────────────────────────────────────
 
 
-def _recreate_bronze_table(target: dict, columns: list[tuple[str, str]]) -> None:
-    """DROP + CREATE da tabela bronze, pelo Trino."""
+def _existing_columns(target: dict) -> list[str]:
+    """Colunas da tabela bronze já existente no destino, na ordem; [] se não existe."""
+    rows = trino_records(
+        f"""
+        SELECT column_name
+        FROM {target_catalog(target)}.information_schema.columns
+        WHERE table_schema = {sql_literal(bronze_schema(target))}
+          AND table_name = {sql_literal(target['bronze_table'])}
+        ORDER BY ordinal_position
+        """
+    )
+    return [r[0] for r in rows]
+
+
+def _prepare_bronze_table(target: dict, columns: list[tuple[str, str]]) -> None:
+    """Deixa a tabela bronze vazia e com a forma da origem, pelo Trino.
+
+    Se ela já existe com as mesmas colunas, TRUNCATE: a tabela fica, e com ela
+    as views do dbt que a leem (``silver_*``). DROP + CREATE só quando a forma
+    mudou — e aí o Postgres recusa o DROP se houver view dependente, que é o
+    aviso certo: alguém precisa recriar a silver para a forma nova.
+    """
+    existentes = _existing_columns(target)
+    if existentes and columns_match(existentes, columns):
+        trino_run(bronze_truncate(target))
+        logging.info(
+            "[salic_trino] %s.%s truncada (%d coluna(s), forma igual à da origem).",
+            bronze_schema(target),
+            target["bronze_table"],
+            len(columns),
+        )
+        return
     drop, create = bronze_ddl(target, columns)
     trino_run(drop)
     trino_run(create)
     logging.info(
-        "[salic_trino] %s.%s recriada com %d coluna(s) + %s.",
+        "[salic_trino] %s.%s %s com %d coluna(s) + %s.",
         bronze_schema(target),
         target["bronze_table"],
+        "recriada (a forma da origem mudou)" if existentes else "criada",
         len(columns),
         SLICE_COLUMN,
     )
