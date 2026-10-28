@@ -113,6 +113,9 @@ O que não se improvisa aqui:
 - **A carga tem que poder repetir.** Reexecutar a DAG não pode duplicar registro —
   use chave e upsert, não append cego. É a falha mais cara de descobrir tarde,
   porque o número só fica errado depois da segunda execução.
+- **Um `ClientPostgresDB` por task, reaproveitado.** A instância segura uma conexão
+  só e guarda as colunas já vistas, então crie uma antes do laço — de preferência
+  em `with ClientPostgresDB(get_postgres_conn()) as db:` — e não uma por chamada.
 - **Log com prefixo do arquivo**, no padrão `[nome_do_arquivo.py] mensagem`. É como
   se acha a origem no log do Airflow, que mistura todas as DAGs.
 
