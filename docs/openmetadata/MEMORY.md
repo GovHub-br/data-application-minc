@@ -634,6 +634,26 @@ guarda do SQL para); 4. `psql -f scripts/salic_mover_bronze.sql`, ou a versão
 `--todas` se quiser levar as 67 não declaradas; 5. DAG com `only_tables` de uma
 tabela pequena para provar o TRUNCATE. A contagem antes/depois da silver em
 `dev_salic` só dá para medir depois do passo 4, porque antes a source não existe.
+### 2026-10-27 · Claude · F17 — PR 1 refeito: lote `controledeacesso` na leitura do ADR 0017
+
+**O que o PR faz.** Os 3 modelos de `salic_dbt/bronze/controledeacesso/` viram
+`salic/silver_controledeacesso_<t>.sql`, lendo
+`source('salic', 'bronze_controledeacesso_<t>')`; `schema_controledeacesso.yml`
+e `sources_controledeacesso.yml` vão juntos, a source renomeada para `salic`,
+schema `salic`, tabelas `bronze_controledeacesso_<t>`. Corpo SQL idêntico byte a
+byte (prova por diff sem comentário e sem espaço, mapeando o `source()` de volta).
+Tudo pelo `scripts/migrar_lote_salic.py` v2, que agora também reescreve o
+`source()` nos leitores e padroniza a descrição da source `salic`, porque ela é
+uma só e declarada em cinco arquivos. `verificar.py --tudo`: 602 → 599.
+
+**Validação pendente.** A contagem origem x silver em `dev_salic` só roda depois
+da operação do PR B (rename), porque `salic.bronze_controledeacesso_*` ainda não
+existe. O `validar_lote.sh` do scratchpad já conta em `salic.bronze_*`. Os
+números esperados são os de `antes_controledeacesso.txt` (3 tabelas), medidos
+em `salic_bronze` em 2026-10-27.
+
+**Ordem de merge.** Depois do PR B e da operação; antes disso o Cosmos falharia
+nestes 3 modelos por source inexistente.
 
 ### 2026-10-28 · Claude · F17 — o rename rodou; as sources legadas viram ponte (PR #110)
 
