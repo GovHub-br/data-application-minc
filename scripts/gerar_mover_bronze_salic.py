@@ -57,12 +57,20 @@ def tabelas_dos_sources(pasta: Path = PASTA_SOURCES) -> list[str]:
 
 
 def tabelas_do_arquivo(arq: Path) -> list[str]:
-    """Um nome por linha; ignora vazias e comentários."""
+    """Um nome por linha; ignora vazias, comentários e o que não é <banco>__<tabela>.
+
+    O banco tem sobras de carga do Trino (``tmp_trino_*``) que não são Bronze de
+    nada; ficam em salic_bronze e caem com o schema, no fim da migração.
+    """
     nomes = set()
     for linha in arq.read_text(encoding="utf-8").splitlines():
         nome = linha.strip()
-        if nome and not nome.startswith("#"):
-            nomes.add(nome)
+        if not nome or nome.startswith("#"):
+            continue
+        if "__" not in nome.strip("_"):
+            print(f"ignorado (não é <banco>__<tabela>): {nome}", file=sys.stderr)
+            continue
+        nomes.add(nome)
     return sorted(nomes)
 
 

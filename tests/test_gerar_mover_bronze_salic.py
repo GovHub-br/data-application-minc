@@ -56,5 +56,7 @@ def test_tabelas_dos_sources_ignora_schema_que_nao_e_salic_bronze(tmp_path):
 
 def test_arquivo_colado_do_banco(tmp_path):
     arq = tmp_path / "t.txt"
-    arq.write_text("# comentario\nsac__projetos\n\n  tabelas__uf \n")
+    arq.write_text(
+        "# comentario\nsac__projetos\n\n  tabelas__uf \ntmp_trino_82c2f333_38dfb590\n"
+    )
     assert mod.tabelas_do_arquivo(arq) == ["sac__projetos", "tabelas__uf"]

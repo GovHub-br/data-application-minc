@@ -1,7 +1,7 @@
--- Gerado por scripts/gerar_mover_bronze_salic.py em 2026-10-27.
+-- Gerado por scripts/gerar_mover_bronze_salic.py em 2026-10-28.
 -- Roda uma vez, pela pessoa, no dbanalytics (psql). Idempotente: o que já
 -- foi movido não existe mais em salic_bronze e o IF EXISTS pula.
--- 589 tabelas.
+-- 672 tabelas.
 \set ON_ERROR_STOP on
 begin;
 
@@ -22,6 +22,7 @@ begin
     union all select 'agentes__vpais' as origem, 'bronze_agentes_vpais' as destino
     union all select 'agentes__vperfil' as origem, 'bronze_agentes_vperfil' as destino
     union all select 'agentes__vprefeiturasregiaouf' as origem, 'bronze_agentes_vprefeiturasregiaouf' as destino
+    union all select 'agentes__vramais' as origem, 'bronze_agentes_vramais' as destino
     union all select 'agentes__vsistema' as origem, 'bronze_agentes_vsistema' as destino
     union all select 'agentes__vtelefones' as origem, 'bronze_agentes_vtelefones' as destino
     union all select 'agentes__vuf' as origem, 'bronze_agentes_vuf' as destino
@@ -39,9 +40,11 @@ begin
     union all select 'bdcorporativo__tbcomprovantepagamento' as origem, 'bronze_bdcorporativo_tbcomprovantepagamento' as destino
     union all select 'bdcorporativo__tbencaminhamentoprestacaocontas' as origem, 'bronze_bdcorporativo_tbencaminhamentoprestacaocontas' as destino
     union all select 'bdcorporativo__tbsituacaoencaminhamentoprestacaocontas' as origem, 'bronze_bdcorporativo_tbsituacaoencaminhamentoprestacaocontas' as destino
+    union all select 'controledeacesso__dtproperties' as origem, 'bronze_controledeacesso_dtproperties' as destino
     union all select 'controledeacesso__sgcacesso' as origem, 'bronze_controledeacesso_sgcacesso' as destino
     union all select 'controledeacesso__sgcsistema' as origem, 'bronze_controledeacesso_sgcsistema' as destino
     union all select 'controledeacesso__sgcusuarioxsistema' as origem, 'bronze_controledeacesso_sgcusuarioxsistema' as destino
+    union all select 'controledeacesso__sysdiagrams' as origem, 'bronze_controledeacesso_sysdiagrams' as destino
     union all select 'sac__aberturadecontabancaria' as origem, 'bronze_sac_aberturadecontabancaria' as destino
     union all select 'sac__aberturadecontasav39215' as origem, 'bronze_sac_aberturadecontasav39215' as destino
     union all select 'sac__aberturadecontasav39224' as origem, 'bronze_sac_aberturadecontasav39224' as destino
@@ -58,7 +61,9 @@ begin
     union all select 'sac__agenciasbb' as origem, 'bronze_sac_agenciasbb' as destino
     union all select 'sac__aprovacao' as origem, 'bronze_sac_aprovacao' as destino
     union all select 'sac__area' as origem, 'bronze_sac_area' as destino
+    union all select 'sac__aspectosfinanceirosx' as origem, 'bronze_sac_aspectosfinanceirosx' as destino
     union all select 'sac__aspectosfisicosx' as origem, 'bronze_sac_aspectosfisicosx' as destino
+    union all select 'sac__aspectosresultadosx' as origem, 'bronze_sac_aspectosresultadosx' as destino
     union all select 'sac__atualizaorgaoprojetosx' as origem, 'bronze_sac_atualizaorgaoprojetosx' as destino
     union all select 'sac__auditoria' as origem, 'bronze_sac_auditoria' as destino
     union all select 'sac__autuacaox' as origem, 'bronze_sac_autuacaox' as destino
@@ -69,6 +74,7 @@ begin
     union all select 'sac__bancoagencia20100824' as origem, 'bronze_sac_bancoagencia20100824' as destino
     union all select 'sac__bancoagencia_08' as origem, 'bronze_sac_bancoagencia_08' as destino
     union all select 'sac__bancoagencia_bkp_04112009x' as origem, 'bronze_sac_bancoagencia_bkp_04112009x' as destino
+    union all select 'sac__bancoagencianovo' as origem, 'bronze_sac_bancoagencianovo' as destino
     union all select 'sac__bancoagencianovo1' as origem, 'bronze_sac_bancoagencianovo1' as destino
     union all select 'sac__bandas' as origem, 'bronze_sac_bandas' as destino
     union all select 'sac__bcoagmar2011$' as origem, 'bronze_sac_bcoagmar2011$' as destino
@@ -92,6 +98,7 @@ begin
     union all select 'sac__consultorespc' as origem, 'bronze_sac_consultorespc' as destino
     union all select 'sac__contabancaria' as origem, 'bronze_sac_contabancaria' as destino
     union all select 'sac__convenio' as origem, 'bronze_sac_convenio' as destino
+    union all select 'sac__cpbx' as origem, 'bronze_sac_cpbx' as destino
     union all select 'sac__criteriosx' as origem, 'bronze_sac_criteriosx' as destino
     union all select 'sac__curriculo' as origem, 'bronze_sac_curriculo' as destino
     union all select 'sac__dba_captacaoanoufmunicipio' as origem, 'bronze_sac_dba_captacaoanoufmunicipio' as destino
@@ -110,6 +117,9 @@ begin
     union all select 'sac__dba_qtd_proponentes_inabilitados' as origem, 'bronze_sac_dba_qtd_proponentes_inabilitados' as destino
     union all select 'sac__dba_relacao_projetos' as origem, 'bronze_sac_dba_relacao_projetos' as destino
     union all select 'sac__dba_relacao_projetos_fred' as origem, 'bronze_sac_dba_relacao_projetos_fred' as destino
+    union all select 'sac__dba_relacao_projetos_fred_agentes' as origem, 'bronze_sac_dba_relacao_projetos_fred_agentes' as destino
+    union all select 'sac__dba_relacao_projetos_fred_tcu' as origem, 'bronze_sac_dba_relacao_projetos_fred_tcu' as destino
+    union all select 'sac__dba_relacao_projetos_fred_tcu_aprovados' as origem, 'bronze_sac_dba_relacao_projetos_fred_tcu_aprovados' as destino
     union all select 'sac__dba_relacao_projetos_geral' as origem, 'bronze_sac_dba_relacao_projetos_geral' as destino
     union all select 'sac__dba_tcu_captacao_sav' as origem, 'bronze_sac_dba_tcu_captacao_sav' as destino
     union all select 'sac__dba_tcu_captacao_sefic' as origem, 'bronze_sac_dba_tcu_captacao_sefic' as destino
@@ -120,6 +130,7 @@ begin
     union all select 'sac__dbf_agosto' as origem, 'bronze_sac_dbf_agosto' as destino
     union all select 'sac__dbf_dezembro' as origem, 'bronze_sac_dbf_dezembro' as destino
     union all select 'sac__dbf_maio' as origem, 'bronze_sac_dbf_maio' as destino
+    union all select 'sac__dbresult' as origem, 'bronze_sac_dbresult' as destino
     union all select 'sac__deorgaoparaorgao' as origem, 'bronze_sac_deorgaoparaorgao' as destino
     union all select 'sac__distribuicao_avaliacao_proposta' as origem, 'bronze_sac_distribuicao_avaliacao_proposta' as destino
     union all select 'sac__distribuicao_avaliacao_proposta_bkp' as origem, 'bronze_sac_distribuicao_avaliacao_proposta_bkp' as destino
@@ -134,7 +145,9 @@ begin
     union all select 'sac__editalparcelas' as origem, 'bronze_sac_editalparcelas' as destino
     union all select 'sac__editalprojeto' as origem, 'bronze_sac_editalprojeto' as destino
     union all select 'sac__editalrelatorio' as origem, 'bronze_sac_editalrelatorio' as destino
+    union all select 'sac__efeitoseconomicos' as origem, 'bronze_sac_efeitoseconomicos' as destino
     union all select 'sac__efeitosresultado' as origem, 'bronze_sac_efeitosresultado' as destino
+    union all select 'sac__efeitossociais' as origem, 'bronze_sac_efeitossociais' as destino
     union all select 'sac__empenho' as origem, 'bronze_sac_empenho' as destino
     union all select 'sac__empenhoprojeto' as origem, 'bronze_sac_empenhoprojeto' as destino
     union all select 'sac__enquadramento' as origem, 'bronze_sac_enquadramento' as destino
@@ -150,7 +163,9 @@ begin
     union all select 'sac__geralext' as origem, 'bronze_sac_geralext' as destino
     union all select 'sac__grupoempresarial' as origem, 'bronze_sac_grupoempresarial' as destino
     union all select 'sac__guiarecolhimento' as origem, 'bronze_sac_guiarecolhimento' as destino
+    union all select 'sac__historicoaspectosfinanceirosx' as origem, 'bronze_sac_historicoaspectosfinanceirosx' as destino
     union all select 'sac__historicoaspectosfisicosx' as origem, 'bronze_sac_historicoaspectosfisicosx' as destino
+    union all select 'sac__historicoaspectosresultado' as origem, 'bronze_sac_historicoaspectosresultado' as destino
     union all select 'sac__historicoautuacaox' as origem, 'bronze_sac_historicoautuacaox' as destino
     union all select 'sac__historicocarta' as origem, 'bronze_sac_historicocarta' as destino
     union all select 'sac__historicodelecaoaprovacao' as origem, 'bronze_sac_historicodelecaoaprovacao' as destino
@@ -158,6 +173,7 @@ begin
     union all select 'sac__historicosituacao' as origem, 'bronze_sac_historicosituacao' as destino
     union all select 'sac__historicounidade' as origem, 'bronze_sac_historicounidade' as destino
     union all select 'sac__humanidades' as origem, 'bronze_sac_humanidades' as destino
+    union all select 'sac__impactox' as origem, 'bronze_sac_impactox' as destino
     union all select 'sac__inabilitado' as origem, 'bronze_sac_inabilitado' as destino
     union all select 'sac__incentivoporcgccpf' as origem, 'bronze_sac_incentivoporcgccpf' as destino
     union all select 'sac__informacaotrimestralx' as origem, 'bronze_sac_informacaotrimestralx' as destino
@@ -175,12 +191,15 @@ begin
     union all select 'sac__tbapiincentivos' as origem, 'bronze_sac_tbapiincentivos' as destino
     union all select 'sac__tbcomplianceitemcomprovado' as origem, 'bronze_sac_tbcomplianceitemcomprovado' as destino
     union all select 'sac__tbcomprovacaopassivo' as origem, 'bronze_sac_tbcomprovacaopassivo' as destino
+    union all select 'sac__tbcomprovantebeneficiario' as origem, 'bronze_sac_tbcomprovantebeneficiario' as destino
+    union all select 'sac__tbcomprovanteexecucao' as origem, 'bronze_sac_tbcomprovanteexecucao' as destino
     union all select 'sac__tbcomprovantetrimestral' as origem, 'bronze_sac_tbcomprovantetrimestral' as destino
     union all select 'sac__tbcomunicados' as origem, 'bronze_sac_tbcomunicados' as destino
     union all select 'sac__tbconfigurarpagamento' as origem, 'bronze_sac_tbconfigurarpagamento' as destino
     union all select 'sac__tbconfigurarpagamentoxtbassinantes' as origem, 'bronze_sac_tbconfigurarpagamentoxtbassinantes' as destino
     union all select 'sac__tbcontabancariabloqueada' as origem, 'bronze_sac_tbcontabancariabloqueada' as destino
     union all select 'sac__tbcontacartao' as origem, 'bronze_sac_tbcontacartao' as destino
+    union all select 'sac__tbcontacartaovip036' as origem, 'bronze_sac_tbcontacartaovip036' as destino
     union all select 'sac__tbcovid' as origem, 'bronze_sac_tbcovid' as destino
     union all select 'sac__tbcredenciaparecerista_2020' as origem, 'bronze_sac_tbcredenciaparecerista_2020' as destino
     union all select 'sac__tbcumprimentoobjeto' as origem, 'bronze_sac_tbcumprimentoobjeto' as destino
@@ -189,41 +208,59 @@ begin
     union all select 'sac__tbdeclaracaobeneficiosfiscais' as origem, 'bronze_sac_tbdeclaracaobeneficiosfiscais' as destino
     union all select 'sac__tbdemandasdeorgaosdecontrole' as origem, 'bronze_sac_tbdemandasdeorgaosdecontrole' as destino
     union all select 'sac__tbdemandasdeorgaosdecontrolexprojetos' as origem, 'bronze_sac_tbdemandasdeorgaosdecontrolexprojetos' as destino
+    union all select 'sac__tbdeparaplanilhaaprovacao' as origem, 'bronze_sac_tbdeparaplanilhaaprovacao' as destino
+    union all select 'sac__tbdepositoidentificadocaptacao' as origem, 'bronze_sac_tbdepositoidentificadocaptacao' as destino
+    union all select 'sac__tbdepositoidentificadocaptacaoold' as origem, 'bronze_sac_tbdepositoidentificadocaptacaoold' as destino
+    union all select 'sac__tbdepositoidentificadomovimentacao' as origem, 'bronze_sac_tbdepositoidentificadomovimentacao' as destino
+    union all select 'sac__tbdescricaorelatorioconsolidado' as origem, 'bronze_sac_tbdescricaorelatorioconsolidado' as destino
     union all select 'sac__tbdeslocamento' as origem, 'bronze_sac_tbdeslocamento' as destino
     union all select 'sac__tbdespacho' as origem, 'bronze_sac_tbdespacho' as destino
     union all select 'sac__tbdetalhaplanodistribuicao' as origem, 'bronze_sac_tbdetalhaplanodistribuicao' as destino
     union all select 'sac__tbdetalhaplanodistribuicaoreadequacao' as origem, 'bronze_sac_tbdetalhaplanodistribuicaoreadequacao' as destino
+    union all select 'sac__tbdevolucaosecretaria' as origem, 'bronze_sac_tbdevolucaosecretaria' as destino
     union all select 'sac__tbdiligencia' as origem, 'bronze_sac_tbdiligencia' as destino
     union all select 'sac__tbdiligenciaxarquivo' as origem, 'bronze_sac_tbdiligenciaxarquivo' as destino
     union all select 'sac__tbdispositivomovel' as origem, 'bronze_sac_tbdispositivomovel' as destino
+    union all select 'sac__tbdistribuicaoproduto' as origem, 'bronze_sac_tbdistribuicaoproduto' as destino
+    union all select 'sac__tbdistribuirdemandasdeorgaosdecontrole' as origem, 'bronze_sac_tbdistribuirdemandasdeorgaosdecontrole' as destino
     union all select 'sac__tbdistribuirparecer' as origem, 'bronze_sac_tbdistribuirparecer' as destino
     union all select 'sac__tbdistribuirprojeto' as origem, 'bronze_sac_tbdistribuirprojeto' as destino
     union all select 'sac__tbdistribuirprojetopassivo' as origem, 'bronze_sac_tbdistribuirprojetopassivo' as destino
     union all select 'sac__tbdistribuirreadequacao' as origem, 'bronze_sac_tbdistribuirreadequacao' as destino
     union all select 'sac__tbdocumento20100107_1x' as origem, 'bronze_sac_tbdocumento20100107_1x' as destino
+    union all select 'sac__tbdocumento20100107x' as origem, 'bronze_sac_tbdocumento20100107x' as destino
+    union all select 'sac__tbdocumentoaceitacao' as origem, 'bronze_sac_tbdocumentoaceitacao' as destino
     union all select 'sac__tbdocumentoassinatura' as origem, 'bronze_sac_tbdocumentoassinatura' as destino
+    union all select 'sac__tbdocumentodespachoassinatura' as origem, 'bronze_sac_tbdocumentodespachoassinatura' as destino
+    union all select 'sac__tbdocumentosagentes20100107x' as origem, 'bronze_sac_tbdocumentosagentes20100107x' as destino
+    union all select 'sac__tbdocumentospreprojeto20100107x' as origem, 'bronze_sac_tbdocumentospreprojeto20100107x' as destino
     union all select 'sac__tbfiscalizacao' as origem, 'bronze_sac_tbfiscalizacao' as destino
     union all select 'sac__tbfundopatrimonial' as origem, 'bronze_sac_tbfundopatrimonial' as destino
     union all select 'sac__tbfundopatrimonialusuario' as origem, 'bronze_sac_tbfundopatrimonialusuario' as destino
     union all select 'sac__tbgerarpagamentoparecerista' as origem, 'bronze_sac_tbgerarpagamentoparecerista' as destino
     union all select 'sac__tbhistoricoalteracaodocumento' as origem, 'bronze_sac_tbhistoricoalteracaodocumento' as destino
     union all select 'sac__tbhistoricoalteracaoprojeto' as origem, 'bronze_sac_tbhistoricoalteracaoprojeto' as destino
+    union all select 'sac__tbhistoricocontabloqueada' as origem, 'bronze_sac_tbhistoricocontabloqueada' as destino
     union all select 'sac__tbhistoricodevolucaofiscalizacao' as origem, 'bronze_sac_tbhistoricodevolucaofiscalizacao' as destino
     union all select 'sac__tbhistoricodiligencia' as origem, 'bronze_sac_tbhistoricodiligencia' as destino
     union all select 'sac__tbhistoricodocumento' as origem, 'bronze_sac_tbhistoricodocumento' as destino
     union all select 'sac__tbhistoricoemail' as origem, 'bronze_sac_tbhistoricoemail' as destino
     union all select 'sac__tbhistoricoexclusaoconta' as origem, 'bronze_sac_tbhistoricoexclusaoconta' as destino
     union all select 'sac__tbhomologacao' as origem, 'bronze_sac_tbhomologacao' as destino
+    union all select 'sac__tbimovel' as origem, 'bronze_sac_tbimovel' as destino
     union all select 'sac__tbinadimplente' as origem, 'bronze_sac_tbinadimplente' as destino
     union all select 'sac__tbitensplanilhaproduto' as origem, 'bronze_sac_tbitensplanilhaproduto' as destino
     union all select 'sac__tblancamentobancario' as origem, 'bronze_sac_tblancamentobancario' as destino
+    union all select 'sac__tblancamentobancarioxcomprovantepagamento' as origem, 'bronze_sac_tblancamentobancarioxcomprovantepagamento' as destino
     union all select 'sac__tblaudofinal' as origem, 'bronze_sac_tblaudofinal' as destino
     union all select 'sac__tblogintentativasacesso' as origem, 'bronze_sac_tblogintentativasacesso' as destino
+    union all select 'sac__tblogomarca' as origem, 'bronze_sac_tblogomarca' as destino
     union all select 'sac__tblote' as origem, 'bronze_sac_tblote' as destino
     union all select 'sac__tbmanterportaria' as origem, 'bronze_sac_tbmanterportaria' as destino
     union all select 'sac__tbmensagem' as origem, 'bronze_sac_tbmensagem' as destino
     union all select 'sac__tbmensagemdispositivomovel' as origem, 'bronze_sac_tbmensagemdispositivomovel' as destino
     union all select 'sac__tbmodelotermodecisao' as origem, 'bronze_sac_tbmodelotermodecisao' as destino
+    union all select 'sac__tbmonitoramentoadistancia' as origem, 'bronze_sac_tbmonitoramentoadistancia' as destino
     union all select 'sac__tbmonitoramentoprojeto' as origem, 'bronze_sac_tbmonitoramentoprojeto' as destino
     union all select 'sac__tbmotivodevolucao' as origem, 'bronze_sac_tbmotivodevolucao' as destino
     union all select 'sac__tbmovimentacao' as origem, 'bronze_sac_tbmovimentacao' as destino
@@ -231,6 +268,7 @@ begin
     union all select 'sac__tbmovimentacaobancariaitem' as origem, 'bronze_sac_tbmovimentacaobancariaitem' as destino
     union all select 'sac__tbmovimentacaobancariaitemxtipoinconsistencia' as origem, 'bronze_sac_tbmovimentacaobancariaitemxtipoinconsistencia' as destino
     union all select 'sac__tbnormativos' as origem, 'bronze_sac_tbnormativos' as destino
+    union all select 'sac__tbnotafiscaleletronica' as origem, 'bronze_sac_tbnotafiscaleletronica' as destino
     union all select 'sac__tbnotificacao' as origem, 'bronze_sac_tbnotificacao' as destino
     union all select 'sac__tbopinarprojeto' as origem, 'bronze_sac_tbopinarprojeto' as destino
     union all select 'sac__tborgaofiscalizador' as origem, 'bronze_sac_tborgaofiscalizador' as destino
@@ -238,15 +276,20 @@ begin
     union all select 'sac__tbpagarparecerista' as origem, 'bronze_sac_tbpagarparecerista' as destino
     union all select 'sac__tbpagarpareceristareadequacao' as origem, 'bronze_sac_tbpagarpareceristareadequacao' as destino
     union all select 'sac__tbpagarpareceristarecurso' as origem, 'bronze_sac_tbpagarpareceristarecurso' as destino
+    union all select 'sac__tbparecerconsolidado' as origem, 'bronze_sac_tbparecerconsolidado' as destino
     union all select 'sac__tbpareceristaafastamento' as origem, 'bronze_sac_tbpareceristaafastamento' as destino
     union all select 'sac__tbpareceristaedital' as origem, 'bronze_sac_tbpareceristaedital' as destino
     union all select 'sac__tbpareceristaempenho' as origem, 'bronze_sac_tbpareceristaempenho' as destino
     union all select 'sac__tbpareceristainexigibilidade' as origem, 'bronze_sac_tbpareceristainexigibilidade' as destino
+    union all select 'sac__tbpareceristalotepagamento' as origem, 'bronze_sac_tbpareceristalotepagamento' as destino
+    union all select 'sac__tbpareceristapagamento' as origem, 'bronze_sac_tbpareceristapagamento' as destino
     union all select 'sac__tbpareceristaprojetoredistribuido' as origem, 'bronze_sac_tbpareceristaprojetoredistribuido' as destino
     union all select 'sac__tbpareceristaprorrogarprazo' as origem, 'bronze_sac_tbpareceristaprorrogarprazo' as destino
     union all select 'sac__tbpareceristaprorrogarprazoxdistribuicao' as origem, 'bronze_sac_tbpareceristaprorrogarprazoxdistribuicao' as destino
+    union all select 'sac__tbpareceristaquestionamento' as origem, 'bronze_sac_tbpareceristaquestionamento' as destino
     union all select 'sac__tbpareceristavaloranalisado' as origem, 'bronze_sac_tbpareceristavaloranalisado' as destino
     union all select 'sac__tbplanilhaaprovacao' as origem, 'bronze_sac_tbplanilhaaprovacao' as destino
+    union all select 'sac__tbplanilhadesembolso' as origem, 'bronze_sac_tbplanilhadesembolso' as destino
     union all select 'sac__tbplanilhaetapa' as origem, 'bronze_sac_tbplanilhaetapa' as destino
     union all select 'sac__tbplanilhaitens' as origem, 'bronze_sac_tbplanilhaitens' as destino
     union all select 'sac__tbplanilhajustificativa' as origem, 'bronze_sac_tbplanilhajustificativa' as destino
@@ -279,11 +322,14 @@ begin
     union all select 'sac__tbprojetorecebedorrecurso' as origem, 'bronze_sac_tbprojetorecebedorrecurso' as destino
     union all select 'sac__tbprojetosclonados' as origem, 'bronze_sac_tbprojetosclonados' as destino
     union all select 'sac__tbprojetosituacaoanterior' as origem, 'bronze_sac_tbprojetosituacaoanterior' as destino
+    union all select 'sac__tbproposta' as origem, 'bronze_sac_tbproposta' as destino
     union all select 'sac__tbreadequacao' as origem, 'bronze_sac_tbreadequacao' as destino
     union all select 'sac__tbreadequacaoxparecer' as origem, 'bronze_sac_tbreadequacaoxparecer' as destino
     union all select 'sac__tbreadequacaoxtbdiligencia' as origem, 'bronze_sac_tbreadequacaoxtbdiligencia' as destino
     union all select 'sac__tbrecurso' as origem, 'bronze_sac_tbrecurso' as destino
     union all select 'sac__tbrecursoproposta' as origem, 'bronze_sac_tbrecursoproposta' as destino
+    union all select 'sac__tbrecursoxplanilhaaprovacao' as origem, 'bronze_sac_tbrecursoxplanilhaaprovacao' as destino
+    union all select 'sac__tbrelatorio' as origem, 'bronze_sac_tbrelatorio' as destino
     union all select 'sac__vcapmecaudioanoprojeto' as origem, 'bronze_sac_vcapmecaudioanoprojeto' as destino
     union all select 'sac__vcapmecaudioprojeto' as origem, 'bronze_sac_vcapmecaudioprojeto' as destino
     union all select 'sac__vcaptacaoanoufareasegmentosemestre' as origem, 'bronze_sac_vcaptacaoanoufareasegmentosemestre' as destino
@@ -298,10 +344,12 @@ begin
     union all select 'sac__vchecaproponente' as origem, 'bronze_sac_vchecaproponente' as destino
     union all select 'sac__vchecaqteinabilitacao' as origem, 'bronze_sac_vchecaqteinabilitacao' as destino
     union all select 'sac__vci' as origem, 'bronze_sac_vci' as destino
+    union all select 'sac__vciset' as origem, 'bronze_sac_vciset' as destino
     union all select 'sac__vcnpjcpf' as origem, 'bronze_sac_vcnpjcpf' as destino
     union all select 'sac__vcnpjvalido' as origem, 'bronze_sac_vcnpjvalido' as destino
     union all select 'sac__vcomparativoano' as origem, 'bronze_sac_vcomparativoano' as destino
     union all select 'sac__vcomparativoanomec' as origem, 'bronze_sac_vcomparativoanomec' as destino
+    union all select 'sac__vcontabancaria' as origem, 'bronze_sac_vcontabancaria' as destino
     union all select 'sac__vcontacorrente' as origem, 'bronze_sac_vcontacorrente' as destino
     union all select 'sac__vconvenioanoarea' as origem, 'bronze_sac_vconvenioanoarea' as destino
     union all select 'sac__vconvenioanouf' as origem, 'bronze_sac_vconvenioanouf' as destino
@@ -334,6 +382,7 @@ begin
     union all select 'sac__vincentivadoresma' as origem, 'bronze_sac_vincentivadoresma' as destino
     union all select 'sac__vincentivadorpessoaano' as origem, 'bronze_sac_vincentivadorpessoaano' as destino
     union all select 'sac__vincentivadorporprojeto' as origem, 'bronze_sac_vincentivadorporprojeto' as destino
+    union all select 'sac__vinvestimentominc' as origem, 'bronze_sac_vinvestimentominc' as destino
     union all select 'sac__vliberado' as origem, 'bronze_sac_vliberado' as destino
     union all select 'sac__vmaioresincentivadoresprojetos' as origem, 'bronze_sac_vmaioresincentivadoresprojetos' as destino
     union all select 'sac__vmostraconvenio' as origem, 'bronze_sac_vmostraconvenio' as destino
@@ -345,6 +394,7 @@ begin
     union all select 'sac__vnuncacaptou' as origem, 'bronze_sac_vnuncacaptou' as destino
     union all select 'sac__voutrasinformacoesaudio' as origem, 'bronze_sac_voutrasinformacoesaudio' as destino
     union all select 'sac__vparecerinicial' as origem, 'bronze_sac_vparecerinicial' as destino
+    union all select 'sac__vpautadereuniaocnic' as origem, 'bronze_sac_vpautadereuniaocnic' as destino
     union all select 'sac__vpautadereuniaofncintercambio' as origem, 'bronze_sac_vpautadereuniaofncintercambio' as destino
     union all select 'sac__vportariaaprovado' as origem, 'bronze_sac_vportariaaprovado' as destino
     union all select 'sac__vportariacomplementacao' as origem, 'bronze_sac_vportariacomplementacao' as destino
@@ -369,6 +419,7 @@ begin
     union all select 'sac__vproponenteprojetos' as origem, 'bronze_sac_vproponenteprojetos' as destino
     union all select 'sac__vproponenteprojetosongs' as origem, 'bronze_sac_vproponenteprojetosongs' as destino
     union all select 'sac__vproponentetipopessoa' as origem, 'bronze_sac_vproponentetipopessoa' as destino
+    union all select 'sac__vpropprojinabilitados' as origem, 'bronze_sac_vpropprojinabilitados' as destino
     union all select 'sac__vpropquereceberbandadenovo' as origem, 'bronze_sac_vpropquereceberbandadenovo' as destino
     union all select 'sac__vproprecebeubanda' as origem, 'bronze_sac_vproprecebeubanda' as destino
     union all select 'sac__vpropufareaseg' as origem, 'bronze_sac_vpropufareaseg' as destino
@@ -401,6 +452,8 @@ begin
     union all select 'sac__vversepodeprorrogar' as origem, 'bronze_sac_vversepodeprorrogar' as destino
     union all select 'sac__vw_captacao_ano_uf' as origem, 'bronze_sac_vw_captacao_ano_uf' as destino
     union all select 'sac__vw_dba_captacao_2007_2017' as origem, 'bronze_sac_vw_dba_captacao_2007_2017' as destino
+    union all select 'sac__vw_pc_digital_avaliados_emavaliacao' as origem, 'bronze_sac_vw_pc_digital_avaliados_emavaliacao' as destino
+    union all select 'sac__vw_prol_vinc_agu_dis' as origem, 'bronze_sac_vw_prol_vinc_agu_dis' as destino
     union all select 'sac__vwagentesseusprojetos' as origem, 'bronze_sac_vwagentesseusprojetos' as destino
     union all select 'sac__vwalteraranalistaproposta' as origem, 'bronze_sac_vwalteraranalistaproposta' as destino
     union all select 'sac__vwalterarorgao' as origem, 'bronze_sac_vwalterarorgao' as destino
@@ -411,20 +464,27 @@ begin
     union all select 'sac__vwanalisedocumentalportecnico' as origem, 'bronze_sac_vwanalisedocumentalportecnico' as destino
     union all select 'sac__vwanalisefinanceiravirtual' as origem, 'bronze_sac_vwanalisefinanceiravirtual' as destino
     union all select 'sac__vwanalisevisualportecnico' as origem, 'bronze_sac_vwanalisevisualportecnico' as destino
+    union all select 'sac__vwanexarcomprovantes' as origem, 'bronze_sac_vwanexarcomprovantes' as destino
+    union all select 'sac__vwanexardocumentoagente' as origem, 'bronze_sac_vwanexardocumentoagente' as destino
     union all select 'sac__vwinformacoes_tcu_etce' as origem, 'bronze_sac_vwinformacoes_tcu_etce' as destino
     union all select 'sac__vwinformacoesconsolidadasparaavaliacaofinanceira' as origem, 'bronze_sac_vwinformacoesconsolidadasparaavaliacaofinanceira' as destino
     union all select 'sac__vwinformacoesdoatoadministrativo' as origem, 'bronze_sac_vwinformacoesdoatoadministrativo' as destino
+    union all select 'sac__vwitemduplicado' as origem, 'bronze_sac_vwitemduplicado' as destino
     union all select 'sac__vwitemorcamentarioimpugnado' as origem, 'bronze_sac_vwitemorcamentarioimpugnado' as destino
     union all select 'sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio' as origem, 'bronze_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio' as destino
+    union all select 'sac__vwitensorcamentarioscomprovados' as origem, 'bronze_sac_vwitensorcamentarioscomprovados' as destino
     union all select 'sac__vwlancamentobancariosemcomprovacao' as origem, 'bronze_sac_vwlancamentobancariosemcomprovacao' as destino
     union all select 'sac__vwlaudofinalavaliacaoderesultadodoprojeto' as origem, 'bronze_sac_vwlaudofinalavaliacaoderesultadodoprojeto' as destino
+    union all select 'sac__vwlaudofinalderesultadopassivo' as origem, 'bronze_sac_vwlaudofinalderesultadopassivo' as destino
     union all select 'sac__vwliberacao' as origem, 'bronze_sac_vwliberacao' as destino
     union all select 'sac__vwlistarcaptacoes' as origem, 'bronze_sac_vwlistarcaptacoes' as destino
     union all select 'sac__vwlistarpropostas' as origem, 'bronze_sac_vwlistarpropostas' as destino
+    union all select 'sac__vwlotedocumento' as origem, 'bronze_sac_vwlotedocumento' as destino
     union all select 'sac__vwmaioresincentivadoresporanouf' as origem, 'bronze_sac_vwmaioresincentivadoresporanouf' as destino
     union all select 'sac__vwmaioresproponentesporanouf' as origem, 'bronze_sac_vwmaioresproponentesporanouf' as destino
     union all select 'sac__vwmediana' as origem, 'bronze_sac_vwmediana' as destino
     union all select 'sac__vwmemoriadecalculo' as origem, 'bronze_sac_vwmemoriadecalculo' as destino
+    union all select 'sac__vwmetascomprovadas' as origem, 'bronze_sac_vwmetascomprovadas' as destino
     union all select 'sac__vwnatureza' as origem, 'bronze_sac_vwnatureza' as destino
     union all select 'sac__vwnotificacaoaoproponente' as origem, 'bronze_sac_vwnotificacaoaoproponente' as destino
     union all select 'sac__vworcamentosolicitado' as origem, 'bronze_sac_vworcamentosolicitado' as destino
@@ -437,17 +497,22 @@ begin
     union all select 'sac__vwpaineladequacaorealidadeexecucao' as origem, 'bronze_sac_vwpaineladequacaorealidadeexecucao' as destino
     union all select 'sac__vwpaineladmissibilidade' as origem, 'bronze_sac_vwpaineladmissibilidade' as destino
     union all select 'sac__vwpainelaguardandodistribuicaoanalisetecnica' as origem, 'bronze_sac_vwpainelaguardandodistribuicaoanalisetecnica' as destino
+    union all select 'sac__vwpainelanalisadosuperintendencia' as origem, 'bronze_sac_vwpainelanalisadosuperintendencia' as destino
+    union all select 'sac__vwpainelanalisdadosuperintendencia' as origem, 'bronze_sac_vwpainelanalisdadosuperintendencia' as destino
     union all select 'sac__vwpainelavaliarpropostas' as origem, 'bronze_sac_vwpainelavaliarpropostas' as destino
     union all select 'sac__vwpainelcoordenadoravaliacaotrimestral' as origem, 'bronze_sac_vwpainelcoordenadoravaliacaotrimestral' as destino
+    union all select 'sac__vwpainelcoordenadorimpedimentoparecerista' as origem, 'bronze_sac_vwpainelcoordenadorimpedimentoparecerista' as destino
     union all select 'sac__vwpainelcoordenadorreadequacaoaguardandoanalise' as origem, 'bronze_sac_vwpainelcoordenadorreadequacaoaguardandoanalise' as destino
     union all select 'sac__vwpainelcoordenadorreadequacaoaguardandoanalise_20180323' as origem, 'bronze_sac_vwpainelcoordenadorreadequacaoaguardandoanalise_20180323' as destino
     union all select 'sac__vwpainelcoordenadorreadequacaoanalisados' as origem, 'bronze_sac_vwpainelcoordenadorreadequacaoanalisados' as destino
     union all select 'sac__vwpainelcoordenadorreadequacaoanalisados_20180323' as origem, 'bronze_sac_vwpainelcoordenadorreadequacaoanalisados_20180323' as destino
     union all select 'sac__vwpainelcoordenadorreadequacaoemanalise' as origem, 'bronze_sac_vwpainelcoordenadorreadequacaoemanalise' as destino
     union all select 'sac__vwpainelcoordenadorreadequacaoemanalise_20180323' as origem, 'bronze_sac_vwpainelcoordenadorreadequacaoemanalise_20180323' as destino
+    union all select 'sac__vwpainelcoordenadorvinculadasaguardandoanalise' as origem, 'bronze_sac_vwpainelcoordenadorvinculadasaguardandoanalise' as destino
     union all select 'sac__vwpainelcoordenadorvinculadasemanalise' as origem, 'bronze_sac_vwpainelcoordenadorvinculadasemanalise' as destino
     union all select 'sac__vwpainelcoordenadorvinculadasemvalidacao' as origem, 'bronze_sac_vwpainelcoordenadorvinculadasemvalidacao' as destino
     union all select 'sac__vwpainelcoordenadorvinculadasreanalisar' as origem, 'bronze_sac_vwpainelcoordenadorvinculadasreanalisar' as destino
+    union all select 'sac__vwpainelcoordenadorvinculadasvalidados' as origem, 'bronze_sac_vwpainelcoordenadorvinculadasvalidados' as destino
     union all select 'sac__vwpaineldedocumentosaguardandoassinatura' as origem, 'bronze_sac_vwpaineldedocumentosaguardandoassinatura' as destino
     union all select 'sac__vwpaineldedocumentosdereadequacaoaguardandoassinatura' as origem, 'bronze_sac_vwpaineldedocumentosdereadequacaoaguardandoassinatura' as destino
     union all select 'sac__vwpaineldeemissaodelaudofinalderesultado' as origem, 'bronze_sac_vwpaineldeemissaodelaudofinalderesultado' as destino
@@ -468,13 +533,18 @@ begin
     union all select 'sac__vwpainelpresidentevinculadas' as origem, 'bronze_sac_vwpainelpresidentevinculadas' as destino
     union all select 'sac__vwpainelprojetossgptc' as origem, 'bronze_sac_vwpainelprojetossgptc' as destino
     union all select 'sac__vwpainelreadequacaoaguardandopublicacao' as origem, 'bronze_sac_vwpainelreadequacaoaguardandopublicacao' as destino
+    union all select 'sac__vwpainelreadequacaocoordenadorpareceraguardandoanalise' as origem, 'bronze_sac_vwpainelreadequacaocoordenadorpareceraguardandoanalise' as destino
     union all select 'sac__vwpainelreadequacaocoordenadorpareceranalisados' as origem, 'bronze_sac_vwpainelreadequacaocoordenadorpareceranalisados' as destino
     union all select 'sac__vwpainelreadequacaocoordenadorpareceremanalise' as origem, 'bronze_sac_vwpainelreadequacaocoordenadorpareceremanalise' as destino
     union all select 'sac__vwpainelreadequacaotecnico' as origem, 'bronze_sac_vwpainelreadequacaotecnico' as destino
+    union all select 'sac__vwpainelsuperintendentevinculadas' as origem, 'bronze_sac_vwpainelsuperintendentevinculadas' as destino
     union all select 'sac__vwpaineltecnicoavaliacaotrimestral' as origem, 'bronze_sac_vwpaineltecnicoavaliacaotrimestral' as destino
     union all select 'sac__vwpaineltransferenciarecursoscaptacaomovimento' as origem, 'bronze_sac_vwpaineltransferenciarecursoscaptacaomovimento' as destino
+    union all select 'sac__vwpainelvalidados' as origem, 'bronze_sac_vwpainelvalidados' as destino
     union all select 'sac__vwpainelvalidadoscomdevolucao' as origem, 'bronze_sac_vwpainelvalidadoscomdevolucao' as destino
+    union all select 'sac__vwpareceranalisedeconteudo' as origem, 'bronze_sac_vwpareceranalisedeconteudo' as destino
     union all select 'sac__vwpareceresdereadequacao' as origem, 'bronze_sac_vwpareceresdereadequacao' as destino
+    union all select 'sac__vwparecerfechadoorgao' as origem, 'bronze_sac_vwparecerfechadoorgao' as destino
     union all select 'sac__vwpareceristascredenciados' as origem, 'bronze_sac_vwpareceristascredenciados' as destino
     union all select 'sac__vwpareceristasorgao' as origem, 'bronze_sac_vwpareceristasorgao' as destino
     union all select 'sac__vwpautados_cnic_mais_trinta_dias' as origem, 'bronze_sac_vwpautados_cnic_mais_trinta_dias' as destino
@@ -483,6 +553,7 @@ begin
     union all select 'sac__vwplanilhaaprovada' as origem, 'bronze_sac_vwplanilhaaprovada' as destino
     union all select 'sac__vwplanilhasugerida' as origem, 'bronze_sac_vwplanilhasugerida' as destino
     union all select 'sac__vwplanilhasugeridacompleta' as origem, 'bronze_sac_vwplanilhasugeridacompleta' as destino
+    union all select 'sac__vwplanodedistribuicaoproduto' as origem, 'bronze_sac_vwplanodedistribuicaoproduto' as destino
     union all select 'sac__vwportariasgeradas' as origem, 'bronze_sac_vwportariasgeradas' as destino
     union all select 'sac__vwprecomedio_produto_item_unidade_uf_municipio' as origem, 'bronze_sac_vwprecomedio_produto_item_unidade_uf_municipio' as destino
     union all select 'sac__vwprocuradordeprojeto' as origem, 'bronze_sac_vwprocuradordeprojeto' as destino
@@ -509,6 +580,8 @@ begin
     union all select 'sac__vwprogramarouanetrecursospropostasnaoavaliadas' as origem, 'bronze_sac_vwprogramarouanetrecursospropostasnaoavaliadas' as destino
     union all select 'sac__vwprogramarouanetresultadoavaliacaoinicial' as origem, 'bronze_sac_vwprogramarouanetresultadoavaliacaoinicial' as destino
     union all select 'sac__vwprogramarouanettipologia' as origem, 'bronze_sac_vwprogramarouanettipologia' as destino
+    union all select 'sac__vwprojetoaenviar' as origem, 'bronze_sac_vwprojetoaenviar' as destino
+    union all select 'sac__vwprojetoareasegmentoproduto' as origem, 'bronze_sac_vwprojetoareasegmentoproduto' as destino
     union all select 'sac__vwprojetobeneficiarioprodutocultural' as origem, 'bronze_sac_vwprojetobeneficiarioprodutocultural' as destino
     union all select 'sac__vwprojetodistribuidovinculada' as origem, 'bronze_sac_vwprojetodistribuidovinculada' as destino
     union all select 'sac__vwprojetoorgao' as origem, 'bronze_sac_vwprojetoorgao' as destino
@@ -516,9 +589,13 @@ begin
     union all select 'sac__vwprojetosadequadosrealidadeexecucao' as origem, 'bronze_sac_vwprojetosadequadosrealidadeexecucao' as destino
     union all select 'sac__vwprojetosapreciadosaguardandohomologacao' as origem, 'bronze_sac_vwprojetosapreciadosaguardandohomologacao' as destino
     union all select 'sac__vwprojetosaprovadossemhomologacao' as origem, 'bronze_sac_vwprojetosaprovadossemhomologacao' as destino
+    union all select 'sac__vwprojetosareceber' as origem, 'bronze_sac_vwprojetosareceber' as destino
     union all select 'sac__vwprojetoscominconsistencianacaptacao' as origem, 'bronze_sac_vwprojetoscominconsistencianacaptacao' as destino
     union all select 'sac__vwprojetosconsolidados' as origem, 'bronze_sac_vwprojetosconsolidados' as destino
+    union all select 'sac__vwprojetosdespachados' as origem, 'bronze_sac_vwprojetosdespachados' as destino
     union all select 'sac__vwprojetosemanalisecomparecerista' as origem, 'bronze_sac_vwprojetosemanalisecomparecerista' as destino
+    union all select 'sac__vwprojetosenviados' as origem, 'bronze_sac_vwprojetosenviados' as destino
+    union all select 'sac__vwprojetoseusdocumentos' as origem, 'bronze_sac_vwprojetoseusdocumentos' as destino
     union all select 'sac__vwprojetosgratuitopago' as origem, 'bronze_sac_vwprojetosgratuitopago' as destino
     union all select 'sac__vwprojetositinerantes' as origem, 'bronze_sac_vwprojetositinerantes' as destino
     union all select 'sac__vwprojetosliberadosparaadequacaorealidadeexecucao' as origem, 'bronze_sac_vwprojetosliberadosparaadequacaorealidadeexecucao' as destino
@@ -534,6 +611,7 @@ begin
     union all select 'tabelas__ect_localidades' as origem, 'bronze_tabelas_ect_localidades' as destino
     union all select 'tabelas__ect_recusados' as origem, 'bronze_tabelas_ect_recusados' as destino
     union all select 'tabelas__emails' as origem, 'bronze_tabelas_emails' as destino
+    union all select 'tabelas__estacoes' as origem, 'bronze_tabelas_estacoes' as destino
     union all select 'tabelas__eventos' as origem, 'bronze_tabelas_eventos' as destino
     union all select 'tabelas__funcoes' as origem, 'bronze_tabelas_funcoes' as destino
     union all select 'tabelas__grupos' as origem, 'bronze_tabelas_grupos' as destino
@@ -551,6 +629,7 @@ begin
     union all select 'tabelas__mei_gruposxservicos_intranet' as origem, 'bronze_tabelas_mei_gruposxservicos_intranet' as destino
     union all select 'tabelas__mei_servicos_intranet' as origem, 'bronze_tabelas_mei_servicos_intranet' as destino
     union all select 'tabelas__mei_usuariosxservicos_intranet' as origem, 'bronze_tabelas_mei_usuariosxservicos_intranet' as destino
+    union all select 'tabelas__mensagens' as origem, 'bronze_tabelas_mensagens' as destino
     union all select 'tabelas__menus' as origem, 'bronze_tabelas_menus' as destino
     union all select 'tabelas__menus_ares' as origem, 'bronze_tabelas_menus_ares' as destino
     union all select 'tabelas__menus_minc11' as origem, 'bronze_tabelas_menus_minc11' as destino
@@ -561,6 +640,7 @@ begin
     union all select 'tabelas__orgaos' as origem, 'bronze_tabelas_orgaos' as destino
     union all select 'tabelas__orgaos_ares' as origem, 'bronze_tabelas_orgaos_ares' as destino
     union all select 'tabelas__orgaos_subordinados' as origem, 'bronze_tabelas_orgaos_subordinados' as destino
+    union all select 'tabelas__orgaosxusuarios' as origem, 'bronze_tabelas_orgaosxusuarios' as destino
     union all select 'tabelas__palavras' as origem, 'bronze_tabelas_palavras' as destino
     union all select 'tabelas__palavras2' as origem, 'bronze_tabelas_palavras2' as destino
     union all select 'tabelas__pessoa_dados' as origem, 'bronze_tabelas_pessoa_dados' as destino
@@ -572,14 +652,17 @@ begin
     union all select 'tabelas__pessoas' as origem, 'bronze_tabelas_pessoas' as destino
     union all select 'tabelas__pessoas_bkp' as origem, 'bronze_tabelas_pessoas_bkp' as destino
     union all select 'tabelas__pessoasxfuncoes' as origem, 'bronze_tabelas_pessoasxfuncoes' as destino
+    union all select 'tabelas__plan1$' as origem, 'bronze_tabelas_plan1$' as destino
     union all select 'tabelas__servicos_intranet' as origem, 'bronze_tabelas_servicos_intranet' as destino
     union all select 'tabelas__sistemas' as origem, 'bronze_tabelas_sistemas' as destino
     union all select 'tabelas__sistemas_ares' as origem, 'bronze_tabelas_sistemas_ares' as destino
     union all select 'tabelas__sysdiagrams' as origem, 'bronze_tabelas_sysdiagrams' as destino
     union all select 'tabelas__tabelas' as origem, 'bronze_tabelas_tabelas' as destino
+    union all select 'tabelas__table1' as origem, 'bronze_tabelas_table1' as destino
     union all select 'tabelas__temp_tbl' as origem, 'bronze_tabelas_temp_tbl' as destino
     union all select 'tabelas__tipos_logradouro' as origem, 'bronze_tabelas_tipos_logradouro' as destino
     union all select 'tabelas__tipos_pessoa' as origem, 'bronze_tabelas_tipos_pessoa' as destino
+    union all select 'tabelas__unidadesorcamentarias' as origem, 'bronze_tabelas_unidadesorcamentarias' as destino
     union all select 'tabelas__usuarios' as origem, 'bronze_tabelas_usuarios' as destino
     union all select 'tabelas__usuarios_ares' as origem, 'bronze_tabelas_usuarios_ares' as destino
     union all select 'tabelas__usuariosxgrupos_intranet' as origem, 'bronze_tabelas_usuariosxgrupos_intranet' as destino
@@ -631,6 +714,8 @@ alter table if exists salic_bronze."agentes__vperfil" set schema salic;
 alter table if exists salic."agentes__vperfil" rename to "bronze_agentes_vperfil";
 alter table if exists salic_bronze."agentes__vprefeiturasregiaouf" set schema salic;
 alter table if exists salic."agentes__vprefeiturasregiaouf" rename to "bronze_agentes_vprefeiturasregiaouf";
+alter table if exists salic_bronze."agentes__vramais" set schema salic;
+alter table if exists salic."agentes__vramais" rename to "bronze_agentes_vramais";
 alter table if exists salic_bronze."agentes__vsistema" set schema salic;
 alter table if exists salic."agentes__vsistema" rename to "bronze_agentes_vsistema";
 alter table if exists salic_bronze."agentes__vtelefones" set schema salic;
@@ -665,12 +750,16 @@ alter table if exists salic_bronze."bdcorporativo__tbencaminhamentoprestacaocont
 alter table if exists salic."bdcorporativo__tbencaminhamentoprestacaocontas" rename to "bronze_bdcorporativo_tbencaminhamentoprestacaocontas";
 alter table if exists salic_bronze."bdcorporativo__tbsituacaoencaminhamentoprestacaocontas" set schema salic;
 alter table if exists salic."bdcorporativo__tbsituacaoencaminhamentoprestacaocontas" rename to "bronze_bdcorporativo_tbsituacaoencaminhamentoprestacaocontas";
+alter table if exists salic_bronze."controledeacesso__dtproperties" set schema salic;
+alter table if exists salic."controledeacesso__dtproperties" rename to "bronze_controledeacesso_dtproperties";
 alter table if exists salic_bronze."controledeacesso__sgcacesso" set schema salic;
 alter table if exists salic."controledeacesso__sgcacesso" rename to "bronze_controledeacesso_sgcacesso";
 alter table if exists salic_bronze."controledeacesso__sgcsistema" set schema salic;
 alter table if exists salic."controledeacesso__sgcsistema" rename to "bronze_controledeacesso_sgcsistema";
 alter table if exists salic_bronze."controledeacesso__sgcusuarioxsistema" set schema salic;
 alter table if exists salic."controledeacesso__sgcusuarioxsistema" rename to "bronze_controledeacesso_sgcusuarioxsistema";
+alter table if exists salic_bronze."controledeacesso__sysdiagrams" set schema salic;
+alter table if exists salic."controledeacesso__sysdiagrams" rename to "bronze_controledeacesso_sysdiagrams";
 alter table if exists salic_bronze."sac__aberturadecontabancaria" set schema salic;
 alter table if exists salic."sac__aberturadecontabancaria" rename to "bronze_sac_aberturadecontabancaria";
 alter table if exists salic_bronze."sac__aberturadecontasav39215" set schema salic;
@@ -703,8 +792,12 @@ alter table if exists salic_bronze."sac__aprovacao" set schema salic;
 alter table if exists salic."sac__aprovacao" rename to "bronze_sac_aprovacao";
 alter table if exists salic_bronze."sac__area" set schema salic;
 alter table if exists salic."sac__area" rename to "bronze_sac_area";
+alter table if exists salic_bronze."sac__aspectosfinanceirosx" set schema salic;
+alter table if exists salic."sac__aspectosfinanceirosx" rename to "bronze_sac_aspectosfinanceirosx";
 alter table if exists salic_bronze."sac__aspectosfisicosx" set schema salic;
 alter table if exists salic."sac__aspectosfisicosx" rename to "bronze_sac_aspectosfisicosx";
+alter table if exists salic_bronze."sac__aspectosresultadosx" set schema salic;
+alter table if exists salic."sac__aspectosresultadosx" rename to "bronze_sac_aspectosresultadosx";
 alter table if exists salic_bronze."sac__atualizaorgaoprojetosx" set schema salic;
 alter table if exists salic."sac__atualizaorgaoprojetosx" rename to "bronze_sac_atualizaorgaoprojetosx";
 alter table if exists salic_bronze."sac__auditoria" set schema salic;
@@ -725,6 +818,8 @@ alter table if exists salic_bronze."sac__bancoagencia_08" set schema salic;
 alter table if exists salic."sac__bancoagencia_08" rename to "bronze_sac_bancoagencia_08";
 alter table if exists salic_bronze."sac__bancoagencia_bkp_04112009x" set schema salic;
 alter table if exists salic."sac__bancoagencia_bkp_04112009x" rename to "bronze_sac_bancoagencia_bkp_04112009x";
+alter table if exists salic_bronze."sac__bancoagencianovo" set schema salic;
+alter table if exists salic."sac__bancoagencianovo" rename to "bronze_sac_bancoagencianovo";
 alter table if exists salic_bronze."sac__bancoagencianovo1" set schema salic;
 alter table if exists salic."sac__bancoagencianovo1" rename to "bronze_sac_bancoagencianovo1";
 alter table if exists salic_bronze."sac__bandas" set schema salic;
@@ -771,6 +866,8 @@ alter table if exists salic_bronze."sac__contabancaria" set schema salic;
 alter table if exists salic."sac__contabancaria" rename to "bronze_sac_contabancaria";
 alter table if exists salic_bronze."sac__convenio" set schema salic;
 alter table if exists salic."sac__convenio" rename to "bronze_sac_convenio";
+alter table if exists salic_bronze."sac__cpbx" set schema salic;
+alter table if exists salic."sac__cpbx" rename to "bronze_sac_cpbx";
 alter table if exists salic_bronze."sac__criteriosx" set schema salic;
 alter table if exists salic."sac__criteriosx" rename to "bronze_sac_criteriosx";
 alter table if exists salic_bronze."sac__curriculo" set schema salic;
@@ -807,6 +904,12 @@ alter table if exists salic_bronze."sac__dba_relacao_projetos" set schema salic;
 alter table if exists salic."sac__dba_relacao_projetos" rename to "bronze_sac_dba_relacao_projetos";
 alter table if exists salic_bronze."sac__dba_relacao_projetos_fred" set schema salic;
 alter table if exists salic."sac__dba_relacao_projetos_fred" rename to "bronze_sac_dba_relacao_projetos_fred";
+alter table if exists salic_bronze."sac__dba_relacao_projetos_fred_agentes" set schema salic;
+alter table if exists salic."sac__dba_relacao_projetos_fred_agentes" rename to "bronze_sac_dba_relacao_projetos_fred_agentes";
+alter table if exists salic_bronze."sac__dba_relacao_projetos_fred_tcu" set schema salic;
+alter table if exists salic."sac__dba_relacao_projetos_fred_tcu" rename to "bronze_sac_dba_relacao_projetos_fred_tcu";
+alter table if exists salic_bronze."sac__dba_relacao_projetos_fred_tcu_aprovados" set schema salic;
+alter table if exists salic."sac__dba_relacao_projetos_fred_tcu_aprovados" rename to "bronze_sac_dba_relacao_projetos_fred_tcu_aprovados";
 alter table if exists salic_bronze."sac__dba_relacao_projetos_geral" set schema salic;
 alter table if exists salic."sac__dba_relacao_projetos_geral" rename to "bronze_sac_dba_relacao_projetos_geral";
 alter table if exists salic_bronze."sac__dba_tcu_captacao_sav" set schema salic;
@@ -827,6 +930,8 @@ alter table if exists salic_bronze."sac__dbf_dezembro" set schema salic;
 alter table if exists salic."sac__dbf_dezembro" rename to "bronze_sac_dbf_dezembro";
 alter table if exists salic_bronze."sac__dbf_maio" set schema salic;
 alter table if exists salic."sac__dbf_maio" rename to "bronze_sac_dbf_maio";
+alter table if exists salic_bronze."sac__dbresult" set schema salic;
+alter table if exists salic."sac__dbresult" rename to "bronze_sac_dbresult";
 alter table if exists salic_bronze."sac__deorgaoparaorgao" set schema salic;
 alter table if exists salic."sac__deorgaoparaorgao" rename to "bronze_sac_deorgaoparaorgao";
 alter table if exists salic_bronze."sac__distribuicao_avaliacao_proposta" set schema salic;
@@ -855,8 +960,12 @@ alter table if exists salic_bronze."sac__editalprojeto" set schema salic;
 alter table if exists salic."sac__editalprojeto" rename to "bronze_sac_editalprojeto";
 alter table if exists salic_bronze."sac__editalrelatorio" set schema salic;
 alter table if exists salic."sac__editalrelatorio" rename to "bronze_sac_editalrelatorio";
+alter table if exists salic_bronze."sac__efeitoseconomicos" set schema salic;
+alter table if exists salic."sac__efeitoseconomicos" rename to "bronze_sac_efeitoseconomicos";
 alter table if exists salic_bronze."sac__efeitosresultado" set schema salic;
 alter table if exists salic."sac__efeitosresultado" rename to "bronze_sac_efeitosresultado";
+alter table if exists salic_bronze."sac__efeitossociais" set schema salic;
+alter table if exists salic."sac__efeitossociais" rename to "bronze_sac_efeitossociais";
 alter table if exists salic_bronze."sac__empenho" set schema salic;
 alter table if exists salic."sac__empenho" rename to "bronze_sac_empenho";
 alter table if exists salic_bronze."sac__empenhoprojeto" set schema salic;
@@ -887,8 +996,12 @@ alter table if exists salic_bronze."sac__grupoempresarial" set schema salic;
 alter table if exists salic."sac__grupoempresarial" rename to "bronze_sac_grupoempresarial";
 alter table if exists salic_bronze."sac__guiarecolhimento" set schema salic;
 alter table if exists salic."sac__guiarecolhimento" rename to "bronze_sac_guiarecolhimento";
+alter table if exists salic_bronze."sac__historicoaspectosfinanceirosx" set schema salic;
+alter table if exists salic."sac__historicoaspectosfinanceirosx" rename to "bronze_sac_historicoaspectosfinanceirosx";
 alter table if exists salic_bronze."sac__historicoaspectosfisicosx" set schema salic;
 alter table if exists salic."sac__historicoaspectosfisicosx" rename to "bronze_sac_historicoaspectosfisicosx";
+alter table if exists salic_bronze."sac__historicoaspectosresultado" set schema salic;
+alter table if exists salic."sac__historicoaspectosresultado" rename to "bronze_sac_historicoaspectosresultado";
 alter table if exists salic_bronze."sac__historicoautuacaox" set schema salic;
 alter table if exists salic."sac__historicoautuacaox" rename to "bronze_sac_historicoautuacaox";
 alter table if exists salic_bronze."sac__historicocarta" set schema salic;
@@ -903,6 +1016,8 @@ alter table if exists salic_bronze."sac__historicounidade" set schema salic;
 alter table if exists salic."sac__historicounidade" rename to "bronze_sac_historicounidade";
 alter table if exists salic_bronze."sac__humanidades" set schema salic;
 alter table if exists salic."sac__humanidades" rename to "bronze_sac_humanidades";
+alter table if exists salic_bronze."sac__impactox" set schema salic;
+alter table if exists salic."sac__impactox" rename to "bronze_sac_impactox";
 alter table if exists salic_bronze."sac__inabilitado" set schema salic;
 alter table if exists salic."sac__inabilitado" rename to "bronze_sac_inabilitado";
 alter table if exists salic_bronze."sac__incentivoporcgccpf" set schema salic;
@@ -937,6 +1052,10 @@ alter table if exists salic_bronze."sac__tbcomplianceitemcomprovado" set schema 
 alter table if exists salic."sac__tbcomplianceitemcomprovado" rename to "bronze_sac_tbcomplianceitemcomprovado";
 alter table if exists salic_bronze."sac__tbcomprovacaopassivo" set schema salic;
 alter table if exists salic."sac__tbcomprovacaopassivo" rename to "bronze_sac_tbcomprovacaopassivo";
+alter table if exists salic_bronze."sac__tbcomprovantebeneficiario" set schema salic;
+alter table if exists salic."sac__tbcomprovantebeneficiario" rename to "bronze_sac_tbcomprovantebeneficiario";
+alter table if exists salic_bronze."sac__tbcomprovanteexecucao" set schema salic;
+alter table if exists salic."sac__tbcomprovanteexecucao" rename to "bronze_sac_tbcomprovanteexecucao";
 alter table if exists salic_bronze."sac__tbcomprovantetrimestral" set schema salic;
 alter table if exists salic."sac__tbcomprovantetrimestral" rename to "bronze_sac_tbcomprovantetrimestral";
 alter table if exists salic_bronze."sac__tbcomunicados" set schema salic;
@@ -949,6 +1068,8 @@ alter table if exists salic_bronze."sac__tbcontabancariabloqueada" set schema sa
 alter table if exists salic."sac__tbcontabancariabloqueada" rename to "bronze_sac_tbcontabancariabloqueada";
 alter table if exists salic_bronze."sac__tbcontacartao" set schema salic;
 alter table if exists salic."sac__tbcontacartao" rename to "bronze_sac_tbcontacartao";
+alter table if exists salic_bronze."sac__tbcontacartaovip036" set schema salic;
+alter table if exists salic."sac__tbcontacartaovip036" rename to "bronze_sac_tbcontacartaovip036";
 alter table if exists salic_bronze."sac__tbcovid" set schema salic;
 alter table if exists salic."sac__tbcovid" rename to "bronze_sac_tbcovid";
 alter table if exists salic_bronze."sac__tbcredenciaparecerista_2020" set schema salic;
@@ -965,6 +1086,16 @@ alter table if exists salic_bronze."sac__tbdemandasdeorgaosdecontrole" set schem
 alter table if exists salic."sac__tbdemandasdeorgaosdecontrole" rename to "bronze_sac_tbdemandasdeorgaosdecontrole";
 alter table if exists salic_bronze."sac__tbdemandasdeorgaosdecontrolexprojetos" set schema salic;
 alter table if exists salic."sac__tbdemandasdeorgaosdecontrolexprojetos" rename to "bronze_sac_tbdemandasdeorgaosdecontrolexprojetos";
+alter table if exists salic_bronze."sac__tbdeparaplanilhaaprovacao" set schema salic;
+alter table if exists salic."sac__tbdeparaplanilhaaprovacao" rename to "bronze_sac_tbdeparaplanilhaaprovacao";
+alter table if exists salic_bronze."sac__tbdepositoidentificadocaptacao" set schema salic;
+alter table if exists salic."sac__tbdepositoidentificadocaptacao" rename to "bronze_sac_tbdepositoidentificadocaptacao";
+alter table if exists salic_bronze."sac__tbdepositoidentificadocaptacaoold" set schema salic;
+alter table if exists salic."sac__tbdepositoidentificadocaptacaoold" rename to "bronze_sac_tbdepositoidentificadocaptacaoold";
+alter table if exists salic_bronze."sac__tbdepositoidentificadomovimentacao" set schema salic;
+alter table if exists salic."sac__tbdepositoidentificadomovimentacao" rename to "bronze_sac_tbdepositoidentificadomovimentacao";
+alter table if exists salic_bronze."sac__tbdescricaorelatorioconsolidado" set schema salic;
+alter table if exists salic."sac__tbdescricaorelatorioconsolidado" rename to "bronze_sac_tbdescricaorelatorioconsolidado";
 alter table if exists salic_bronze."sac__tbdeslocamento" set schema salic;
 alter table if exists salic."sac__tbdeslocamento" rename to "bronze_sac_tbdeslocamento";
 alter table if exists salic_bronze."sac__tbdespacho" set schema salic;
@@ -973,12 +1104,18 @@ alter table if exists salic_bronze."sac__tbdetalhaplanodistribuicao" set schema 
 alter table if exists salic."sac__tbdetalhaplanodistribuicao" rename to "bronze_sac_tbdetalhaplanodistribuicao";
 alter table if exists salic_bronze."sac__tbdetalhaplanodistribuicaoreadequacao" set schema salic;
 alter table if exists salic."sac__tbdetalhaplanodistribuicaoreadequacao" rename to "bronze_sac_tbdetalhaplanodistribuicaoreadequacao";
+alter table if exists salic_bronze."sac__tbdevolucaosecretaria" set schema salic;
+alter table if exists salic."sac__tbdevolucaosecretaria" rename to "bronze_sac_tbdevolucaosecretaria";
 alter table if exists salic_bronze."sac__tbdiligencia" set schema salic;
 alter table if exists salic."sac__tbdiligencia" rename to "bronze_sac_tbdiligencia";
 alter table if exists salic_bronze."sac__tbdiligenciaxarquivo" set schema salic;
 alter table if exists salic."sac__tbdiligenciaxarquivo" rename to "bronze_sac_tbdiligenciaxarquivo";
 alter table if exists salic_bronze."sac__tbdispositivomovel" set schema salic;
 alter table if exists salic."sac__tbdispositivomovel" rename to "bronze_sac_tbdispositivomovel";
+alter table if exists salic_bronze."sac__tbdistribuicaoproduto" set schema salic;
+alter table if exists salic."sac__tbdistribuicaoproduto" rename to "bronze_sac_tbdistribuicaoproduto";
+alter table if exists salic_bronze."sac__tbdistribuirdemandasdeorgaosdecontrole" set schema salic;
+alter table if exists salic."sac__tbdistribuirdemandasdeorgaosdecontrole" rename to "bronze_sac_tbdistribuirdemandasdeorgaosdecontrole";
 alter table if exists salic_bronze."sac__tbdistribuirparecer" set schema salic;
 alter table if exists salic."sac__tbdistribuirparecer" rename to "bronze_sac_tbdistribuirparecer";
 alter table if exists salic_bronze."sac__tbdistribuirprojeto" set schema salic;
@@ -989,8 +1126,18 @@ alter table if exists salic_bronze."sac__tbdistribuirreadequacao" set schema sal
 alter table if exists salic."sac__tbdistribuirreadequacao" rename to "bronze_sac_tbdistribuirreadequacao";
 alter table if exists salic_bronze."sac__tbdocumento20100107_1x" set schema salic;
 alter table if exists salic."sac__tbdocumento20100107_1x" rename to "bronze_sac_tbdocumento20100107_1x";
+alter table if exists salic_bronze."sac__tbdocumento20100107x" set schema salic;
+alter table if exists salic."sac__tbdocumento20100107x" rename to "bronze_sac_tbdocumento20100107x";
+alter table if exists salic_bronze."sac__tbdocumentoaceitacao" set schema salic;
+alter table if exists salic."sac__tbdocumentoaceitacao" rename to "bronze_sac_tbdocumentoaceitacao";
 alter table if exists salic_bronze."sac__tbdocumentoassinatura" set schema salic;
 alter table if exists salic."sac__tbdocumentoassinatura" rename to "bronze_sac_tbdocumentoassinatura";
+alter table if exists salic_bronze."sac__tbdocumentodespachoassinatura" set schema salic;
+alter table if exists salic."sac__tbdocumentodespachoassinatura" rename to "bronze_sac_tbdocumentodespachoassinatura";
+alter table if exists salic_bronze."sac__tbdocumentosagentes20100107x" set schema salic;
+alter table if exists salic."sac__tbdocumentosagentes20100107x" rename to "bronze_sac_tbdocumentosagentes20100107x";
+alter table if exists salic_bronze."sac__tbdocumentospreprojeto20100107x" set schema salic;
+alter table if exists salic."sac__tbdocumentospreprojeto20100107x" rename to "bronze_sac_tbdocumentospreprojeto20100107x";
 alter table if exists salic_bronze."sac__tbfiscalizacao" set schema salic;
 alter table if exists salic."sac__tbfiscalizacao" rename to "bronze_sac_tbfiscalizacao";
 alter table if exists salic_bronze."sac__tbfundopatrimonial" set schema salic;
@@ -1003,6 +1150,8 @@ alter table if exists salic_bronze."sac__tbhistoricoalteracaodocumento" set sche
 alter table if exists salic."sac__tbhistoricoalteracaodocumento" rename to "bronze_sac_tbhistoricoalteracaodocumento";
 alter table if exists salic_bronze."sac__tbhistoricoalteracaoprojeto" set schema salic;
 alter table if exists salic."sac__tbhistoricoalteracaoprojeto" rename to "bronze_sac_tbhistoricoalteracaoprojeto";
+alter table if exists salic_bronze."sac__tbhistoricocontabloqueada" set schema salic;
+alter table if exists salic."sac__tbhistoricocontabloqueada" rename to "bronze_sac_tbhistoricocontabloqueada";
 alter table if exists salic_bronze."sac__tbhistoricodevolucaofiscalizacao" set schema salic;
 alter table if exists salic."sac__tbhistoricodevolucaofiscalizacao" rename to "bronze_sac_tbhistoricodevolucaofiscalizacao";
 alter table if exists salic_bronze."sac__tbhistoricodiligencia" set schema salic;
@@ -1015,16 +1164,22 @@ alter table if exists salic_bronze."sac__tbhistoricoexclusaoconta" set schema sa
 alter table if exists salic."sac__tbhistoricoexclusaoconta" rename to "bronze_sac_tbhistoricoexclusaoconta";
 alter table if exists salic_bronze."sac__tbhomologacao" set schema salic;
 alter table if exists salic."sac__tbhomologacao" rename to "bronze_sac_tbhomologacao";
+alter table if exists salic_bronze."sac__tbimovel" set schema salic;
+alter table if exists salic."sac__tbimovel" rename to "bronze_sac_tbimovel";
 alter table if exists salic_bronze."sac__tbinadimplente" set schema salic;
 alter table if exists salic."sac__tbinadimplente" rename to "bronze_sac_tbinadimplente";
 alter table if exists salic_bronze."sac__tbitensplanilhaproduto" set schema salic;
 alter table if exists salic."sac__tbitensplanilhaproduto" rename to "bronze_sac_tbitensplanilhaproduto";
 alter table if exists salic_bronze."sac__tblancamentobancario" set schema salic;
 alter table if exists salic."sac__tblancamentobancario" rename to "bronze_sac_tblancamentobancario";
+alter table if exists salic_bronze."sac__tblancamentobancarioxcomprovantepagamento" set schema salic;
+alter table if exists salic."sac__tblancamentobancarioxcomprovantepagamento" rename to "bronze_sac_tblancamentobancarioxcomprovantepagamento";
 alter table if exists salic_bronze."sac__tblaudofinal" set schema salic;
 alter table if exists salic."sac__tblaudofinal" rename to "bronze_sac_tblaudofinal";
 alter table if exists salic_bronze."sac__tblogintentativasacesso" set schema salic;
 alter table if exists salic."sac__tblogintentativasacesso" rename to "bronze_sac_tblogintentativasacesso";
+alter table if exists salic_bronze."sac__tblogomarca" set schema salic;
+alter table if exists salic."sac__tblogomarca" rename to "bronze_sac_tblogomarca";
 alter table if exists salic_bronze."sac__tblote" set schema salic;
 alter table if exists salic."sac__tblote" rename to "bronze_sac_tblote";
 alter table if exists salic_bronze."sac__tbmanterportaria" set schema salic;
@@ -1035,6 +1190,8 @@ alter table if exists salic_bronze."sac__tbmensagemdispositivomovel" set schema 
 alter table if exists salic."sac__tbmensagemdispositivomovel" rename to "bronze_sac_tbmensagemdispositivomovel";
 alter table if exists salic_bronze."sac__tbmodelotermodecisao" set schema salic;
 alter table if exists salic."sac__tbmodelotermodecisao" rename to "bronze_sac_tbmodelotermodecisao";
+alter table if exists salic_bronze."sac__tbmonitoramentoadistancia" set schema salic;
+alter table if exists salic."sac__tbmonitoramentoadistancia" rename to "bronze_sac_tbmonitoramentoadistancia";
 alter table if exists salic_bronze."sac__tbmonitoramentoprojeto" set schema salic;
 alter table if exists salic."sac__tbmonitoramentoprojeto" rename to "bronze_sac_tbmonitoramentoprojeto";
 alter table if exists salic_bronze."sac__tbmotivodevolucao" set schema salic;
@@ -1049,6 +1206,8 @@ alter table if exists salic_bronze."sac__tbmovimentacaobancariaitemxtipoinconsis
 alter table if exists salic."sac__tbmovimentacaobancariaitemxtipoinconsistencia" rename to "bronze_sac_tbmovimentacaobancariaitemxtipoinconsistencia";
 alter table if exists salic_bronze."sac__tbnormativos" set schema salic;
 alter table if exists salic."sac__tbnormativos" rename to "bronze_sac_tbnormativos";
+alter table if exists salic_bronze."sac__tbnotafiscaleletronica" set schema salic;
+alter table if exists salic."sac__tbnotafiscaleletronica" rename to "bronze_sac_tbnotafiscaleletronica";
 alter table if exists salic_bronze."sac__tbnotificacao" set schema salic;
 alter table if exists salic."sac__tbnotificacao" rename to "bronze_sac_tbnotificacao";
 alter table if exists salic_bronze."sac__tbopinarprojeto" set schema salic;
@@ -1063,6 +1222,8 @@ alter table if exists salic_bronze."sac__tbpagarpareceristareadequacao" set sche
 alter table if exists salic."sac__tbpagarpareceristareadequacao" rename to "bronze_sac_tbpagarpareceristareadequacao";
 alter table if exists salic_bronze."sac__tbpagarpareceristarecurso" set schema salic;
 alter table if exists salic."sac__tbpagarpareceristarecurso" rename to "bronze_sac_tbpagarpareceristarecurso";
+alter table if exists salic_bronze."sac__tbparecerconsolidado" set schema salic;
+alter table if exists salic."sac__tbparecerconsolidado" rename to "bronze_sac_tbparecerconsolidado";
 alter table if exists salic_bronze."sac__tbpareceristaafastamento" set schema salic;
 alter table if exists salic."sac__tbpareceristaafastamento" rename to "bronze_sac_tbpareceristaafastamento";
 alter table if exists salic_bronze."sac__tbpareceristaedital" set schema salic;
@@ -1071,16 +1232,24 @@ alter table if exists salic_bronze."sac__tbpareceristaempenho" set schema salic;
 alter table if exists salic."sac__tbpareceristaempenho" rename to "bronze_sac_tbpareceristaempenho";
 alter table if exists salic_bronze."sac__tbpareceristainexigibilidade" set schema salic;
 alter table if exists salic."sac__tbpareceristainexigibilidade" rename to "bronze_sac_tbpareceristainexigibilidade";
+alter table if exists salic_bronze."sac__tbpareceristalotepagamento" set schema salic;
+alter table if exists salic."sac__tbpareceristalotepagamento" rename to "bronze_sac_tbpareceristalotepagamento";
+alter table if exists salic_bronze."sac__tbpareceristapagamento" set schema salic;
+alter table if exists salic."sac__tbpareceristapagamento" rename to "bronze_sac_tbpareceristapagamento";
 alter table if exists salic_bronze."sac__tbpareceristaprojetoredistribuido" set schema salic;
 alter table if exists salic."sac__tbpareceristaprojetoredistribuido" rename to "bronze_sac_tbpareceristaprojetoredistribuido";
 alter table if exists salic_bronze."sac__tbpareceristaprorrogarprazo" set schema salic;
 alter table if exists salic."sac__tbpareceristaprorrogarprazo" rename to "bronze_sac_tbpareceristaprorrogarprazo";
 alter table if exists salic_bronze."sac__tbpareceristaprorrogarprazoxdistribuicao" set schema salic;
 alter table if exists salic."sac__tbpareceristaprorrogarprazoxdistribuicao" rename to "bronze_sac_tbpareceristaprorrogarprazoxdistribuicao";
+alter table if exists salic_bronze."sac__tbpareceristaquestionamento" set schema salic;
+alter table if exists salic."sac__tbpareceristaquestionamento" rename to "bronze_sac_tbpareceristaquestionamento";
 alter table if exists salic_bronze."sac__tbpareceristavaloranalisado" set schema salic;
 alter table if exists salic."sac__tbpareceristavaloranalisado" rename to "bronze_sac_tbpareceristavaloranalisado";
 alter table if exists salic_bronze."sac__tbplanilhaaprovacao" set schema salic;
 alter table if exists salic."sac__tbplanilhaaprovacao" rename to "bronze_sac_tbplanilhaaprovacao";
+alter table if exists salic_bronze."sac__tbplanilhadesembolso" set schema salic;
+alter table if exists salic."sac__tbplanilhadesembolso" rename to "bronze_sac_tbplanilhadesembolso";
 alter table if exists salic_bronze."sac__tbplanilhaetapa" set schema salic;
 alter table if exists salic."sac__tbplanilhaetapa" rename to "bronze_sac_tbplanilhaetapa";
 alter table if exists salic_bronze."sac__tbplanilhaitens" set schema salic;
@@ -1145,6 +1314,8 @@ alter table if exists salic_bronze."sac__tbprojetosclonados" set schema salic;
 alter table if exists salic."sac__tbprojetosclonados" rename to "bronze_sac_tbprojetosclonados";
 alter table if exists salic_bronze."sac__tbprojetosituacaoanterior" set schema salic;
 alter table if exists salic."sac__tbprojetosituacaoanterior" rename to "bronze_sac_tbprojetosituacaoanterior";
+alter table if exists salic_bronze."sac__tbproposta" set schema salic;
+alter table if exists salic."sac__tbproposta" rename to "bronze_sac_tbproposta";
 alter table if exists salic_bronze."sac__tbreadequacao" set schema salic;
 alter table if exists salic."sac__tbreadequacao" rename to "bronze_sac_tbreadequacao";
 alter table if exists salic_bronze."sac__tbreadequacaoxparecer" set schema salic;
@@ -1155,6 +1326,10 @@ alter table if exists salic_bronze."sac__tbrecurso" set schema salic;
 alter table if exists salic."sac__tbrecurso" rename to "bronze_sac_tbrecurso";
 alter table if exists salic_bronze."sac__tbrecursoproposta" set schema salic;
 alter table if exists salic."sac__tbrecursoproposta" rename to "bronze_sac_tbrecursoproposta";
+alter table if exists salic_bronze."sac__tbrecursoxplanilhaaprovacao" set schema salic;
+alter table if exists salic."sac__tbrecursoxplanilhaaprovacao" rename to "bronze_sac_tbrecursoxplanilhaaprovacao";
+alter table if exists salic_bronze."sac__tbrelatorio" set schema salic;
+alter table if exists salic."sac__tbrelatorio" rename to "bronze_sac_tbrelatorio";
 alter table if exists salic_bronze."sac__vcapmecaudioanoprojeto" set schema salic;
 alter table if exists salic."sac__vcapmecaudioanoprojeto" rename to "bronze_sac_vcapmecaudioanoprojeto";
 alter table if exists salic_bronze."sac__vcapmecaudioprojeto" set schema salic;
@@ -1183,6 +1358,8 @@ alter table if exists salic_bronze."sac__vchecaqteinabilitacao" set schema salic
 alter table if exists salic."sac__vchecaqteinabilitacao" rename to "bronze_sac_vchecaqteinabilitacao";
 alter table if exists salic_bronze."sac__vci" set schema salic;
 alter table if exists salic."sac__vci" rename to "bronze_sac_vci";
+alter table if exists salic_bronze."sac__vciset" set schema salic;
+alter table if exists salic."sac__vciset" rename to "bronze_sac_vciset";
 alter table if exists salic_bronze."sac__vcnpjcpf" set schema salic;
 alter table if exists salic."sac__vcnpjcpf" rename to "bronze_sac_vcnpjcpf";
 alter table if exists salic_bronze."sac__vcnpjvalido" set schema salic;
@@ -1191,6 +1368,8 @@ alter table if exists salic_bronze."sac__vcomparativoano" set schema salic;
 alter table if exists salic."sac__vcomparativoano" rename to "bronze_sac_vcomparativoano";
 alter table if exists salic_bronze."sac__vcomparativoanomec" set schema salic;
 alter table if exists salic."sac__vcomparativoanomec" rename to "bronze_sac_vcomparativoanomec";
+alter table if exists salic_bronze."sac__vcontabancaria" set schema salic;
+alter table if exists salic."sac__vcontabancaria" rename to "bronze_sac_vcontabancaria";
 alter table if exists salic_bronze."sac__vcontacorrente" set schema salic;
 alter table if exists salic."sac__vcontacorrente" rename to "bronze_sac_vcontacorrente";
 alter table if exists salic_bronze."sac__vconvenioanoarea" set schema salic;
@@ -1255,6 +1434,8 @@ alter table if exists salic_bronze."sac__vincentivadorpessoaano" set schema sali
 alter table if exists salic."sac__vincentivadorpessoaano" rename to "bronze_sac_vincentivadorpessoaano";
 alter table if exists salic_bronze."sac__vincentivadorporprojeto" set schema salic;
 alter table if exists salic."sac__vincentivadorporprojeto" rename to "bronze_sac_vincentivadorporprojeto";
+alter table if exists salic_bronze."sac__vinvestimentominc" set schema salic;
+alter table if exists salic."sac__vinvestimentominc" rename to "bronze_sac_vinvestimentominc";
 alter table if exists salic_bronze."sac__vliberado" set schema salic;
 alter table if exists salic."sac__vliberado" rename to "bronze_sac_vliberado";
 alter table if exists salic_bronze."sac__vmaioresincentivadoresprojetos" set schema salic;
@@ -1277,6 +1458,8 @@ alter table if exists salic_bronze."sac__voutrasinformacoesaudio" set schema sal
 alter table if exists salic."sac__voutrasinformacoesaudio" rename to "bronze_sac_voutrasinformacoesaudio";
 alter table if exists salic_bronze."sac__vparecerinicial" set schema salic;
 alter table if exists salic."sac__vparecerinicial" rename to "bronze_sac_vparecerinicial";
+alter table if exists salic_bronze."sac__vpautadereuniaocnic" set schema salic;
+alter table if exists salic."sac__vpautadereuniaocnic" rename to "bronze_sac_vpautadereuniaocnic";
 alter table if exists salic_bronze."sac__vpautadereuniaofncintercambio" set schema salic;
 alter table if exists salic."sac__vpautadereuniaofncintercambio" rename to "bronze_sac_vpautadereuniaofncintercambio";
 alter table if exists salic_bronze."sac__vportariaaprovado" set schema salic;
@@ -1325,6 +1508,8 @@ alter table if exists salic_bronze."sac__vproponenteprojetosongs" set schema sal
 alter table if exists salic."sac__vproponenteprojetosongs" rename to "bronze_sac_vproponenteprojetosongs";
 alter table if exists salic_bronze."sac__vproponentetipopessoa" set schema salic;
 alter table if exists salic."sac__vproponentetipopessoa" rename to "bronze_sac_vproponentetipopessoa";
+alter table if exists salic_bronze."sac__vpropprojinabilitados" set schema salic;
+alter table if exists salic."sac__vpropprojinabilitados" rename to "bronze_sac_vpropprojinabilitados";
 alter table if exists salic_bronze."sac__vpropquereceberbandadenovo" set schema salic;
 alter table if exists salic."sac__vpropquereceberbandadenovo" rename to "bronze_sac_vpropquereceberbandadenovo";
 alter table if exists salic_bronze."sac__vproprecebeubanda" set schema salic;
@@ -1389,6 +1574,10 @@ alter table if exists salic_bronze."sac__vw_captacao_ano_uf" set schema salic;
 alter table if exists salic."sac__vw_captacao_ano_uf" rename to "bronze_sac_vw_captacao_ano_uf";
 alter table if exists salic_bronze."sac__vw_dba_captacao_2007_2017" set schema salic;
 alter table if exists salic."sac__vw_dba_captacao_2007_2017" rename to "bronze_sac_vw_dba_captacao_2007_2017";
+alter table if exists salic_bronze."sac__vw_pc_digital_avaliados_emavaliacao" set schema salic;
+alter table if exists salic."sac__vw_pc_digital_avaliados_emavaliacao" rename to "bronze_sac_vw_pc_digital_avaliados_emavaliacao";
+alter table if exists salic_bronze."sac__vw_prol_vinc_agu_dis" set schema salic;
+alter table if exists salic."sac__vw_prol_vinc_agu_dis" rename to "bronze_sac_vw_prol_vinc_agu_dis";
 alter table if exists salic_bronze."sac__vwagentesseusprojetos" set schema salic;
 alter table if exists salic."sac__vwagentesseusprojetos" rename to "bronze_sac_vwagentesseusprojetos";
 alter table if exists salic_bronze."sac__vwalteraranalistaproposta" set schema salic;
@@ -1409,26 +1598,38 @@ alter table if exists salic_bronze."sac__vwanalisefinanceiravirtual" set schema 
 alter table if exists salic."sac__vwanalisefinanceiravirtual" rename to "bronze_sac_vwanalisefinanceiravirtual";
 alter table if exists salic_bronze."sac__vwanalisevisualportecnico" set schema salic;
 alter table if exists salic."sac__vwanalisevisualportecnico" rename to "bronze_sac_vwanalisevisualportecnico";
+alter table if exists salic_bronze."sac__vwanexarcomprovantes" set schema salic;
+alter table if exists salic."sac__vwanexarcomprovantes" rename to "bronze_sac_vwanexarcomprovantes";
+alter table if exists salic_bronze."sac__vwanexardocumentoagente" set schema salic;
+alter table if exists salic."sac__vwanexardocumentoagente" rename to "bronze_sac_vwanexardocumentoagente";
 alter table if exists salic_bronze."sac__vwinformacoes_tcu_etce" set schema salic;
 alter table if exists salic."sac__vwinformacoes_tcu_etce" rename to "bronze_sac_vwinformacoes_tcu_etce";
 alter table if exists salic_bronze."sac__vwinformacoesconsolidadasparaavaliacaofinanceira" set schema salic;
 alter table if exists salic."sac__vwinformacoesconsolidadasparaavaliacaofinanceira" rename to "bronze_sac_vwinformacoesconsolidadasparaavaliacaofinanceira";
 alter table if exists salic_bronze."sac__vwinformacoesdoatoadministrativo" set schema salic;
 alter table if exists salic."sac__vwinformacoesdoatoadministrativo" rename to "bronze_sac_vwinformacoesdoatoadministrativo";
+alter table if exists salic_bronze."sac__vwitemduplicado" set schema salic;
+alter table if exists salic."sac__vwitemduplicado" rename to "bronze_sac_vwitemduplicado";
 alter table if exists salic_bronze."sac__vwitemorcamentarioimpugnado" set schema salic;
 alter table if exists salic."sac__vwitemorcamentarioimpugnado" rename to "bronze_sac_vwitemorcamentarioimpugnado";
 alter table if exists salic_bronze."sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio" set schema salic;
 alter table if exists salic."sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio" rename to "bronze_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio";
+alter table if exists salic_bronze."sac__vwitensorcamentarioscomprovados" set schema salic;
+alter table if exists salic."sac__vwitensorcamentarioscomprovados" rename to "bronze_sac_vwitensorcamentarioscomprovados";
 alter table if exists salic_bronze."sac__vwlancamentobancariosemcomprovacao" set schema salic;
 alter table if exists salic."sac__vwlancamentobancariosemcomprovacao" rename to "bronze_sac_vwlancamentobancariosemcomprovacao";
 alter table if exists salic_bronze."sac__vwlaudofinalavaliacaoderesultadodoprojeto" set schema salic;
 alter table if exists salic."sac__vwlaudofinalavaliacaoderesultadodoprojeto" rename to "bronze_sac_vwlaudofinalavaliacaoderesultadodoprojeto";
+alter table if exists salic_bronze."sac__vwlaudofinalderesultadopassivo" set schema salic;
+alter table if exists salic."sac__vwlaudofinalderesultadopassivo" rename to "bronze_sac_vwlaudofinalderesultadopassivo";
 alter table if exists salic_bronze."sac__vwliberacao" set schema salic;
 alter table if exists salic."sac__vwliberacao" rename to "bronze_sac_vwliberacao";
 alter table if exists salic_bronze."sac__vwlistarcaptacoes" set schema salic;
 alter table if exists salic."sac__vwlistarcaptacoes" rename to "bronze_sac_vwlistarcaptacoes";
 alter table if exists salic_bronze."sac__vwlistarpropostas" set schema salic;
 alter table if exists salic."sac__vwlistarpropostas" rename to "bronze_sac_vwlistarpropostas";
+alter table if exists salic_bronze."sac__vwlotedocumento" set schema salic;
+alter table if exists salic."sac__vwlotedocumento" rename to "bronze_sac_vwlotedocumento";
 alter table if exists salic_bronze."sac__vwmaioresincentivadoresporanouf" set schema salic;
 alter table if exists salic."sac__vwmaioresincentivadoresporanouf" rename to "bronze_sac_vwmaioresincentivadoresporanouf";
 alter table if exists salic_bronze."sac__vwmaioresproponentesporanouf" set schema salic;
@@ -1437,6 +1638,8 @@ alter table if exists salic_bronze."sac__vwmediana" set schema salic;
 alter table if exists salic."sac__vwmediana" rename to "bronze_sac_vwmediana";
 alter table if exists salic_bronze."sac__vwmemoriadecalculo" set schema salic;
 alter table if exists salic."sac__vwmemoriadecalculo" rename to "bronze_sac_vwmemoriadecalculo";
+alter table if exists salic_bronze."sac__vwmetascomprovadas" set schema salic;
+alter table if exists salic."sac__vwmetascomprovadas" rename to "bronze_sac_vwmetascomprovadas";
 alter table if exists salic_bronze."sac__vwnatureza" set schema salic;
 alter table if exists salic."sac__vwnatureza" rename to "bronze_sac_vwnatureza";
 alter table if exists salic_bronze."sac__vwnotificacaoaoproponente" set schema salic;
@@ -1461,10 +1664,16 @@ alter table if exists salic_bronze."sac__vwpaineladmissibilidade" set schema sal
 alter table if exists salic."sac__vwpaineladmissibilidade" rename to "bronze_sac_vwpaineladmissibilidade";
 alter table if exists salic_bronze."sac__vwpainelaguardandodistribuicaoanalisetecnica" set schema salic;
 alter table if exists salic."sac__vwpainelaguardandodistribuicaoanalisetecnica" rename to "bronze_sac_vwpainelaguardandodistribuicaoanalisetecnica";
+alter table if exists salic_bronze."sac__vwpainelanalisadosuperintendencia" set schema salic;
+alter table if exists salic."sac__vwpainelanalisadosuperintendencia" rename to "bronze_sac_vwpainelanalisadosuperintendencia";
+alter table if exists salic_bronze."sac__vwpainelanalisdadosuperintendencia" set schema salic;
+alter table if exists salic."sac__vwpainelanalisdadosuperintendencia" rename to "bronze_sac_vwpainelanalisdadosuperintendencia";
 alter table if exists salic_bronze."sac__vwpainelavaliarpropostas" set schema salic;
 alter table if exists salic."sac__vwpainelavaliarpropostas" rename to "bronze_sac_vwpainelavaliarpropostas";
 alter table if exists salic_bronze."sac__vwpainelcoordenadoravaliacaotrimestral" set schema salic;
 alter table if exists salic."sac__vwpainelcoordenadoravaliacaotrimestral" rename to "bronze_sac_vwpainelcoordenadoravaliacaotrimestral";
+alter table if exists salic_bronze."sac__vwpainelcoordenadorimpedimentoparecerista" set schema salic;
+alter table if exists salic."sac__vwpainelcoordenadorimpedimentoparecerista" rename to "bronze_sac_vwpainelcoordenadorimpedimentoparecerista";
 alter table if exists salic_bronze."sac__vwpainelcoordenadorreadequacaoaguardandoanalise" set schema salic;
 alter table if exists salic."sac__vwpainelcoordenadorreadequacaoaguardandoanalise" rename to "bronze_sac_vwpainelcoordenadorreadequacaoaguardandoanalise";
 alter table if exists salic_bronze."sac__vwpainelcoordenadorreadequacaoaguardandoanalise_20180323" set schema salic;
@@ -1477,12 +1686,16 @@ alter table if exists salic_bronze."sac__vwpainelcoordenadorreadequacaoemanalise
 alter table if exists salic."sac__vwpainelcoordenadorreadequacaoemanalise" rename to "bronze_sac_vwpainelcoordenadorreadequacaoemanalise";
 alter table if exists salic_bronze."sac__vwpainelcoordenadorreadequacaoemanalise_20180323" set schema salic;
 alter table if exists salic."sac__vwpainelcoordenadorreadequacaoemanalise_20180323" rename to "bronze_sac_vwpainelcoordenadorreadequacaoemanalise_20180323";
+alter table if exists salic_bronze."sac__vwpainelcoordenadorvinculadasaguardandoanalise" set schema salic;
+alter table if exists salic."sac__vwpainelcoordenadorvinculadasaguardandoanalise" rename to "bronze_sac_vwpainelcoordenadorvinculadasaguardandoanalise";
 alter table if exists salic_bronze."sac__vwpainelcoordenadorvinculadasemanalise" set schema salic;
 alter table if exists salic."sac__vwpainelcoordenadorvinculadasemanalise" rename to "bronze_sac_vwpainelcoordenadorvinculadasemanalise";
 alter table if exists salic_bronze."sac__vwpainelcoordenadorvinculadasemvalidacao" set schema salic;
 alter table if exists salic."sac__vwpainelcoordenadorvinculadasemvalidacao" rename to "bronze_sac_vwpainelcoordenadorvinculadasemvalidacao";
 alter table if exists salic_bronze."sac__vwpainelcoordenadorvinculadasreanalisar" set schema salic;
 alter table if exists salic."sac__vwpainelcoordenadorvinculadasreanalisar" rename to "bronze_sac_vwpainelcoordenadorvinculadasreanalisar";
+alter table if exists salic_bronze."sac__vwpainelcoordenadorvinculadasvalidados" set schema salic;
+alter table if exists salic."sac__vwpainelcoordenadorvinculadasvalidados" rename to "bronze_sac_vwpainelcoordenadorvinculadasvalidados";
 alter table if exists salic_bronze."sac__vwpaineldedocumentosaguardandoassinatura" set schema salic;
 alter table if exists salic."sac__vwpaineldedocumentosaguardandoassinatura" rename to "bronze_sac_vwpaineldedocumentosaguardandoassinatura";
 alter table if exists salic_bronze."sac__vwpaineldedocumentosdereadequacaoaguardandoassinatura" set schema salic;
@@ -1523,20 +1736,30 @@ alter table if exists salic_bronze."sac__vwpainelprojetossgptc" set schema salic
 alter table if exists salic."sac__vwpainelprojetossgptc" rename to "bronze_sac_vwpainelprojetossgptc";
 alter table if exists salic_bronze."sac__vwpainelreadequacaoaguardandopublicacao" set schema salic;
 alter table if exists salic."sac__vwpainelreadequacaoaguardandopublicacao" rename to "bronze_sac_vwpainelreadequacaoaguardandopublicacao";
+alter table if exists salic_bronze."sac__vwpainelreadequacaocoordenadorpareceraguardandoanalise" set schema salic;
+alter table if exists salic."sac__vwpainelreadequacaocoordenadorpareceraguardandoanalise" rename to "bronze_sac_vwpainelreadequacaocoordenadorpareceraguardandoanalise";
 alter table if exists salic_bronze."sac__vwpainelreadequacaocoordenadorpareceranalisados" set schema salic;
 alter table if exists salic."sac__vwpainelreadequacaocoordenadorpareceranalisados" rename to "bronze_sac_vwpainelreadequacaocoordenadorpareceranalisados";
 alter table if exists salic_bronze."sac__vwpainelreadequacaocoordenadorpareceremanalise" set schema salic;
 alter table if exists salic."sac__vwpainelreadequacaocoordenadorpareceremanalise" rename to "bronze_sac_vwpainelreadequacaocoordenadorpareceremanalise";
 alter table if exists salic_bronze."sac__vwpainelreadequacaotecnico" set schema salic;
 alter table if exists salic."sac__vwpainelreadequacaotecnico" rename to "bronze_sac_vwpainelreadequacaotecnico";
+alter table if exists salic_bronze."sac__vwpainelsuperintendentevinculadas" set schema salic;
+alter table if exists salic."sac__vwpainelsuperintendentevinculadas" rename to "bronze_sac_vwpainelsuperintendentevinculadas";
 alter table if exists salic_bronze."sac__vwpaineltecnicoavaliacaotrimestral" set schema salic;
 alter table if exists salic."sac__vwpaineltecnicoavaliacaotrimestral" rename to "bronze_sac_vwpaineltecnicoavaliacaotrimestral";
 alter table if exists salic_bronze."sac__vwpaineltransferenciarecursoscaptacaomovimento" set schema salic;
 alter table if exists salic."sac__vwpaineltransferenciarecursoscaptacaomovimento" rename to "bronze_sac_vwpaineltransferenciarecursoscaptacaomovimento";
+alter table if exists salic_bronze."sac__vwpainelvalidados" set schema salic;
+alter table if exists salic."sac__vwpainelvalidados" rename to "bronze_sac_vwpainelvalidados";
 alter table if exists salic_bronze."sac__vwpainelvalidadoscomdevolucao" set schema salic;
 alter table if exists salic."sac__vwpainelvalidadoscomdevolucao" rename to "bronze_sac_vwpainelvalidadoscomdevolucao";
+alter table if exists salic_bronze."sac__vwpareceranalisedeconteudo" set schema salic;
+alter table if exists salic."sac__vwpareceranalisedeconteudo" rename to "bronze_sac_vwpareceranalisedeconteudo";
 alter table if exists salic_bronze."sac__vwpareceresdereadequacao" set schema salic;
 alter table if exists salic."sac__vwpareceresdereadequacao" rename to "bronze_sac_vwpareceresdereadequacao";
+alter table if exists salic_bronze."sac__vwparecerfechadoorgao" set schema salic;
+alter table if exists salic."sac__vwparecerfechadoorgao" rename to "bronze_sac_vwparecerfechadoorgao";
 alter table if exists salic_bronze."sac__vwpareceristascredenciados" set schema salic;
 alter table if exists salic."sac__vwpareceristascredenciados" rename to "bronze_sac_vwpareceristascredenciados";
 alter table if exists salic_bronze."sac__vwpareceristasorgao" set schema salic;
@@ -1553,6 +1776,8 @@ alter table if exists salic_bronze."sac__vwplanilhasugerida" set schema salic;
 alter table if exists salic."sac__vwplanilhasugerida" rename to "bronze_sac_vwplanilhasugerida";
 alter table if exists salic_bronze."sac__vwplanilhasugeridacompleta" set schema salic;
 alter table if exists salic."sac__vwplanilhasugeridacompleta" rename to "bronze_sac_vwplanilhasugeridacompleta";
+alter table if exists salic_bronze."sac__vwplanodedistribuicaoproduto" set schema salic;
+alter table if exists salic."sac__vwplanodedistribuicaoproduto" rename to "bronze_sac_vwplanodedistribuicaoproduto";
 alter table if exists salic_bronze."sac__vwportariasgeradas" set schema salic;
 alter table if exists salic."sac__vwportariasgeradas" rename to "bronze_sac_vwportariasgeradas";
 alter table if exists salic_bronze."sac__vwprecomedio_produto_item_unidade_uf_municipio" set schema salic;
@@ -1605,6 +1830,10 @@ alter table if exists salic_bronze."sac__vwprogramarouanetresultadoavaliacaoinic
 alter table if exists salic."sac__vwprogramarouanetresultadoavaliacaoinicial" rename to "bronze_sac_vwprogramarouanetresultadoavaliacaoinicial";
 alter table if exists salic_bronze."sac__vwprogramarouanettipologia" set schema salic;
 alter table if exists salic."sac__vwprogramarouanettipologia" rename to "bronze_sac_vwprogramarouanettipologia";
+alter table if exists salic_bronze."sac__vwprojetoaenviar" set schema salic;
+alter table if exists salic."sac__vwprojetoaenviar" rename to "bronze_sac_vwprojetoaenviar";
+alter table if exists salic_bronze."sac__vwprojetoareasegmentoproduto" set schema salic;
+alter table if exists salic."sac__vwprojetoareasegmentoproduto" rename to "bronze_sac_vwprojetoareasegmentoproduto";
 alter table if exists salic_bronze."sac__vwprojetobeneficiarioprodutocultural" set schema salic;
 alter table if exists salic."sac__vwprojetobeneficiarioprodutocultural" rename to "bronze_sac_vwprojetobeneficiarioprodutocultural";
 alter table if exists salic_bronze."sac__vwprojetodistribuidovinculada" set schema salic;
@@ -1619,12 +1848,20 @@ alter table if exists salic_bronze."sac__vwprojetosapreciadosaguardandohomologac
 alter table if exists salic."sac__vwprojetosapreciadosaguardandohomologacao" rename to "bronze_sac_vwprojetosapreciadosaguardandohomologacao";
 alter table if exists salic_bronze."sac__vwprojetosaprovadossemhomologacao" set schema salic;
 alter table if exists salic."sac__vwprojetosaprovadossemhomologacao" rename to "bronze_sac_vwprojetosaprovadossemhomologacao";
+alter table if exists salic_bronze."sac__vwprojetosareceber" set schema salic;
+alter table if exists salic."sac__vwprojetosareceber" rename to "bronze_sac_vwprojetosareceber";
 alter table if exists salic_bronze."sac__vwprojetoscominconsistencianacaptacao" set schema salic;
 alter table if exists salic."sac__vwprojetoscominconsistencianacaptacao" rename to "bronze_sac_vwprojetoscominconsistencianacaptacao";
 alter table if exists salic_bronze."sac__vwprojetosconsolidados" set schema salic;
 alter table if exists salic."sac__vwprojetosconsolidados" rename to "bronze_sac_vwprojetosconsolidados";
+alter table if exists salic_bronze."sac__vwprojetosdespachados" set schema salic;
+alter table if exists salic."sac__vwprojetosdespachados" rename to "bronze_sac_vwprojetosdespachados";
 alter table if exists salic_bronze."sac__vwprojetosemanalisecomparecerista" set schema salic;
 alter table if exists salic."sac__vwprojetosemanalisecomparecerista" rename to "bronze_sac_vwprojetosemanalisecomparecerista";
+alter table if exists salic_bronze."sac__vwprojetosenviados" set schema salic;
+alter table if exists salic."sac__vwprojetosenviados" rename to "bronze_sac_vwprojetosenviados";
+alter table if exists salic_bronze."sac__vwprojetoseusdocumentos" set schema salic;
+alter table if exists salic."sac__vwprojetoseusdocumentos" rename to "bronze_sac_vwprojetoseusdocumentos";
 alter table if exists salic_bronze."sac__vwprojetosgratuitopago" set schema salic;
 alter table if exists salic."sac__vwprojetosgratuitopago" rename to "bronze_sac_vwprojetosgratuitopago";
 alter table if exists salic_bronze."sac__vwprojetositinerantes" set schema salic;
@@ -1655,6 +1892,8 @@ alter table if exists salic_bronze."tabelas__ect_recusados" set schema salic;
 alter table if exists salic."tabelas__ect_recusados" rename to "bronze_tabelas_ect_recusados";
 alter table if exists salic_bronze."tabelas__emails" set schema salic;
 alter table if exists salic."tabelas__emails" rename to "bronze_tabelas_emails";
+alter table if exists salic_bronze."tabelas__estacoes" set schema salic;
+alter table if exists salic."tabelas__estacoes" rename to "bronze_tabelas_estacoes";
 alter table if exists salic_bronze."tabelas__eventos" set schema salic;
 alter table if exists salic."tabelas__eventos" rename to "bronze_tabelas_eventos";
 alter table if exists salic_bronze."tabelas__funcoes" set schema salic;
@@ -1689,6 +1928,8 @@ alter table if exists salic_bronze."tabelas__mei_servicos_intranet" set schema s
 alter table if exists salic."tabelas__mei_servicos_intranet" rename to "bronze_tabelas_mei_servicos_intranet";
 alter table if exists salic_bronze."tabelas__mei_usuariosxservicos_intranet" set schema salic;
 alter table if exists salic."tabelas__mei_usuariosxservicos_intranet" rename to "bronze_tabelas_mei_usuariosxservicos_intranet";
+alter table if exists salic_bronze."tabelas__mensagens" set schema salic;
+alter table if exists salic."tabelas__mensagens" rename to "bronze_tabelas_mensagens";
 alter table if exists salic_bronze."tabelas__menus" set schema salic;
 alter table if exists salic."tabelas__menus" rename to "bronze_tabelas_menus";
 alter table if exists salic_bronze."tabelas__menus_ares" set schema salic;
@@ -1709,6 +1950,8 @@ alter table if exists salic_bronze."tabelas__orgaos_ares" set schema salic;
 alter table if exists salic."tabelas__orgaos_ares" rename to "bronze_tabelas_orgaos_ares";
 alter table if exists salic_bronze."tabelas__orgaos_subordinados" set schema salic;
 alter table if exists salic."tabelas__orgaos_subordinados" rename to "bronze_tabelas_orgaos_subordinados";
+alter table if exists salic_bronze."tabelas__orgaosxusuarios" set schema salic;
+alter table if exists salic."tabelas__orgaosxusuarios" rename to "bronze_tabelas_orgaosxusuarios";
 alter table if exists salic_bronze."tabelas__palavras" set schema salic;
 alter table if exists salic."tabelas__palavras" rename to "bronze_tabelas_palavras";
 alter table if exists salic_bronze."tabelas__palavras2" set schema salic;
@@ -1731,6 +1974,8 @@ alter table if exists salic_bronze."tabelas__pessoas_bkp" set schema salic;
 alter table if exists salic."tabelas__pessoas_bkp" rename to "bronze_tabelas_pessoas_bkp";
 alter table if exists salic_bronze."tabelas__pessoasxfuncoes" set schema salic;
 alter table if exists salic."tabelas__pessoasxfuncoes" rename to "bronze_tabelas_pessoasxfuncoes";
+alter table if exists salic_bronze."tabelas__plan1$" set schema salic;
+alter table if exists salic."tabelas__plan1$" rename to "bronze_tabelas_plan1$";
 alter table if exists salic_bronze."tabelas__servicos_intranet" set schema salic;
 alter table if exists salic."tabelas__servicos_intranet" rename to "bronze_tabelas_servicos_intranet";
 alter table if exists salic_bronze."tabelas__sistemas" set schema salic;
@@ -1741,12 +1986,16 @@ alter table if exists salic_bronze."tabelas__sysdiagrams" set schema salic;
 alter table if exists salic."tabelas__sysdiagrams" rename to "bronze_tabelas_sysdiagrams";
 alter table if exists salic_bronze."tabelas__tabelas" set schema salic;
 alter table if exists salic."tabelas__tabelas" rename to "bronze_tabelas_tabelas";
+alter table if exists salic_bronze."tabelas__table1" set schema salic;
+alter table if exists salic."tabelas__table1" rename to "bronze_tabelas_table1";
 alter table if exists salic_bronze."tabelas__temp_tbl" set schema salic;
 alter table if exists salic."tabelas__temp_tbl" rename to "bronze_tabelas_temp_tbl";
 alter table if exists salic_bronze."tabelas__tipos_logradouro" set schema salic;
 alter table if exists salic."tabelas__tipos_logradouro" rename to "bronze_tabelas_tipos_logradouro";
 alter table if exists salic_bronze."tabelas__tipos_pessoa" set schema salic;
 alter table if exists salic."tabelas__tipos_pessoa" rename to "bronze_tabelas_tipos_pessoa";
+alter table if exists salic_bronze."tabelas__unidadesorcamentarias" set schema salic;
+alter table if exists salic."tabelas__unidadesorcamentarias" rename to "bronze_tabelas_unidadesorcamentarias";
 alter table if exists salic_bronze."tabelas__usuarios" set schema salic;
 alter table if exists salic."tabelas__usuarios" rename to "bronze_tabelas_usuarios";
 alter table if exists salic_bronze."tabelas__usuarios_ares" set schema salic;
