@@ -31,11 +31,14 @@ def test_nome_sem_separador_e_erro():
 def test_sql_move_renomeia_e_cita_a_quantidade():
     sql = mod.gerar_sql(["sac__projetos", "agentes__agentes"], dt.date(2026, 10, 27))
     assert "-- 2 tabelas." in sql
-    assert 'alter table if exists salic_bronze."sac__projetos" set schema salic;' in sql
-    assert (
-        'alter table if exists salic."sac__projetos" rename to "bronze_sac_projetos";'
-        in sql
+    renomeia = (
+        'alter table if exists salic_bronze."sac__projetos" '
+        'rename to "bronze_sac_projetos";'
     )
+    move = 'alter table if exists salic_bronze."bronze_sac_projetos" set schema salic;'
+    # renomear antes de mover: em salic há view legada do dbt com o nome da origem
+    assert renomeia in sql and move in sql
+    assert sql.index(renomeia) < sql.index(move)
     assert (
         "select 'agentes__agentes' as origem, 'bronze_agentes_agentes' as destino" in sql
     )

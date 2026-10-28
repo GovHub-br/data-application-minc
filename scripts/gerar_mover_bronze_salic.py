@@ -5,7 +5,7 @@ A ingestão salic_ingestion_trino passa a gravar salic.bronze_<banco>_<tabela>.
 As 656 tabelas que já existem em salic_bronze.<banco>__<tabela> não precisam
 ser recarregadas pela VPN: este script escreve scripts/salic_mover_bronze.sql,
 que a pessoa roda uma vez no dbanalytics. Cada tabela recebe um
-``ALTER TABLE ... SET SCHEMA salic`` e um ``RENAME``; as views dependentes
+``RENAME`` e um ``ALTER TABLE ... SET SCHEMA salic``; as views dependentes
 seguem a tabela pelo OID e continuam válidas.
 
 De onde vem a lista de tabelas:
@@ -104,8 +104,11 @@ def gerar_sql(nomes: list[str], hoje: dt.date | None = None) -> str:
 
     partes = [
         f"-- Gerado por scripts/gerar_mover_bronze_salic.py em {hoje:%Y-%m-%d}.",
-        "-- Roda uma vez, pela pessoa, no dbanalytics (psql). Idempotente: o que já",
-        f"-- foi movido não existe mais em {SCHEMA_ORIGEM} e o IF EXISTS pula.",
+        "-- Roda uma vez, no dbanalytics (psql), como o DONO das tabelas",
+        f"-- (dl_airflow), com CREATE em {SCHEMA_ORIGEM} (o RENAME exige) e em",
+        f"-- {SCHEMA_DESTINO} (o SET SCHEMA exige); os dois schemas são de dl_analytics.",
+        f"-- Idempotente: o que já foi movido não existe mais em {SCHEMA_ORIGEM} e o",
+        "-- IF EXISTS pula.",
         f"-- {len(pares)} tabelas.",
         "\\set ON_ERROR_STOP on",
         "begin;",
@@ -133,15 +136,17 @@ def gerar_sql(nomes: list[str], hoje: dt.date | None = None) -> str:
         "  end loop;",
         "end $$;",
         "",
-        "-- 2. move e renomeia",
+        "-- 2. renomeia dentro da origem e só então move. Na ordem inversa a tabela",
+        f"--    colidiria com a view legada do dbt em {SCHEMA_DESTINO}, que tem o mesmo",
+        "--    nome <banco>__<tabela> da origem.",
     ]
     for o, d in pares:
         partes.append(
-            f"alter table if exists {SCHEMA_ORIGEM}.{_ident(o)} "
-            f"set schema {SCHEMA_DESTINO};"
+            f"alter table if exists {SCHEMA_ORIGEM}.{_ident(o)} rename to {_ident(d)};"
         )
         partes.append(
-            f"alter table if exists {SCHEMA_DESTINO}.{_ident(o)} rename to {_ident(d)};"
+            f"alter table if exists {SCHEMA_ORIGEM}.{_ident(d)} "
+            f"set schema {SCHEMA_DESTINO};"
         )
     partes += [
         "",
