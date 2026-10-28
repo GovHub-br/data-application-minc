@@ -8,7 +8,6 @@ import pandas as pd
 import psycopg2
 import psycopg2.extensions
 import psycopg2.extras
-from pandas import json_normalize
 
 
 def _ident(nome: str) -> str:
@@ -17,6 +16,21 @@ def _ident(nome: str) -> str:
 
 def _tabela(schema: str, table_name: str) -> str:
     return f"{_ident(schema)}.{_ident(table_name)}"
+
+
+def _achatar(
+    objeto: Dict[Any, Any], prefixo: str = "", plano: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Uma linha aninhada em ``{"pai__filho": valor}``, chaves em minúsculo."""
+    plano = {} if plano is None else plano
+    for chave, valor in objeto.items():
+        nome = f"{prefixo}{str(chave).lower()}"
+        if isinstance(valor, dict):
+            # dict vazio não vira coluna, como no json_normalize
+            _achatar(valor, f"{nome}{ClientPostgresDB.SEPARATOR}", plano)
+        else:
+            plano[nome] = str(valor) if isinstance(valor, list) else valor
+    return plano
 
 
 class ClientPostgresDB:
@@ -39,7 +53,8 @@ class ClientPostgresDB:
     # idas e voltas ao banco a cada mil linhas.
     TAMANHO_PAGINA = 1000
 
-    def _flatten_data(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _flatten_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Flatten nested JSON data and normalize keys to lowercase.
 
         Normalizing to lowercase avoids PostgreSQL case-folding conflicts:
@@ -49,23 +64,21 @@ class ClientPostgresDB:
         ``UndefinedColumn``.  By lowercasing on the Python side we guarantee
         consistency between column creation and column reference.
 
+        Objeto aninhado vira ``pai__filho``; lista vira texto. Toda linha sai
+        com as mesmas colunas, na mesma ordem, e a chave que falta numa linha
+        vale ``None``. Substitui o ``json_normalize``, que preenchia a lacuna
+        com NaN — gravado como o texto ``'NaN'`` — e promovia a float a coluna
+        de inteiros com lacuna (``3550308.0``).
+
         Args:
             data (List[Dict[str, Any]]): List of nested dictionaries.
 
         Returns:
             List[Dict[str, Any]]: List of flat dictionaries with lowercase keys.
         """
-        return list(
-            map(
-                lambda d: {
-                    str(k).lower(): v if type(v) is not list else str(v)
-                    for k, v in d.items()
-                },
-                json_normalize(data, sep=ClientPostgresDB.SEPARATOR).to_dict(
-                    orient="records"
-                ),
-            )
-        )
+        planas = [_achatar(linha) for linha in data]
+        colunas = dict.fromkeys(coluna for linha in planas for coluna in linha)
+        return [{coluna: linha.get(coluna) for coluna in colunas} for linha in planas]
 
     def __init__(self, conn_str: str) -> None:
         self.conn_str = conn_str

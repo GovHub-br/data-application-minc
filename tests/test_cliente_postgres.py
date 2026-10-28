@@ -3,8 +3,8 @@
 O cliente é quase todo DDL dinâmico, transação e quoting de identificador —
 o tipo de coisa que um mock de ``psycopg2`` aprova sem testar. Por isso os
 testes que tocam o banco rodam num Postgres real, apontado por
-``TEST_POSTGRES_DSN``, e são pulados quando a variável não existe. Um banco
-descartável basta:
+``TEST_POSTGRES_DSN``, e são pulados quando a variável não existe; os de
+achatamento rodam sempre. Um banco descartável basta:
 
     docker run -d --rm --name pg-teste -e POSTGRES_PASSWORD=teste \\
         -e POSTGRES_DB=teste -p 55432:5432 postgres:16-alpine
@@ -85,6 +85,78 @@ def colunas(schema: str, tabela: str) -> List[str]:
             "ORDER BY ordinal_position"
         )
     ]
+
+
+# ---------------------------------------------------------------------------
+# Achatamento — sem banco
+# ---------------------------------------------------------------------------
+
+
+def test_achata_aninhado_com_separador_e_minusculo() -> None:
+    linhas = ClientPostgresDB._flatten_data([{"Id": 1, "tipoAnexo": {"Versao": 2}}])
+
+    assert linhas == [{"id": 1, "tipoanexo__versao": 2}]
+
+
+def test_achata_varios_niveis() -> None:
+    linhas = ClientPostgresDB._flatten_data([{"a": {"b": {"c": 1}}, "z": 0}])
+
+    assert linhas == [{"a__b__c": 1, "z": 0}]
+
+
+def test_chave_ausente_vira_none_e_nao_nan() -> None:
+    """O ``json_normalize`` preenchia a lacuna com NaN, que ia para o banco
+    como o texto ``'NaN'``."""
+    linhas = ClientPostgresDB._flatten_data([{"id": 1}, {"id": 2, "n": 3}])
+
+    assert linhas == [{"id": 1, "n": None}, {"id": 2, "n": 3}]
+
+
+def test_inteiro_em_coluna_com_lacuna_continua_inteiro() -> None:
+    """Com a lacuna, o pandas promovia a coluna a float: ``3550308.0``."""
+    linhas = ClientPostgresDB._flatten_data([{"cod": None}, {"cod": 3550308}, {}])
+
+    assert [linha["cod"] for linha in linhas] == [None, 3550308, None]
+    assert type(linhas[1]["cod"]) is int
+
+
+def test_todas_as_linhas_tem_as_mesmas_colunas_na_mesma_ordem() -> None:
+    """O INSERT monta a lista de colunas pela primeira linha e os valores
+    por posição."""
+    linhas = ClientPostgresDB._flatten_data([{"b": 1}, {"a": 2, "b": 3}])
+
+    assert [list(linha) for linha in linhas] == [["b", "a"], ["b", "a"]]
+
+
+def test_lista_vira_texto() -> None:
+    linhas = ClientPostgresDB._flatten_data([{"l": [1, {"a": 2}]}])
+
+    assert linhas == [{"l": "[1, {'a': 2}]"}]
+
+
+def test_dict_vazio_nao_vira_coluna() -> None:
+    assert ClientPostgresDB._flatten_data([{"a": 1, "b": {}}]) == [{"a": 1}]
+
+
+def test_nulo_no_lugar_de_objeto_fica_na_coluna_do_pai() -> None:
+    linhas = ClientPostgresDB._flatten_data([{"a": {"b": 1}}, {"a": None}])
+
+    assert linhas == [{"a__b": 1, "a": None}, {"a__b": None, "a": None}]
+
+
+def test_chave_nao_textual_vira_texto() -> None:
+    assert ClientPostgresDB._flatten_data([{1: "x", "a": {2: "y"}}]) == [
+        {"1": "x", "a__2": "y"}
+    ]
+
+
+def test_nan_que_ja_chega_na_entrada_e_preservado() -> None:
+    """Célula vazia de planilha chega do pandas como NaN e os modelos de
+    contemplados tratam o ``'nan'`` resultante de propósito — trocar por NULL
+    é decisão de dado, não do achatamento."""
+    linhas = ClientPostgresDB._flatten_data([{"x": float("nan")}])
+
+    assert linhas[0]["x"] != linhas[0]["x"]
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +272,17 @@ def test_insert_data_evolui_schema_com_chave_nova(
     assert consultar(f'SELECT id, nova FROM "{schema}".t ORDER BY id') == [
         ("1", None),
         ("2", "n"),
+    ]
+
+
+def test_lacuna_chega_ao_banco_como_null_e_inteiro_sem_ponto_zero(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    db.insert_data([{"id": 1}, {"id": 2, "cod": 3550308}], "t", schema=schema)
+
+    assert consultar(f'SELECT id, cod FROM "{schema}".t ORDER BY id') == [
+        ("1", None),
+        ("2", "3550308"),
     ]
 
 
