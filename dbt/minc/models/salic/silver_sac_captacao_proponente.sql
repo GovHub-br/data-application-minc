@@ -14,10 +14,10 @@
 -- os dois lados do join e a reconciliação com o fato precisam da mesma chave.
 -- Ano ou sequencial fora do padrão viram PRONAC nulo e o recibo sai.
 --
--- FONTE: a ingestão SALIC v2 (salic_bronze, via Trino), pelas bronzes
--- bronze_sac_projetos e bronze_sac_captacao. O proponente vem só de
--- ``sac__projetos``, o cadastro oficial do projeto, que em 19/08/2026 cobria
--- 100% dos recibos válidos.
+-- FONTE: a Bronze do SALIC, que a ingestão (Trino) grava no schema salic como
+-- bronze_sac_projetos e bronze_sac_captacao; não há modelo dbt bronze. O
+-- proponente vem só de ``sac__projetos``, o cadastro oficial do projeto, que em
+-- 19/08/2026 cobria 100% dos recibos válidos.
 --
 -- Até 21/10/2026 este modelo lia a ingestão v1 (schema `bronze`) e tinha o
 -- espelho da API pública (``sac__tbapiprojetorouanet``) como reserva de
@@ -42,7 +42,7 @@ WITH proponente_bruto AS (
         -- o cadastro não traz o nome do proponente; a coluna fica pelo
         -- contrato do modelo
         NULL::TEXT AS proponente_nome
-    FROM {{ ref('bronze_sac_projetos') }}
+    FROM {{ source('salic', 'bronze_sac_projetos') }}
     WHERE cgccpf IS NOT NULL
       AND LENGTH(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g')) BETWEEN 8 AND 14
 ),
@@ -61,7 +61,7 @@ recibos AS (
         {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} AS pronac,
         {{ bronze_timestamp("dtrecibo") }}::DATE AS data_recibo,
         {{ bronze_numerico("captacaoreal") }} AS valor_captado
-    FROM {{ ref('bronze_sac_captacao') }}
+    FROM {{ source('salic', 'bronze_sac_captacao') }}
 )
 
 SELECT

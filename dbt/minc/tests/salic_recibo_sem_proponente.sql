@@ -22,7 +22,7 @@ with
             {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} as pronac,
             coalesce(anoprojeto, '∅') || '/' || coalesce(sequencial, '∅') as ano_sequencial,
             {{ bronze_numerico("captacaoreal") }} as valor_captado
-        from {{ ref("bronze_sac_captacao") }}
+        from {{ source("salic", "bronze_sac_captacao") }}
         where
             {{ bronze_timestamp("dtrecibo") }} is not null
             and {{ bronze_numerico("captacaoreal") }} is not null
