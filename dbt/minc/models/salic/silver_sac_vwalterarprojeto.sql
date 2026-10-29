@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vwalterarprojeto.
--- Origem: salic_bronze.sac__vwalterarprojeto, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_vwalterarprojeto (ex-sac__vwalterarprojeto).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vwalterarprojeto, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 14 colunas: 7 tipadas, 6 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -19,4 +20,4 @@ select
     {{ bronze_timestamp("dtfimexecucao") }} as dtfimexecucao,
     {{ bronze_inteiro("idusuario") }} as idusuario,
     _fatia
-from {{ source("bronze_sac", "sac__vwalterarprojeto") }}
+from {{ source("salic", "bronze_sac_vwalterarprojeto") }}

@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__aprovacao.
--- Origem: salic_bronze.sac__aprovacao, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_aprovacao (ex-sac__aprovacao).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_aprovacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 24 colunas: 18 tipadas, 5 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -29,4 +30,4 @@ select
     {{ bronze_inteiro("idprorrogacao") }} as idprorrogacao,
     {{ bronze_inteiro("idreadequacao") }} as idreadequacao,
     _fatia
-from {{ source("bronze_sac", "sac__aprovacao") }}
+from {{ source("salic", "bronze_sac_aprovacao") }}

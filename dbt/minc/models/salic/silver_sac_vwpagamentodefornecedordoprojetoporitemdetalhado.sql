@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vwpagamentodefornecedordoprojetoporitemdetalhado.
--- Origem: salic_bronze.sac__vwpagamentodefornecedordoprojetoporitemdetalhado, onde tudo
+-- Silver SALIC — silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado (ex-sac__vwpagamentodefornecedordoprojetoporitemdetalhado).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vwpagamentodefornecedordoprojetoporitemdetalhado, onde tudo
 -- chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 16 colunas: 8 tipadas, 7 mantidas como texto.
@@ -22,4 +23,4 @@ select
     {{ bronze_inteiro("nrdocumentodepagamento") }} as nrdocumentodepagamento,
     {{ bronze_numerico("vlpago") }} as vlpago,
     _fatia
-from {{ source("bronze_sac", "sac__vwpagamentodefornecedordoprojetoporitemdetalhado") }}
+from {{ source("salic", "bronze_sac_vwpagamentodefornecedordoprojetoporitemdetalhado") }}

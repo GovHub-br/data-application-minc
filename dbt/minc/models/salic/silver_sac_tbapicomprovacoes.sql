@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__tbapicomprovacoes.
--- Origem: salic_bronze.sac__tbapicomprovacoes, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbapicomprovacoes (ex-sac__tbapicomprovacoes).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbapicomprovacoes, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- Uma linha por comprovante de pagamento da execução do projeto, publicado pela
 -- API do SALIC. É a maior das tabelas deste lote (~2,6 M linhas).
@@ -29,4 +30,4 @@ select
     {{ bronze_texto("hashregistro") }} as hashregistro,
     {{ bronze_timestamp("dtatualizacao") }} as dtatualizacao,
     _fatia
-from {{ source("bronze_sac", "sac__tbapicomprovacoes") }}
+from {{ source("salic", "bronze_sac_tbapicomprovacoes") }}

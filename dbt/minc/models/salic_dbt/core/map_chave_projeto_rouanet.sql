@@ -33,7 +33,7 @@ with
             idpronac,
             cast(null as integer) as idprojeto,
             'sac__aprovacao' as tabela_origem
-        from {{ ref("sac__aprovacao") }}
+        from {{ ref("silver_sac_aprovacao") }}
 
         union all
 
@@ -42,7 +42,7 @@ with
             idpronac,
             cast(null as integer) as idprojeto,
             'sac__enquadramento' as tabela_origem
-        from {{ ref("sac__enquadramento") }}
+        from {{ ref("silver_sac_enquadramento") }}
 
         union all
 
@@ -52,7 +52,7 @@ with
             idpronac,
             nullif(idprojeto, 0) as idprojeto,
             'sac__documentosprojeto' as tabela_origem
-        from {{ ref("sac__documentosprojeto") }}
+        from {{ ref("silver_sac_documentosprojeto") }}
 
         union all
 
@@ -61,7 +61,7 @@ with
             idpronac,
             nullif(idprojeto, 0) as idprojeto,
             'sac__vwprojetositinerantes' as tabela_origem
-        from {{ ref("sac__vwprojetositinerantes") }}
+        from {{ ref("silver_sac_vwprojetositinerantes") }}
 
         union all
 
@@ -70,7 +70,7 @@ with
             idpronac,
             cast(null as integer) as idprojeto,
             'sac__vwalterarprojeto' as tabela_origem
-        from {{ ref("sac__vwalterarprojeto") }}
+        from {{ ref("silver_sac_vwalterarprojeto") }}
 
         union all
 
@@ -79,7 +79,7 @@ with
             idpronac,
             cast(null as integer) as idprojeto,
             'sac__vwagentesseusprojetos' as tabela_origem
-        from {{ ref("sac__vwagentesseusprojetos") }}
+        from {{ ref("silver_sac_vwagentesseusprojetos") }}
 
         union all
 
@@ -90,7 +90,7 @@ with
             cast(null as integer) as idpronac,
             nullif(idprojeto, 0) as idprojeto,
             'sac__captacao' as tabela_origem
-        from {{ ref("sac__captacao") }}
+        from {{ ref("silver_sac_captacao") }}
 
     ),
 

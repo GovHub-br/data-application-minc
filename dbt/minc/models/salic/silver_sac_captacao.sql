@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__captacao.
--- Origem: salic_bronze.sac__captacao, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_captacao (ex-sac__captacao).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_captacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 17 colunas: 8 tipadas, 8 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -22,4 +23,4 @@ select
     {{ bronze_timestamp("dttransferenciarecurso") }} as dttransferenciarecurso,
     {{ bronze_texto("isbemservico") }} as isbemservico,
     _fatia
-from {{ source("bronze_sac", "sac__captacao") }}
+from {{ source("salic", "bronze_sac_captacao") }}

@@ -48,7 +48,7 @@ select
     autorizadoufir as valor_autorizado_ufir,
     idprorrogacao as id_prorrogacao,
     idreadequacao as id_readequacao
-from {{ ref("sac__aprovacao") }}
+from {{ ref("silver_sac_aprovacao") }}
 where
     idaprovacao is not null
     and {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} is not null

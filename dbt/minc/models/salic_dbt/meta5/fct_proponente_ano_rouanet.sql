@@ -29,7 +29,7 @@ pagamentos as (
         {{ pronac_normalizado("nrpronac") }} as pronac,
         aaanocomprovacao as ano,
         idapicomprovacoes as id_comprovacao
-    from {{ ref('sac__tbapicomprovacoes') }}
+    from {{ ref('silver_sac_tbapicomprovacoes') }}
     -- ano nulo é comprovação sem ano utilizável na origem. Fica de fora do
     -- fato porque não há a que ano atribuí-la, e mantê-la criaria uma
     -- categoria "sem ano" que ninguém pediu.

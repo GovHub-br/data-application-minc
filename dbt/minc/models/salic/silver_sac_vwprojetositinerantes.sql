@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vwprojetositinerantes.
--- Origem: salic_bronze.sac__vwprojetositinerantes, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_vwprojetositinerantes (ex-sac__vwprojetositinerantes).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vwprojetositinerantes, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 15 colunas: 7 tipadas, 7 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -20,4 +21,4 @@ select
     {{ bronze_inteiro("municipio") }} as municipio,
     {{ bronze_texto("idfase") }} as idfase,
     _fatia
-from {{ source("bronze_sac", "sac__vwprojetositinerantes") }}
+from {{ source("salic", "bronze_sac_vwprojetositinerantes") }}

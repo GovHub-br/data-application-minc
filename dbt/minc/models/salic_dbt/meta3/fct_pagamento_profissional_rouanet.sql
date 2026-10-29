@@ -46,7 +46,7 @@ with
             p.tpformadepagamento as tipo_forma_pagamento,
             p.nrdocumentodepagamento as numero_documento_pagamento,
             p.vlpago as valor_pago_reais
-        from {{ ref("sac__vwpagamentodefornecedordoprojetoporitemdetalhado") }} as p
+        from {{ ref("silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado") }} as p
         left join chave_por_id_pronac as m on p.idpronac = m.id_pronac
     ),
 
