@@ -66,10 +66,10 @@ O template mostra `meta:` no topo do modelo. **Neste repositório, em MODELO o
 
 ```yaml
     config:
-      tags: [bronze, salic, sac]
+      tags: [silver, salic, sac]
       meta:
         openmetadata:
-          tier: "Tier.Tier4"
+          tier: "Tier.Tier3"
           domain: "Cultura.Incentivo Fiscal"
           owner: "minc-data-engineering"
 ```
@@ -101,7 +101,7 @@ reescreve o nome, não escreva — deixe o espaço vazio, que é mais honesto.
 - **O que virou NULL no cast**, e quantas linhas.
 
 **Marque explicitamente o que está degradado.** Estes prefixos são convenção
-viva no `sources.yml` deste repositório e devem ser reusados:
+viva nas sources deste repositório e devem ser reusados:
 
 ```
 [VAZIA EM 100% DAS LINHAS]
@@ -149,18 +149,37 @@ print(sorted((x['parent']+'.'+x['name']) if x['parent'] else 'MinC.'+x['name'] f
 O SALIC já tem termos úteis: `MinC.Identificadores.PRONAC`,
 `MinC.Politicas.Rouanet`, `MinC.Agentes.Proponente`, `MinC.Agentes.Investidor`.
 
-## Tier e domínio
+## Tier, domínio e tags
 
-Para a bronze do SALIC, o padrão do repositório:
+| Objeto | Tier | Onde declara |
+|---|---|---|
+| Bronze (`salic.bronze_*`, source) | `Tier.Tier4` | `meta` da source em `sources_<banco>.yml` |
+| Silver migrada, sem consumo a jusante | `Tier.Tier3` | `config.meta` do modelo em `schema_<banco>.yml` |
+| Silver consumida por produto de dados | `Tier.Tier2` | idem; é o caso de `silver_sac_captacao_proponente` |
 
 ```yaml
-tier: "Tier.Tier4"                    # bronze/raw é sempre Tier4
+tags: [silver, salic, <banco>]        # config.tags do modelo
 domain: "Cultura.Incentivo Fiscal"    # SALIC/Rouanet
 owner: "minc-data-engineering"
 ```
 
 Domínios em uso: `Cultura.Incentivo Fiscal`, `Cultura.Fomento Direto`,
-`Cultura.Repasse Federativo`, `Cultura.Cadastro Cultural`.
+`Cultura.Repasse Federativo`, `Cultura.Cadastro Cultural`. As silvers que o
+script de lote migra chegam sem `config` de modelo: acrescentar faz parte da
+análise do lote.
+
+## Dado pessoal e credencial
+
+Tag de coluna em `meta.openmetadata.tags`:
+
+| Coluna | Tag |
+|---|---|
+| CPF, CNPJ de pessoa física, data de nascimento, e-mail, telefone, endereço, raça, deficiência | `PII.Sensitive` |
+| nome de pessoa, sem outro identificador na mesma coluna | `PII.NonSensitive` |
+| senha, hash de senha, token, chave | **não entra na silver**: sai do `select` |
+
+A descrição de coluna sensível diz o **formato** ("CPF com 11 dígitos, sem
+máscara, preenchido em 100%"), nunca um exemplo de valor.
 
 ## `meta.used`
 

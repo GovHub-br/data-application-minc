@@ -17,7 +17,7 @@ casa com a `description` do `SKILL.md`. Para forçar, cite: *"use a skill
 | [`revisao-semanal`](revisao-semanal/) | Revisão do que foi entregue no período — commits na main, PRs mergeados, issues fechadas e as branches que receberam commit — em Markdown, HTML e PDF (usa o conversor da `accountability-report`) |
 | [`abrir-pr`](abrir-pr/) | Escreve o PR no formato do `PULL_REQUEST_TEMPLATE.md`, a partir dos commits da branch |
 | [`to-issues-minc`](to-issues-minc/) | Escreve issues no formato dos seis formulários, já com a label certa |
-| [`bronze-salic-dbt`](bronze-salic-dbt/) | Modelos dbt da camada bronze do SALIC a partir do raw `salic_bronze`: conexão por VPN, corte de tabelas vazias, tipagem validada contra o dado e documentação no padrão do dbt docs/OpenMetadata. Trabalho em lotes, retomável |
+| [`silver-salic-dbt`](silver-salic-dbt/) | Migra e documenta as silvers do SALIC sobre a Bronze `salic.bronze_*`: migração mecânica por lote, perfil do dado sem expor valor, análise semântica, revisão de tipos, testes e dado pessoal, validação por contagem. Trabalho em lotes, retomável |
 | [`arquitetura-lakehouse-minc`](arquitetura-lakehouse-minc/) | Verifica o projeto dbt contra os ADRs 0009 e 0010 (camadas, pastas, nomes e schemas do Data Lakehouse) por script, e orienta onde um modelo novo entra e como migrar um existente sem quebrar governança, site e catálogo |
 
 ### Copiadas do GovHub-skills
