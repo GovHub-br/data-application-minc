@@ -4,21 +4,21 @@
 --
 -- Grão: 1 linha por `id`.
 --
--- Tipagem pelos tipos que o banco do Mapas declara. Texto vazio e só de espaços viram
+-- Tipos da origem, mas id e código em bigint (R17). Texto vazio e só de espaços viram
 -- NULL;
 -- valor que não casa com o tipo vira NULL; ausente fica nulo, nunca vira falso.
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
-            {{ bronze_inteiro("opportunity_id") }} as opportunity_id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
+            {{ bronze_inteiro("opportunity_id", "bigint") }} as opportunity_id,
             {{ bronze_texto("category") }} as category,
-            {{ bronze_inteiro("agent_id") }} as agent_id,
+            {{ bronze_inteiro("agent_id", "bigint") }} as agent_id,
             {{ bronze_timestamp("create_timestamp") }} as create_timestamp,
             {{ bronze_timestamp("sent_timestamp") }} as sent_timestamp,
             {{ bronze_inteiro("status", "smallint") }} as status,
             {{ bronze_texto("agents_data") }} as agents_data,
-            {{ bronze_inteiro("subsite_id") }} as subsite_id,
+            {{ bronze_inteiro("subsite_id", "bigint") }} as subsite_id,
             {{ bronze_texto("consolidated_result") }} as consolidated_result,
             {{ bronze_texto("number") }} as number,
             {{ mapas_json("valuers_exceptions_list") }} as valuers_exceptions_list,

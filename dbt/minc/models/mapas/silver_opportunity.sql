@@ -4,15 +4,15 @@
 --
 -- Grão: 1 linha por `id`.
 --
--- Tipagem pelos tipos que o banco do Mapas declara. Texto vazio e só de espaços viram
+-- Tipos da origem, mas id e código em bigint (R17). Texto vazio e só de espaços viram
 -- NULL;
 -- valor que não casa com o tipo vira NULL; ausente fica nulo, nunca vira falso.
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
-            {{ bronze_inteiro("parent_id") }} as parent_id,
-            {{ bronze_inteiro("agent_id") }} as agent_id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
+            {{ bronze_inteiro("parent_id", "bigint") }} as parent_id,
+            {{ bronze_inteiro("agent_id", "bigint") }} as agent_id,
             {{ bronze_inteiro("type", "smallint") }} as type,
             {{ bronze_texto("name") }} as name,
             {{ bronze_texto("short_description") }} as short_description,
@@ -24,9 +24,9 @@ with
             {{ bronze_timestamp("create_timestamp") }} as create_timestamp,
             {{ bronze_timestamp("update_timestamp") }} as update_timestamp,
             {{ bronze_inteiro("status", "smallint") }} as status,
-            {{ bronze_inteiro("subsite_id") }} as subsite_id,
+            {{ bronze_inteiro("subsite_id", "bigint") }} as subsite_id,
             {{ bronze_texto("object_type") }} as object_type,
-            {{ bronze_inteiro("object_id") }} as object_id,
+            {{ bronze_inteiro("object_id", "bigint") }} as object_id,
             {{ mapas_json("avaliable_evaluation_fields") }}
             as avaliable_evaluation_fields,
             {{ bronze_timestamp("publish_timestamp") }} as publish_timestamp,

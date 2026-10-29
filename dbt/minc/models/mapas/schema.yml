@@ -27,13 +27,13 @@ models:
     columns:
       - name: id
         description: Identificador do agente no Mapas. Chave desta tabela.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: user_id
         description: Usuário dono do agente (`silver_usr.id`).
-        data_type: integer
+        data_type: bigint
       - name: type
         description: >
           Código do tipo do agente. Na amostra do banco real aparecem só os
@@ -92,7 +92,7 @@ models:
         data_type: boolean
       - name: parent_id
         description: Agente pai, quando há hierarquia (`id` desta mesma tabela).
-        data_type: integer
+        data_type: bigint
       - name: public_location
         description: >
           Se a localização do agente é pública. Nem a longitude nem a latitude
@@ -101,16 +101,16 @@ models:
         data_type: boolean
       - name: id_responsavel_rac
         description: Identificador do responsável no RAC (significado a confirmar).
-        data_type: integer
+        data_type: bigint
       - name: id_usuario_rac
         description: Identificador do usuário no RAC (significado a confirmar).
-        data_type: integer
+        data_type: bigint
       - name: update_timestamp
         description: Última atualização do agente. NULL quando nunca foi atualizado.
         data_type: timestamp without time zone
       - name: subsite_id
         description: Subsite do Mapas ao qual o agente pertence, quando há.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_agent_meta
     description: >
@@ -135,13 +135,13 @@ models:
     columns:
       - name: id
         description: Identificador do registro de atributo. Chave desta tabela.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: object_id
         description: Agente a que o atributo pertence (`silver_agent.id`).
-        data_type: integer
+        data_type: bigint
         tests:
           - not_null
       - name: key
@@ -186,13 +186,13 @@ models:
     columns:
       - name: id
         description: Identificador da relação. Chave desta tabela.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: agent_id
         description: Agente da relação (`silver_agent.id`).
-        data_type: integer
+        data_type: bigint
         tests:
           - not_null
       - name: object_type
@@ -202,7 +202,7 @@ models:
         data_type: text
       - name: object_id
         description: Id do objeto relacionado, na tabela que `object_type` indica.
-        data_type: integer
+        data_type: bigint
       - name: type
         description: Papel do agente na relação, texto livre. Vazio vira NULL.
         data_type: text
@@ -243,7 +243,7 @@ models:
     columns:
       - name: id
         description: Identificador do usuário. Chave desta tabela.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -265,7 +265,7 @@ models:
         data_type: smallint
       - name: profile_id
         description: Agente que é o perfil principal do usuário, quando há.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_chat_message
     description: >
@@ -288,23 +288,23 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: chat_thread_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: parent_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: user_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: payload
         description: >
           Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -338,15 +338,15 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: object_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: object_type
         description: >
           Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -398,7 +398,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -409,7 +409,7 @@ models:
       - name: opportunity_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 92 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: action
         description: >
           Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos.
@@ -429,7 +429,7 @@ models:
       - name: user_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_cultbr_request_log_attempt
     description: >
@@ -453,14 +453,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: log_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: attempt
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos.
@@ -563,14 +563,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: opportunity_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: type
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos.
@@ -610,14 +610,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 46 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 10 valores distintos.
@@ -652,14 +652,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: project_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 6 preenchidas, 5 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: name
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 91 valores distintos.
@@ -687,7 +687,7 @@ models:
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 75 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: is_verified
         description: >
           Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos.
@@ -703,7 +703,7 @@ models:
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 50 preenchidas, 14 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_event_attendance
     description: >
@@ -726,27 +726,27 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: user_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: event_occurrence_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: event_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: space_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: type
         description: >
           Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -794,7 +794,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 22 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: value
         description: >
           Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 65 valores distintos.
@@ -805,7 +805,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -832,18 +832,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: space_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 89 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: event_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 99 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: rule
         description: >
           Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
@@ -922,15 +922,15 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: event_occurrence_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: date
         description: >
           Origem: `date`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -958,14 +958,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: event_occurrence_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 38 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: month
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos.
@@ -1001,7 +1001,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -1024,7 +1024,7 @@ models:
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: exercices
         description: >
           Era `jsonb` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 100 preenchidas, 83 valores distintos.
@@ -1052,7 +1052,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -1075,7 +1075,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 43 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: create_timestamp
         description: >
           Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 64 valores distintos.
@@ -1091,7 +1091,7 @@ models:
       - name: parent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 59 preenchidas, 34 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: path
         description: >
           Origem: `character varying(1024)`. Na amostra de 100 linhas: 95 preenchidas, 95 valores distintos.
@@ -1122,8 +1122,8 @@ models:
     columns:
       - name: object_id
         description: >
-          Parte da chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Parte da chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - not_null
       - name: object_type
@@ -1165,7 +1165,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -1176,7 +1176,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 44 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: grp
         description: >
           Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos.
@@ -1224,18 +1224,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: user_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 58 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: request_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 69 preenchidas, 54 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: message
         description: >
           Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 86 valores distintos.
@@ -1277,15 +1277,15 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: object_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -1320,18 +1320,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: parent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 51 preenchidas, 49 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 54 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: type
         description: >
           Origem: `smallint`. Na amostra de 100 linhas: 100 preenchidas, 21 valores distintos.
@@ -1379,7 +1379,7 @@ models:
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 97 preenchidas, 6 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: object_type
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos.
@@ -1387,7 +1387,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 58 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: avaliable_evaluation_fields
         description: >
           Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 89 preenchidas, 5 valores distintos.
@@ -1439,14 +1439,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 17 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 15 valores distintos.
@@ -1482,11 +1482,11 @@ models:
       - name: usr_id
         description: >
           Origem: `integer`. Na amostra de 1 linhas: 1 preenchidas, 1 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: attorney_user_id
         description: >
           Origem: `integer`. Na amostra de 1 linhas: 1 preenchidas, 1 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: action
         description: >
           Origem: `character varying(255)`. Na amostra de 1 linhas: 1 preenchidas, 1 valores distintos.
@@ -1522,7 +1522,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -1549,7 +1549,7 @@ models:
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 77 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: is_verified
         description: >
           Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos.
@@ -1561,7 +1561,7 @@ models:
       - name: parent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 12 preenchidas, 11 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: starts_on
         description: >
           Origem: `timestamp without time zone`. Na amostra de 100 linhas: 13 preenchidas, 12 valores distintos.
@@ -1577,7 +1577,7 @@ models:
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 50 preenchidas, 11 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_project_event
     description: >
@@ -1600,19 +1600,19 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: event_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: project_id
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: type
         description: >
           Origem: `smallint`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -1644,7 +1644,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 96 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos.
@@ -1659,7 +1659,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -1686,14 +1686,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: opportunity_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 35 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: category
         description: >
           Origem: `text`. Na amostra de 100 linhas: 38 preenchidas, 14 valores distintos.
@@ -1701,7 +1701,7 @@ models:
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 98 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: create_timestamp
         description: >
           Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
@@ -1721,7 +1721,7 @@ models:
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: consolidated_result
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 4 valores distintos.
@@ -1797,18 +1797,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: registration_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: user_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 32 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: result
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 54 preenchidas, 16 valores distintos.
@@ -1864,14 +1864,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: opportunity_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 50 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: title
         description: >
           Origem: `character varying`. Na amostra de 100 linhas: 100 preenchidas, 80 valores distintos.
@@ -1931,7 +1931,7 @@ models:
       - name: step_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 50 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_registration_file_configuration
     description: >
@@ -1955,14 +1955,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: opportunity_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 27 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: title
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 71 valores distintos.
@@ -2006,7 +2006,7 @@ models:
       - name: step_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 27 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: allowed_file_types
         description: >
           Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos.
@@ -2034,7 +2034,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 49 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 56 valores distintos.
@@ -2049,7 +2049,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -2076,7 +2076,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -2091,7 +2091,7 @@ models:
       - name: opportunity_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: create_timestamp
         description: >
           Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos.
@@ -2127,18 +2127,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 99 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: registration_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: create_timestamp
         description: >
           Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
@@ -2170,18 +2170,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 45 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: workplan_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 46 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: create_timestamp
         description: >
           Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 97 valores distintos.
@@ -2217,18 +2217,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 45 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: goal_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 50 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: create_timestamp
         description: >
           Origem: `timestamp without time zone`. Na amostra de 100 linhas: 100 preenchidas, 78 valores distintos.
@@ -2264,7 +2264,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 13 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 31 valores distintos.
@@ -2279,7 +2279,7 @@ models:
       - name: id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_registration_workplan_goal_meta
     description: >
@@ -2303,7 +2303,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 27 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 6 valores distintos.
@@ -2318,7 +2318,7 @@ models:
       - name: id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_registration_workplan_meta
     description: >
@@ -2342,7 +2342,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 59 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos.
@@ -2357,7 +2357,7 @@ models:
       - name: id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_request
     description: >
@@ -2381,7 +2381,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -2392,7 +2392,7 @@ models:
       - name: requester_user_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 55 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: origin_type
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 5 valores distintos.
@@ -2400,7 +2400,7 @@ models:
       - name: origin_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 80 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: destination_type
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 3 valores distintos.
@@ -2408,7 +2408,7 @@ models:
       - name: destination_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 72 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: metadata
         description: >
           Origem: `text`. Na amostra de 100 linhas: 100 preenchidas, 50 valores distintos.
@@ -2452,14 +2452,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: usr_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 91 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: name
         description: >
           Origem: `character varying(32)`. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos.
@@ -2467,7 +2467,7 @@ models:
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 88 preenchidas, 4 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_seal
     description: >
@@ -2491,14 +2491,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 72 linhas: 72 preenchidas, 72 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 72 linhas: 72 preenchidas, 36 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: name
         description: >
           Origem: `character varying(255)`. Na amostra de 72 linhas: 72 preenchidas, 70 valores distintos.
@@ -2534,7 +2534,7 @@ models:
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 72 linhas: 64 preenchidas, 16 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: locked_fields
         description: >
           Era `json` na origem e sai como `jsonb`; vazio e o literal 'null' viram NULL. Na amostra de 72 linhas: 51 preenchidas, 1 valores distintos.
@@ -2562,14 +2562,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 12 linhas: 12 preenchidas, 12 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 12 linhas: 12 preenchidas, 12 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 12 linhas: 12 preenchidas, 1 valores distintos.
@@ -2604,18 +2604,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: seal_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 11 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: create_timestamp
         description: >
           Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
@@ -2631,11 +2631,11 @@ models:
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 12 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: owner_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 20 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: validate_date
         description: >
           Origem: `date`. Na amostra de 100 linhas: 100 preenchidas, 48 valores distintos.
@@ -2666,8 +2666,8 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -2692,16 +2692,16 @@ models:
         data_type: timestamp without time zone
       - name: created_by
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: removed_at
         description: >
           Origem: `timestamp without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
         data_type: timestamp without time zone
       - name: removed_by
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: removal_note
         description: >
           Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -2728,8 +2728,8 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -2766,8 +2766,8 @@ models:
         data_type: timestamp without time zone
       - name: created_by
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: expires_at
         description: >
           Origem: `timestamp without time zone`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -2778,8 +2778,8 @@ models:
         data_type: timestamp without time zone
       - name: removed_by
         description: >
-          Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
       - name: removal_note
         description: >
           Origem: `text`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
@@ -2806,8 +2806,8 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -2845,14 +2845,14 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: parent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 3 preenchidas, 3 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: longitude
         description: >
           Longitude em graus decimais, tirada do `x` do `point` `location`. NULL quando ausente, fora de [-180, 180] ou exatamente em (0,0).
@@ -2901,7 +2901,7 @@ models:
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 64 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: is_verified
         description: >
           Origem: `boolean`. Na amostra de 100 linhas: 100 preenchidas, 1 valores distintos.
@@ -2917,11 +2917,11 @@ models:
       - name: codigo
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 0 preenchidas, 0 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 42 preenchidas, 8 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_space_meta
     description: >
@@ -2945,7 +2945,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 60 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 12 valores distintos.
@@ -2960,7 +2960,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -2987,18 +2987,18 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
       - name: space_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 95 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: create_timestamp
         description: >
           Origem: `timestamp(0) without time zone`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
@@ -3034,7 +3034,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 60 linhas: 60 preenchidas, 60 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -3053,7 +3053,7 @@ models:
       - name: agent_id
         description: >
           Origem: `integer`. Na amostra de 60 linhas: 60 preenchidas, 9 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: url
         description: >
           Origem: `character varying(255)`. Na amostra de 60 linhas: 60 preenchidas, 60 valores distintos.
@@ -3093,7 +3093,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 21 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 22 valores distintos.
@@ -3108,7 +3108,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -3134,8 +3134,8 @@ models:
     columns:
       - name: id
         description: >
-          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; o tipo vem do que o banco declara.
-        data_type: integer
+          Chave desta tabela. Origem: `integer`. A tabela estava vazia na amostra; sai `bigint`, como todo id (R17).
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -3190,7 +3190,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -3229,7 +3229,7 @@ models:
       - name: term_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 78 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: object_type
         description: >
           Tipo enumerado na origem; sai como texto. Na amostra de 100 linhas: 100 preenchidas, 2 valores distintos.
@@ -3237,11 +3237,11 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 7 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
@@ -3276,7 +3276,7 @@ models:
       - name: user_id
         description: >
           Origem: `integer`. Na amostra de 24 linhas: 24 preenchidas, 19 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: name
         description: >
           Origem: `text`. Na amostra de 24 linhas: 23 preenchidas, 20 valores distintos.
@@ -3292,7 +3292,7 @@ models:
       - name: subsite_id
         description: >
           Origem: `integer`. Na amostra de 24 linhas: 24 preenchidas, 3 valores distintos.
-        data_type: integer
+        data_type: bigint
 
   - name: silver_user_meta
     description: >
@@ -3316,7 +3316,7 @@ models:
       - name: object_id
         description: >
           Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 38 valores distintos.
-        data_type: integer
+        data_type: bigint
       - name: key
         description: >
           Origem: `character varying(255)`. Na amostra de 100 linhas: 100 preenchidas, 10 valores distintos.
@@ -3331,7 +3331,7 @@ models:
       - name: id
         description: >
           Chave desta tabela. Origem: `integer`. Na amostra de 100 linhas: 100 preenchidas, 100 valores distintos.
-        data_type: integer
+        data_type: bigint
         tests:
           - unique
           - not_null
