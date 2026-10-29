@@ -25,6 +25,12 @@ Fonte que grava muitos arquivos por run (SICONFI: um por página da API) usa
 não a key de um arquivo: quem consome lista a pasta. E cada pasta só tem o que
 aquele run processou, então o consumidor precisa ler todos os eventos recebidos
 (``eventos_em_ordem``), não só o mais novo.
+
+O proxy na frente do MinIO recusa arquivo acima de 1 MiB. ``gravar_raw``,
+``raw_para_staging`` e ``gravar_bytes_em_partes`` gravam o que passa do limite
+como partes ``<nome>_pNNdeMM.<ext>``, e ``ler_raw``, ``ler_parquet`` e
+``ler_bytes`` juntam: quem chama continua usando a key do arquivo. Um arquivo
+existe inteiro ou em partes completas, nunca as duas coisas (ADR 0011, adendo).
 """
 
 from __future__ import annotations
@@ -36,6 +42,7 @@ import logging
 import math
 import re
 from datetime import datetime, timezone
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, Sequence, TypeVar
 
 import pandas as pd
@@ -63,6 +70,11 @@ _CARACTERE_INSEGURO = re.compile(r"[^A-Za-z0-9._=-]")
 # resolve: cada parte tem no mínimo 5 MB.
 LIMITE_OBJETO_BYTES = 900 * 1024  # 900 KiB
 _PARTE_NO_NOME = re.compile(r"^(?P<base>.+)_p(?P<indice>\d+)de(?P<total>\d+)$")
+# Variable com o limite em KiB para quem grava pelas funções de raw, staging e
+# anexo deste módulo (o TransfereGov). Ausente, vale LIMITE_OBJETO_BYTES; 0
+# desliga a divisão, para quando o proxy passar a aceitar arquivos maiores. A
+# leitura continua juntando partes de qualquer jeito.
+VARIABLE_LIMITE_KIB = "datalakehouse_limite_objeto_kib"
 
 _T = TypeVar("_T")
 
@@ -185,6 +197,119 @@ def parte_do_nome(nome: str) -> tuple[str, int, int] | None:
     return achado["base"], int(achado["indice"]), int(achado["total"])
 
 
+def key_da_parte(key: str, indice: int, total: int) -> str:
+    """Key da parte ``indice`` de ``total`` de ``key``, na mesma pasta e com a
+    mesma extensão: ``.../run.json`` vira ``.../run_p02de03.json``.
+
+    A extensão fica no fim para quem filtra por ela (a extração dos anexos só
+    abre ``.xlsx``, ``.xls``...) continuar reconhecendo a parte.
+    """
+    caminho_key = PurePosixPath(key)
+    return str(
+        caminho_key.with_name(
+            nome_da_parte(caminho_key.stem, indice, total) + caminho_key.suffix
+        )
+    )
+
+
+def parte_da_key(key: str) -> tuple[str, int, int] | None:
+    """O inverso de ``key_da_parte``: ``(key do arquivo, indice, total)``, ou ``None``."""
+    caminho_key = PurePosixPath(key)
+    achado = parte_do_nome(caminho_key.stem)
+    if achado is None:
+        return None
+    base, indice, total = achado
+    return str(caminho_key.with_name(base + caminho_key.suffix)), indice, total
+
+
+class PartesInconsistentes(ValueError):
+    """Arquivo com parte faltando, inteiro e dividido ao mesmo tempo, ou dividido
+    de dois jeitos. Lido assim, devolveria registros a menos ou repetidos."""
+
+
+def agrupar_partes(keys: Iterable[str]) -> tuple[dict[str, list[str]], set[str]]:
+    """Agrupa as keys de um bucket pelo arquivo a que pertencem.
+
+    Devolve ``(completos, problemas)``. ``completos``: ``key do arquivo -> keys
+    para ler``, em ordem -- a própria key, se o arquivo está inteiro, ou todas as
+    partes de uma divisão. ``problemas``: arquivos com parte faltando, inteiros e
+    divididos ao mesmo tempo, ou divididos de dois jeitos (``total`` diferente);
+    é a mesma conferência do SICONFI (``siconfi_storage.contar_paginas``).
+    """
+    inteiros: set[str] = set()
+    partes: dict[str, dict[int, dict[int, str]]] = {}  # arquivo -> total -> indice -> key
+    for key in keys:
+        achado = parte_da_key(key)
+        if achado is None:
+            inteiros.add(key)
+            continue
+        arquivo, indice, total = achado
+        partes.setdefault(arquivo, {}).setdefault(total, {})[indice] = key
+
+    problemas = {arquivo for arquivo, por_total in partes.items() if len(por_total) > 1}
+    problemas |= inteiros & set(partes)
+    completos = {key: [key] for key in inteiros - problemas}
+    for arquivo, por_total in partes.items():
+        if arquivo in problemas:
+            continue
+        ((total, vistas),) = por_total.items()
+        if set(vistas) != set(range(1, total + 1)):
+            problemas.add(arquivo)
+            continue
+        completos[arquivo] = [vistas[indice] for indice in range(1, total + 1)]
+    return completos, problemas
+
+
+def resolver_partes(key: str, keys: Iterable[str]) -> list[str]:
+    """As keys que se leem, em ordem, para ter o arquivo ``key`` inteiro.
+
+    ``keys`` é a listagem do bucket ao redor de ``key`` (pode trazer outros
+    arquivos). Falha se o arquivo não existe ou se está inconsistente.
+    """
+    completos, problemas = agrupar_partes(
+        k for k in keys if k == key or (parte_da_key(k) or ("",))[0] == key
+    )
+    if key in problemas:
+        raise PartesInconsistentes(
+            f"s3://{BUCKET}/{key}: parte faltando, ou inteiro e dividido ao mesmo "
+            "tempo, ou dividido de dois jeitos"
+        )
+    if key not in completos:
+        raise FileNotFoundError(f"s3://{BUCKET}/{key} não existe, nem dividido em partes")
+    return completos[key]
+
+
+def dividir_bytes(conteudo: bytes, limite: int | None) -> list[bytes]:
+    """``conteudo`` em pedaços de até ``limite`` bytes; inteiro sem ``limite``.
+
+    Para binário (planilha): os pedaços só fazem sentido juntos, na ordem.
+    """
+    if limite is None or len(conteudo) <= limite:
+        return [conteudo]
+    return [conteudo[i : i + limite] for i in range(0, len(conteudo), limite)]
+
+
+def _json_bytes(valor: Any) -> bytes:
+    return json.dumps(valor, ensure_ascii=False, default=str).encode()
+
+
+def partes_do_json(registros: list[dict[str, Any]], limite: int | None) -> list[bytes]:
+    """A lista ``registros`` em JSON: um arquivo, ou partes de até ``limite`` bytes.
+
+    Cada parte é uma lista JSON válida com um trecho dos registros, na ordem;
+    juntar as listas dá a original. Sem ``limite``, um arquivo só.
+    """
+    corpo = _json_bytes(registros)
+    if limite is None or len(corpo) <= limite:
+        return [corpo]
+    # Cada registro ocupa o próprio JSON mais o separador ", "; os colchetes da
+    # lista cabem nos 2 bytes de separador que o último registro não usa.
+    grupos = fatiar_por_tamanho(
+        registros, lambda registro: len(_json_bytes(registro)) + 2, limite
+    )
+    return [_json_bytes(grupo) for grupo in grupos]
+
+
 def raw_para_staging_key(key_raw: str) -> str:
     """Key de staging equivalente a uma key de raw."""
     if not key_raw.startswith(f"{CAMADA_RAW}/") or not key_raw.endswith(".json"):
@@ -275,6 +400,14 @@ def registros_para_parquet(
     é onde entra o que não vem da origem (território, política pública), para
     o raw continuar sendo exatamente o que a API respondeu.
     """
+    return _df_para_parquet(_registros_para_df(registros, enriquecer, dt_ingest))
+
+
+def _registros_para_df(
+    registros: list[dict[str, Any]],
+    enriquecer: Callable[[dict[str, Any]], dict[str, Any]] | None,
+    dt_ingest: datetime | None,
+) -> pd.DataFrame:
     if enriquecer is not None:
         registros = [{**r, **enriquecer(r)} for r in registros]
 
@@ -285,11 +418,50 @@ def registros_para_parquet(
     df.columns = [str(coluna).lower() for coluna in df.columns]
     df["dt_ingest"] = (dt_ingest or datetime.now(timezone.utc)).isoformat()
     df = df.astype(object).apply(lambda coluna: coluna.map(_como_texto))
-    df = df.astype("string")
+    texto: pd.DataFrame = df.astype("string")
+    return texto
 
+
+def _df_para_parquet(df: pd.DataFrame) -> bytes:
     buffer = io.BytesIO()
     df.to_parquet(buffer, index=False, engine="pyarrow")
     return buffer.getvalue()
+
+
+def partes_do_parquet(
+    registros: list[dict[str, Any]],
+    limite: int | None,
+    enriquecer: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    dt_ingest: datetime | None = None,
+) -> list[bytes]:
+    """O Parquet de ``registros``: um arquivo, ou partes de até ``limite`` bytes.
+
+    As partes são fatias de linhas do mesmo DataFrame, então todas têm as mesmas
+    colunas, na mesma ordem, e o mesmo ``dt_ingest``: concatenadas, dão o Parquet
+    inteiro. O tamanho de um Parquet não é proporcional ao número de linhas (a
+    compressão varia), então as fatias começam pelo tamanho médio e dobram de
+    quantidade até todas caberem.
+    """
+    df = _registros_para_df(registros, enriquecer, dt_ingest)
+    inteiro = _df_para_parquet(df)
+    if limite is None or len(inteiro) <= limite:
+        return [inteiro]
+    fatias = math.ceil(len(inteiro) / limite)
+    while True:
+        fatias = min(fatias, len(df))
+        tamanho = math.ceil(len(df) / fatias)
+        partes = [
+            _df_para_parquet(df.iloc[inicio : inicio + tamanho].reset_index(drop=True))
+            for inicio in range(0, len(df), tamanho)
+        ]
+        if all(len(parte) <= limite for parte in partes):
+            return partes
+        if tamanho == 1:
+            raise ValueError(
+                f"uma linha sozinha passa de {limite} bytes em Parquet: não há "
+                "como gravá-la abaixo do limite"
+            )
+        fatias *= 2
 
 
 def parquet_para_registros(df: pd.DataFrame, chave: list[str]) -> list[dict[str, Any]]:
@@ -346,25 +518,81 @@ def run_atual() -> tuple[str, datetime]:
     return dag_run.run_id, data
 
 
+@functools.cache
+def limite_objeto_bytes() -> int | None:
+    """Limite por arquivo de quem grava raw, staging e anexo por este módulo.
+
+    Lido da Variable ``VARIABLE_LIMITE_KIB`` uma vez por processo; ausente, vale
+    ``LIMITE_OBJETO_BYTES``. ``None`` (Variable em 0) desliga a divisão.
+    """
+    from airflow.sdk import Variable
+
+    kib = int(Variable.get(VARIABLE_LIMITE_KIB, default=LIMITE_OBJETO_BYTES // 1024))
+    return kib * 1024 if kib > 0 else None
+
+
+def _prefixo_das_formas(key: str) -> str:
+    """Prefixo que lista ``key`` e as partes dela (e talvez outros arquivos,
+    que ``resolver_partes`` e ``_gravar_partes`` descartam)."""
+    return str(PurePosixPath(key).with_suffix(""))
+
+
+def _gravar_partes(partes: Sequence[bytes], key: str) -> list[str]:
+    """Grava o arquivo ``key``: inteiro, se ``partes`` tem uma só, ou como
+    ``key_da_parte(key, i, total)``. Devolve as keys gravadas.
+
+    Mesma regra do SICONFI (``siconfi_storage.gravar_envelope``): só depois de
+    gravar tudo, apaga a outra forma do mesmo arquivo -- o inteiro de uma
+    tentativa anterior, ou partes de uma divisão com outro total. Se a task cair
+    antes, fica a forma antiga; nunca as duas, que juntas repetiriam registros.
+    """
+    total = len(partes)
+    keys = (
+        [key]
+        if total == 1
+        else [key_da_parte(key, i, total) for i in range(1, total + 1)]
+    )
+    hook = get_hook()
+    for key_parte, corpo in zip(keys, partes):
+        hook.load_bytes(bytes_data=corpo, key=key_parte, bucket_name=BUCKET, replace=True)
+    for objeto in listar_objetos(_prefixo_das_formas(key)):
+        outra = objeto["Key"]
+        if outra in keys:
+            continue
+        if outra == key or (parte_da_key(outra) or ("",))[0] == key:
+            apagar_objeto(outra)
+    return keys
+
+
+def partes_do_objeto(key: str) -> list[str]:
+    """As keys que compõem ``key`` no bucket, em ordem (ver ``resolver_partes``)."""
+    return resolver_partes(
+        key, (objeto["Key"] for objeto in listar_objetos(_prefixo_das_formas(key)))
+    )
+
+
+def _ler_corpo(key: str) -> bytes:
+    corpo: bytes = get_hook().get_key(key=key, bucket_name=BUCKET).get()["Body"].read()
+    return corpo
+
+
 def gravar_raw(registros: list[dict[str, Any]], fonte: str, entidade: str) -> str:
     """Grava ``registros`` como JSON em ``raw/`` e devolve a key.
 
-    Só a key deve trafegar por XCom -- a lista inteira estoura o IPC do
-    Airflow 3 com alguns milhares de registros.
+    Acima do limite do proxy (``limite_objeto_bytes``) o JSON vira partes, cada
+    uma uma lista com um trecho dos registros; a key devolvida é a do arquivo,
+    e ``ler_raw`` junta as partes. Só a key deve trafegar por XCom -- a lista
+    inteira estoura o IPC do Airflow 3 com alguns milhares de registros.
     """
     run_id, data = run_atual()
     key = caminho(CAMADA_RAW, fonte, entidade, run_id, data)
-    get_hook().load_string(
-        string_data=json.dumps(registros, ensure_ascii=False, default=str),
-        key=key,
-        bucket_name=BUCKET,
-        replace=True,
-    )
+    keys = _gravar_partes(partes_do_json(registros, limite_objeto_bytes()), key)
     logging.info(
-        "[datalakehouse] %d registros gravados em s3://%s/%s",
+        "[datalakehouse] %d registros gravados em s3://%s/%s (%d arquivo(s))",
         len(registros),
         BUCKET,
         key,
+        len(keys),
     )
     return key
 
@@ -375,9 +603,10 @@ def ler_json(key: str) -> Any:
 
 
 def ler_raw(key: str) -> list[dict[str, Any]]:
-    registros: list[dict[str, Any]] = json.loads(
-        get_hook().read_key(key=key, bucket_name=BUCKET)
-    )
+    """Os registros de um raw gravado por ``gravar_raw``, inteiro ou em partes."""
+    registros: list[dict[str, Any]] = []
+    for key_parte in partes_do_objeto(key):
+        registros.extend(json.loads(_ler_corpo(key_parte)))
     return registros
 
 
@@ -385,20 +614,23 @@ def raw_para_staging(
     key_raw: str,
     enriquecer: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
 ) -> str:
-    """Converte o JSON de ``key_raw`` em Parquet no staging e devolve a key."""
+    """Converte o JSON de ``key_raw`` em Parquet no staging e devolve a key.
+
+    Acima do limite do proxy o Parquet vira partes com as mesmas colunas;
+    ``ler_parquet`` junta.
+    """
     registros = ler_raw(key_raw)
     key_staging = raw_para_staging_key(key_raw)
-    get_hook().load_bytes(
-        bytes_data=registros_para_parquet(registros, enriquecer=enriquecer),
-        key=key_staging,
-        bucket_name=BUCKET,
-        replace=True,
+    keys = _gravar_partes(
+        partes_do_parquet(registros, limite_objeto_bytes(), enriquecer=enriquecer),
+        key_staging,
     )
     logging.info(
-        "[datalakehouse] %d registros convertidos em s3://%s/%s",
+        "[datalakehouse] %d registros convertidos em s3://%s/%s (%d arquivo(s))",
         len(registros),
         BUCKET,
         key_staging,
+        len(keys),
     )
     return key_staging
 
@@ -427,8 +659,14 @@ def listar_objetos(prefixo_busca: str) -> list[dict[str, Any]]:
 
 
 def ler_parquet(key: str) -> pd.DataFrame:
-    corpo = get_hook().get_key(key=key, bucket_name=BUCKET).get()["Body"].read()
-    return pd.read_parquet(io.BytesIO(corpo))
+    """Um Parquet de staging, inteiro ou juntando as partes na ordem."""
+    quadros = [
+        pd.read_parquet(io.BytesIO(_ler_corpo(key_parte)))
+        for key_parte in partes_do_objeto(key)
+    ]
+    if len(quadros) == 1:
+        return quadros[0]
+    return pd.concat(quadros, ignore_index=True)
 
 
 def apagar_objeto(key: str) -> None:
@@ -437,9 +675,25 @@ def apagar_objeto(key: str) -> None:
 
 
 def gravar_bytes(conteudo: bytes, key: str) -> str:
-    """Grava um binário (anexo, por exemplo) em ``key`` e devolve a key."""
+    """Grava um binário em ``key`` e devolve a key, sem dividir.
+
+    Para quem já grava abaixo do limite (o SICONFI divide as páginas antes de
+    chamar). Binário que pode passar do limite vai por ``gravar_bytes_em_partes``.
+    """
     get_hook().load_bytes(bytes_data=conteudo, key=key, bucket_name=BUCKET, replace=True)
     return key
+
+
+def gravar_bytes_em_partes(conteudo: bytes, key: str) -> str:
+    """Grava um binário (planilha anexa) em ``key``, dividido em partes se passar
+    do limite do proxy, e devolve a key do arquivo. ``ler_bytes`` junta."""
+    _gravar_partes(dividir_bytes(conteudo, limite_objeto_bytes()), key)
+    return key
+
+
+def ler_bytes(key: str) -> bytes:
+    """Um binário gravado por ``gravar_bytes_em_partes``, inteiro ou em partes."""
+    return b"".join(_ler_corpo(key_parte) for key_parte in partes_do_objeto(key))
 
 
 def gravar_arquivo(caminho_local: str, key: str) -> str:

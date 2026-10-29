@@ -107,3 +107,51 @@ pelo `enriquecer` de `raw_para_staging`.
   `raw/transferegov/anexos_arquivos/`.
 - Se um dia o dbt ler o staging direto — por um catálogo sobre o MinIO —, as
   pontes saem e este ADR é substituído.
+
+## Adendo (2026-10-28) — arquivos acima do limite do proxy do MinIO
+
+O proxy na frente do MinIO do servidor recusa requisição com corpo acima de
+1 MiB (`413 Request Entity Too Large`; testado em 27/10: 900 KiB passa, 1025 KiB
+não). A cadeia grava bem mais que isso: o JSON de planos de ação do escopo LPG
+e PNAB tem ~38 MB, o de relatórios ~21 MB, e há planilhas anexas acima de 1 MiB.
+Sem mudança, a cadeia quebra na DAG de planos e as planilhas de perfil da Meta 3
+nunca chegam ao Postgres. O upload em partes do S3 não resolve: cada parte tem
+no mínimo 5 MB.
+
+**Decisão: a mesma divisão do SICONFI (ADR 0014), nas funções de
+`helpers/datalakehouse.py`.** O que passa do limite vira arquivos
+`<nome>_pNNdeMM.<ext>`, cada um abaixo de 900 KiB, na mesma pasta e com a mesma
+extensão:
+
+- **raw** (`gravar_raw`): cada parte é uma lista JSON com um trecho dos registros;
+- **staging** (`raw_para_staging`): cada parte é um Parquet com uma fatia das
+  linhas do mesmo DataFrame — mesmas colunas, mesma ordem, mesmo `dt_ingest`;
+- **planilha anexa** (`gravar_bytes_em_partes`): fatias dos bytes, que só abrem
+  juntas.
+
+A key que vai para o XCom, para a cadeia do Asset e para o conf de um run
+manual continua sendo a do arquivo (`.../<run_id>.parquet`); `ler_raw`,
+`ler_parquet` e `ler_bytes` acham as partes e juntam. As DAGs de API e as
+pontes não mudam.
+
+**Inteiro ou partes completas, nunca as duas coisas.** A gravação grava todas
+as partes e só depois apaga a outra forma do mesmo arquivo — o inteiro de uma
+tentativa anterior, ou partes de uma divisão com outro total. A leitura confere:
+com parte faltando, inteiro e dividido ao mesmo tempo, ou dividido de dois
+jeitos, `PartesInconsistentes` em vez de devolver registros a menos ou
+repetidos. Um anexo assim não conta como baixado e volta a ser baixado, e a
+nova gravação limpa a forma antiga.
+
+**Limite configurável.** A Variable `datalakehouse_limite_objeto_kib` (padrão
+900) vale para essas funções; `0` desliga a divisão quando o proxy passar a
+aceitar arquivos maiores. A leitura segue juntando partes já gravadas.
+
+**Fora do escopo.** O SICONFI continua com a divisão própria
+(`siconfi_storage.partes_do_envelope`) e o limite fixo. A
+`inep_censo_escolar_dag` envia o ZIP do Censo Escolar (537 MB) por
+`gravar_arquivo` e continua barrada pelo proxy.
+
+**Consequência para quem lê o MinIO por fora do Airflow.** Um Parquet dividido é
+uma pasta com vários arquivos, o que Trino, pandas e Spark já leem; um JSON
+dividido é uma lista por arquivo. Uma planilha dividida só abre depois de
+juntar as partes na ordem.
