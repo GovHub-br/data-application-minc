@@ -2,7 +2,7 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprojetos_na_pauta_cnic, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 30 colunas: 9 tipadas, 20 mantidas como texto.
+-- 30 colunas: 10 tipadas, 19 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -32,7 +32,7 @@ select
     {{ bronze_texto("stanalise") }} as stanalise,
     {{ bronze_texto("avaliacao") }} as avaliacao,
     {{ bronze_numerico("solicitadoreal") }} as solicitadoreal,
-    {{ bronze_texto("sugeridoreal") }} as sugeridoreal,
+    {{ bronze_numerico_cientifico("sugeridoreal") }} as sugeridoreal,
     {{ bronze_texto("enquadramento") }} as enquadramento,
     {{ bronze_timestamp("dtdistribuicaocomponente") }} as dtdistribuicaocomponente,
     _fatia

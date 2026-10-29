@@ -2,7 +2,7 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbplanilhaprojeto, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 24 colunas: 19 tipadas, 4 mantidas como texto.
+-- 24 colunas: 20 tipadas, 3 mantidas como texto.
 -- 1 coluna(s) ficaram texto porque a amostra do banco
 -- contradiz o tipo declarado no dicionário do SALIC.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -16,7 +16,7 @@ select
     {{ bronze_inteiro("idplanilhaitem") }} as idplanilhaitem,
     {{ bronze_texto("descricao") }} as descricao,
     {{ bronze_inteiro("idunidade") }} as idunidade,
-    {{ bronze_texto("quantidade") }} as quantidade,
+    {{ bronze_numerico_cientifico("quantidade") }} as quantidade,
     {{ bronze_numerico("ocorrencia") }} as ocorrencia,
     {{ bronze_numerico("valorunitario") }} as valorunitario,
     {{ bronze_inteiro("qtdedias") }} as qtdedias,

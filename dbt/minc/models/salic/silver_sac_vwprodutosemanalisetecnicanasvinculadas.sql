@@ -3,7 +3,7 @@
 -- Origem: salic.bronze_sac_vwprodutosemanalisetecnicanasvinculadas, onde tudo chega
 -- como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 37 colunas: 22 tipadas, 14 mantidas como texto.
+-- 37 colunas: 21 tipadas, 15 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -12,7 +12,7 @@ select
     {{ bronze_inteiro("cdorgaoorigem") }} as cdorgaoorigem,
     {{ bronze_texto("sigla") }} as sigla,
     {{ bronze_inteiro("nrano") }} as nrano,
-    {{ bronze_inteiro("nrpronac") }} as nrpronac,
+    {{ bronze_texto("nrpronac") }} as nrpronac,
     {{ bronze_texto("nmprojeto") }} as nmprojeto,
     {{ bronze_texto("cdsituacao") }} as cdsituacao,
     {{ bronze_texto("providenciatomada") }} as providenciatomada,

@@ -38,6 +38,17 @@
     end
 {%- endmacro %}
 
+{% macro bronze_numerico_cientifico(col) -%}
+    {#- Como bronze_numerico, aceitando também o expoente: a ingestão via Trino
+        grava coluna float da origem em notação científica ('1.0E0', '2.5E-1').
+        O Postgres converte esse texto para numeric sem perda. Fica separada de
+        bronze_numerico para não mudar o valor de coluna que já usa a outra. -#}
+    case
+        when trim({{ col }}) ~* '^-?[0-9]+(\.[0-9]+)?(e[-+]?[0-9]+)?$'
+            then trim({{ col }})::numeric
+    end
+{%- endmacro %}
+
 
 {% macro bronze_timestamp(col) -%}
     {#- Âncora só no prefixo ISO da data: a origem mistura '2014-02-03 16:16:33.540',
