@@ -7,8 +7,11 @@ golds do Cultura em Numeros -- precisa declarar a mesma politica: sem isso, o
 exportador de RAG nao tem como decidir o que pode sair, e ausencia nao pode
 significar "publicavel".
 
-A bronze fica de fora pelo mesmo motivo de la: e copia fiel, com outro
-contrato.
+A selecao e pela cadeia, nao pela pasta: pelo ADR 0010 as pastas sao por
+fonte e compartilhadas entre produtos, entao `transferegov/` e
+`cultura_em_numeros/` tem modelos de outras metas que nao assumiram este
+padrao. Modelo novo na cadeia entra em CADEIA_META5 no mesmo PR; as tres
+primeiras guardas avisam quando a lista envelhece.
 """
 
 import re
@@ -17,48 +20,89 @@ from pathlib import Path
 import pytest
 import yaml
 
-from tests.test_salic_silver_governance import PADROES_PII, POLITICAS_RAG, TAGS_PII
+from tests.governanca import PADROES_PII, POLITICAS_RAG, TAGS_PII
 
 MODELS_DIR = Path(__file__).resolve().parents[1] / "dbt/minc/models"
 
-# As pastas que a Meta 5 atravessa. Pasta nova na cadeia entra aqui no mesmo PR.
-PASTAS_META5 = [
-    "salic",
-    "bbagil",
-    "ancine",
-    "transferegov",
-    "intermediate",
-    "data_products/cultura_em_numeros",
-]
+# Os modelos da cadeia, das silvers das fontes as golds. Os dois controles de
+# extracao do BB Agil nao sao lidos pelas golds, mas auditam a base delas.
+CADEIA_META5 = {
+    # silvers das fontes
+    "silver_sac_captacao_proponente",
+    "silver_consulta",
+    "silver_extrato_bbagil",
+    "silver_subtransacao_bbagil",
+    "silver_pagamento_extrato_bbagil",
+    "silver_pagamento_subtransacao_bbagil",
+    "silver_pagamento_bbagil",
+    "silver_controle_extracao_bbagil_extrato",
+    "silver_controle_extracao_bbagil_subtransacoes",
+    "silver_planilha_contemplados",
+    # intermediate
+    "int_ancine_bbagil_salic",
+    "int_ancine_bbagil_salic_transferegov",
+    # golds do Cultura em Numeros
+    "eixo2_meta5_evento_fomento",
+    "eixo2_meta5_primeiro_acesso_agente",
+    "eixo2_meta5_primeiro_acesso_anual",
+    "eixo2_meta5_primeiro_acesso_contemplados",
+    "eixo2_meta5_trajetoria_fomento_direto_rouanet",
+    "eixo2_meta5_conversao_direto_rouanet_coorte",
+}
 
 # O formato que o RAG le: secoes nomeadas, e nao um paragrafo corrido.
-SECOES_OBRIGATORIAS = ["GRÃO:", "UNIVERSO:", "PARA QUE SERVE:", "ATUALIZAÇÃO:"]
+SECOES_OBRIGATORIAS = [
+    "GRÃO:",
+    "UNIVERSO:",
+    "PARA QUE SERVE:",
+    "LIMITAÇÕES:",
+    "ATUALIZAÇÃO:",
+]
 
 DESABILITADO = re.compile(r"config\([^)]*enabled\s*=\s*false", re.IGNORECASE)
+REF = re.compile(r"ref\(\s*[\"']([^\"']+)[\"']\s*\)")
 
 
-def _modelos() -> dict[str, tuple[dict, Path]]:
-    """Bloco `models:` de cada schema.yml da cadeia, sem a bronze."""
+def _todos_os_modelos() -> dict[str, tuple[dict, Path]]:
+    """Bloco `models:` de todo schema*.yml do projeto, indexado por nome."""
     modelos: dict[str, tuple[dict, Path]] = {}
-    for pasta in PASTAS_META5:
-        for caminho in sorted((MODELS_DIR / pasta).glob("*.yml")):
-            conteudo = yaml.safe_load(caminho.read_text(encoding="utf-8")) or {}
-            for modelo in conteudo.get("models") or []:
-                if modelo["name"].startswith("bronze_"):
-                    continue
-                modelos[modelo["name"]] = (modelo, caminho.parent)
+    for caminho in sorted(MODELS_DIR.rglob("*.yml")):
+        conteudo = yaml.safe_load(caminho.read_text(encoding="utf-8")) or {}
+        for modelo in conteudo.get("models") or []:
+            modelos[modelo["name"]] = (modelo, caminho.parent)
     return modelos
+
+
+TODOS = _todos_os_modelos()
+MODELOS = {nome: TODOS[nome] for nome in sorted(CADEIA_META5) if nome in TODOS}
 
 
 def _meta(modelo: dict) -> dict:
     return (modelo.get("config") or {}).get("meta", {}) or {}
 
 
-MODELOS = _modelos()
+def test_todo_modelo_da_lista_esta_documentado() -> None:
+    faltam = sorted(CADEIA_META5 - set(TODOS))
+    assert not faltam, f"CADEIA_META5 cita modelo sem schema.yml: {faltam}"
 
 
-def test_ha_modelos_para_verificar() -> None:
-    assert len(MODELOS) >= 18, "a cadeia da Meta 5 encolheu ou a coleta quebrou"
+def test_toda_gold_da_meta5_esta_na_lista() -> None:
+    golds = {nome for nome in TODOS if nome.startswith("eixo2_meta5_")}
+    faltam = sorted(golds - CADEIA_META5)
+    assert not faltam, f"gold da Meta 5 fora de CADEIA_META5: {faltam}"
+
+
+@pytest.mark.parametrize("nome", sorted(MODELOS))
+def test_dependencia_fora_da_bronze_esta_na_cadeia(nome: str) -> None:
+    """Silver ou intermediate nova lida pela cadeia tambem precisa do padrao."""
+    _, pasta = MODELOS[nome]
+    sql = (pasta / f"{nome}.sql").read_text(encoding="utf-8")
+    fora = sorted(
+        ref
+        for ref in set(REF.findall(sql)) - CADEIA_META5
+        if not ref.startswith("bronze_")
+    )
+    assert not fora, f"{nome} le {fora}, que nao estao em CADEIA_META5"
 
 
 @pytest.mark.parametrize("nome", sorted(MODELOS))

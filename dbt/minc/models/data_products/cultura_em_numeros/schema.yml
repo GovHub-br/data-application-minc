@@ -369,7 +369,10 @@ models:
       contrário, então o valor real é menor ou igual ao publicado.
       ano_censurado marca o ano em que a janela de extração cortou passado;
       ano_parcial marca o último ano, que ainda não terminou e não se compara
-      com anos fechados.
+      com anos fechados. O corte por ano × mecanismo gera contagens pequenas
+      nos mecanismos de menor volume (FSA, AUDIOVISUAL nos anos antigos), e
+      nenhuma célula é suprimida: a validação de segurança precisa avaliar
+      isso antes de qualquer publicação no RAG.
 
       PUBLICAÇÃO: agregada, sem identificador de pessoa. Elegível para RAG
       só depois da validação de segurança.
@@ -490,7 +493,10 @@ models:
       Rouanet. Para comparar taxas, use
       eixo2_meta5_conversao_direto_rouanet_coorte. DIRETO_DEPOIS_ROUANET com
       porta em AUDIOVISUAL ou FSA não responde à 2.3: é agente que já
-      acessava recurso federal antes de 2023.
+      acessava recurso federal antes de 2023. O corte por tipo de pessoa ×
+      porta de entrada gera baldes com contagem pequena, e nenhuma célula é
+      suprimida: risco de reidentificação que a validação de segurança
+      precisa avaliar antes de qualquer publicação no RAG.
 
       PUBLICAÇÃO: agregada, sem identificador de pessoa. Elegível para RAG
       só depois da validação de segurança.
@@ -612,7 +618,11 @@ models:
 
       LIMITAÇÕES: nas coortes com coorte_com_12m_completos falso, a taxa de
       12 meses é piso, não taxa final — parte da coorte ainda está dentro da
-      janela. pct_converteram não é comparável entre coortes.
+      janela. pct_converteram não é comparável entre coortes. O corte por
+      coorte × porta × tipo de pessoa gera células com contagem pequena,
+      sobretudo nas coortes recentes, e nenhuma é suprimida: risco de
+      reidentificação que a validação de segurança precisa avaliar antes de
+      qualquer publicação no RAG.
 
       PUBLICAÇÃO: agregada, sem identificador de pessoa. Elegível para RAG
       só depois da validação de segurança.
@@ -744,6 +754,13 @@ models:
       frequentemente declara ter pago um contemplado cujo pagamento não
       passou por lá. Contemplado sem evento observável fica de fora, sem
       fallback autodeclarado.
+
+      LIMITAÇÕES: o universo herda a cobertura das listas de contemplados
+      (só LPG e PNAB ciclo 1, só as em ODS ou Excel) e a do extrato do BB
+      Ágil descrita acima; a proporção vale para os contemplados
+      observáveis, não para todos os contemplados. O corte por programa ×
+      categoria pode gerar contagens pequenas, e nenhuma célula é
+      suprimida: a validação de segurança antes do RAG precisa olhar isso.
 
       DESABILITADO (enabled=false): depende de
       int_ancine_bbagil_salic_transferegov e, por ela, das planilhas de
