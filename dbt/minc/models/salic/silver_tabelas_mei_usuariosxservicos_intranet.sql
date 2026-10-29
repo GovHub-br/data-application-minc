@@ -1,4 +1,5 @@
--- Silver SALIC — silver_tabelas_mei_usuariosxservicos_intranet (ex-tabelas__mei_usuariosxservicos_intranet).
+-- Silver SALIC — silver_tabelas_mei_usuariosxservicos_intranet
+-- (ex-tabelas__mei_usuariosxservicos_intranet).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_tabelas_mei_usuariosxservicos_intranet, onde tudo chega como
 -- texto da

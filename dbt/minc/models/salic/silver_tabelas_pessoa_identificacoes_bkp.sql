@@ -1,4 +1,5 @@
--- Silver SALIC — silver_tabelas_pessoa_identificacoes_bkp (ex-tabelas__pessoa_identificacoes_bkp).
+-- Silver SALIC — silver_tabelas_pessoa_identificacoes_bkp
+-- (ex-tabelas__pessoa_identificacoes_bkp).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_tabelas_pessoa_identificacoes_bkp, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.

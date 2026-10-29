@@ -1,4 +1,5 @@
--- Silver SALIC — silver_tabelas_usuariosxorgaosxgrupos_ares (ex-tabelas__usuariosxorgaosxgrupos_ares).
+-- Silver SALIC — silver_tabelas_usuariosxorgaosxgrupos_ares
+-- (ex-tabelas__usuariosxorgaosxgrupos_ares).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_tabelas_usuariosxorgaosxgrupos_ares, onde tudo chega como texto
 -- da

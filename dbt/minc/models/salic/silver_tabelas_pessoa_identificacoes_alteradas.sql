@@ -1,4 +1,5 @@
--- Silver SALIC — silver_tabelas_pessoa_identificacoes_alteradas (ex-tabelas__pessoa_identificacoes_alteradas).
+-- Silver SALIC — silver_tabelas_pessoa_identificacoes_alteradas
+-- (ex-tabelas__pessoa_identificacoes_alteradas).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_tabelas_pessoa_identificacoes_alteradas, onde tudo chega como
 -- texto da

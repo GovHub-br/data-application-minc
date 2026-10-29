@@ -1,4 +1,5 @@
--- Silver SALIC — silver_tabelas_v_logradouro_completo (ex-tabelas__v_logradouro_completo).
+-- Silver SALIC — silver_tabelas_v_logradouro_completo
+-- (ex-tabelas__v_logradouro_completo).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_tabelas_v_logradouro_completo, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
