@@ -6,11 +6,11 @@
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
 -- não do nome da coluna: exige 100% dos valores preenchidos casando.
 select
-    {{ bronze_inteiro("cod_ibge") }} as cod_ibge,
+    {{ bronze_inteiro("cod_ibge", "bigint") }} as cod_ibge,
     {{ bronze_timestamp("dt_ingest") }} as dt_ingest,
-    {{ bronze_inteiro("id_programa") }} as id_programa,
-    {{ bronze_inteiro("id_plano_acao") }} as id_plano_acao,
-    {{ bronze_inteiro("id_meta_plano_acao") }} as id_meta_plano_acao,
+    {{ bronze_inteiro("id_programa", "bigint") }} as id_programa,
+    {{ bronze_inteiro("id_plano_acao", "bigint") }} as id_plano_acao,
+    {{ bronze_inteiro("id_meta_plano_acao", "bigint") }} as id_meta_plano_acao,
     {{ bronze_texto("nome_meta_plano_acao") }} as nome_meta_plano_acao,
     {{ bronze_numerico("valor_meta_plano_acao") }} as valor_meta_plano_acao,
     {{ bronze_texto("numero_meta_plano_acao") }} as numero_meta_plano_acao,
