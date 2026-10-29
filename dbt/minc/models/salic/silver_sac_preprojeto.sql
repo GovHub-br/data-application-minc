@@ -15,7 +15,7 @@ select
     {{ bronze_timestamp("dtiniciodeexecucao") }} as dtiniciodeexecucao,
     {{ bronze_timestamp("dtfinaldeexecucao") }} as dtfinaldeexecucao,
     {{ bronze_texto("justificativa") }} as justificativa,
-    {{ bronze_inteiro("nratotombamento") }} as nratotombamento,
+    {{ bronze_texto("nratotombamento") }} as nratotombamento,
     {{ bronze_timestamp("dtatotombamento") }} as dtatotombamento,
     {{ bronze_inteiro("esferatombamento") }} as esferatombamento,
     {{ bronze_texto("resumodoprojeto") }} as resumodoprojeto,
