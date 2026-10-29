@@ -60,7 +60,7 @@ faz as duas coisas vira dois.
    | `tests/test_salic_silver_governance.py` | `SALIC_DIR` e `CAMADAS_NAO_SILVER` apontam para `salic_dbt` e `bronze`. Até o teste ser generalizado, aponte para a pasta nova ou a governança deixa de cobrir o que migrou |
    | `docs-pages/tooling/collectors/dbt_models.py` | `CAMADAS` e o sufixo `_dbt` em `_classificar`; sem ajuste, a pasta nova vira domínio "outros". Depois rode `make docs-collect` |
    | `helpers/openmetadata/recipes/postgres_*.yaml` | o schema novo entra no `schemaFilterPattern` das três recipes; `tests/test_openmetadata_packaging.py` acusa se faltar |
-   | `scripts/gerar_*.py` e `.claude/skills/bronze-salic-dbt/scripts/gerar_modelos.py` | `DESTINO` e `{s}_bronze` fixos; se o gerador for rodar de novo, aponte para a pasta nova |
+   | `scripts/gerar_*.py` | `DESTINO` e `{s}_bronze` fixos; se o gerador for rodar de novo, aponte para a pasta nova |
    | `dbt/minc/macros/get_custom_schema.sql` | hoje é o padrão do dbt e o `+schema` manda; só muda se algum dia o schema passar a ser derivado do caminho |
 
 6. **Confira o número no dado real.** `dbt run --select <modelo>+` contra o

@@ -1,38 +1,27 @@
 # Tipagem: de texto puro para tipo de verdade
 
-Tudo em `salic_bronze` é `character varying`, porque a ingestão via Trino
-converte cada coluna para TEXT (`plugins/trino_bronze.py`, `cast_to_text`).
-Descobrir o tipo certo é o trabalho central da bronze.
+Tudo na Bronze (`salic.bronze_<banco>_<tabela>`) é texto, porque a ingestão
+via Trino converte cada coluna para TEXT (`plugins/trino_bronze.py`,
+`cast_to_text`). As silvers migradas do `salic_dbt` já fazem casts: foram
+gerados em setembro a partir do dicionário e de uma amostra. **O trabalho
+agora é revisar esses casts contra o dado, não escrevê-los do zero.**
 
-## Há duas rotas, e você precisa saber em qual está
+## De onde veio o tipo de cada coluna
 
-Medição de 2026-09-01, sobre as 571 tabelas do escopo:
+Os casts existentes saíram por uma de duas rotas, e vale saber qual antes de
+confiar:
 
-| rota | tabelas | de onde vem o tipo |
-|---|---|---|
-| dicionário | **279** | descrição das colunas em `dbt/minc/models/salic_dbt/bronze/sources_*.yml` |
-| inferência | **292** | só olhando o dado |
+- **Dicionário.** A maior parte das tabelas base tem o tipo original do SQL
+  Server dentro da descrição da coluna na source, no formato
+  `Tipo original (SQL Server): int(4).`. Extraia com
+  `Tipo original \(SQL Server\):\s*([^.]+)\.`.
+- **Inferência.** Nenhuma view da origem (`vw*`, `v*`) tem dicionário: o
+  SchemaSpy documentou só tabelas base. O tipo foi deduzido de 200 linhas.
+  É aqui que o cast mais erra.
 
-**Nenhuma das 132 views tem dicionário** — o SchemaSpy documentou só tabelas
-base. Toda view cai na rota de inferência, sem exceção.
-
-## Rota 1 — o dicionário já está no repositório
-
-**4.677 das 5.064 colunas declaradas (92,4%)** trazem o tipo original do SQL
-Server dentro da própria descrição, no formato:
-
-```
-[não documentado no dicionário de dados original do SALIC] Tipo original
-(SQL Server): int(4).
-```
-
-Extrair com `Tipo original \(SQL Server\):\s*([^.]+)\.` dá o mapa de graça.
-São 106 tipos distintos que colapsam em 6 grupos.
-
-⚠ **O dicionário descreve o schema `bronze` (legado), não o `salic_bronze`.**
-Só 329 das 561 tabelas declaradas existem no `salic_bronze`. Sempre confira as
-colunas reais no `information_schema` antes de aplicar o mapa — coluna que
-mudou de nome ou sumiu vai gerar modelo quebrado.
+O dicionário descreve o banco de dez/2025. Confira as colunas reais da Bronze
+(`perfilar.py` lista) antes de confiar numa descrição: coluna que mudou de
+nome ou sumiu quebra o modelo.
 
 ## O mapa de casts
 
@@ -56,20 +45,21 @@ falha em 0,1% das linhas derruba o modelo inteiro em execução.
 tabela, extraindo amostra de todas as colunas da mesma leitura:
 
 ```python
-cur.execute(f'select {lista_colunas} from salic_bronze."{tabela}" limit 200')
+cur.execute(f'select {lista_colunas} from salic."bronze_{banco}_{tabela}" limit 200')
 linhas = cur.fetchall()   # depois varra `linhas` por coluna, em memória
 ```
 
-**Nunca** `SELECT DISTINCT coluna` — não há índice em `salic_bronze`, e isso
+**Nunca** `SELECT DISTINCT coluna` — não há índice na Bronze, e isso
 vira varredura completa. Numa tabela de 18,6 M linhas trava a sessão.
 
-**Passo 2 — conte as falhas antes de confiar.** Para cada coluna que vai
-receber cast, meça quantos valores não passam:
+**Passo 2 — conte as falhas antes de confiar.** Para cada coluna que recebe
+cast, meça quantos valores não passam. O `perfilar.py --completo` faz isso
+para todas as colunas numa varredura só; a consulta equivalente, por coluna:
 
 ```sql
 select count(*) filter (where col !~ '^-?[0-9]+$' and col is not null) as falhas,
        count(*) as total
-from salic_bronze."tabela"
+from salic."bronze_<banco>_<tabela>"
 ```
 
 Regex por grupo:
@@ -98,11 +88,9 @@ Prefira reusar a inventar.
 ## Padrão do modelo
 
 ```sql
-{{ config(materialized='view') }}
-
--- Bronze — <o que a tabela é, em uma linha>.
--- Origem: salic_bronze.<tabela> (raw, tudo TEXT).
--- Casts: <o que foi convertido e o que ficou TEXT, com o porquê>.
+-- Silver SALIC — silver_sac_tbprojetos (ex-sac__tbprojetos).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Casts: <o que foi convertido, o que ficou TEXT e por quê; quantas linhas viram NULL>.
 
 select
     nullif(trim(id_projeto), '')::integer            as id_projeto,
@@ -110,8 +98,10 @@ select
     case when dt_cadastro ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
          then dt_cadastro::timestamp end             as dt_cadastro,
     _fatia
-from {{ source('bronze_sac', 'sac__tbprojetos') }}
+from {{ source('salic', 'bronze_sac_tbprojetos') }}
 ```
+
+A materialização (`view`) vem do `dbt_project.yml`; não repita no arquivo.
 
 `_fatia` é técnica: a fatia da ingestão que trouxe a linha (ADR 0005).
 Preserve e documente — é o que permite auditar carga repetida.

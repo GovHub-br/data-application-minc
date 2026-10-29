@@ -12,7 +12,7 @@ MEMORY.md, secao 17). O script procura por padrao de nome, e nao por nome
 exato, porque o nome no SQL Server nem sempre e o que o desenho do FigJam diz.
 
 Le o .env da raiz, no mesmo contrato de
-.claude/skills/bronze-salic-dbt/scripts/inventario.py. Nao imprime credencial.
+.claude/skills/silver-salic-dbt/scripts/perfilar.py. Nao imprime credencial.
 Sessao read-only, com statement_timeout. E banco de producao.
 
 Uso:
@@ -86,7 +86,7 @@ CONCEITOS: dict[str, tuple[str, list[str]]] = {
 
 
 # Dois contratos de nome convivem no repositorio: o curto, que a skill
-# bronze-salic-dbt usa, e o `DB_DW_*` do profiles.yml do dbt. Aceitar os dois e
+# silver-salic-dbt aceita, e o `DB_DW_*` do profiles.yml do dbt. Aceitar os dois e
 # mais barato que padronizar agora, e evita um script que so roda na maquina de
 # quem o escreveu.
 CONTRATOS_ENV = (
