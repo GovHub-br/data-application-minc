@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpagamentofinalizadoparecerista (ex-sac__vwpagamentofinalizadoparecerista).
+-- Silver SALIC — silver_sac_vwpagamentofinalizadoparecerista
+-- (ex-sac__vwpagamentofinalizadoparecerista).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpagamentofinalizadoparecerista, onde tudo chega como
 -- texto da

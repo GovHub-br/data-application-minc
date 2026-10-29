@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwmaioresincentivadoresporanouf (ex-sac__vwmaioresincentivadoresporanouf).
+-- Silver SALIC — silver_sac_vwmaioresincentivadoresporanouf
+-- (ex-sac__vwmaioresincentivadoresporanouf).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwmaioresincentivadoresporanouf, onde tudo chega como texto
 -- da

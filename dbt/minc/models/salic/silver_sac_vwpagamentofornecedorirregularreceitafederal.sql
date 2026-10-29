@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpagamentofornecedorirregularreceitafederal (ex-sac__vwpagamentofornecedorirregularreceitafederal).
+-- Silver SALIC — silver_sac_vwpagamentofornecedorirregularreceitafederal
+-- (ex-sac__vwpagamentofornecedorirregularreceitafederal).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpagamentofornecedorirregularreceitafederal, onde tudo
 -- chega como texto da

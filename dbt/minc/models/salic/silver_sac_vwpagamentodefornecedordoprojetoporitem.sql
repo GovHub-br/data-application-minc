@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpagamentodefornecedordoprojetoporitem (ex-sac__vwpagamentodefornecedordoprojetoporitem).
+-- Silver SALIC — silver_sac_vwpagamentodefornecedordoprojetoporitem
+-- (ex-sac__vwpagamentodefornecedordoprojetoporitem).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpagamentodefornecedordoprojetoporitem, onde tudo chega
 -- como texto da

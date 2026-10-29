@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpagamentodespesaforaperiodoexecucao (ex-sac__vwpagamentodespesaforaperiodoexecucao).
+-- Silver SALIC — silver_sac_vwpagamentodespesaforaperiodoexecucao
+-- (ex-sac__vwpagamentodespesaforaperiodoexecucao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpagamentodespesaforaperiodoexecucao, onde tudo chega como
 -- texto da

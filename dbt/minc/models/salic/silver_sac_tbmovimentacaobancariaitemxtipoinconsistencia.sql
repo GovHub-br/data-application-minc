@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbmovimentacaobancariaitemxtipoinconsistencia (ex-sac__tbmovimentacaobancariaitemxtipoinconsistencia).
+-- Silver SALIC — silver_sac_tbmovimentacaobancariaitemxtipoinconsistencia
+-- (ex-sac__tbmovimentacaobancariaitemxtipoinconsistencia).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbmovimentacaobancariaitemxtipoinconsistencia, onde tudo
 -- chega como texto da

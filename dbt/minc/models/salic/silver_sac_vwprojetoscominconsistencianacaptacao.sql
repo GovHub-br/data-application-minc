@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprojetoscominconsistencianacaptacao (ex-sac__vwprojetoscominconsistencianacaptacao).
+-- Silver SALIC — silver_sac_vwprojetoscominconsistencianacaptacao
+-- (ex-sac__vwprojetoscominconsistencianacaptacao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprojetoscominconsistencianacaptacao, onde tudo chega como
 -- texto da
