@@ -257,7 +257,12 @@ def test_anexo_ja_baixado_e_reconhecido_pelo_id() -> None:
         key_anexo_arquivo("pnab", 11, "outra.ods"),
         "raw/transferegov/anexos_arquivos/lpg/README",
     ]
-    assert ids_ja_baixados(keys) == {"10": keys[0], "11": keys[1]}
+    baixados = ids_ja_baixados(keys)
+    assert {id_: anexo.key for id_, anexo in baixados.items()} == {
+        "10": keys[0],
+        "11": keys[1],
+    }
+    assert baixados["10"].partes == [keys[0]]
 
 
 def test_existe_objeto_pede_uma_chave_so() -> None:
