@@ -1,17 +1,16 @@
 version: 2
 sources:
-  - name: bronze_agentes
+  - name: salic
     schema: salic
     description: >
-      Registro de identidade de agentes (pessoas físicas e jurídicas), compartilhado com outros
-      domínios do MinC além do SALIC (ex.: LPG, PNAB). Camada bronze (dados brutos do SALIC,
-      réplica do sistema de origem via Airflow, sem tratamento). Descrições e tiers gerados
-      automaticamente a partir do dicionário de dados original do SALIC (export SchemaSpy) cruzado
-      com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo
-      (YAML semântico, dicionário e catálogo em DOCX/HTML).
+      SALIC (Sistema de Apoio às Leis de Incentivo à Cultura). Bronze: réplica do
+      sistema de origem via Trino, tudo text, sem tratamento, com a coluna técnica
+      _fatia da carga em fatias. Uma tabela por <banco>__<tabela> da origem, como
+      salic.bronze_<banco>_<tabela>. As descrições das tabelas vêm do dicionário
+      de dados do SALIC (export SchemaSpy) cruzado com o perfil do banco; o
+      catálogo completo está em dbt/minc/docs/salic/.
     tables:
-      - name: agentes__municipios
-        identifier: bronze_agentes_municipios
+      - name: bronze_agentes_municipios
         description: >
           Tabela de domínio geográfico: município IBGE, sua UF, meso e
           microrregião. Camada bronze (raw do SALIC via Trino, tudo text).
@@ -42,8 +41,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__populacaomunicipio
-        identifier: bronze_agentes_populacaomunicipio
+      - name: bronze_agentes_populacaomunicipio
         description: >
           População por município. Camada bronze (raw do SALIC via Trino, tudo
           text).
@@ -68,8 +66,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__uf
-        identifier: bronze_agentes_uf
+      - name: bronze_agentes_uf
         description: >
           Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04.
           Complementa `agentes__municipios` em `dim_municipio_ibge` — é onde estão a
@@ -94,8 +91,7 @@ sources:
           - name: regiao
             description: Região geográfica.
             data_type: text
-      - name: agentes__vpais
-        identifier: bronze_agentes_vpais
+      - name: bronze_agentes_vpais
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -109,8 +105,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vperfil
-        identifier: bronze_agentes_vperfil
+      - name: bronze_agentes_vperfil
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -124,8 +119,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vprefeiturasregiaouf
-        identifier: bronze_agentes_vprefeiturasregiaouf
+      - name: bronze_agentes_vprefeiturasregiaouf
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -139,8 +133,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vsistema
-        identifier: bronze_agentes_vsistema
+      - name: bronze_agentes_vsistema
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -154,8 +147,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vtelefones
-        identifier: bronze_agentes_vtelefones
+      - name: bronze_agentes_vtelefones
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -169,8 +161,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vuf
-        identifier: bronze_agentes_vuf
+      - name: bronze_agentes_vuf
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -184,8 +175,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vufmunicipio
-        identifier: bronze_agentes_vufmunicipio
+      - name: bronze_agentes_vufmunicipio
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -199,8 +189,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vverificacao
-        identifier: bronze_agentes_vverificacao
+      - name: bronze_agentes_vverificacao
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -214,8 +203,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vvinculacao
-        identifier: bronze_agentes_vvinculacao
+      - name: bronze_agentes_vvinculacao
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -229,8 +217,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vvisao
-        identifier: bronze_agentes_vvisao
+      - name: bronze_agentes_vvisao
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -244,8 +231,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwcadastrarparecerista
-        identifier: bronze_agentes_vwcadastrarparecerista
+      - name: bronze_agentes_vwcadastrarparecerista
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -259,8 +245,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwempresajuridica
-        identifier: bronze_agentes_vwempresajuridica
+      - name: bronze_agentes_vwempresajuridica
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -274,8 +259,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwempresajuridicasocios
-        identifier: bronze_agentes_vwempresajuridicasocios
+      - name: bronze_agentes_vwempresajuridicasocios
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -289,8 +273,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwportifolio
-        identifier: bronze_agentes_vwportifolio
+      - name: bronze_agentes_vwportifolio
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -304,8 +287,7 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwpropostasemavaliacao
-        identifier: bronze_agentes_vwpropostasemavaliacao
+      - name: bronze_agentes_vwpropostasemavaliacao
         description: >
           [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
           (export SchemaSpy). Semântica e grão ainda não confirmados.
@@ -320,8 +302,7 @@ sources:
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
 
-      - name: agentes__agentes
-        identifier: bronze_agentes_agentes
+      - name: bronze_agentes_agentes
         description: >
           Uma linha por agente cultural (proponente, incentivador ou fornecedor),
           identificado por idagente e por cnpjcpf. Camada bronze (raw do SALIC via
@@ -365,8 +346,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__tbagentefisico
-        identifier: bronze_agentes_tbagentefisico
+      - name: bronze_agentes_tbagentefisico
         description: >
           Uma linha por agente pessoa física, com atributos pessoais. DADO
           SENSÍVEL: nome dos pais, cor/raça e necessidade especial. Camada bronze
@@ -410,8 +390,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__perfil
-        identifier: bronze_agentes_perfil
+      - name: bronze_agentes_perfil
         description: >
           Liga o agente a um perfil e característica de acesso (codificados como
           inteiros de bitmask). Camada bronze (raw do SALIC via Trino, tudo text).
@@ -442,8 +421,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__verificacao
-        identifier: bronze_agentes_verificacao
+      - name: bronze_agentes_verificacao
         description: >
           Tabela de domínio: os valores de "verificação" de um agente (natureza
           jurídica, esfera etc.), agrupados por idtipo. Camada bronze (raw do
@@ -472,8 +450,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__endereconacional
-        identifier: bronze_agentes_endereconacional
+      - name: bronze_agentes_endereconacional
         description: >
           Uma linha por endereço nacional de agente. DADO PESSOAL (endereço).
           Camada bronze (raw do SALIC via Trino, tudo text).

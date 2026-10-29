@@ -1,5 +1,6 @@
--- Bronze SALIC — agentes__vwcadastrarparecerista.
--- Origem: salic_bronze.agentes__vwcadastrarparecerista, onde tudo chega como texto da
+-- Silver SALIC — silver_agentes_vwcadastrarparecerista (ex-agentes__vwcadastrarparecerista).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_agentes_vwcadastrarparecerista, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 19 colunas: 10 tipadas, 8 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -24,4 +25,4 @@ select
     {{ bronze_texto("correspondencia") }} as correspondencia,
     {{ bronze_inteiro("usuario") }} as usuario,
     _fatia
-from {{ source("bronze_agentes", "agentes__vwcadastrarparecerista") }}
+from {{ source("salic", "bronze_agentes_vwcadastrarparecerista") }}

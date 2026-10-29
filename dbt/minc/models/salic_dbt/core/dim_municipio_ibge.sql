@@ -23,7 +23,7 @@ with municipios as (
         idufibge        as id_uf_ibge,
         idmeso          as codigo_mesorregiao,
         idmicro         as codigo_microrregiao
-    from {{ ref('agentes__municipios') }}
+    from {{ ref('silver_agentes_municipios') }}
 ),
 
 ufs as (
@@ -32,7 +32,7 @@ ufs as (
         sigla     as sigla_uf,
         descricao as nome_uf,
         regiao    as regiao
-    from {{ ref('agentes__uf') }}
+    from {{ ref('silver_agentes_uf') }}
 ),
 
 populacao as (
@@ -40,7 +40,7 @@ populacao as (
         idmunicipio  as codigo_ibge_6,
         idmunicipio7 as codigo_ibge_7,
         populacao    as populacao
-    from {{ ref('agentes__populacaomunicipio') }}
+    from {{ ref('silver_agentes_populacaomunicipio') }}
 )
 
 select

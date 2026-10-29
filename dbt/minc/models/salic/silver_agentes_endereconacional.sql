@@ -1,5 +1,6 @@
--- Bronze SALIC — agentes__endereconacional.
--- Origem: salic_bronze.agentes__endereconacional, onde tudo chega como texto da
+-- Silver SALIC — silver_agentes_endereconacional (ex-agentes__endereconacional).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_agentes_endereconacional, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- Uma linha por endereço nacional de agente. DADO PESSOAL (endereço).
 -- `cep` fica TEXT (zero à esquerda); `cidade` é o código IBGE do município.
@@ -21,4 +22,4 @@ select
     {{ bronze_booleano("divulgar") }} as divulgar,
     {{ bronze_inteiro("usuario") }} as usuario,
     _fatia
-from {{ source("bronze_agentes", "agentes__endereconacional") }}
+from {{ source("salic", "bronze_agentes_endereconacional") }}
