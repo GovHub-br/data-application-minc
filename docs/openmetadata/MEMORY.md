@@ -48,7 +48,7 @@ vem depois dela.
 
 ## 1. Estado atual
 
-**Última atualização: 2026-09-03 00:40 -03 · Codex (F13/F14 parciais; auditoria live em §18)**
+**Última atualização: 2026-10-29 · Claude (F17: lotes do SALIC; as linhas SALIC abaixo descrevem a migração em curso, as outras seguem de 2026-09-03)**
 
 | Item | Situação |
 |---|---|
@@ -68,10 +68,11 @@ vem depois dela.
 | Cidades — testes OM | ✅ 69 testes: `test_governanca_openmetadata.py` (890 linhas) + guarda de recipes (31 linhas); todos passaram nesta sessão |
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
-| SALIC — bronze | ✅ 571 modelos SQL tipados/documentados na `main@d404531` |
-| SALIC — silver núcleo | ✅ **6 modelos em `dbt/minc/models/salic_dbt/core/`**, na `feat/dbt-salic-silver`. A normalização de PRONAC foi corrigida após auditoria live; `status: Disabled` até o run da DAG. Ver §14 e §18 |
+| SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75 e o núcleo do `sac` 13 (#117 a #121). Faltam 468 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`) |
+| SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
-| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py`, 90 casos; suíte completa 187 passed, 3 skipped |
+| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
 
 **Direção do fluxo histórico:** Cidades (`origin/refactor/openmetadata`, 2026-08-18)
 → MinC portou e evoluiu → Cidades recuperou de volta em `fixture/ajustes-conjuntura`.
@@ -387,7 +388,7 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | F14 | Meta 4 — IBGE, capitais, vulnerabilidade e bridge de execução | minc | 🟠 PARCIAL · Codex · 2026-09-03 — bridge entregue como `Disabled`; cobertura de PRONAC é só 4.269 projetos |
 | F15 | Meta 5 — histórico do proponente e golds de primeiro acesso | minc | 🟢 LIVRE — depende de `fct_evento_acesso_rouanet` e da chave HMAC |
 | F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | ✅ FEITO · Claude · 2026-09-02 20:20 -03 |
-| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | 🟣 EM CURSO · Claude + Luiza · 2026-10-27 · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
+| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | 🟣 EM CURSO · Claude + Luiza · 2026-10-29 — feitos `controledeacesso`, `bdcorporativo`, `agentes`, `tabelas` e o núcleo do `sac`; próximos: triagem e lotes do resto do `sac`, PR dos modelos manuais, limpeza final · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
 
 ### F1 — Credencial (cidades) 🔴
 **Arquivos/refs:** HEAD e histórico de
@@ -875,7 +876,7 @@ interrompida; é view sobre texto sem índice. Medir no PR 6.
 `projetos.analista`; a regra de coluna sensível agora pega papéis de pessoa
 (analista, técnico, responsável, parecerista, proponente e outros).
 
-### 2026-10-29 · Claude · revisão do #121
+### 2026-10-29 · Claude · F17 — revisão do #121 (PR #122)
 
 Ajustes do que a revisão (ananunesv, devwallyson) pediu:
 - A guarda "publicável não lê restrito" isenta os 5 modelos de `salic_dbt/`
@@ -899,6 +900,16 @@ Ajustes do que a revisão (ananunesv, devwallyson) pediu:
   `documento_proponente`, e nome, solicitante ou descrição diferentes do mesmo
   vínculo saem a cada vez de um jeito. Completar o `order by`.
 - `map_chave_projeto_rouanet` passou de 20 minutos no dev.
+
+Segunda revisão (devwallyson, no #122), também no #122:
+- o script confere tudo antes de mexer em arquivo (assunto, tabelas, existência
+  dos YAML e se `tables:` é a última chave, com leitura que aceita comentário e
+  lista no mesmo recuo) e recusa argumento repetido ou vazio;
+- a exceção da guarda é por leitura: cada modelo de `LEGADOS_LEEM_RESTRITO` só
+  pode ler as silvers restritas listadas para ele, e a lista falha se o modelo
+  deixar de ser publicável ou parar de ler uma delas;
+- `origem_dados` de `map_chave`, `dim_projeto`, `dim_municipio_ibge` e
+  `fct_proponente_ano` citam as silvers.
 
 ---
 

@@ -72,14 +72,26 @@ PADROES_PII = re.compile(
 TAGS_PII = {"PII.Sensitive", "PII.NonSensitive"}
 
 # Modelos de salic_dbt/ marcados como publicaveis que leem silver restrita do
-# sac. Conferidos no #121: nenhum projeta CPF, CNPJ ou logon. Saem quando
+# sac, cada um com as leituras restritas revisadas no #121: nenhum projeta CPF,
+# CNPJ ou logon. Leitura restrita nova nao entra sem revisao. Saem quando
 # migrarem (PR dos modelos manuais).
-LEGADOS_LEEM_RESTRITO = {
-    "brg_projeto_local_execucao",
-    "dim_projeto_rouanet",
-    "fct_aprovacao_rouanet",
-    "fct_captacao_rouanet",
-    "map_chave_projeto_rouanet",
+LEGADOS_LEEM_RESTRITO: dict[str, set[str]] = {
+    "brg_projeto_local_execucao": {"silver_sac_abrangencia"},
+    "dim_projeto_rouanet": {
+        "silver_sac_aprovacao",
+        "silver_sac_enquadramento",
+        "silver_sac_vwagentesseusprojetos",
+        "silver_sac_vwalterarprojeto",
+    },
+    "fct_aprovacao_rouanet": {"silver_sac_aprovacao"},
+    "fct_captacao_rouanet": {"silver_sac_captacao"},
+    "map_chave_projeto_rouanet": {
+        "silver_sac_aprovacao",
+        "silver_sac_captacao",
+        "silver_sac_enquadramento",
+        "silver_sac_vwagentesseusprojetos",
+        "silver_sac_vwalterarprojeto",
+    },
 }
 
 
@@ -317,28 +329,29 @@ def _restritos_lidos(caminho: Path) -> list[str]:
 def test_modelo_restrito_nao_e_consumido_por_publicavel(caminho: Path) -> None:
     """Um modelo publicavel que le um restrito vaza pela porta dos fundos.
 
-    Excecao, por nome e nao por pasta: os modelos legados de salic_dbt/ em
-    LEGADOS_LEEM_RESTRITO liam o legado do sac, que esta guarda nao cobria, e
-    nenhum projeta coluna pessoal hoje. Saem da lista quando migrarem. Um
-    modelo novo que leia silver restrita cai aqui.
+    Excecao, por modelo e por leitura: os legados de salic_dbt/ em
+    LEGADOS_LEEM_RESTRITO podem ler so as silvers restritas listadas para eles,
+    que foram revisadas. Qualquer outra leitura restrita cai aqui.
     """
-    if caminho.stem in LEGADOS_LEEM_RESTRITO:
-        pytest.skip("legado listado em LEGADOS_LEEM_RESTRITO")
     modelo = MODELOS.get(caminho.stem)
     if modelo is None:
         pytest.skip("modelo sem documentacao: coberto por outro teste")
     if _governanca(modelo).get("rag_publication") == "prohibited":
         return
-    restritos = _restritos_lidos(caminho)
+    permitidos = LEGADOS_LEEM_RESTRITO.get(caminho.stem, set())
+    restritos = [r for r in _restritos_lidos(caminho) if r not in permitidos]
     assert not restritos, f"{caminho.stem} e publicavel e le modelo restrito {restritos}"
 
 
 def test_excecao_de_legado_ainda_e_necessaria() -> None:
-    """A lista nao pode ficar velha: nome que saiu, migrou ou nao le mais
-    restrito sai dela."""
+    """A lista nao pode ficar velha: modelo que sumiu, migrou, deixou de ser
+    publicavel ou parou de ler uma silver listada sai dela (ou perde a leitura)."""
     por_nome = {c.stem: c for c in SQLS}
-    for nome in sorted(LEGADOS_LEEM_RESTRITO):
+    for nome, permitidos in sorted(LEGADOS_LEEM_RESTRITO.items()):
         caminho = por_nome.get(nome)
         assert caminho is not None, f"{nome}: nao existe mais; tire da lista"
         assert not caminho.is_relative_to(SALIC_NOVO_DIR), f"{nome}: ja migrou"
-        assert _restritos_lidos(caminho), f"{nome}: nao le restrito; tire da lista"
+        rag = _governanca(MODELOS[nome]).get("rag_publication")
+        assert rag != "prohibited", f"{nome}: nao e mais publicavel; tire da lista"
+        sobram = sorted(permitidos - set(_restritos_lidos(caminho)))
+        assert not sobram, f"{nome}: nao le mais {sobram}; tire da lista"
