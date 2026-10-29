@@ -2,7 +2,7 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_tabelas_vwusuarios, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 12 colunas: 3 tipadas, 8 mantidas como texto.
+-- 12 colunas: 4 tipadas, 7 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -11,7 +11,7 @@ select
     {{ bronze_texto("usu_nome") }} as usu_nome,
     {{ bronze_inteiro("usu_orgao") }} as usu_orgao,
     {{ bronze_texto("usu_lotacao") }} as usu_lotacao,
-    {{ bronze_texto("usu_status") }} as usu_status,
+    {{ bronze_inteiro("usu_status") }} as usu_status,
     {{ bronze_inteiro("gru_orgao") }} as gru_orgao,
     {{ bronze_texto("gru_sigla") }} as gru_sigla,
     {{ bronze_texto("usu_localizacao") }} as usu_localizacao,

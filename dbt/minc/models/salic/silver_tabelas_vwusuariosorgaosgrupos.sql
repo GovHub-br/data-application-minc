@@ -2,7 +2,7 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_tabelas_vwusuariosorgaosgrupos, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 18 colunas: 7 tipadas, 10 mantidas como texto.
+-- 18 colunas: 8 tipadas, 9 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -21,7 +21,7 @@ select
     {{ bronze_texto("sis_nome") }} as sis_nome,
     {{ bronze_inteiro("gru_codigo") }} as gru_codigo,
     {{ bronze_texto("gru_nome") }} as gru_nome,
-    {{ bronze_texto("uog_status") }} as uog_status,
+    {{ bronze_booleano("uog_status") }} as uog_status,
     {{ bronze_inteiro("id_unico", tipo="bigint") }} as id_unico,
     _fatia
 from {{ source("salic", "bronze_tabelas_vwusuariosorgaosgrupos") }}

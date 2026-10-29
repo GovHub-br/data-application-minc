@@ -8,9 +8,9 @@
 select
     {{ bronze_inteiro("loc_codigo") }} as loc_codigo,
     {{ bronze_texto("loc_estruturado") }} as loc_estruturado,
-    {{ bronze_texto("loc_tipo") }} as loc_tipo,
+    {{ bronze_inteiro("loc_tipo") }} as loc_tipo,
     {{ bronze_texto("loc_sigla") }} as loc_sigla,
-    {{ bronze_inteiro("loc_cep") }} as loc_cep,
+    {{ bronze_texto("loc_cep") }} as loc_cep,
     {{ bronze_texto("loc_pais") }} as loc_pais,
     {{ bronze_texto("loc_estado") }} as loc_estado,
     {{ bronze_texto("loc_municipio") }} as loc_municipio,

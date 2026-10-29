@@ -2,7 +2,7 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_tabelas_v_logradouro_completo, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 20 colunas: 7 tipadas, 12 mantidas como texto.
+-- 20 colunas: 6 tipadas, 13 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -13,11 +13,11 @@ select
     {{ bronze_texto("log_limites") }} as log_limites,
     {{ bronze_inteiro("log_bairro") }} as log_bairro,
     {{ bronze_inteiro("log_bairro_final") }} as log_bairro_final,
-    {{ bronze_inteiro("log_cep") }} as log_cep,
+    {{ bronze_texto("log_cep") }} as log_cep,
     {{ bronze_texto("loc_estruturado") }} as loc_estruturado,
-    {{ bronze_texto("loc_tipo") }} as loc_tipo,
+    {{ bronze_inteiro("loc_tipo") }} as loc_tipo,
     {{ bronze_texto("loc_sigla") }} as loc_sigla,
-    {{ bronze_inteiro("loc_cep") }} as loc_cep,
+    {{ bronze_texto("loc_cep") }} as loc_cep,
     {{ bronze_texto("loc_pais") }} as loc_pais,
     {{ bronze_texto("loc_estado") }} as loc_estado,
     {{ bronze_texto("loc_municipio") }} as loc_municipio,
