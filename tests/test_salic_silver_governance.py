@@ -71,6 +71,17 @@ PADROES_PII = re.compile(
 
 TAGS_PII = {"PII.Sensitive", "PII.NonSensitive"}
 
+# Modelos de salic_dbt/ marcados como publicaveis que leem silver restrita do
+# sac. Conferidos no #121: nenhum projeta CPF, CNPJ ou logon. Saem quando
+# migrarem (PR dos modelos manuais).
+LEGADOS_LEEM_RESTRITO = {
+    "brg_projeto_local_execucao",
+    "dim_projeto_rouanet",
+    "fct_aprovacao_rouanet",
+    "fct_captacao_rouanet",
+    "map_chave_projeto_rouanet",
+}
+
 
 def _modelos_documentados() -> dict[str, dict]:
     """Todo bloco `models:` dos schema.yml da silver, indexado por nome."""
@@ -290,29 +301,44 @@ def test_silver_le_so_a_bronze_do_salic(caminho: Path) -> None:
         assert "source(" not in sql, f"{caminho.name}: usa source() em vez de ref()"
 
 
-@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
-def test_modelo_restrito_nao_e_consumido_por_publicavel(caminho: Path) -> None:
-    """Um modelo publicavel que le um restrito vaza pela porta dos fundos.
-
-    Vale para os modelos ja migrados para models/salic/. Os de salic_dbt/
-    (core, metas) liam o legado, que esta guarda nao cobria, e passam a ser
-    cobertos quando migrarem: a anonimizacao na consulta e do Ranger, nao da
-    modelagem desses modelos antigos.
-    """
-    if not caminho.is_relative_to(SALIC_NOVO_DIR):
-        pytest.skip("modelo legado de salic_dbt/: coberto quando migrar")
-    modelo = MODELOS.get(caminho.stem)
-    if modelo is None:
-        pytest.skip("modelo sem documentacao: coberto por outro teste")
-    if _governanca(modelo).get("rag_publication") == "prohibited":
-        return
+def _restritos_lidos(caminho: Path) -> list[str]:
     referenciados = set(
         re.findall(r"ref\(\s*[\"']([^\"']+)[\"']\s*\)", caminho.read_text())
     )
-    restritos = sorted(
+    return sorted(
         nome
         for nome in referenciados
         if nome in MODELOS
         and _governanca(MODELOS[nome]).get("rag_publication") == "prohibited"
     )
+
+
+@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
+def test_modelo_restrito_nao_e_consumido_por_publicavel(caminho: Path) -> None:
+    """Um modelo publicavel que le um restrito vaza pela porta dos fundos.
+
+    Excecao, por nome e nao por pasta: os modelos legados de salic_dbt/ em
+    LEGADOS_LEEM_RESTRITO liam o legado do sac, que esta guarda nao cobria, e
+    nenhum projeta coluna pessoal hoje. Saem da lista quando migrarem. Um
+    modelo novo que leia silver restrita cai aqui.
+    """
+    if caminho.stem in LEGADOS_LEEM_RESTRITO:
+        pytest.skip("legado listado em LEGADOS_LEEM_RESTRITO")
+    modelo = MODELOS.get(caminho.stem)
+    if modelo is None:
+        pytest.skip("modelo sem documentacao: coberto por outro teste")
+    if _governanca(modelo).get("rag_publication") == "prohibited":
+        return
+    restritos = _restritos_lidos(caminho)
     assert not restritos, f"{caminho.stem} e publicavel e le modelo restrito {restritos}"
+
+
+def test_excecao_de_legado_ainda_e_necessaria() -> None:
+    """A lista nao pode ficar velha: nome que saiu, migrou ou nao le mais
+    restrito sai dela."""
+    por_nome = {c.stem: c for c in SQLS}
+    for nome in sorted(LEGADOS_LEEM_RESTRITO):
+        caminho = por_nome.get(nome)
+        assert caminho is not None, f"{nome}: nao existe mais; tire da lista"
+        assert not caminho.is_relative_to(SALIC_NOVO_DIR), f"{nome}: ja migrou"
+        assert _restritos_lidos(caminho), f"{nome}: nao le restrito; tire da lista"

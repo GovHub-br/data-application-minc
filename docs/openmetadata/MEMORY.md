@@ -875,6 +875,31 @@ interrompida; é view sobre texto sem índice. Medir no PR 6.
 `projetos.analista`; a regra de coluna sensível agora pega papéis de pessoa
 (analista, técnico, responsável, parecerista, proponente e outros).
 
+### 2026-10-29 · Claude · revisão do #121
+
+Ajustes do que a revisão (ananunesv, devwallyson) pediu:
+- A guarda "publicável não lê restrito" isenta os 5 modelos de `salic_dbt/`
+  por nome (`LEGADOS_LEEM_RESTRITO`), não por pasta. Um teste falha se um nome
+  da lista sumir, migrar ou deixar de ler restrito.
+- Segmento em texto na `dim_projeto_rouanet`: medido nas bronzes, o par área e
+  segmento de `vwalterarprojeto` casa com `vsegmento` em 140.961 projetos
+  comparando texto, contra 116.817 pelo cast antigo para inteiro, e nenhum
+  projeto perde o casamento. `codigo_segmento` passou a `text` no
+  `core/schema.yml`.
+
+**Para o PR dos modelos manuais** (registro, não corrigido aqui):
+- `dim_projeto_rouanet.valor_aprovado_reais` pega o `aprovadoreal` da última
+  aprovação. Pelo SalicWeb o valor aprovado é tipo 1 + tipo 2 - tipo 4, e a
+  última aprovação costuma ser prorrogação (tipo 3, valor perto de zero) ou
+  redução. O erro é anterior à migração; a dim nunca rodou em produção.
+- `dim_projeto_rouanet` supõe histórico de enquadramento, e
+  `silver_sac_enquadramento` tem um registro por projeto.
+- `brg_projeto_proponente_rouanet` tem a mesma contagem a cada build, mas não o
+  mesmo conteúdo: o `distinct on (pronac, id_agente)` desempata só até
+  `documento_proponente`, e nome, solicitante ou descrição diferentes do mesmo
+  vínculo saem a cada vez de um jeito. Completar o `order by`.
+- `map_chave_projeto_rouanet` passou de 20 minutos no dev.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG

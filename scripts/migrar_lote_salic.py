@@ -116,14 +116,17 @@ def trocar_source(
 ) -> tuple[str, int]:
     """Troca a source velha pela salic; com ``tabelas``, só a dessas tabelas."""
 
+    trocas = 0
+
     def sub(m: re.Match[str]) -> str:
+        nonlocal trocas
         if tabelas is not None and m.group("t") not in tabelas:
             return m.group(0)
+        trocas += 1
         q = m.group(1)
         return f"source({q}salic{q}, {q}{nome_bronze(origem, m.group('t'))}{q})"
 
-    novo = re_source(origem).sub(sub, texto)
-    return novo, sum(a != b for a, b in zip(texto.split("\n"), novo.split("\n")))
+    return re_source(origem).sub(sub, texto), trocas
 
 
 def trocar_mencao(texto: str, origem: str) -> str:
@@ -311,6 +314,11 @@ def migrar_sources_parcial(origem: str, tabelas: set[str]) -> None:
         flags=re.M,
     )
     destino = para.read_text(encoding="utf-8")
+    # As tabelas novas entram no fim do arquivo: só vale se `tables:` for a
+    # última chave da source, sem nada em recuo menor depois dela.
+    depois = destino.split("\n    tables:\n", 1)[-1]
+    if "\n    tables:\n" not in destino or re.search(r"^ {0,5}\S", depois, re.M):
+        sys.exit(f"ERRO: {para.name} tem chave depois de tables:; anexe à mão")
     novos = {nome_bronze(origem, t) for t in tabelas}
     destino, substituidos = tirar_blocos(destino, "      - name: ", novos)
     if substituidos:
@@ -362,7 +370,12 @@ def main(argv: list[str]) -> int:
     if origem not in ORIGENS:
         print(f"uso: {argv[0]} <{'|'.join(ORIGENS)}> [--assunto X --tabelas a,b]")
         return 2
-    opcoes = dict(zip(argv[2::2], argv[3::2]))
+    resto = argv[2:]
+    if len(resto) % 2 or any(k not in ("--assunto", "--tabelas") for k in resto[::2]):
+        print(f"argumento não reconhecido: {' '.join(resto)}")
+        print(f"uso: {argv[0]} <{'|'.join(ORIGENS)}> [--assunto X --tabelas a,b]")
+        return 2
+    opcoes = dict(zip(resto[::2], resto[1::2]))
     tabelas = set(filter(None, opcoes.get("--tabelas", "").split(","))) or None
     assunto = opcoes.get("--assunto")
     if (tabelas is None) != (assunto is None):
