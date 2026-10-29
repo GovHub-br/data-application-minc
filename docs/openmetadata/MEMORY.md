@@ -792,6 +792,43 @@ hífen viravam NULL), CEP e número de endereço em `vwcadastrarparecerista`
 **Para a ingestão.** Vale trazer `agentes.Nomes`: sem ela, nenhum
 proponente pessoa jurídica tem nome no banco agentes.
 
+### 2026-10-29 · Claude · F17 — lote `tabelas`
+
+**O que entrou.** 75 silvers. `sysdiagrams` e `dtproperties`, artefatos do
+SQL Server, ficaram só na Bronze. O banco é o cadastro corporativo dos
+sistemas internos do MinC: usuários servidores, órgãos, grupos de acesso por
+sistema, menus, pessoas, e-mails do domínio e uma base de CEP dos Correios.
+Os códigos se traduzem pelas tabelas de domínio do próprio banco,
+`tabelas.tabelas` (esfera, administração, tipos de evento) e
+`tabelas.meta_dados` (tipos de nome, documento e endereço).
+
+**Credencial.** Saem das silvers de usuário `usu_senha`, `usu_sql_senha` e
+os três códigos de segurança: `usu_seguranca` é calculado por função do SQL
+Server com a senha criptografada (código do SalicWeb), e `usu_validacao` e
+`usu_controle` são códigos de verificação da conta. Sai também `ususenha`
+de `usuexternosistemas`. `usu_duracao_senha` (dias) e `ect*_hash` (chave da
+base dos Correios) ficam, e a checagem de credencial do script de validação
+os lista: é esperado.
+
+**Achados.**
+- `usuariosxorgaosxgrupos` é a matriz de permissão dos sistemas internos,
+  SalicWeb e PRONAC inclusive: 30.401 permissões, sem órfão.
+- Em `eventos`, `eve_usuario` é o CPF de quem agiu e `eve_codigo` é o
+  usuário afetado.
+- `v_municipios_por_palavra` não tem município: são as mesmas 43 linhas de
+  UF de `v_estados_por_palavra`.
+- As cópias `_ares` e `_minc11` são fotografias de outros ambientes, a
+  mais recente de 2008.
+- `indice_palavras` indexa nome completo de pessoa (tipo 101): reconstrói
+  nomes, então é restrita.
+
+**Casts.** Os CEPs de `v_logradouro_completo` e `v_localidade_completa`
+eram inteiro e cortavam o zero dos 130 mil logradouros de São Paulo.
+
+**Na skill.** O `perfilar.py` imprimia o domínio de colunas de texto livre
+(`eve_texto` tinha nomes de pessoa). A regra de coluna sensível agora pega
+`texto`, `obs`, `parametro`, `aliases` e `conta`.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG
