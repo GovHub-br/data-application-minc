@@ -7,12 +7,12 @@ version: 2
 models:
   - name: silver_controledeacesso_sgcacesso
     description: >
-      Uma linha por conta de acesso ao SALIC, identificada por idusuario. São
-      409.093 contas, cadastradas de 2006 a 2026, cada uma com um CPF próprio:
-      idusuario e cpf são únicos na tabela inteira. É o cadastro de login do
-      sistema, não o cadastro de agente cultural, que fica no banco agentes.
-      [NÃO VERIFICADO] Se a tabela inclui proponentes, servidores ou os dois;
-      o volume sugere que inclui o público externo.
+      Uma linha por conta de login do público externo do SALIC, como o
+      proponente que apresenta projeto pelo SalicWeb, identificada por
+      idusuario. São 409.093 contas, cadastradas de 2006 a 2026, cada uma com
+      um CPF próprio: idusuario e cpf são únicos na tabela inteira. É o
+      cadastro de login, não o de agente cultural, que fica no banco agentes.
+      Os servidores do MinC têm outro cadastro, tabelas.usuarios.
 
 
       Armadilhas: dtnascimento tem 113 contas com ano 1900, provável sentinela
@@ -36,8 +36,17 @@ models:
           Identificador da conta, sequencial do SQL Server (int identity).
           Único e preenchido nas 409.093 linhas. É a chave que
           silver_controledeacesso_sgcusuarioxsistema usa para ligar a conta
-          aos subsistemas. [NÃO VERIFICADO] Se é o mesmo idusuario que aparece
-          em cerca de 45 tabelas do banco sac.
+          aos subsistemas.
+
+
+          Armadilha no cruzamento com o banco sac: a coluna idusuario das
+          tabelas do sac aponta para cadastros diferentes conforme a tabela.
+          Em sac.preprojeto, a proposta enviada pelo proponente, 99,9% dos
+          valores existem aqui. Em sac.tbdespacho, trâmite interno, 99,98%
+          existem em tabelas.usuarios, o cadastro de servidores. Os dois
+          cadastros usam a mesma faixa de números, então o join com a tabela
+          errada também casa: 96% dos idusuario de sac.tbdespacho existem
+          aqui. Confira a tabela de destino antes de cruzar.
         data_type: integer
         tests:
           - not_null
@@ -97,13 +106,25 @@ models:
           - not_null
       - name: situacao
         description: >
-          Código da situação da conta. Quatro valores: 1 em 142.192 contas, 2
-          em 17.412, 3 em 248.814 e 5 em 675. [NÃO VERIFICADO] O significado
-          de cada código: não há tabela de domínio no banco controledeacesso
-          nem descrição no dicionário.
+          Situação da senha da conta. Não há tabela de domínio no banco nem
+          descrição no dicionário. O significado de 1 e 3 vem do código do
+          SalicWeb, nos controladores de login e de troca de senha.
+          - 1, senha temporária: a conta foi criada ou teve a senha
+            reiniciada, e o sistema pede a troca no próximo login. 142.192
+            contas.
+          - 3, senha definida pelo próprio usuário. 248.814 contas.
+          - 2, em 17.412 contas, e 5, em 675. [NÃO VERIFICADO] O código
+            público não os grava; podem vir de uma versão anterior ou de
+            outra rotina.
         data_type: integer
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 5]
+                quote: false
+              config:
+                severity: warn
       - name: dtsituacao
         description: >
           Data e hora da última mudança de situacao. Preenchida em todas as
@@ -119,9 +140,14 @@ models:
 
   - name: silver_controledeacesso_sgcsistema
     description: >
-      Uma linha por subsistema do SALIC em que uma conta pode ter acesso. São
-      8 subsistemas, com idsistema de 1 a 8 e nomes distintos. É a tabela de
-      domínio de idsistema em silver_controledeacesso_sgcusuarioxsistema.
+      Uma linha por subsistema em que uma conta pode ter acesso. É a tabela
+      de domínio de idsistema em silver_controledeacesso_sgcusuarioxsistema.
+      São 8: 1 Projeto_IDI, Inclusão Cultural da Pessoa Idosa; 2 Projeto_SAI,
+      Sistema de Informações Culturais; 3 Projeto_CP, Prêmio Culturas
+      Populares 2007; 4 Sistema_RH, Sistema de Recursos Humanos; 5 SalicWeb,
+      apresentação de projetos via web; 6 Ciganas, Prêmio Culturas Ciganas
+      2007; 7 SNIIC, Sistema Nacional de Indicadores e Informações Culturais;
+      8 SNC, Sistema Nacional de Cultura.
     config:
       tags: [silver, salic, controledeacesso]
       meta:
@@ -140,11 +166,12 @@ models:
           - unique
       - name: nomesistema
         description: >
-          Nome curto do subsistema, até 20 caracteres. Distinto entre os 8.
+          Nome curto do subsistema, como SalicWeb ou SNIIC. Distinto entre os
+          8.
         data_type: text
       - name: descricaosistema
         description: >
-          Descrição do subsistema em texto livre, até 100 caracteres.
+          Nome por extenso do subsistema, como Sistema Nacional de Cultura.
         data_type: text
       - name: _fatia
         description: >
@@ -156,9 +183,10 @@ models:
     description: >
       Uma linha por par conta e subsistema: diz a que subsistemas cada conta
       tem acesso. São 17.118 pares, sem repetição, para 15.805 contas. Só 4%
-      das contas de silver_controledeacesso_sgcacesso aparecem aqui. Quase
-      todo vínculo é com os subsistemas 7, com 13.832 pares, e 8, com 3.169;
-      os outros cinco somam 117.
+      das contas de silver_controledeacesso_sgcacesso aparecem aqui: o
+      SalicWeb não exige vínculo. Quase todo vínculo é com o SNIIC, 13.832
+      pares, e o SNC, 3.169; os outros cinco subsistemas somam 117, e o
+      Projeto_SAI não tem nenhum.
 
 
       3 pares apontam para um idusuario que não existe mais em

@@ -4918,11 +4918,11 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcacesso.sql",
-      "descricao": "Uma linha por conta de acesso ao SALIC, identificada por idusuario. São 409.093 contas, cadastradas de 2006 a 2026, cada uma com um CPF próprio: idusuario e cpf são únicos na tabela inteira. É o cadastro de login do sistema, não o cadastro de agente cultural, que fica no banco agentes. [NÃO VERIFICADO] Se a tabela inclui proponentes, servidores ou os dois; o volume sugere que inclui o público externo.\n\nArmadilhas: dtnascimento tem 113 contas com ano 1900, provável sentinela de \"não informado\", e datas até 2076, que não são nascimento real. Em 1.568 contas a dtsituacao é anterior à dtcadastro. O e-mail se repete entre contas: há 405.973 distintos para 409.093 contas.\n\nA coluna senha existe na Bronze e foi retirada desta silver: credencial não entra em camada analítica.",
+      "descricao": "Uma linha por conta de login do público externo do SALIC, como o proponente que apresenta projeto pelo SalicWeb, identificada por idusuario. São 409.093 contas, cadastradas de 2006 a 2026, cada uma com um CPF próprio: idusuario e cpf são únicos na tabela inteira. É o cadastro de login, não o de agente cultural, que fica no banco agentes. Os servidores do MinC têm outro cadastro, tabelas.usuarios.\n\nArmadilhas: dtnascimento tem 113 contas com ano 1900, provável sentinela de \"não informado\", e datas até 2076, que não são nascimento real. Em 1.568 contas a dtsituacao é anterior à dtcadastro. O e-mail se repete entre contas: há 405.973 distintos para 409.093 contas.\n\nA coluna senha existe na Bronze e foi retirada desta silver: credencial não entra em camada analítica.",
       "colunas": [
         {
           "nome": "idusuario",
-          "descricao": "Identificador da conta, sequencial do SQL Server (int identity). Único e preenchido nas 409.093 linhas. É a chave que silver_controledeacesso_sgcusuarioxsistema usa para ligar a conta aos subsistemas. [NÃO VERIFICADO] Se é o mesmo idusuario que aparece em cerca de 45 tabelas do banco sac."
+          "descricao": "Identificador da conta, sequencial do SQL Server (int identity). Único e preenchido nas 409.093 linhas. É a chave que silver_controledeacesso_sgcusuarioxsistema usa para ligar a conta aos subsistemas.\n\nArmadilha no cruzamento com o banco sac: a coluna idusuario das tabelas do sac aponta para cadastros diferentes conforme a tabela. Em sac.preprojeto, a proposta enviada pelo proponente, 99,9% dos valores existem aqui. Em sac.tbdespacho, trâmite interno, 99,98% existem em tabelas.usuarios, o cadastro de servidores. Os dois cadastros usam a mesma faixa de números, então o join com a tabela errada também casa: 96% dos idusuario de sac.tbdespacho existem aqui. Confira a tabela de destino antes de cruzar."
         },
         {
           "nome": "cpf",
@@ -4946,7 +4946,7 @@
         },
         {
           "nome": "situacao",
-          "descricao": "Código da situação da conta. Quatro valores: 1 em 142.192 contas, 2 em 17.412, 3 em 248.814 e 5 em 675. [NÃO VERIFICADO] O significado de cada código: não há tabela de domínio no banco controledeacesso nem descrição no dicionário."
+          "descricao": "Situação da senha da conta. Não há tabela de domínio no banco nem descrição no dicionário. O significado de 1 e 3 vem do código do SalicWeb, nos controladores de login e de troca de senha. - 1, senha temporária: a conta foi criada ou teve a senha\n  reiniciada, e o sistema pede a troca no próximo login. 142.192\n  contas.\n- 3, senha definida pelo próprio usuário. 248.814 contas. - 2, em 17.412 contas, e 5, em 675. [NÃO VERIFICADO] O código\n  público não os grava; podem vir de uma versão anterior ou de\n  outra rotina."
         },
         {
           "nome": "dtsituacao",
@@ -4958,7 +4958,7 @@
         }
       ],
       "colunas_descritas": 9,
-      "testes": 9,
+      "testes": 10,
       "materializacao": "",
       "depende_de": [],
       "sources": [
@@ -4972,7 +4972,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcsistema.sql",
-      "descricao": "Uma linha por subsistema do SALIC em que uma conta pode ter acesso. São 8 subsistemas, com idsistema de 1 a 8 e nomes distintos. É a tabela de domínio de idsistema em silver_controledeacesso_sgcusuarioxsistema.",
+      "descricao": "Uma linha por subsistema em que uma conta pode ter acesso. É a tabela de domínio de idsistema em silver_controledeacesso_sgcusuarioxsistema. São 8: 1 Projeto_IDI, Inclusão Cultural da Pessoa Idosa; 2 Projeto_SAI, Sistema de Informações Culturais; 3 Projeto_CP, Prêmio Culturas Populares 2007; 4 Sistema_RH, Sistema de Recursos Humanos; 5 SalicWeb, apresentação de projetos via web; 6 Ciganas, Prêmio Culturas Ciganas 2007; 7 SNIIC, Sistema Nacional de Indicadores e Informações Culturais; 8 SNC, Sistema Nacional de Cultura.",
       "colunas": [
         {
           "nome": "idsistema",
@@ -4980,11 +4980,11 @@
         },
         {
           "nome": "nomesistema",
-          "descricao": "Nome curto do subsistema, até 20 caracteres. Distinto entre os 8."
+          "descricao": "Nome curto do subsistema, como SalicWeb ou SNIIC. Distinto entre os 8."
         },
         {
           "nome": "descricaosistema",
-          "descricao": "Descrição do subsistema em texto livre, até 100 caracteres."
+          "descricao": "Nome por extenso do subsistema, como Sistema Nacional de Cultura."
         },
         {
           "nome": "_fatia",
@@ -5006,7 +5006,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcusuarioxsistema.sql",
-      "descricao": "Uma linha por par conta e subsistema: diz a que subsistemas cada conta tem acesso. São 17.118 pares, sem repetição, para 15.805 contas. Só 4% das contas de silver_controledeacesso_sgcacesso aparecem aqui. Quase todo vínculo é com os subsistemas 7, com 13.832 pares, e 8, com 3.169; os outros cinco somam 117.\n\n3 pares apontam para um idusuario que não existe mais em silver_controledeacesso_sgcacesso. O teste de relacionamento avisa, sem travar o build.",
+      "descricao": "Uma linha por par conta e subsistema: diz a que subsistemas cada conta tem acesso. São 17.118 pares, sem repetição, para 15.805 contas. Só 4% das contas de silver_controledeacesso_sgcacesso aparecem aqui: o SalicWeb não exige vínculo. Quase todo vínculo é com o SNIIC, 13.832 pares, e o SNC, 3.169; os outros cinco subsistemas somam 117, e o Projeto_SAI não tem nenhum.\n\n3 pares apontam para um idusuario que não existe mais em silver_controledeacesso_sgcacesso. O teste de relacionamento avisa, sem travar o build.",
       "colunas": [
         {
           "nome": "idusuario",
@@ -44063,7 +44063,7 @@
     },
     "salic": {
       "modelos": 600,
-      "testes": 4944,
+      "testes": 4945,
       "camadas": {
         "silver": 4,
         "bronze": 586,
@@ -44478,7 +44478,7 @@
   ],
   "totais": {
     "modelos": 734,
-    "testes": 5186,
+    "testes": 5187,
     "com_descricao": 733,
     "sources": 78
   }

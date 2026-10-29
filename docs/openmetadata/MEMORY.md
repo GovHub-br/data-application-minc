@@ -713,9 +713,22 @@ senha, que saiu com a coluna, e o `not_null` de `nome`, porque 2 contas não
 têm nome. O perfil arredondava 2 em 409 mil para 100,0%. Ele passou a
 imprimir o número absoluto de vazios.
 
-**Pendência.** A `senha` saiu da silver, mas continua na Bronze, que
-`dl_analytics` lê e o profiler do OpenMetadata perfila. Abrir issue para a
-ingestão não trazer a coluna ou para o OpenMetadata ignorá-la.
+**Com o banco aberto (serviço `dbanalytics_leitura`).** Os 8 subsistemas
+têm nome: o 7 é o SNIIC e o 8 é o SNC. O código público do SalicWeb
+(`lablivre-unb/salic-br`) dá o significado de `situacao` 1, senha
+temporária, e 3, senha definida pelo usuário. O 2 e o 5 seguem sem
+explicação. Achado que vale para o `sac`: `idusuario` aponta para
+`controledeacesso.sgcacesso` em tabelas do proponente, como
+`preprojeto`, e para `tabelas.usuarios` em tabelas de trâmite interno, como
+`tbdespacho`. As faixas de número se sobrepõem, então o join errado também
+casa.
+
+**Pendências.**
+- A `senha` saiu da silver, mas continua na Bronze, que `dl_analytics` lê e
+  o profiler do OpenMetadata perfila. Abrir issue para a ingestão não trazer
+  a coluna ou para o OpenMetadata ignorá-la.
+- `tabelas.usuarios` tem `usu_senha` e `usu_sql_senha`. O lote `tabelas`
+  tira as duas da silver.
 
 ---
 
