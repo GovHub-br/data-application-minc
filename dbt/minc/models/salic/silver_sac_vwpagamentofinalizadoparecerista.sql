@@ -3,7 +3,7 @@
 -- Origem: salic.bronze_sac_vwpagamentofinalizadoparecerista, onde tudo chega como
 -- texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 29 colunas: 10 tipadas, 18 mantidas como texto.
+-- 29 colunas: 9 tipadas, 19 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -13,7 +13,7 @@ select
     {{ bronze_texto("cnpjcpf") }} as cnpjcpf,
     {{ bronze_texto("nmparecerista") }} as nmparecerista,
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("nrpronac") }} as nrpronac,
+    {{ bronze_texto("nrpronac") }} as nrpronac,
     {{ bronze_texto("nmprojeto") }} as nmprojeto,
     {{ bronze_inteiro("area") }} as area,
     {{ bronze_texto("nmarea") }} as nmarea,

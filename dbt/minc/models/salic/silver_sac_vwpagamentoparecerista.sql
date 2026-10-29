@@ -2,7 +2,7 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpagamentoparecerista, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 20 colunas: 12 tipadas, 7 mantidas como texto.
+-- 20 colunas: 11 tipadas, 8 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -14,7 +14,7 @@ select
     {{ bronze_texto("cnpjcpf") }} as cnpjcpf,
     {{ bronze_texto("parecerista") }} as parecerista,
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("pronac") }} as pronac,
+    {{ bronze_texto("pronac") }} as pronac,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_inteiro("idproduto") }} as idproduto,
     {{ bronze_texto("produto") }} as produto,
