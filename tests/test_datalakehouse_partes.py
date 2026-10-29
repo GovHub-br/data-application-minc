@@ -4,7 +4,8 @@ O proxy na frente do MinIO do servidor recusa corpo acima de 1 MiB, e o
 TransfereGov grava JSON de dezenas de MB (planos de ação, relatórios) e
 planilhas maiores que isso. A regra é a do SICONFI (ADR 0014):
 
-- o que passa do limite vira partes ``<nome>_pNNdeMM.<ext>``, cada uma abaixo dele;
+- o que passa do limite vira partes ``<nome>_g<geração>_pNNdeMM.<ext>``, cada uma
+  abaixo dele; a geração vem do conteúdo;
 - ler o arquivo dividido devolve exatamente o que o inteiro devolveria;
 - um arquivo existe inteiro **ou** dividido, nunca as duas coisas, e nunca
   dividido de dois jeitos -- a gravação apaga a outra forma depois de gravar tudo;
@@ -13,6 +14,7 @@ planilhas maiores que isso. A regra é a do SICONFI (ADR 0014):
 
 import io
 import json
+import logging
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any, Iterator
@@ -27,6 +29,8 @@ from datalakehouse import (
     agrupar_partes,
     dividir_bytes,
     key_da_parte,
+    limite_da_variable,
+    neutralizar_sufixo_de_parte,
     parte_da_key,
     partes_do_json,
     partes_do_parquet,
@@ -36,6 +40,7 @@ from extracao_por_plano_acao import AnexoBaixado, ids_ja_baixados, key_anexo_arq
 
 _DATA = datetime(2026, 10, 1, 12, 0, tzinfo=timezone.utc)
 _RUN = "manual__2026-10-01T12:00:00+00:00"
+_G = "0123abcd"  # uma geração qualquer, para os testes de nome
 
 
 def _registros(n: int) -> list[dict[str, Any]]:
@@ -64,25 +69,52 @@ def _ler_parquet(corpo: bytes) -> pd.DataFrame:
     [
         (
             "raw/transferegov/plano_acao_minc/ano=2026/mes=10/dia=01/run.json",
-            "raw/transferegov/plano_acao_minc/ano=2026/mes=10/dia=01/run_p02de03.json",
+            "raw/transferegov/plano_acao_minc/ano=2026/mes=10/dia=01/"
+            "run_g0123abcd_p02de03.json",
         ),
-        ("staging/t/e/run.x.parquet", "staging/t/e/run.x_p02de03.parquet"),
+        ("staging/t/e/run.x.parquet", "staging/t/e/run.x_g0123abcd_p02de03.parquet"),
         (
             "raw/transferegov/anexos_arquivos/lpg/anexo_10_Planilha Final.xlsx",
-            "raw/transferegov/anexos_arquivos/lpg/anexo_10_Planilha Final_p02de03.xlsx",
+            "raw/transferegov/anexos_arquivos/lpg/"
+            "anexo_10_Planilha Final_g0123abcd_p02de03.xlsx",
         ),
-        ("raw/t/sem_extensao", "raw/t/sem_extensao_p02de03"),
+        ("raw/t/sem_extensao", "raw/t/sem_extensao_g0123abcd_p02de03"),
     ],
 )
 def test_parte_mantem_pasta_e_extensao_e_volta_para_a_key(
     key: str, esperada: str
 ) -> None:
-    assert key_da_parte(key, 2, 3) == esperada
-    assert parte_da_key(esperada) == (key, 2, 3)
+    assert key_da_parte(key, 2, 3, _G) == esperada
+    assert parte_da_key(esperada) == (key, _G, 2, 3)
 
 
 def test_key_inteira_nao_e_parte() -> None:
     assert parte_da_key("raw/t/e/run.json") is None
+
+
+def test_sufixo_de_parte_sem_geracao_nao_e_parte() -> None:
+    """``_pNdeM`` sem a geração é o que o SICONFI e qualquer nome de usuário
+    podem ter; não é parte de um arquivo gravado por este módulo."""
+    assert parte_da_key("raw/t/cronograma_p1de2.xlsx") is None
+
+
+def test_geracao_invalida_e_recusada() -> None:
+    with pytest.raises(ValueError, match="geração inválida"):
+        key_da_parte("raw/t/run.json", 1, 2, "XYZ")
+
+
+@pytest.mark.parametrize(
+    ("nome", "esperado"),
+    [
+        ("cronograma_p1de2.xlsx", "cronograma-p1de2.xlsx"),
+        ("relatorio_g0123abcd_p01de02.xlsx", "relatorio_g0123abcd-p01de02.xlsx"),
+        ("sem_extensao_p3de3", "sem_extensao-p3de3"),
+        ("planilha_p1de2_final.xlsx", "planilha_p1de2_final.xlsx"),  # não está no fim
+        ("Planilha Final.xlsx", "Planilha Final.xlsx"),
+    ],
+)
+def test_nome_vindo_de_fora_perde_so_o_sufixo_de_parte(nome: str, esperado: str) -> None:
+    assert neutralizar_sufixo_de_parte(nome) == esperado
 
 
 # ── conteúdo das partes ──────────────────────────────────────────────────
@@ -140,19 +172,36 @@ def test_bytes_divididos_voltam_iguais() -> None:
     assert b"".join(partes) == conteudo
 
 
+# ── limite configurável ──────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("valor", "esperado"),
+    [(900, 900 * 1024), ("900", 900 * 1024), (" 2048 ", 2048 * 1024), (0, None)],
+)
+def test_limite_da_variable(valor: object, esperado: int | None) -> None:
+    assert limite_da_variable(valor) == esperado
+
+
+@pytest.mark.parametrize("valor", [-1, "-900", "1.5", "novecentos", "", None])
+def test_limite_negativo_ou_invalido_falha_em_vez_de_desligar(valor: object) -> None:
+    with pytest.raises(ValueError, match="0 para desligar"):
+        limite_da_variable(valor)
+
+
 # ── conferência: inteiro ou partes completas, nunca as duas coisas ───────
 
 
+def _p(arquivo: str, indice: int, total: int, geracao: str = _G) -> str:
+    return key_da_parte(arquivo, indice, total, geracao)
+
+
 def test_agrupa_inteiros_e_partes_completas_em_ordem() -> None:
-    keys = [
-        "raw/a.json",
-        "raw/b_p02de02.json",
-        "raw/b_p01de02.json",
-    ]
+    keys = ["raw/a.json", _p("raw/b.json", 2, 2), _p("raw/b.json", 1, 2)]
     completos, problemas = agrupar_partes(keys)
     assert completos == {
         "raw/a.json": ["raw/a.json"],
-        "raw/b.json": ["raw/b_p01de02.json", "raw/b_p02de02.json"],
+        "raw/b.json": [_p("raw/b.json", 1, 2), _p("raw/b.json", 2, 2)],
     }
     assert problemas == set()
 
@@ -160,9 +209,16 @@ def test_agrupa_inteiros_e_partes_completas_em_ordem() -> None:
 @pytest.mark.parametrize(
     "keys",
     [
-        ["raw/b_p01de03.json", "raw/b_p03de03.json"],  # parte faltando
-        ["raw/b.json", "raw/b_p01de02.json", "raw/b_p02de02.json"],  # inteiro e dividido
-        ["raw/b_p01de02.json", "raw/b_p02de02.json", "raw/b_p01de01.json"],  # dois totais
+        # parte faltando
+        [_p("raw/b.json", 1, 3), _p("raw/b.json", 3, 3)],
+        # inteiro e dividido
+        ["raw/b.json", _p("raw/b.json", 1, 2), _p("raw/b.json", 2, 2)],
+        # dois totais
+        [_p("raw/b.json", 1, 2), _p("raw/b.json", 2, 2), _p("raw/b.json", 1, 1)],
+        # duas gerações com o mesmo total: uma regravação que caiu no meio
+        [_p("raw/b.json", 1, 2), _p("raw/b.json", 2, 2, "ffffffff")],
+        # total gigante no nome: recusado sem montar o intervalo declarado
+        [_p("raw/b.json", 1, 1_000_000_000)],
     ],
 )
 def test_arquivo_incompleto_ou_ambiguo_nao_e_completo(keys: list[str]) -> None:
@@ -179,10 +235,15 @@ class _MinioFalso:
 
     def __init__(self) -> None:
         self.objetos: dict[str, bytes] = {}
+        self.cair_depois_de: int | None = None
 
     def load_bytes(
         self, bytes_data: bytes, key: str, bucket_name: str, replace: bool
     ) -> None:
+        if self.cair_depois_de is not None:
+            if self.cair_depois_de == 0:
+                raise ConnectionError("conexão caiu no meio da gravação")
+            self.cair_depois_de -= 1
         self.objetos[key] = bytes(bytes_data)
 
     def get_key(self, key: str, bucket_name: str) -> SimpleNamespace:
@@ -264,15 +325,43 @@ def test_regravar_dividido_apaga_o_inteiro_e_a_divisao_antiga(minio: _MinioFalso
     datalakehouse.gravar_bytes_em_partes(b"z" * 30_000, key)  # 4 partes
     datalakehouse.gravar_bytes_em_partes(b"w" * 20_000, key)  # 3 partes
     partes = sorted(k for k in minio.objetos if k != vizinho)
-    assert partes == [key_da_parte(key, i, 3) for i in (1, 2, 3)]
+    assert [parte_da_key(k)[2:] for k in partes] == [  # type: ignore[index]
+        (1, 3),
+        (2, 3),
+        (3, 3),
+    ]
     assert minio.objetos[vizinho] == b"outro arquivo"
     assert datalakehouse.ler_bytes(key) == b"w" * 20_000
+
+
+def test_regravacao_que_cai_no_meio_nao_vira_mistura(minio: _MinioFalso) -> None:
+    """Mesmo número de partes e outro conteúdo: sem a geração no nome, a parte 1
+    nova sobrescreveria a antiga e a leitura aceitaria nova + antigas como completo."""
+    key = key_anexo_arquivo("lpg", 10, "planilha.xlsx")
+    datalakehouse.gravar_bytes_em_partes(b"a" * 20_000, key)  # 3 partes
+    minio.cair_depois_de = 1
+    with pytest.raises(ConnectionError):
+        datalakehouse.gravar_bytes_em_partes(b"b" * 20_000, key)  # 3 partes
+    with pytest.raises(PartesInconsistentes):
+        datalakehouse.ler_bytes(key)
+    minio.cair_depois_de = None
+    datalakehouse.gravar_bytes_em_partes(b"b" * 20_000, key)
+    assert datalakehouse.ler_bytes(key) == b"b" * 20_000
+    assert len(minio.objetos) == 3
+
+
+def test_regravar_o_mesmo_conteudo_reusa_os_mesmos_nomes(minio: _MinioFalso) -> None:
+    key = key_anexo_arquivo("lpg", 10, "planilha.xlsx")
+    datalakehouse.gravar_bytes_em_partes(b"c" * 20_000, key)
+    antes = sorted(minio.objetos)
+    datalakehouse.gravar_bytes_em_partes(b"c" * 20_000, key)
+    assert sorted(minio.objetos) == antes
 
 
 def test_arquivo_com_parte_faltando_nao_e_lido(minio: _MinioFalso) -> None:
     key = key_anexo_arquivo("lpg", 10, "planilha.xlsx")
     datalakehouse.gravar_bytes_em_partes(b"z" * 30_000, key)
-    del minio.objetos[key_da_parte(key, 2, 4)]
+    del minio.objetos[sorted(minio.objetos)[1]]
     with pytest.raises(PartesInconsistentes, match="faltando"):
         datalakehouse.ler_bytes(key)
 
@@ -289,16 +378,28 @@ def test_anexo_dividido_so_conta_como_baixado_com_todas_as_partes() -> None:
     inteiro = key_anexo_arquivo("pnab", 11, "outra.xlsx")
     dividido = key_anexo_arquivo("lpg", 10, "planilha.xlsx")
     incompleto = key_anexo_arquivo("lpg", 12, "faltando.xlsx")
-    keys = [
-        inteiro,
-        key_da_parte(dividido, 2, 2),
-        key_da_parte(dividido, 1, 2),
-        key_da_parte(incompleto, 1, 2),
-    ]
+    keys = [inteiro, _p(dividido, 2, 2), _p(dividido, 1, 2), _p(incompleto, 1, 2)]
     assert ids_ja_baixados(keys) == {
         "11": AnexoBaixado(key=inteiro, partes=[inteiro]),
-        "10": AnexoBaixado(
-            key=dividido,
-            partes=[key_da_parte(dividido, 1, 2), key_da_parte(dividido, 2, 2)],
-        ),
+        "10": AnexoBaixado(key=dividido, partes=[_p(dividido, 1, 2), _p(dividido, 2, 2)]),
     }
+
+
+def test_anexo_com_nome_de_parte_conta_como_baixado() -> None:
+    """O nome vem do usuário: ``cronograma_p1de2.xlsx`` não pode virar parte 1 de 2
+    de outro arquivo, senão nunca conta como baixado e nunca é extraído."""
+    key = key_anexo_arquivo("lpg", 42, "cronograma_p1de2.xlsx")
+    assert key.endswith("/anexo_42_cronograma-p1de2.xlsx")
+    assert ids_ja_baixados([key]) == {"42": AnexoBaixado(key=key, partes=[key])}
+    dividido = [_p(key, 1, 2), _p(key, 2, 2)]
+    assert ids_ja_baixados(dividido) == {"42": AnexoBaixado(key=key, partes=dividido)}
+
+
+def test_aviso_de_anexo_incompleto_nao_mostra_o_nome_do_arquivo(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    incompleto = key_anexo_arquivo("lpg", 12, "Fulano de Tal - perfil.xlsx")
+    with caplog.at_level(logging.WARNING):
+        assert ids_ja_baixados([_p(incompleto, 1, 2)]) == {}
+    assert "12" in caplog.text
+    assert "Fulano" not in caplog.text

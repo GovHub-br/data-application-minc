@@ -28,7 +28,7 @@ aquele run processou, então o consumidor precisa ler todos os eventos recebidos
 
 O proxy na frente do MinIO recusa arquivo acima de 1 MiB. ``gravar_raw``,
 ``raw_para_staging`` e ``gravar_bytes_em_partes`` gravam o que passa do limite
-como partes ``<nome>_pNNdeMM.<ext>``, e ``ler_raw``, ``ler_parquet`` e
+como partes ``<nome>_g<geração>_pNNdeMM.<ext>``, e ``ler_raw``, ``ler_parquet`` e
 ``ler_bytes`` juntam: quem chama continua usando a key do arquivo. Um arquivo
 existe inteiro ou em partes completas, nunca as duas coisas (ADR 0011, adendo).
 """
@@ -36,6 +36,7 @@ existe inteiro ou em partes completas, nunca as duas coisas (ADR 0011, adendo).
 from __future__ import annotations
 
 import functools
+import hashlib
 import io
 import json
 import logging
@@ -70,6 +71,18 @@ _CARACTERE_INSEGURO = re.compile(r"[^A-Za-z0-9._=-]")
 # resolve: cada parte tem no mínimo 5 MB.
 LIMITE_OBJETO_BYTES = 900 * 1024  # 900 KiB
 _PARTE_NO_NOME = re.compile(r"^(?P<base>.+)_p(?P<indice>\d+)de(?P<total>\d+)$")
+# Parte de um arquivo gravado por ``_gravar_partes``: ``<nome>_g<geração>_pNNdeMM``.
+# A geração são os 8 primeiros hex do SHA-256 do conteúdo: regravar o mesmo
+# arquivo com outro conteúdo nunca sobrescreve no lugar uma parte da gravação
+# anterior, então uma task que cai no meio deixa duas gerações -- que a leitura
+# recusa -- e não uma mistura que pareça completa. O SICONFI usa ``nome_da_parte``
+# sem geração.
+_PARTE_COM_GERACAO = re.compile(
+    r"^(?P<base>.+)_g(?P<geracao>[0-9a-f]{8})_p(?P<indice>\d+)de(?P<total>\d+)$"
+)
+# Sufixo ``_pNdeM`` no fim de um nome que veio de fora (o nome que o usuário deu
+# à planilha anexa): ver ``neutralizar_sufixo_de_parte``.
+_SUFIXO_DE_PARTE = re.compile(r"_(?=p\d+de\d+$)")
 # Variable com o limite em KiB para quem grava pelas funções de raw, staging e
 # anexo deste módulo (o TransfereGov). Ausente, vale LIMITE_OBJETO_BYTES; 0
 # desliga a divisão, para quando o proxy passar a aceitar arquivos maiores. A
@@ -197,29 +210,54 @@ def parte_do_nome(nome: str) -> tuple[str, int, int] | None:
     return achado["base"], int(achado["indice"]), int(achado["total"])
 
 
-def key_da_parte(key: str, indice: int, total: int) -> str:
+def neutralizar_sufixo_de_parte(nome: str) -> str:
+    """``nome`` sem o ``_pNdeM`` no fim, que o faria parecer parte de outro arquivo.
+
+    Para nome que vem de fora, como o que o usuário deu à planilha anexa:
+    ``cronograma_p1de2.xlsx`` vira ``cronograma-p1de2.xlsx``. O resto do nome fica
+    como está.
+    """
+    caminho_nome = PurePosixPath(nome)
+    return _SUFIXO_DE_PARTE.sub("-", caminho_nome.stem) + caminho_nome.suffix
+
+
+def geracao_do_conteudo(partes: Iterable[bytes]) -> str:
+    """8 primeiros hex do SHA-256 das ``partes`` em ordem (ver ``_PARTE_COM_GERACAO``)."""
+    soma = hashlib.sha256()
+    for parte in partes:
+        soma.update(parte)
+    return soma.hexdigest()[:8]
+
+
+def key_da_parte(key: str, indice: int, total: int, geracao: str) -> str:
     """Key da parte ``indice`` de ``total`` de ``key``, na mesma pasta e com a
-    mesma extensão: ``.../run.json`` vira ``.../run_p02de03.json``.
+    mesma extensão: ``.../run.json`` vira ``.../run_g<geracao>_p02de03.json``.
 
     A extensão fica no fim para quem filtra por ela (a extração dos anexos só
     abre ``.xlsx``, ``.xls``...) continuar reconhecendo a parte.
     """
+    if not re.fullmatch(r"[0-9a-f]{8}", geracao):
+        raise ValueError(f"geração inválida: {geracao!r} (8 hex minúsculos)")
     caminho_key = PurePosixPath(key)
+    base = f"{caminho_key.stem}_g{geracao}"
     return str(
-        caminho_key.with_name(
-            nome_da_parte(caminho_key.stem, indice, total) + caminho_key.suffix
-        )
+        caminho_key.with_name(nome_da_parte(base, indice, total) + caminho_key.suffix)
     )
 
 
-def parte_da_key(key: str) -> tuple[str, int, int] | None:
-    """O inverso de ``key_da_parte``: ``(key do arquivo, indice, total)``, ou ``None``."""
+def parte_da_key(key: str) -> tuple[str, str, int, int] | None:
+    """O inverso de ``key_da_parte``: ``(key do arquivo, geracao, indice, total)``,
+    ou ``None`` se ``key`` não é parte."""
     caminho_key = PurePosixPath(key)
-    achado = parte_do_nome(caminho_key.stem)
+    achado = _PARTE_COM_GERACAO.match(caminho_key.stem)
     if achado is None:
         return None
-    base, indice, total = achado
-    return str(caminho_key.with_name(base + caminho_key.suffix)), indice, total
+    return (
+        str(caminho_key.with_name(achado["base"] + caminho_key.suffix)),
+        achado["geracao"],
+        int(achado["indice"]),
+        int(achado["total"]),
+    )
 
 
 class PartesInconsistentes(ValueError):
@@ -233,30 +271,33 @@ def agrupar_partes(keys: Iterable[str]) -> tuple[dict[str, list[str]], set[str]]
     Devolve ``(completos, problemas)``. ``completos``: ``key do arquivo -> keys
     para ler``, em ordem -- a própria key, se o arquivo está inteiro, ou todas as
     partes de uma divisão. ``problemas``: arquivos com parte faltando, inteiros e
-    divididos ao mesmo tempo, ou divididos de dois jeitos (``total`` diferente);
-    é a mesma conferência do SICONFI (``siconfi_storage.contar_paginas``).
+    divididos ao mesmo tempo, ou divididos de dois jeitos (outra geração ou outro
+    ``total``); é a mesma conferência do SICONFI (``siconfi_storage.contar_paginas``).
     """
     inteiros: set[str] = set()
-    partes: dict[str, dict[int, dict[int, str]]] = {}  # arquivo -> total -> indice -> key
+    # arquivo -> (geração, total) -> índice -> key
+    partes: dict[str, dict[tuple[str, int], dict[int, str]]] = {}
     for key in keys:
         achado = parte_da_key(key)
         if achado is None:
             inteiros.add(key)
             continue
-        arquivo, indice, total = achado
-        partes.setdefault(arquivo, {}).setdefault(total, {})[indice] = key
+        arquivo, geracao, indice, total = achado
+        partes.setdefault(arquivo, {}).setdefault((geracao, total), {})[indice] = key
 
-    problemas = {arquivo for arquivo, por_total in partes.items() if len(por_total) > 1}
+    problemas = {arquivo for arquivo, divisoes in partes.items() if len(divisoes) > 1}
     problemas |= inteiros & set(partes)
     completos = {key: [key] for key in inteiros - problemas}
-    for arquivo, por_total in partes.items():
+    for arquivo, divisoes in partes.items():
         if arquivo in problemas:
             continue
-        ((total, vistas),) = por_total.items()
-        if set(vistas) != set(range(1, total + 1)):
+        (((_, total), vistas),) = divisoes.items()
+        # Quantidade e limites dos índices presentes, sem montar o intervalo
+        # declarado: o total vem do nome e pode ser qualquer número.
+        if len(vistas) != total or not all(1 <= indice <= total for indice in vistas):
             problemas.add(arquivo)
             continue
-        completos[arquivo] = [vistas[indice] for indice in range(1, total + 1)]
+        completos[arquivo] = [vistas[indice] for indice in sorted(vistas)]
     return completos, problemas
 
 
@@ -518,17 +559,36 @@ def run_atual() -> tuple[str, datetime]:
     return dag_run.run_id, data
 
 
+def limite_da_variable(valor: Any) -> int | None:
+    """O limite em bytes a partir do valor da Variable, em KiB; ``None`` com ``0``.
+
+    Negativo ou não inteiro falha, em vez de desligar a divisão sem avisar.
+    """
+    texto = str(valor).strip()
+    if not texto.isdigit():
+        raise ValueError(
+            f"Variable {VARIABLE_LIMITE_KIB} = {valor!r}: use um inteiro de KiB "
+            "maior que zero, ou 0 para desligar a divisão"
+        )
+    kib = int(texto)
+    return kib * 1024 if kib else None
+
+
 @functools.cache
 def limite_objeto_bytes() -> int | None:
     """Limite por arquivo de quem grava raw, staging e anexo por este módulo.
 
-    Lido da Variable ``VARIABLE_LIMITE_KIB`` uma vez por processo; ausente, vale
-    ``LIMITE_OBJETO_BYTES``. ``None`` (Variable em 0) desliga a divisão.
+    Vem da Variable ``VARIABLE_LIMITE_KIB`` (``limite_da_variable``); ausente,
+    vale ``LIMITE_OBJETO_BYTES``. ``None`` (Variable em 0) desliga a divisão.
+
+    Lida uma vez por processo e guardada: mudar a Variable não afeta uma task
+    que já leu, só as que começarem depois (cada task do Airflow é um processo).
     """
     from airflow.sdk import Variable
 
-    kib = int(Variable.get(VARIABLE_LIMITE_KIB, default=LIMITE_OBJETO_BYTES // 1024))
-    return kib * 1024 if kib > 0 else None
+    return limite_da_variable(
+        Variable.get(VARIABLE_LIMITE_KIB, default=LIMITE_OBJETO_BYTES // 1024)
+    )
 
 
 def _prefixo_das_formas(key: str) -> str:
@@ -539,19 +599,21 @@ def _prefixo_das_formas(key: str) -> str:
 
 def _gravar_partes(partes: Sequence[bytes], key: str) -> list[str]:
     """Grava o arquivo ``key``: inteiro, se ``partes`` tem uma só, ou como
-    ``key_da_parte(key, i, total)``. Devolve as keys gravadas.
+    ``key_da_parte(key, i, total, geracao)``. Devolve as keys gravadas.
 
     Mesma regra do SICONFI (``siconfi_storage.gravar_envelope``): só depois de
     gravar tudo, apaga a outra forma do mesmo arquivo -- o inteiro de uma
-    tentativa anterior, ou partes de uma divisão com outro total. Se a task cair
-    antes, fica a forma antiga; nunca as duas, que juntas repetiriam registros.
+    tentativa anterior, ou partes de outra geração. Se a task cair antes, ficam
+    as duas formas e a leitura recusa o arquivo até a próxima gravação completa;
+    como a geração vem do conteúdo, regravar nunca sobrescreve no lugar uma
+    parte de conteúdo diferente, e uma mistura não passa por completa.
     """
     total = len(partes)
-    keys = (
-        [key]
-        if total == 1
-        else [key_da_parte(key, i, total) for i in range(1, total + 1)]
-    )
+    if total == 1:
+        keys = [key]
+    else:
+        geracao = geracao_do_conteudo(partes)
+        keys = [key_da_parte(key, i, total, geracao) for i in range(1, total + 1)]
     hook = get_hook()
     for key_parte, corpo in zip(keys, partes):
         hook.load_bytes(bytes_data=corpo, key=key_parte, bucket_name=BUCKET, replace=True)

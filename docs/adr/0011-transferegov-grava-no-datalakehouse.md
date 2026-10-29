@@ -120,8 +120,8 @@ no mínimo 5 MB.
 
 **Decisão: a mesma divisão do SICONFI (ADR 0014), nas funções de
 `helpers/datalakehouse.py`.** O que passa do limite vira arquivos
-`<nome>_pNNdeMM.<ext>`, cada um abaixo de 900 KiB, na mesma pasta e com a mesma
-extensão:
+`<nome>_g<geração>_pNNdeMM.<ext>`, cada um abaixo de 900 KiB, na mesma pasta e
+com a mesma extensão:
 
 - **raw** (`gravar_raw`): cada parte é uma lista JSON com um trecho dos registros;
 - **staging** (`raw_para_staging`): cada parte é um Parquet com uma fatia das
@@ -136,22 +136,44 @@ pontes não mudam.
 
 **Inteiro ou partes completas, nunca as duas coisas.** A gravação grava todas
 as partes e só depois apaga a outra forma do mesmo arquivo — o inteiro de uma
-tentativa anterior, ou partes de uma divisão com outro total. A leitura confere:
-com parte faltando, inteiro e dividido ao mesmo tempo, ou dividido de dois
-jeitos, `PartesInconsistentes` em vez de devolver registros a menos ou
-repetidos. Um anexo assim não conta como baixado e volta a ser baixado, e a
-nova gravação limpa a forma antiga.
+tentativa anterior, ou partes de outra geração. A leitura confere: com parte
+faltando, inteiro e dividido ao mesmo tempo, ou dividido de dois jeitos (outra
+geração ou outro total), `PartesInconsistentes` em vez de devolver registros a
+menos ou repetidos. Um anexo assim não conta como baixado e volta a ser
+baixado, e a nova gravação limpa a forma antiga.
+
+**A geração no nome é o que torna a gravação segura contra queda no meio.** São
+os 8 primeiros hex do SHA-256 do conteúdo. Sem ela, regravar um arquivo com
+outro conteúdo e o mesmo número de partes sobrescreveria as partes no lugar, e
+uma task que caísse depois da primeira deixaria uma mistura de partes novas e
+antigas com cara de completa. Com ela, conteúdo diferente vai para nomes
+diferentes: a queda deixa duas gerações, que a leitura recusa até a próxima
+gravação completa. Regravar o mesmo conteúdo reusa os mesmos nomes. O SICONFI
+não tem geração (`siconfi_storage.partes_do_envelope`).
+
+**Nome que vem de fora não pode parecer parte.** O nome do anexo é o que o
+usuário deu à planilha; `key_anexo_arquivo` troca um `_pNdeM` no fim dele por
+`-pNdeM` (`cronograma_p1de2.xlsx` vira `cronograma-p1de2.xlsx`), senão o anexo
+seria lido como parte de outro arquivo, nunca contaria como baixado e nunca
+seria extraído. O aviso de anexo incompleto mostra só os ids, não as keys, que
+trazem esse nome.
 
 **Limite configurável.** A Variable `datalakehouse_limite_objeto_kib` (padrão
 900) vale para essas funções; `0` desliga a divisão quando o proxy passar a
-aceitar arquivos maiores. A leitura segue juntando partes já gravadas.
+aceitar arquivos maiores. Valor negativo ou não inteiro falha, em vez de
+desligar a divisão sem avisar. A Variable é lida uma vez por processo: mudar
+vale para as tasks que começarem depois. A leitura segue juntando partes já
+gravadas.
 
 **Fora do escopo.** O SICONFI continua com a divisão própria
 (`siconfi_storage.partes_do_envelope`) e o limite fixo. A
 `inep_censo_escolar_dag` envia o ZIP do Censo Escolar (537 MB) por
 `gravar_arquivo` e continua barrada pelo proxy.
 
-**Consequência para quem lê o MinIO por fora do Airflow.** Um Parquet dividido é
-uma pasta com vários arquivos, o que Trino, pandas e Spark já leem; um JSON
-dividido é uma lista por arquivo. Uma planilha dividida só abre depois de
-juntar as partes na ordem.
+**Consequência para quem lê o MinIO por fora do Airflow.** As partes ficam na
+mesma pasta dos outros runs da entidade (`.../dia=DD/`), não numa pasta própria:
+o arquivo de um run são as keys que começam por `<run_id>_g`, e quem lê a pasta
+do dia inteira já lê todas as partes de todos os runs, como antes lia todos os
+arquivos inteiros. Um Parquet dividido em vários arquivos é algo que Trino,
+pandas e Spark leem sem adaptação; um JSON dividido é uma lista por arquivo. Uma
+planilha dividida só abre depois de juntar as partes na ordem.
