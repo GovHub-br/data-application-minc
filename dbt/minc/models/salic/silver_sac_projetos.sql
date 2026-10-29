@@ -11,7 +11,7 @@ select
     {{ bronze_texto("sequencial") }} as sequencial,
     {{ bronze_texto("ufprojeto") }} as ufprojeto,
     {{ bronze_inteiro("area") }} as area,
-    {{ bronze_inteiro("segmento") }} as segmento,
+    {{ bronze_texto("segmento") }} as segmento,
     {{ bronze_inteiro("mecanismo") }} as mecanismo,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("processo") }} as processo,

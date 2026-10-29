@@ -2,12 +2,12 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vsegmento, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 6 colunas: 3 tipadas, 2 mantidas como texto.
+-- 6 colunas: 2 tipadas, 3 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("area") }} as area,
-    {{ bronze_inteiro("codigo") }} as codigo,
+    {{ bronze_texto("codigo") }} as codigo,
     {{ bronze_texto("segmento") }} as segmento,
     {{ bronze_inteiro("idorgao") }} as idorgao,
     {{ bronze_texto("tp_enquadramento") }} as tp_enquadramento,

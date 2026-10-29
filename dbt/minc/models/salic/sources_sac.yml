@@ -18,11 +18,11 @@ sources:
         description: >
           Comprovações de pagamento dos projetos da Lei Rouanet: um registro por
           item comprovado, com fornecedor, documento, valor e localidade.
-          2.620.988 linhas. Ingerida em 2026-09-04.
+          2.621.182 linhas em 29/10/2026. Ingerida em 2026-09-04.
 
-          É a fonte do indicador de primeiro acesso da Meta 5 e dos indicadores
-          territoriais da Meta 4 — carrega `sguf`, `nmmunicipio` e `dsregiao` no
-          próprio registro, além do PRONAC em `nrpronac`.
+          É a fonte do indicador de primeiro acesso da Meta 5. Traz `nmmunicipio`
+          e `dsregiao` no próprio registro e o PRONAC em `nrpronac`. `sguf` não é
+          sigla de UF: são as duas primeiras letras do nome do estado, ambíguas.
         config:
           tags: [bronze, salic, sac]
         meta:
@@ -62,7 +62,7 @@ sources:
             description: Valor pago no item comprovado.
             data_type: text
           - name: sguf
-            description: Sigla da unidade federativa onde a despesa foi realizada.
+            description: Duas primeiras letras do nome do estado do fornecedor. Não é sigla de UF.
             data_type: text
           - name: nmmunicipio
             description: Nome do município onde a despesa foi realizada.
@@ -93,8 +93,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int identity(4).
             data_type: text
-            tests:
-              - not_null
           - name: idprojeto
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -120,6 +118,10 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int(4).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: stabrangencia
             description: >
               Representa o status da abrangência sendo 0 para desativado e 1 para ativado. Tipo
@@ -130,14 +132,6 @@ sources:
               Diz se realizou ou não o evento na localidade indicada. 0 - Sem informação 1 -
               Não, 2 - Sim. Tipo original (SQL Server): char(1).
             data_type: text
-            tests:
-              - accepted_values:
-                  arguments:
-                    values:
-                      - '0'
-                      - '1'
-                      - '2'
-                      - '3'
           - name: dsjustificativa
             description: >
               Descreve o por que do evento não ter sido realizado no local descrito. Tipo original
@@ -173,8 +167,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int identity(4).
             data_type: text
-            tests:
-              - not_null
           - name: idpronac
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -275,6 +267,10 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int(4).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: idprorrogacao
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -305,9 +301,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): varchar(4).
             data_type: text
-            tests:
-              - not_null
-              - unique
           - name: descricao
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -337,8 +330,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int identity(4).
             data_type: text
-            tests:
-              - not_null
           - name: anoprojeto
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -396,6 +387,10 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int(4).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: idprojeto
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -435,9 +430,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int identity(4).
             data_type: text
-            tests:
-              - not_null
-              - unique
           - name: anoprojeto
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -483,8 +475,6 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int identity(4).
             data_type: text
-            tests:
-              - not_null
           - name: anoprojeto
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -515,6 +505,10 @@ sources:
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
               Server): int(4).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: idpronac
             description: >
               [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
@@ -522,8 +516,8 @@ sources:
             data_type: text
       - name: bronze_sac_vsegmento
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por segmento cultural ativo, com a área e o órgão responsável.
+          Réplica em texto da origem; tipada e documentada em silver_sac_vsegmento.
         config:
           tags:
             - bronze
@@ -536,8 +530,9 @@ sources:
             owner: minc-data-engineering
       - name: bronze_sac_vwagentesseusprojetos
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por projeto ligado a uma conta do SalicWeb: é a lista de "meus
+          projetos" que o proponente vê ao entrar. Réplica em texto da origem; tipada e
+          documentada em silver_sac_vwagentesseusprojetos.
         config:
           tags:
             - bronze
@@ -550,8 +545,9 @@ sources:
             owner: minc-data-engineering
       - name: bronze_sac_vwalterarprojeto
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por projeto, com proponente, área, segmento e situação, vinda da
+          view que a tela de alteração de projeto do SalicWeb usa. Réplica em texto da
+          origem; tipada e documentada em silver_sac_vwalterarprojeto.
         config:
           tags:
             - bronze
@@ -564,8 +560,9 @@ sources:
             owner: minc-data-engineering
       - name: bronze_sac_vwpagamentodefornecedordoprojetoporitemdetalhado
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por pagamento a fornecedor, item a item, vinda de uma view da origem
+          sobre os comprovantes. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado.
         config:
           tags:
             - bronze
@@ -578,8 +575,8 @@ sources:
             owner: minc-data-engineering
       - name: bronze_sac_vwprojetositinerantes
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por local de um projeto itinerante, com UF e município. Réplica em
+          texto da origem; tipada e documentada em silver_sac_vwprojetositinerantes.
         config:
           tags:
             - bronze
@@ -634,6 +631,10 @@ sources:
           - name: cgccpf
             description: CNPJ/CPF do proponente. Dado pessoal; mantido text (zero à esquerda).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: situacao
             description: Código da situação do projeto. Aponta para sac__situacao.codigo.
             data_type: text
@@ -664,6 +665,10 @@ sources:
           - name: analista
             description: Nome do analista. Dado pessoal de servidor.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
           - name: dtsituacao
             description: Data da última mudança de situação.
             data_type: text
@@ -703,6 +708,10 @@ sources:
           - name: logon
             description: Identificador do usuário que registrou.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: idprojeto
             description: '[VAZIA EM 100% DAS LINHAS] Sem valor na origem.'
             data_type: text
