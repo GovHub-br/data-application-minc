@@ -116,14 +116,17 @@ def trocar_source(
 ) -> tuple[str, int]:
     """Troca a source velha pela salic; com ``tabelas``, só a dessas tabelas."""
 
+    trocas = 0
+
     def sub(m: re.Match[str]) -> str:
+        nonlocal trocas
         if tabelas is not None and m.group("t") not in tabelas:
             return m.group(0)
+        trocas += 1
         q = m.group(1)
         return f"source({q}salic{q}, {q}{nome_bronze(origem, m.group('t'))}{q})"
 
-    novo = re_source(origem).sub(sub, texto)
-    return novo, sum(a != b for a, b in zip(texto.split("\n"), novo.split("\n")))
+    return re_source(origem).sub(sub, texto), trocas
 
 
 def trocar_mencao(texto: str, origem: str) -> str:
@@ -322,6 +325,51 @@ def migrar_sources_parcial(origem: str, tabelas: set[str]) -> None:
         print(f"  ATENÇÃO esperava {len(tabelas)} tabelas no {de.name} legado")
 
 
+def tables_e_a_ultima_chave(texto: str) -> bool:
+    """``tables:`` é a última chave do arquivo, e as tabelas novas podem ir no fim.
+
+    Ignora linha vazia e comentário; aceita comentário e espaço depois de
+    ``tables:`` e lista no mesmo recuo da chave (``- name:`` logo abaixo).
+    """
+    linhas = texto.split("\n")
+    marcas = [
+        i for i, linha in enumerate(linhas) if re.match(r"^\s*tables:\s*(#.*)?$", linha)
+    ]
+    if not marcas:
+        return False
+    i = marcas[-1]
+    recuo = len(linhas[i]) - len(linhas[i].lstrip())
+    for linha in linhas[i + 1 :]:
+        conteudo = linha.strip()
+        if not conteudo or conteudo.startswith("#"):
+            continue
+        r = len(linha) - len(linha.lstrip())
+        if r < recuo or (r == recuo and not conteudo.startswith("- ")):
+            return False
+    return True
+
+
+def checar_parcial(origem: str, tabelas: set[str], assunto: str) -> list[str]:
+    """Tudo que impede o lote parcial, conferido antes de mexer em arquivo."""
+    erros = []
+    if not re.fullmatch(r"[a-z0-9_]+", assunto):
+        erros.append(
+            f"--assunto inválido: {assunto!r} (use letras minúsculas, dígito, _)"
+        )
+    existem = {p.stem[len(origem) + 2 :] for p in (ORIGEM_DIR / origem).glob("*.sql")}
+    if tabelas - existem:
+        erros.append(f"sem modelo legado para {sorted(tabelas - existem)}")
+    for arq in (ORIGEM_DIR / origem / "schema.yml", ORIGEM_DIR / f"sources_{origem}.yml"):
+        if not arq.exists():
+            erros.append(f"não há {arq.relative_to(RAIZ)}")
+    para = DESTINO / f"sources_{origem}.yml"
+    if not para.exists():
+        erros.append(f"não há {para.relative_to(RAIZ)} para receber as tabelas")
+    elif not tables_e_a_ultima_chave(para.read_text(encoding="utf-8")):
+        erros.append(f"{para.name} tem chave depois de tables:; anexe à mão")
+    return erros
+
+
 def reescrever_leitores(
     origem: str, renomes: dict[str, str], tabelas: set[str] | None = None
 ) -> None:
@@ -357,17 +405,38 @@ def reescrever_leitores(
             print(f"  ATENÇÃO sobrou ref('{origem}__...') em {arq.relative_to(RAIZ)}")
 
 
-def main(argv: list[str]) -> int:
+USO = "[--assunto X --tabelas a,b]"
+
+
+def ler_opcoes(argv: list[str]) -> tuple[str, set[str] | None, str | None] | None:
+    """Origem, tabelas e assunto; None (e a mensagem impressa) se algo não bate."""
     origem = argv[1] if len(argv) > 1 else ""
-    if origem not in ORIGENS:
-        print(f"uso: {argv[0]} <{'|'.join(ORIGENS)}> [--assunto X --tabelas a,b]")
-        return 2
-    opcoes = dict(zip(argv[2::2], argv[3::2]))
+    resto = argv[2:]
+    chaves = resto[::2]
+    if origem not in ORIGENS or (
+        len(resto) % 2
+        or any(k not in ("--assunto", "--tabelas") for k in chaves)
+        or len(set(chaves)) != len(chaves)
+        or any(not v.strip() for v in resto[1::2])
+    ):
+        if resto:
+            print(f"argumento não reconhecido, repetido ou vazio: {' '.join(resto)}")
+        print(f"uso: {argv[0]} <{'|'.join(ORIGENS)}> {USO}")
+        return None
+    opcoes = dict(zip(chaves, resto[1::2]))
     tabelas = set(filter(None, opcoes.get("--tabelas", "").split(","))) or None
     assunto = opcoes.get("--assunto")
     if (tabelas is None) != (assunto is None):
         print("--assunto e --tabelas vão juntos")
+        return None
+    return origem, tabelas, assunto
+
+
+def main(argv: list[str]) -> int:
+    lidas = ler_opcoes(argv)
+    if lidas is None:
         return 2
+    origem, tabelas, assunto = lidas
     longos = nomes_longos(origem, tabelas)
     if longos:
         print(
@@ -378,9 +447,11 @@ def main(argv: list[str]) -> int:
             print(f"  {velho} -> {novo} ({len(novo)})")
         return 1
     if tabelas is not None:
-        existem = {p.stem[len(origem) + 2 :] for p in (ORIGEM_DIR / origem).glob("*.sql")}
-        if tabelas - existem:
-            print(f"ERRO: sem modelo legado para {sorted(tabelas - existem)}")
+        erros = checar_parcial(origem, tabelas, str(assunto))
+        if erros:
+            for erro in erros:
+                print(f"ERRO: {erro}")
+            print("nada foi alterado")
             return 1
         renomes = migrar_sql(origem, tabelas)
         migrar_schema_parcial(origem, str(assunto), renomes)

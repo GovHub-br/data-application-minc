@@ -6,24 +6,24 @@ models:
       Camada Silver / núcleo SALIC. Mapa das três chaves com que o SALIC
       identifica o mesmo projeto da Lei Rouanet: `pronac` (chave de negócio, 7
       posições), `id_pronac` (surrogate das tabelas de análise) e `id_projeto`
-      (surrogate antigo, chave de `sac__abrangencia`).
+      (surrogate antigo, chave de `silver_sac_abrangencia`).
 
       GRÃO: uma linha por PRONAC. UNIVERSO: todo PRONAC observado em qualquer
-      tabela da bronze v2 que carregue a chave — `sac__aprovacao`,
-      `sac__enquadramento`, `sac__documentosprojeto`,
-      `sac__vwprojetositinerantes`, `sac__vwalterarprojeto`,
-      `sac__vwagentesseusprojetos` e `sac__captacao`. Nada é excluído por
+      silver do sac que carregue a chave — `silver_sac_aprovacao`,
+      `silver_sac_enquadramento`, `silver_sac_documentosprojeto`,
+      `silver_sac_vwprojetositinerantes`, `silver_sac_vwalterarprojeto`,
+      `silver_sac_vwagentesseusprojetos` e `silver_sac_captacao`. Nada é excluído por
       situação, ano ou valor.
 
       PARA QUE SERVE: sem ele a Meta 4 não liga abrangência territorial a
-      PRONAC, porque `sac__abrangencia` só tem `idprojeto`. Também é ele que
+      PRONAC, porque `silver_sac_abrangencia` só tem `idprojeto`. Também é ele que
       define o universo de projetos da `dim_projeto_rouanet`.
 
       DESCONHECIDOS E CONFLITO: quando o mesmo PRONAC aparece com mais de um
       `id_pronac` (ou mais de um `id_projeto`), a coluna do id sai NULL e a flag
       correspondente sai `true` — fail-closed. Um join que não acontece é
       visível; um join com o id errado não é. `idprojeto = 0`, que é o valor
-      preenchido na maior parte de `sac__captacao`, é tratado como ausência.
+      preenchido na maior parte de `silver_sac_captacao`, é tratado como ausência.
 
       LIMITAÇÕES: cobertura e taxa de ambiguidade dependem do que está
       carregado e ainda não foram medidas contra o banco (gate G1 do plano).
@@ -33,7 +33,7 @@ models:
       meta:
         status: Disabled
         meta_objetivo: 'Chave conformada do projeto Rouanet — base das Metas 3, 4 e 5'
-        origem_dados: 'salic_bronze (sac) — 7 tabelas com chave de projeto'
+        origem_dados: 'salic.silver_sac_* — 7 silvers com chave de projeto'
         governance:
           produto_dados: 'SALIC — Rouanet'
           classificacao_uso: interno
@@ -75,7 +75,7 @@ models:
         data_type: integer
       - name: id_projeto
         description: >
-          Surrogate antigo do projeto, chave de `sac__abrangencia`. NULL quando
+          Surrogate antigo do projeto, chave de `silver_sac_abrangencia`. NULL quando
           ambíguo e quando a origem grava 0, que não identifica projeto.
         data_type: integer
       - name: id_pronac_ambiguo
@@ -158,7 +158,7 @@ models:
       meta:
         status: Disabled
         meta_objetivo: 'Dimensão territorial de referência — base dos três indicadores da Meta 4'
-        origem_dados: 'salic_bronze (agentes) — municipios, uf e populacaomunicipio'
+        origem_dados: 'salic.silver_agentes_municipios + silver_agentes_uf + silver_agentes_populacaomunicipio'
         governance:
           produto_dados: 'SALIC — Rouanet'
           classificacao_uso: publico
@@ -254,13 +254,13 @@ models:
       teto de captação — não recurso realizado. Para recurso realizado use
       `fct_captacao_rouanet`.
 
-      JOINS: `sac__vwalterarprojeto` (cadastro), `sac__vwagentesseusprojetos`
-      (mecanismo), `sac__enquadramento`, `sac__aprovacao`, `sac__area` e
-      `sac__vsegmento` (dimensões descritivas, esta última casada por área +
+      JOINS: `silver_sac_vwalterarprojeto` (cadastro), `silver_sac_vwagentesseusprojetos`
+      (mecanismo), `silver_sac_enquadramento`, `silver_sac_aprovacao`, `silver_sac_area` e
+      `silver_sac_vsegmento` (dimensões descritivas, esta última casada por área +
       código, porque o código de segmento se repete entre áreas).
 
       LIMITAÇÕES: `Projetos` da ingestão v2 ainda não foi carregada, então o
-      cadastro vem da view `sac__vwalterarprojeto`, cujo grão não foi medido
+      cadastro vem da view `silver_sac_vwalterarprojeto`, cujo grão não foi medido
       contra o banco — o `distinct on` do modelo garante o grão declarado
       independentemente disso. A cobertura de cadastro e a de nome de área e
       segmento também não foram medidas (gate G1).
@@ -270,7 +270,7 @@ models:
       meta:
         status: Disabled
         meta_objetivo: 'Dimensão conformada do projeto Rouanet'
-        origem_dados: 'salic_bronze (sac) + map_chave_projeto_rouanet'
+        origem_dados: 'salic.silver_sac_* + map_chave_projeto_rouanet'
         governance:
           produto_dados: 'SALIC — Rouanet'
           classificacao_uso: interno
@@ -323,25 +323,26 @@ models:
         data_type: integer
       - name: nome_area
         description: >
-          Descrição da área cultural, de `sac__area`. NULL quando o código não
+          Descrição da área cultural, de `silver_sac_area`. NULL quando o código não
           casa com a tabela de domínio — a ponte normaliza o código para
           dígitos, e área alfanumérica, se existir, resolve para nulo em vez de
           casar errado.
         data_type: text
       - name: codigo_segmento
         description: >
-          Código do segmento cultural dentro da área. O código se repete entre
-          áreas; a chave real do segmento é o par (área, código).
-        data_type: integer
+          Código do segmento cultural dentro da área, em texto: a maioria dos
+          códigos tem letra. O código se repete entre áreas; a chave real do
+          segmento é o par (área, código).
+        data_type: text
       - name: nome_segmento
         description: >
-          Descrição do segmento cultural, de `sac__vsegmento`, casada por área
+          Descrição do segmento cultural, de `silver_sac_vsegmento`, casada por área
           e código.
         data_type: text
       - name: codigo_mecanismo
         description: >
           Código do mecanismo de incentivo do projeto, vindo de
-          `sac__vwagentesseusprojetos`. Exposto como código: a tabela de
+          `silver_sac_vwagentesseusprojetos`. Exposto como código: a tabela de
           domínio ainda não foi identificada na bronze v2, e inventar a
           descrição seria pior que não tê-la.
         data_type: integer
@@ -439,7 +440,7 @@ models:
       junto.
 
       GRÃO: uma linha por PRONAC × agente. CHAVE: `id_projeto_proponente`.
-      UNIVERSO: os vínculos que `sac__vwagentesseusprojetos` registra, com
+      UNIVERSO: os vínculos que `silver_sac_vwagentesseusprojetos` registra, com
       PRONAC e agente resolvidos.
 
       POR QUE UMA PONTE E NÃO UMA COLUNA NA DIMENSÃO: um projeto pode ter mais
@@ -453,7 +454,7 @@ models:
       existir, esta ponte guarda apenas o documento normalizado, na zona
       restrita, e nenhum modelo publicável o consome.
 
-      LIMITAÇÕES: `sac__vwagentesseusprojetos` não está no dicionário original
+      LIMITAÇÕES: `silver_sac_vwagentesseusprojetos` não está no dicionário original
       do SALIC; o grão PRONAC × agente é leitura das colunas, não medição, e o
       `distinct on` garante o grão declarado independentemente do que a origem
       entregue. Que todo agente listado seja proponente, e não outro papel, é
@@ -464,7 +465,7 @@ models:
       meta:
         status: Disabled
         meta_objetivo: 'Ligação projeto → proponente, isolada da dimensão publicável'
-        origem_dados: 'salic_bronze.sac__vwagentesseusprojetos'
+        origem_dados: 'salic.silver_sac_vwagentesseusprojetos'
         governance:
           produto_dados: 'SALIC — Rouanet'
           classificacao_uso: restrito
@@ -589,7 +590,7 @@ models:
       Camada Silver / núcleo SALIC. Fato da captação de recurso na Lei Rouanet.
 
       GRÃO: uma linha por recibo de captação. CHAVE: `id_captacao`. UNIVERSO:
-      todos os recibos de `sac__captacao` com id, data e PRONAC resolvidos.
+      todos os recibos de `silver_sac_captacao` com id, data e PRONAC resolvidos.
       Nenhum corte por ano, valor ou situação do projeto.
 
       O QUE MEDE: na Rouanet o MinC não repassa dinheiro ao agente — o projeto
@@ -626,7 +627,7 @@ models:
       meta:
         status: Disabled
         meta_objetivo: 'Recurso efetivamente captado por projeto — Metas 3 e 5'
-        origem_dados: 'salic_bronze.sac__captacao'
+        origem_dados: 'salic.silver_sac_captacao'
         governance:
           produto_dados: 'SALIC — Rouanet'
           classificacao_uso: interno
@@ -727,7 +728,7 @@ models:
       Rouanet, com o histórico completo.
 
       GRÃO: uma linha por registro de aprovação. CHAVE: `id_aprovacao`.
-      UNIVERSO: todos os registros de `sac__aprovacao` com id e PRONAC
+      UNIVERSO: todos os registros de `silver_sac_aprovacao` com id e PRONAC
       resolvidos.
 
       POR QUE O HISTÓRICO INTEIRO: um projeto tem mais de uma aprovação ao
@@ -758,7 +759,7 @@ models:
       meta:
         status: Disabled
         meta_objetivo: 'Histórico de aprovação e teto de captação por projeto'
-        origem_dados: 'salic_bronze.sac__aprovacao'
+        origem_dados: 'salic.silver_sac_aprovacao'
         governance:
           produto_dados: 'SALIC — Rouanet'
           classificacao_uso: interno
