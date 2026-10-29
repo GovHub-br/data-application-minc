@@ -1,33 +1,60 @@
+import io
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
-import psycopg2
-import psycopg2.extras  # Added import for execute_values
-from pandas import json_normalize
+from contextlib import contextmanager
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple
+
 import pandas as pd
-import io
+import psycopg2
+import psycopg2.extensions
+import psycopg2.extras
+
+
+def _ident(nome: str) -> str:
+    return '"' + nome.replace('"', '""') + '"'
+
+
+def _tabela(schema: str, table_name: str) -> str:
+    return f"{_ident(schema)}.{_ident(table_name)}"
+
+
+def _achatar(
+    objeto: Dict[Any, Any], prefixo: str = "", plano: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Uma linha aninhada em ``{"pai__filho": valor}``, chaves em minúsculo."""
+    plano = {} if plano is None else plano
+    for chave, valor in objeto.items():
+        nome = f"{prefixo}{str(chave).lower()}"
+        if isinstance(valor, dict):
+            # dict vazio não vira coluna, como no json_normalize
+            _achatar(valor, f"{nome}{ClientPostgresDB.SEPARATOR}", plano)
+        else:
+            plano[nome] = str(valor) if isinstance(valor, list) else valor
+    return plano
 
 
 class ClientPostgresDB:
-    """Client for interacting with PostgreSQL database."""
+    """Client for interacting with PostgreSQL database.
+
+    Cada instância abre **uma** conexão, na primeira operação, e a reaproveita
+    até ``close()`` — ou até o fim do bloco ``with``. Cada método público roda
+    na sua própria transação e termina com ``commit`` ou ``rollback``: a
+    conexão nunca fica parada em ``idle in transaction`` segurando lock, e uma
+    falha não impede a próxima chamada. Se o servidor derrubar a conexão, a
+    próxima operação abre outra.
+
+    As colunas de cada tabela já vista ficam em cache na instância. Um laço de
+    ``insert_data`` na mesma tabela só consulta o catálogo quando aparece
+    chave nova, e só executa DDL quando há o que criar.
+    """
 
     SEPARATOR = "__"
-    TYPE_MAP = {int: "BIGINT", float: "NUMERIC", bool: "BOOLEAN"}
+    # Linhas por INSERT no execute_values. O padrão do psycopg2 (100) faz dez
+    # idas e voltas ao banco a cada mil linhas.
+    TAMANHO_PAGINA = 1000
 
     @staticmethod
-    def _get_column_type(value: Any) -> str:
-        """
-        Determine PostgreSQL column type from Python value.
-
-        Args:
-            value: Python value to analyze
-
-        Returns:
-            PostgreSQL column type as string
-        """
-        return ClientPostgresDB.TYPE_MAP.get(type(value), "TEXT")
-
-    def _flatten_data(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _flatten_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Flatten nested JSON data and normalize keys to lowercase.
 
         Normalizing to lowercase avoids PostgreSQL case-folding conflicts:
@@ -37,30 +64,277 @@ class ClientPostgresDB:
         ``UndefinedColumn``.  By lowercasing on the Python side we guarantee
         consistency between column creation and column reference.
 
+        Objeto aninhado vira ``pai__filho``; lista vira texto. Toda linha sai
+        com as mesmas colunas, na mesma ordem, e a chave que falta numa linha
+        vale ``None``. Substitui o ``json_normalize``, que preenchia a lacuna
+        com NaN — gravado como o texto ``'NaN'`` — e promovia a float a coluna
+        de inteiros com lacuna (``3550308.0``).
+
         Args:
             data (List[Dict[str, Any]]): List of nested dictionaries.
 
         Returns:
             List[Dict[str, Any]]: List of flat dictionaries with lowercase keys.
         """
-        return list(
-            map(
-                lambda d: {
-                    str(k).lower(): v if type(v) is not list else str(v)
-                    for k, v in d.items()
-                },
-                json_normalize(data, sep=ClientPostgresDB.SEPARATOR).to_dict(
-                    orient="records"
-                ),
-            )
-        )
+        planas = [_achatar(linha) for linha in data]
+        colunas = dict.fromkeys(coluna for linha in planas for coluna in linha)
+        return [{coluna: linha.get(coluna) for coluna in colunas} for linha in planas]
 
     def __init__(self, conn_str: str) -> None:
         self.conn_str = conn_str
+        self._conn: Optional[psycopg2.extensions.connection] = None
+        self._schemas: Set[str] = set()
+        self._colunas: Dict[Tuple[str, str], Set[str]] = {}
+        try:
+            parametros = psycopg2.extensions.parse_dsn(conn_str)
+        except psycopg2.ProgrammingError:
+            parametros = {}
         logging.info(
-            f"[cliente_postgres.py] Initialized ClientPostgresDB with conn_str: "
-            f"{conn_str}"
+            f"[cliente_postgres.py] Initialized ClientPostgresDB for "
+            f"host={parametros.get('host')} dbname={parametros.get('dbname')}"
         )
+
+    def __enter__(self) -> "ClientPostgresDB":
+        return self
+
+    def __exit__(self, *exc: Any) -> None:
+        self.close()
+
+    def close(self) -> None:
+        """Fecha a conexão, se houver uma aberta."""
+        if self._conn is not None and not self._conn.closed:
+            self._conn.close()
+        self._conn = None
+
+    def _conexao(self) -> psycopg2.extensions.connection:
+        if self._conn is None or self._conn.closed:
+            self._conn = psycopg2.connect(self.conn_str)
+        return self._conn
+
+    @contextmanager
+    def _transacao(self) -> Iterator[psycopg2.extensions.cursor]:
+        """Cursor numa transação que termina em ``commit`` ou ``rollback``.
+
+        No rollback o cache de schemas e colunas é descartado: ele pode ter
+        registrado DDL que acabou de ser desfeito.
+        """
+        conn = self._conexao()
+        try:
+            with conn.cursor() as cursor:
+                yield cursor
+            conn.commit()
+        except BaseException:
+            self._schemas.clear()
+            self._colunas.clear()
+            try:
+                if not conn.closed:
+                    conn.rollback()
+            except psycopg2.Error:
+                # Conexão quebrada no meio: fecha para a próxima operação
+                # abrir outra, e deixa subir o erro original.
+                self.close()
+            raise
+
+    def _consultar(self, query: str) -> List[Tuple[Any, ...]]:
+        with self._transacao() as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()
+
+    # ------------------------------------------------------------------
+    # DDL — cada passo recebe o cursor da transação de quem chama
+    # ------------------------------------------------------------------
+
+    def _garantir_schema(self, cursor: psycopg2.extensions.cursor, schema: str) -> None:
+        if schema in self._schemas:
+            return
+        cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {_ident(schema)}")
+        self._schemas.add(schema)
+        logging.info(f"[cliente_postgres.py] Schema {schema} ensured to exist")
+
+    def _garantir_tabela(
+        self,
+        cursor: psycopg2.extensions.cursor,
+        columns: Sequence[str],
+        table_name: str,
+        primary_key: Optional[List[str]],
+        schema: str,
+    ) -> None:
+        if (schema, table_name) in self._colunas:
+            return
+        self._garantir_schema(cursor, schema)
+
+        column_definitions = [f"{_ident(c)} TEXT" for c in columns]
+        if primary_key:
+            # As colunas chegam em minúsculo (_flatten_data); a chave também,
+            # para casar com elas agora que vai entre aspas.
+            pk_str = ", ".join(_ident(c.lower()) for c in primary_key)
+            column_definitions.append(f"PRIMARY KEY ({pk_str})")
+
+        try:
+            cursor.execute(
+                f"CREATE TABLE IF NOT EXISTS {_tabela(schema, table_name)} "
+                f"({', '.join(column_definitions)})"
+            )
+        except psycopg2.Error as err:
+            logging.error(
+                f"[cliente_postgres.py] Failed to create table {schema}."
+                f"{table_name}. Error: {str(err)}"
+            )
+            raise RuntimeError(f"Failed to create table {schema}.{table_name}") from err
+        logging.info(
+            f"[cliente_postgres.py] Table {schema}.{table_name} created "
+            f"or already exists"
+        )
+
+    def _ler_colunas(
+        self, cursor: psycopg2.extensions.cursor, table_name: str, schema: str
+    ) -> Set[str]:
+        cursor.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = %s AND table_name = %s
+            """,
+            (schema, table_name),
+        )
+        existentes = {row[0] for row in cursor.fetchall()}
+        self._colunas[(schema, table_name)] = existentes
+        return existentes
+
+    def _evoluir(
+        self,
+        cursor: psycopg2.extensions.cursor,
+        columns: Sequence[str],
+        table_name: str,
+        schema: str,
+        limite_colunas: Optional[int] = None,
+    ) -> Set[str]:
+        existentes = self._colunas.get((schema, table_name))
+        if existentes is not None and all(c in existentes for c in columns):
+            return set()
+        # Chave nova (ou tabela ainda fora do cache): relê o catálogo, porque
+        # outra task pode ter evoluído a tabela desde a última leitura.
+        existentes = self._ler_colunas(cursor, table_name, schema)
+
+        novas = [c for c in dict.fromkeys(columns) if c not in existentes]
+        if not novas:
+            return set()
+
+        excedentes: Set[str] = set()
+        if limite_colunas is not None:
+            vagas = max(0, limite_colunas - len(existentes))
+            excedentes = set(novas[vagas:])
+            novas = novas[:vagas]
+
+            if excedentes:
+                logging.warning(
+                    f"[cliente_postgres.py] {schema}.{table_name} atingiu "
+                    f"o limite de {limite_colunas} colunas — "
+                    f"{len(excedentes)} colunas novas serão gravadas em "
+                    f"payload_origem"
+                )
+
+        if novas:
+            # Um ALTER só, com IF NOT EXISTS: duas tasks evoluindo a mesma
+            # tabela ao mesmo tempo não se atropelam.
+            cursor.execute(
+                f"ALTER TABLE {_tabela(schema, table_name)} "
+                + ", ".join(f"ADD COLUMN IF NOT EXISTS {_ident(c)} TEXT" for c in novas)
+            )
+            existentes.update(novas)
+            logging.info(
+                f"[cliente_postgres.py] Schema evolution: adicionadas "
+                f"{len(novas)} colunas (TEXT) em {schema}.{table_name}: "
+                f"{', '.join(novas)}"
+            )
+
+        return excedentes
+
+    def _preparar_tabela(
+        self,
+        cursor: psycopg2.extensions.cursor,
+        linhas: List[Dict[str, Any]],
+        table_name: str,
+        primary_key: Optional[List[str]],
+        schema: str,
+        limite_colunas: Optional[int],
+    ) -> List[Dict[str, Any]]:
+        """Garante schema, tabela e colunas; devolve as linhas prontas para o
+        INSERT (com ``payload_origem`` quando alguma coluna transbordou)."""
+        columns = list(linhas[0].keys())
+        self._garantir_tabela(cursor, columns, table_name, primary_key, schema)
+
+        excedentes = self._evoluir(
+            cursor, columns, table_name, schema, limite_colunas=limite_colunas
+        )
+        if excedentes:
+            linhas = self._mover_para_payload_origem(linhas, excedentes)
+            # payload_origem só passa a existir quando alguma coluna transborda
+            # — sem este segundo passo (agora sem limite, para a própria coluna
+            # não ser barrada), o INSERT quebraria com UndefinedColumn.
+            self._evoluir(cursor, ["payload_origem"], table_name, schema)
+        return linhas
+
+    def _inserir(
+        self,
+        cursor: psycopg2.extensions.cursor,
+        linhas: List[Dict[str, Any]],
+        table_name: str,
+        conflict_fields: Optional[List[str]],
+        schema: str,
+    ) -> None:
+        columns = list(linhas[0].keys())
+        values = [tuple(item.values()) for item in linhas]
+
+        cols_sql = ", ".join(_ident(c) for c in columns)
+        sql = f"INSERT INTO {_tabela(schema, table_name)} ({cols_sql}) VALUES %s"
+
+        if conflict_fields:
+            chave = [c.lower() for c in conflict_fields]
+            values = self._ultima_por_chave(columns, values, chave)
+            conflict_str = ", ".join(_ident(c) for c in chave)
+            update_str = ", ".join(
+                f"{_ident(col)} = EXCLUDED.{_ident(col)}" for col in columns
+            )
+            sql += f" ON CONFLICT ({conflict_str}) DO UPDATE SET {update_str}"
+
+        try:
+            psycopg2.extras.execute_values(
+                cursor, sql, values, page_size=self.TAMANHO_PAGINA
+            )
+        except psycopg2.Error as err:
+            logging.error(
+                f"[cliente_postgres.py] Failed to insert data into {schema}."
+                f"{table_name}. Error: {str(err)}"
+            )
+            raise RuntimeError(
+                f"Failed to insert data into {schema}.{table_name}"
+            ) from err
+        logging.info(
+            f"[cliente_postgres.py] Inserted {len(values)} rows into {schema}."
+            f"{table_name}"
+        )
+
+    @staticmethod
+    def _ultima_por_chave(
+        columns: List[str], values: List[Tuple[Any, ...]], chave: List[str]
+    ) -> List[Tuple[Any, ...]]:
+        """Deixa uma linha por chave de conflito — a última, como se o upsert
+        fosse linha a linha. O Postgres recusa o lote inteiro quando a mesma
+        chave aparece duas vezes num ``ON CONFLICT DO UPDATE``."""
+        posicoes = [columns.index(c) for c in chave]
+        unicas = {tuple(v[i] for i in posicoes): v for v in values}
+        return list(unicas.values())
+
+    def _drop(
+        self, cursor: psycopg2.extensions.cursor, table_name: str, schema: str
+    ) -> None:
+        cursor.execute(f"DROP TABLE IF EXISTS {_tabela(schema, table_name)}")
+        self._colunas.pop((schema, table_name), None)
+
+    # ------------------------------------------------------------------
+    # Escrita
+    # ------------------------------------------------------------------
 
     def create_table_if_not_exists(
         self,
@@ -77,40 +351,9 @@ class ClientPostgresDB:
             primary_key: List of primary key column names
             schema: Database schema name
         """
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema};")
-                logging.info(f"[cliente_postgres.py] Schema {schema} ensured to exist")
-
-                flattened_sample = self._flatten_data([sample_data])[0]
-                column_definitions: List[str] = []
-
-                for column in flattened_sample.keys():
-                    column_definitions.append(f'"{column}" TEXT')
-
-                if primary_key:
-                    pk_str = ", ".join(primary_key)
-                    column_definitions.append(f"PRIMARY KEY ({pk_str})")
-
-                create_table_query = (
-                    f"CREATE TABLE IF NOT EXISTS {schema}.{table_name} ("
-                    f"{', '.join(column_definitions)});"
-                )
-
-                try:
-                    cursor.execute(create_table_query)
-                    logging.info(
-                        f"[cliente_postgres.py] Table {schema}.{table_name} created "
-                        f"or already exists"
-                    )
-                except psycopg2.Error as err:
-                    logging.error(
-                        f"[cliente_postgres.py] Failed to create table {schema}."
-                        f"{table_name}. Error: {str(err)}"
-                    )
-                    raise RuntimeError(
-                        f"Failed to create table {schema}.{table_name}"
-                    ) from err
+        columns = list(self._flatten_data([sample_data])[0].keys())
+        with self._transacao() as cursor:
+            self._garantir_tabela(cursor, columns, table_name, primary_key, schema)
 
     def _evolve_schema(
         self,
@@ -122,8 +365,8 @@ class ClientPostgresDB:
         """Adiciona colunas novas à tabela que ainda não existem no banco.
 
         Consulta ``information_schema.columns`` para descobrir as colunas
-        existentes e, para cada chave em *columns* que não esteja presente,
-        executa ``ALTER TABLE … ADD COLUMN`` com tipo ``TEXT``.
+        existentes e cria, num ``ALTER TABLE … ADD COLUMN IF NOT EXISTS`` só,
+        as chaves de *columns* que faltam, todas como ``TEXT``.
 
         Isso resolve o problema de *Schema Drift* quando APIs governamentais
         retornam chaves inéditas nos JSONs — camada RAW aceita qualquer
@@ -150,63 +393,10 @@ class ClientPostgresDB:
         set
             Colunas que **não** foram criadas por causa do limite.
         """
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT column_name
-                    FROM information_schema.columns
-                    WHERE table_schema = %s AND table_name = %s
-                    """,
-                    (schema, table_name),
-                )
-                existing = {row[0] for row in cursor.fetchall()}
-
-                novas = [c for c in columns if c not in existing]
-                if not novas:
-                    return set()
-
-                if limite_colunas is not None:
-                    vagas = max(0, limite_colunas - len(existing))
-                    excedentes = set(novas[vagas:])
-                    novas = novas[:vagas]
-
-                    if excedentes:
-                        logging.warning(
-                            f"[cliente_postgres.py] {schema}.{table_name} atingiu "
-                            f"o limite de {limite_colunas} colunas — "
-                            f"{len(excedentes)} colunas novas serão gravadas em "
-                            f"payload_origem"
-                        )
-                else:
-                    excedentes = set()
-
-                for col in novas:
-                    try:
-                        cursor.execute(
-                            f"ALTER TABLE {schema}.{table_name} "
-                            f'ADD COLUMN "{col}" TEXT;'
-                        )
-                        logging.info(
-                            f"[cliente_postgres.py] Schema evolution: "
-                            f'adicionada coluna "{col}" (TEXT) em '
-                            f"{schema}.{table_name}"
-                        )
-                    except psycopg2.errors.DuplicateColumn:
-                        conn.rollback()
-                        logging.debug(
-                            f'[cliente_postgres.py] Coluna "{col}" '
-                            f"já existe em {schema}.{table_name} — ignorando"
-                        )
-                    except psycopg2.Error as err:
-                        conn.rollback()
-                        logging.warning(
-                            f"[cliente_postgres.py] Falha ao adicionar coluna "
-                            f'"{col}" em {schema}.{table_name}: {err}'
-                        )
-
-                conn.commit()
-                return excedentes
+        with self._transacao() as cursor:
+            return self._evoluir(
+                cursor, columns, table_name, schema, limite_colunas=limite_colunas
+            )
 
     def insert_data(
         self,
@@ -224,10 +414,15 @@ class ClientPostgresDB:
         or CamelCase keys returned by upstream APIs never cause an
         ``UndefinedColumn`` error.
 
+        O DDL vai numa transação curta e o INSERT em outra: o lock exclusivo
+        de um ``ALTER TABLE`` não fica preso enquanto o lote é gravado, e
+        tasks paralelas na mesma tabela não esperam umas pelas outras.
+
         Args:
             data: List of dictionaries to insert
             table_name: Target table name
-            conflict_fields: List of column names for conflict resolution
+            conflict_fields: List of column names for conflict resolution.
+                Linhas repetidas na mesma chave ficam só com a última.
             primary_key: List of primary key column names
             schema: Database schema name
             limite_colunas: Teto de colunas da tabela. As colunas que não
@@ -241,54 +436,13 @@ class ClientPostgresDB:
             )
             return
 
-        # ── Normalização: todas as chaves para minúsculo ──
-        data_norm = [{str(k).lower(): v for k, v in row.items()} for row in data]
-
-        self.create_table_if_not_exists(
-            data_norm[0], table_name, primary_key=primary_key, schema=schema
-        )
-
-        flattened_data = self._flatten_data(data_norm)
-        columns = list(flattened_data[0].keys())
-
-        excedentes = self._evolve_schema(
-            columns, table_name, schema=schema, limite_colunas=limite_colunas
-        )
-        if excedentes:
-            flattened_data = self._mover_para_payload_origem(flattened_data, excedentes)
-            columns = list(flattened_data[0].keys())
-            # payload_origem só passa a existir quando alguma coluna transborda
-            # — sem este segundo passo (agora sem limite, para a própria coluna
-            # não ser barrada), o INSERT quebraria com UndefinedColumn.
-            self._evolve_schema(["payload_origem"], table_name, schema=schema)
-
-        values = [tuple(item.values()) for item in flattened_data]
-
-        cols_sql = ", ".join(f'"{c}"' for c in columns)
-        sql = f"INSERT INTO {schema}.{table_name} ({cols_sql}) VALUES %s"
-
-        if conflict_fields:
-            conflict_str = ", ".join(conflict_fields)
-            update_str = ", ".join([f'"{col}" = EXCLUDED."{col}"' for col in columns])
-            sql += f" ON CONFLICT ({conflict_str}) DO UPDATE SET {update_str}"
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                try:
-                    psycopg2.extras.execute_values(cursor, sql, values)
-                    conn.commit()
-                    logging.info(
-                        f"[cliente_postgres.py] Inserted data into {schema}."
-                        f"{table_name}"
-                    )
-                except psycopg2.Error as err:
-                    logging.error(
-                        f"[cliente_postgres.py] Failed to insert data into {schema}."
-                        f"{table_name}. Error: {str(err)}"
-                    )
-                    raise RuntimeError(
-                        f"Failed to insert data into {schema}.{table_name}"
-                    ) from err
+        linhas = self._flatten_data(data)
+        with self._transacao() as cursor:
+            linhas = self._preparar_tabela(
+                cursor, linhas, table_name, primary_key, schema, limite_colunas
+            )
+        with self._transacao() as cursor:
+            self._inserir(cursor, linhas, table_name, conflict_fields, schema)
 
     @staticmethod
     def _mover_para_payload_origem(
@@ -353,6 +507,53 @@ class ClientPostgresDB:
             limite_colunas=limite_colunas,
         )
 
+    def drop_table_if_exists(self, table_name: str, schema: str = "raw") -> None:
+        """Remove a tabela se ela existir. Falha sobe — quem dropa para
+        recarregar não pode seguir gravando em cima da tabela antiga."""
+        try:
+            with self._transacao() as cursor:
+                self._drop(cursor, table_name, schema)
+        except psycopg2.Error as err:
+            logging.error(
+                f"[cliente_postgres.py] Erro ao remover a tabela "
+                f"{schema}.{table_name}: {err}"
+            )
+            raise
+        logging.info(f"[cliente_postgres.py] Tabela {schema}.{table_name} removida")
+
+    def insert_csv_data(
+        self, csv_data: str, table_name: str, schema: str = "raw"
+    ) -> None:
+        """
+        Insere dados de um CSV no banco de dados, garantindo que a tabela seja criada.
+        Se a tabela existir, ela será removida antes da inserção dos novos dados.
+
+        Remoção e carga vão na mesma transação: se a carga falhar, a tabela
+        antiga continua lá, e quem lê nunca encontra a tabela faltando.
+
+        Args:
+            csv_data (str): Dados do CSV como string.
+            table_name (str): Nome da tabela de destino.
+            schema (str): Nome do schema do banco (padrão: "raw").
+        """
+        data = pd.read_csv(io.StringIO(csv_data)).to_dict(orient="records")
+        linhas = self._flatten_data(data) if data else []
+
+        with self._transacao() as cursor:
+            self._drop(cursor, table_name, schema)
+            if not linhas:
+                logging.warning(
+                    f"[cliente_postgres.py] CSV vazio: {schema}.{table_name} "
+                    f"removida e não recriada"
+                )
+                return
+            linhas = self._preparar_tabela(cursor, linhas, table_name, None, schema, None)
+            self._inserir(cursor, linhas, table_name, None, schema)
+
+    # ------------------------------------------------------------------
+    # SQL livre
+    # ------------------------------------------------------------------
+
     def execute_statement(self, statement: str) -> None:
         """Executa um comando que não retorna linhas (DDL, UPDATE, DELETE).
 
@@ -360,10 +561,8 @@ class ClientPostgresDB:
         comandos sem resultado.
         """
         logging.info(f"[cliente_postgres.py] Executing statement: {statement}")
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(statement)
-                conn.commit()
+        with self._transacao() as cursor:
+            cursor.execute(statement)
 
     def execute_query(self, query: str) -> List[Tuple[Any, ...]]:
         """Execute a query and return the results.
@@ -375,403 +574,9 @@ class ClientPostgresDB:
             List of tuples containing the query results
         """
         logging.info(f"[cliente_postgres.py] Executing query: {query}")
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                logging.info(
-                    f"[cliente_postgres.py] Query executed successfully, fetched "
-                    f"{len(results)} rows"
-                )
-                return results
-
-    def get_contratos_ids(self, schema: str = "compras_gov") -> List[int]:
-        """Extrai todos os IDs de contratos da tabela contratos."""
-        query = f"SELECT id FROM {schema}.contratos"
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                contratos_ids = [row[0] for row in cursor.fetchall()]
-                return contratos_ids
-
-    def get_id_programas(self) -> List[int]:
-        """Extrai todos os IDs de programas da tabela beneficiário."""
-        query = "SELECT id_programa FROM transfere_gov.programas"
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                id_programas = [row[0] for row in cursor.fetchall()]
-                return id_programas
-
-    def get_id_planos_acao(
-        self, schema: str = "transfere_gov", table_name: str = "planos_acao"
-    ) -> List[int]:
-        """Extrai todos os IDs de planos de ação da tabela de planos de ação."""
-        query = f"SELECT id_plano_acao FROM {schema}.{table_name}"
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                id_planos_acao = [row[0] for row in cursor.fetchall()]
-                return id_planos_acao
-
-    def get_id_relatorios_gestao(
-        self,
-        schema: str = "transferegov_fundo_a_fundo",
-        table_name: str = "relatorios_gestao",
-    ) -> List[int]:
-        """Extrai todos os IDs de relatorios de gestao da tabela indicada."""
-        query = f"SELECT id_relatorio_gestao FROM {schema}.{table_name}"
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                id_relatorios = [row[0] for row in cursor.fetchall()]
-                return id_relatorios
-
-    def get_id_lancamentos_financeiros(
-        self,
-        schema: str = "transferegov_fundo_a_fundo",
-        table_name: str = "raw_gestao_financeira_lancamentos",
-    ) -> List[int]:
-        """Extrai todos os IDs de lancamentos de gestao financeira da tabela indicada.
-
-        Usado para encadear a extracao de subtransacoes: cada lancamento ja
-        carregado no Postgres vira um alvo de busca no endpoint de
-        subtransacoes (mesmo padrao de ``get_id_planos_acao``).
-        """
-        query = f"SELECT id_lancamento_gestao_financeira FROM {schema}.{table_name}"
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                id_lancamentos = [row[0] for row in cursor.fetchall()]
-                return id_lancamentos
-
-    def drop_table_if_exists(self, table_name: str, schema: str = "raw") -> None:
-        """Remove a tabela se ela existir."""
-        conn = psycopg2.connect(self.conn_str)
-        cursor = conn.cursor()
-        drop_table_query = f"DROP TABLE IF EXISTS {schema}.{table_name};"
-        try:
-            cursor.execute(drop_table_query)
-            conn.commit()
-            print(f"Tabela {schema}.{table_name} removida com sucesso.")
-        except Exception as e:
-            print(f"Erro ao remover a tabela {schema}.{table_name}: {e}")
-        finally:
-            cursor.close()
-            conn.close()
-
-    def insert_csv_data(
-        self, csv_data: str, table_name: str, schema: str = "raw"
-    ) -> None:
-        """
-        Insere dados de um CSV no banco de dados, garantindo que a tabela seja criada.
-        Se a tabela existir, ela será removida antes da inserção dos novos dados.
-
-        Args:
-            csv_data (str): Dados do CSV como string.
-            table_name (str): Nome da tabela de destino.
-            schema (str): Nome do schema do banco (padrão: "raw").
-        """
-        # Converte o CSV para DataFrame
-        df = pd.read_csv(io.StringIO(csv_data))
-
-        # Converte o DataFrame para lista de dicionários
-        data = df.to_dict(orient="records")
-
-        # Remove a tabela existente
-        self.drop_table_if_exists(table_name, schema)
-
-        # Insere os novos dados
-        self.insert_data(data, table_name, primary_key=None, schema=schema)
-
-    def get_programacao_financeira(self) -> List[Tuple[Any, ...]]:
-        """Extrai o numero_programacao e ug_emitente da tabela programacao_financeira.
-
-        Returns:
-            List[Tuple[Any, ...]]: Lista de tuplas com numero_programacao e ug_emitente
-        """
-        query = (
-            "SELECT tx_numero_programacao, ug_emitente_programacao "
-            "FROM transfere_gov.programacao_financeira"
+        results = self._consultar(query)
+        logging.info(
+            f"[cliente_postgres.py] Query executed successfully, fetched "
+            f"{len(results)} rows"
         )
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                programacao_financeira = cursor.fetchall()
-                return programacao_financeira
-
-    def alter_table(
-        self, data: Dict[str, Any], table_name: str, schema: str = "raw"
-    ) -> None:
-        """Alter table to add columns that exist in the data but not in the table.
-
-        Delegates to ``_evolve_schema`` for consistent schema evolution
-        across the helper.  Kept for backward compatibility with existing
-        DAGs that call ``db.alter_table(…)`` directly.  Keys are
-        normalized to lowercase before comparison.
-
-        Args:
-            data: Sample data containing new columns
-            table_name: Name of table to alter
-            schema: Database schema name
-        """
-        flattened_data = self._flatten_data([data])[0]
-        columns = list(flattened_data.keys())
-        self._evolve_schema(columns, table_name, schema=schema)
-
-    def get_nota_credito(self) -> List[Tuple[Any, ...]]:
-        """Extrai o número da nota de crédito e o valor da tabela nota_credito.
-
-        Returns:
-            List[Tuple[Any, ...]]: Lista de tuplas com número da nota de crédito e valor
-        """
-        query = (
-            "SELECT cd_ug_emitente_nota, cd_gestao_emitente_nota, tx_numero_nota "
-            "FROM transfere_gov.notas_de_credito"
-        )
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                nota_credito = cursor.fetchall()
-                return nota_credito
-
-    def remove_duplicates(
-        self, table_name: str, column_mapping: Dict[int, str], schema: str = "siafi"
-    ) -> None:
-        """
-        Remove duplicados de uma tabela e otimiza a tabela.
-
-        Args:
-            table_name (str): Nome da tabela no banco de dados.
-            column_mapping (Dict[int, str]): Mapeamento das colunas.
-            schema (str): Schema do banco de dados (padrão: "siafi").
-        """
-        try:
-            columns = ", ".join(column_mapping.values())
-            delete_query = f"""
-            DELETE FROM {schema}.{table_name}
-            WHERE ctid NOT IN (
-                SELECT MIN(ctid)
-                FROM {schema}.{table_name}
-                GROUP BY {columns}
-            );
-            """
-            vacuum_query = f"VACUUM {schema}.{table_name};"
-
-            logging.info(
-                f"Executando query para remover duplicados em {schema}.{table_name}"
-            )
-
-            with psycopg2.connect(self.conn_str) as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute(delete_query)
-                    conn.commit()
-                    logging.info(
-                        f"Duplicados removidos com sucesso de {schema}.{table_name}"
-                    )
-
-            conn = psycopg2.connect(self.conn_str)
-            conn.autocommit = True
-            cursor = conn.cursor()
-            try:
-                cursor.execute(vacuum_query)
-                logging.info(
-                    f"VACUUM FULL executado com sucesso em {schema}.{table_name}"
-                )
-            finally:
-                cursor.close()
-                conn.close()
-
-        except Exception as e:
-            logging.error(
-                f"Erro ao remover duplicados ou otimizar {schema}.{table_name}: {str(e)}"
-            )
-            raise
-
-    def get_codigo_unidade(self) -> list[dict]:
-        """Retorna código da unidade e ordem de grandeza da tabela."""
-        query = """
-            SELECT codigounidade, ordem_grandeza
-            FROM pessoas.unidade_organizacional
-        """
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                return [
-                    {"codigounidade": int(row[0]), "ordem_grandeza": int(row[1])}
-                    for row in rows
-                ]
-
-    def execute_non_query(self, query: str) -> None:
-        """
-        Executa uma query que não retorna resultados (como DDL ou blocos DO $$).
-
-        Args:
-            query (str): Comando SQL que não retorna resultados.
-        """
-        logging.info(f"[cliente_postgres.py] Executando non-query: {query}")
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                try:
-                    cursor.execute(query)
-                    conn.commit()
-                    logging.info("[cliente_postgres.py] Non-query executado com sucesso")
-                except psycopg2.Error as e:
-                    logging.error(
-                        f"[cliente_postgres.py] Erro ao executar non-query. Erro: {e}"
-                    )
-                    raise RuntimeError("Erro ao executar comando SQL sem retorno") from e
-
-    def get_dashboard_kpis(self) -> Dict[str, int]:
-        """
-        Busca os KPIs do dashboard de servidores.
-
-        Returns:
-            Dict[str, int]: Dicionário com os KPIs
-        """
-        query = "SELECT kpi, valor FROM pessoas.kpis_servidores"
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                return {row[0]: row[1] for row in results}
-
-    def get_dashboard_genero(self) -> Dict[str, float]:
-        """
-        Busca a distribuição por gênero para o dashboard.
-
-        Returns:
-            Dict[str, float]: Dicionário com percentuais por gênero
-        """
-        query = """
-            SELECT
-                genero,
-                ROUND(percentual_distribuicao * 100, 1) as percentual
-            FROM pessoas.distribuicao_genero
-        """
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                genero_data = {}
-                for row in results:
-                    genero = row[0].lower() if row[0] else "n/a"
-                    genero_data[f"{genero}_percent"] = float(row[1])
-                return genero_data
-
-    def get_dashboard_raca_cor(self) -> List[Dict[str, Any]]:
-        """
-        Busca a distribuição por raça/cor para o dashboard.
-
-        Returns:
-            List[Dict[str, Any]]: Lista de dicionários com raça/cor e quantidade
-        """
-        query = """
-            SELECT
-                COALESCE(cor_raca, 'NÃO DECLARADA') as nome_cor,
-                quantidade_servidores as valor
-            FROM pessoas.distribuicao_raca_cor
-            ORDER BY quantidade_servidores DESC
-        """
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                return [{"nome_cor": row[0], "valor": row[1]} for row in results]
-
-    def get_dashboard_situacao_funcional(self) -> List[Dict[str, Any]]:
-        """
-        Busca a distribuição por situação funcional para o dashboard.
-
-        Returns:
-            List[Dict[str, Any]]: Lista de dicionários com situação e quantidade
-        """
-        query = """
-            SELECT
-                situacao_funcional_original as label,
-                quantidade_servidores as valor
-            FROM pessoas.distribuicao_situacao_funcional
-            ORDER BY quantidade_servidores DESC
-        """
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                return [{"label": row[0], "valor": row[1]} for row in results]
-
-    def get_dashboard_mapa_uf(self) -> Dict[str, Dict[str, Any]]:
-        """
-        Busca a distribuição geográfica por UF para o dashboard (mapa).
-
-        Returns:
-            Dict[str, Dict[str, Any]]: Dicionário com UF como chave e dados como valor
-        """
-        query = """
-            SELECT
-                sigla_uf,
-                nome_uf,
-                valor,
-                percentual
-            FROM pessoas.distribuicao_mapa_uf
-            ORDER BY sigla_uf
-        """
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-                return {
-                    row[0]: {"nome": row[1], "valor": row[2], "percentual": row[3]}
-                    for row in results
-                }
-
-    def get_dashboard_tabela_servidores(self, limit: int = 100) -> List[Dict[str, Any]]:
-        """
-        Busca dados agregados de servidores para exibição em tabela do dashboard.
-
-        Args:
-            limit: Número máximo de registros a retornar (padrão: 100)
-
-        Returns:
-            List[Dict[str, Any]]: Lista de dicionários com dados dos servidores
-        """
-        query = """
-            SELECT
-                cargo,
-                genero,
-                situacao,
-                cidade,
-                estado,
-                total
-            FROM pessoas.tabela_servidores_agregada
-            ORDER BY total DESC
-            LIMIT %s
-        """
-
-        with psycopg2.connect(self.conn_str) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query, (limit,))
-                results = cursor.fetchall()
-                return [
-                    {
-                        "cargo": row[0],
-                        "genero": row[1],
-                        "situacao": row[2],
-                        "cidade": row[3],
-                        "estado": row[4],
-                        "total": row[5],
-                    }
-                    for row in results
-                ]
+        return results
