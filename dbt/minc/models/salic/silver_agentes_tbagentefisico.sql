@@ -1,5 +1,6 @@
--- Bronze SALIC — agentes__tbagentefisico.
--- Origem: salic_bronze.agentes__tbagentefisico, onde tudo chega como texto da
+-- Silver SALIC — silver_agentes_tbagentefisico (ex-agentes__tbagentefisico).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_agentes_tbagentefisico, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- Uma linha por agente pessoa física, com atributos pessoais.
 -- DADO SENSÍVEL: nome dos pais, cor/raça e necessidade especial. Não derive
@@ -15,4 +16,4 @@ select
     {{ bronze_inteiro("stcorraca") }} as stcorraca,
     {{ bronze_texto("nridentificadorprocessual") }} as nridentificadorprocessual,
     _fatia
-from {{ source("bronze_agentes", "agentes__tbagentefisico") }}
+from {{ source("salic", "bronze_agentes_tbagentefisico") }}

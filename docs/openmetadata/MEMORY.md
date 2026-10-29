@@ -759,6 +759,39 @@ prest**conta**s, ficam dispensados no próprio modelo.
 **Para a ingestão.** Vale trazer `tbComprovantePagamentoxPlanilhaAprovacao`:
 é o que liga 4 M de comprovantes ao projeto.
 
+### 2026-10-29 · Claude · F17 — lote `agentes`
+
+**O que entrou.** 23 silvers. Perfil pela conexão de leitura direta, e os
+códigos decodificados pela própria tabela de domínio do banco,
+`agentes.verificacao`, que agrupa por `idtipo` os tipos de endereço,
+telefone, logradouro, perfil e papel do agente. Cor ou raça e estado civil
+vêm do formulário de informações adicionais do SalicWeb.
+
+**Achados.**
+- O nome do agente não está na Bronze: mora em `agentes.Nomes`, que a
+  ingestão não traz. Só `vwcadastrarparecerista` tem nome, de pessoa física.
+- O papel do agente (proponente, incentivador, fornecedor, dirigente) está
+  em `vvisao`. Visão de proponente é cadastro, não projeto.
+- `tipopessoa` false é CPF e true é CNPJ, confirmado pelo tamanho do
+  documento. `status` de `agentes` vale 0 em tudo.
+- `vvinculacao` liga a pessoa física dirigente (`idagente`) à entidade
+  (`idvinculoprincipal`).
+- `tbagentefisico` tem cor ou raça e deficiência; cor ou raça está vazia
+  em 79%, e a ficha só existe para um quarto dos agentes com CPF.
+- `populacaomunicipio` não tem ano de referência e o total não bate com os
+  Censos de 2010 nem de 2022. Ela alimenta `dim_municipio_ibge`.
+- `vperfil`, `vuf` e `vverificacao` são cópias exatas de `perfil`, `uf` e
+  `verificacao`; `vufmunicipio` é `municipios` com a sigla da UF.
+- `verificacao` tem nomes de pessoas no grupo 26, então não é publicável.
+
+**Casts que perdiam dado e viraram texto.** Número de telefone (154 mil com
+hífen viravam NULL), CEP e número de endereço em `vwcadastrarparecerista`
+(40 mil CEPs com zero à esquerda) e o documento de `vwportifolio`, que era
+`bigint`.
+
+**Para a ingestão.** Vale trazer `agentes.Nomes`: sem ela, nenhum
+proponente pessoa jurídica tem nome no banco agentes.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG

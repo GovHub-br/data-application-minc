@@ -1,17 +1,16 @@
 version: 2
 sources:
-  - name: bronze_agentes
+  - name: salic
     schema: salic
     description: >
-      Registro de identidade de agentes (pessoas físicas e jurídicas), compartilhado com outros
-      domínios do MinC além do SALIC (ex.: LPG, PNAB). Camada bronze (dados brutos do SALIC,
-      réplica do sistema de origem via Airflow, sem tratamento). Descrições e tiers gerados
-      automaticamente a partir do dicionário de dados original do SALIC (export SchemaSpy) cruzado
-      com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo
-      (YAML semântico, dicionário e catálogo em DOCX/HTML).
+      SALIC (Sistema de Apoio às Leis de Incentivo à Cultura). Bronze: réplica do
+      sistema de origem via Trino, tudo text, sem tratamento, com a coluna técnica
+      _fatia da carga em fatias. Uma tabela por <banco>__<tabela> da origem, como
+      salic.bronze_<banco>_<tabela>. As descrições das tabelas vêm do dicionário
+      de dados do SALIC (export SchemaSpy) cruzado com o perfil do banco; o
+      catálogo completo está em dbt/minc/docs/salic/.
     tables:
-      - name: agentes__municipios
-        identifier: bronze_agentes_municipios
+      - name: bronze_agentes_municipios
         description: >
           Tabela de domínio geográfico: município IBGE, sua UF, meso e
           microrregião. Camada bronze (raw do SALIC via Trino, tudo text).
@@ -42,8 +41,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__populacaomunicipio
-        identifier: bronze_agentes_populacaomunicipio
+      - name: bronze_agentes_populacaomunicipio
         description: >
           População por município. Camada bronze (raw do SALIC via Trino, tudo
           text).
@@ -68,8 +66,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__uf
-        identifier: bronze_agentes_uf
+      - name: bronze_agentes_uf
         description: >
           Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04.
           Complementa `agentes__municipios` em `dim_municipio_ibge` — é onde estão a
@@ -94,11 +91,10 @@ sources:
           - name: regiao
             description: Região geográfica.
             data_type: text
-      - name: agentes__vpais
-        identifier: bronze_agentes_vpais
+      - name: bronze_agentes_vpais
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por país, com nome em português e continente. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vpais.
         config:
           tags:
             - bronze
@@ -109,11 +105,10 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vperfil
-        identifier: bronze_agentes_vperfil
+      - name: bronze_agentes_vperfil
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por perfil institucional de um agente, vinda de uma view da origem.
+          Réplica em texto da origem; tipada e documentada em silver_agentes_vperfil.
         config:
           tags:
             - bronze
@@ -124,11 +119,11 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vprefeiturasregiaouf
-        identifier: bronze_agentes_vprefeiturasregiaouf
+      - name: bronze_agentes_vprefeiturasregiaouf
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por agente com perfil de prefeitura, com o CNPJ, o nome da
+          prefeitura, o município, a UF por extenso e a região. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vprefeiturasregiaouf.
         config:
           tags:
             - bronze
@@ -139,11 +134,10 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vsistema
-        identifier: bronze_agentes_vsistema
+      - name: bronze_agentes_vsistema
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por sistema do MinC que usa o cadastro de agentes. Réplica em texto
+          da origem; tipada e documentada em silver_agentes_vsistema.
         config:
           tags:
             - bronze
@@ -154,11 +148,10 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vtelefones
-        identifier: bronze_agentes_vtelefones
+      - name: bronze_agentes_vtelefones
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por telefone de um agente. Réplica em texto da origem; tipada e
+          documentada em silver_agentes_vtelefones.
         config:
           tags:
             - bronze
@@ -169,11 +162,10 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vuf
-        identifier: bronze_agentes_vuf
+      - name: bronze_agentes_vuf
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por unidade da federação, vinda de uma view da origem. Réplica em
+          texto da origem; tipada e documentada em silver_agentes_vuf.
         config:
           tags:
             - bronze
@@ -184,11 +176,10 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vufmunicipio
-        identifier: bronze_agentes_vufmunicipio
+      - name: bronze_agentes_vufmunicipio
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por município, com a sigla e o código da UF. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vufmunicipio.
         config:
           tags:
             - bronze
@@ -199,11 +190,11 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vverificacao
-        identifier: bronze_agentes_vverificacao
+      - name: bronze_agentes_vverificacao
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por valor de código do banco agentes, vinda de uma view da origem.
+          Réplica em texto da origem; tipada e documentada em
+          silver_agentes_vverificacao.
         config:
           tags:
             - bronze
@@ -214,11 +205,12 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vvinculacao
-        identifier: bronze_agentes_vvinculacao
+      - name: bronze_agentes_vvinculacao
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por vínculo entre uma pessoa física e uma entidade: o dirigente ou
+          representante (idagente, com CPF) ligado à pessoa jurídica que ele representa
+          (idvinculoprincipal, com CNPJ). Réplica em texto da origem; tipada e
+          documentada em silver_agentes_vvinculacao.
         config:
           tags:
             - bronze
@@ -229,11 +221,10 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vvisao
-        identifier: bronze_agentes_vvisao
+      - name: bronze_agentes_vvisao
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por papel ("visão") de um agente no SALIC. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vvisao.
         config:
           tags:
             - bronze
@@ -244,11 +235,11 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwcadastrarparecerista
-        identifier: bronze_agentes_vwcadastrarparecerista
+      - name: bronze_agentes_vwcadastrarparecerista
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por agente pessoa física e endereço, com o nome de registro. Réplica
+          em texto da origem; tipada e documentada em
+          silver_agentes_vwcadastrarparecerista.
         config:
           tags:
             - bronze
@@ -259,11 +250,12 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwempresajuridica
-        identifier: bronze_agentes_vwempresajuridica
+      - name: bronze_agentes_vwempresajuridica
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por CNPJ com os dados cadastrais da Receita Federal: razão social,
+          situação cadastral, natureza jurídica, abertura, capital social, porte e opção
+          pelo Simples e pelo MEI. Réplica em texto da origem; tipada e documentada em
+          silver_agentes_vwempresajuridica.
         config:
           tags:
             - bronze
@@ -274,11 +266,11 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwempresajuridicasocios
-        identifier: bronze_agentes_vwempresajuridicasocios
+      - name: bronze_agentes_vwempresajuridicasocios
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por sócio ou dirigente de uma empresa, pelo quadro societário da
+          Receita Federal. Réplica em texto da origem; tipada e documentada em
+          silver_agentes_vwempresajuridicasocios.
         config:
           tags:
             - bronze
@@ -289,11 +281,10 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwportifolio
-        identifier: bronze_agentes_vwportifolio
+      - name: bronze_agentes_vwportifolio
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por análise do portfólio de um proponente. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vwportifolio.
         config:
           tags:
             - bronze
@@ -304,11 +295,11 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
-      - name: agentes__vwpropostasemavaliacao
-        identifier: bronze_agentes_vwpropostasemavaliacao
+      - name: bronze_agentes_vwpropostasemavaliacao
         description: >
-          [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original
-          (export SchemaSpy). Semântica e grão ainda não confirmados.
+          Uma linha por proposta de projeto Rouanet que está em avaliação de
+          admissibilidade, com o técnico responsável. Réplica em texto da origem; tipada
+          e documentada em silver_agentes_vwpropostasemavaliacao.
         config:
           tags:
             - bronze
@@ -320,8 +311,7 @@ sources:
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
 
-      - name: agentes__agentes
-        identifier: bronze_agentes_agentes
+      - name: bronze_agentes_agentes
         description: >
           Uma linha por agente cultural (proponente, incentivador ou fornecedor),
           identificado por idagente e por cnpjcpf. Camada bronze (raw do SALIC via
@@ -337,12 +327,24 @@ sources:
           - name: idagente
             description: Identificador do agente. Chave da tabela.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: cnpjcpf
             description: CNPJ/CPF do agente, sem máscara. Dado pessoal; text (zero à esquerda).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: cnpjcpfsuperior
-            description: CNPJ/CPF da entidade superior. Medido constante '00000000000000'.
+            description: CNPJ da entidade superior; só zeros em quase todas as linhas.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: tipopessoa
             description: Bit da origem (True/False). Semântica F/J não confirmada.
             data_type: text
@@ -356,17 +358,20 @@ sources:
             description: Data/hora de validade do cadastro.
             data_type: text
           - name: status
-            description: Flag de status (bit 0/1).
+            description: Situação do agente, 0 em todas as linhas.
             data_type: text
           - name: usuario
-            description: Identificador/flag do usuário (valores 0/1 na amostra).
+            description: Conta que fez o último registro da linha.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: _fatia
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__tbagentefisico
-        identifier: bronze_agentes_tbagentefisico
+      - name: bronze_agentes_tbagentefisico
         description: >
           Uma linha por agente pessoa física, com atributos pessoais. DADO
           SENSÍVEL: nome dos pais, cor/raça e necessidade especial. Camada bronze
@@ -382,39 +387,70 @@ sources:
           - name: idagente
             description: Agente pessoa física. Chave, aponta para agentes__agentes.idagente.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: stsexo
             description: Sexo (M/F).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: stestadocivil
             description: Estado civil, código de 2 letras (SJ, DI, CA, ...).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: stnecessidadeespecial
             description: Necessidade especial (N/S). Dado sensível.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: nmmae
             description: Nome da mãe. Dado pessoal; origem char(100) com espaços à direita.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: nmpai
             description: Nome do pai. Dado pessoal; origem char(100) com espaços à direita.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: dtnascimento
             description: Data de nascimento.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: stcorraca
-            description: Código de cor/raça. Dado sensível; preenchida em ~2,5% das linhas.
+            description: Código de cor ou raça autodeclarada, 1 a 5. Dado sensível; vazio em 79% das linhas.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: nridentificadorprocessual
-            description: '[VAZIA EM 100% DAS LINHAS]'
+            description: Número identificador processual, preenchido em 1% das linhas.
             data_type: text
           - name: _fatia
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__perfil
-        identifier: bronze_agentes_perfil
+      - name: bronze_agentes_perfil
         description: >
-          Liga o agente a um perfil e característica de acesso (codificados como
-          inteiros de bitmask). Camada bronze (raw do SALIC via Trino, tudo text).
+          Uma linha por perfil institucional de um agente, como prefeitura ou ponto
+          de cultura. Camada bronze (raw do SALIC via Trino, tudo text).
         config:
           tags: [bronze, salic, agentes]
         meta:
@@ -429,21 +465,28 @@ sources:
           - name: idagente
             description: Agente. Aponta para agentes__agentes.idagente.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: perfil
-            description: Código de perfil (bitmask da origem).
+            description: Código de perfil, de agentes.verificacao.
             data_type: text
           - name: caracteristica
-            description: Código de característica (bitmask da origem).
+            description: Código de característica, de agentes.verificacao.
             data_type: text
           - name: usuario
             description: Identificador do usuário.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: _fatia
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__verificacao
-        identifier: bronze_agentes_verificacao
+      - name: bronze_agentes_verificacao
         description: >
           Tabela de domínio: os valores de "verificação" de um agente (natureza
           jurídica, esfera etc.), agrupados por idtipo. Camada bronze (raw do
@@ -465,6 +508,10 @@ sources:
           - name: descricao
             description: Descrição do valor (ex. Público, Municipal, Estadual).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
           - name: sistema
             description: Código de sistema de origem.
             data_type: text
@@ -472,8 +519,7 @@ sources:
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
 
-      - name: agentes__endereconacional
-        identifier: bronze_agentes_endereconacional
+      - name: bronze_agentes_endereconacional
         description: >
           Uma linha por endereço nacional de agente. DADO PESSOAL (endereço).
           Camada bronze (raw do SALIC via Trino, tudo text).
@@ -488,9 +534,17 @@ sources:
           - name: idendereco
             description: Identificador do endereço. Chave da tabela.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: idagente
             description: Agente dono do endereço. Aponta para agentes__agentes.idagente.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: tipoendereco
             description: Código do tipo de endereço.
             data_type: text
@@ -500,15 +554,31 @@ sources:
           - name: logradouro
             description: Nome do logradouro.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: numero
             description: Número do endereço (pode conter S/N).
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: bairro
             description: Bairro.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: complemento
-            description: Complemento do endereço. ~22% preenchida.
+            description: Complemento do endereço, preenchido em 54%.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: cidade
             description: Código IBGE do município (6 dígitos).
             data_type: text
@@ -518,21 +588,29 @@ sources:
           - name: cep
             description: CEP (8 dígitos). Mantido text (zero à esquerda). Dado pessoal.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: municipio
-            description: Nome do município (origem char com espaços à direita).
+            description: Nome do município; vazio em 99,4% das linhas, use cidade.
             data_type: text
           - name: ufdescricao
-            description: Nome da UF.
+            description: Nome da UF; vazio em 99,4% das linhas, use uf.
             data_type: text
           - name: status
-            description: Flag de status (bit True/False).
+            description: Se o endereço está ativo, True ou False.
             data_type: text
           - name: divulgar
-            description: Flag de autorização de divulgação (bit True/False).
+            description: Se o agente autorizou divulgar o endereço, True ou False.
             data_type: text
           - name: usuario
             description: Identificador do usuário.
             data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
           - name: _fatia
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text

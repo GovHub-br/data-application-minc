@@ -1,5 +1,7 @@
--- Bronze SALIC — agentes__vwpropostasemavaliacao.
--- Origem: salic_bronze.agentes__vwpropostasemavaliacao, onde tudo chega como texto da
+-- Silver SALIC — silver_agentes_vwpropostasemavaliacao
+-- (ex-agentes__vwpropostasemavaliacao).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_agentes_vwpropostasemavaliacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 17 colunas: 7 tipadas, 9 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -22,4 +24,4 @@ select
     {{ bronze_texto("cnpjcpf") }} as cnpjcpf,
     {{ bronze_texto("nmproponente") }} as nmproponente,
     _fatia
-from {{ source("bronze_agentes", "agentes__vwpropostasemavaliacao") }}
+from {{ source("salic", "bronze_agentes_vwpropostasemavaliacao") }}
