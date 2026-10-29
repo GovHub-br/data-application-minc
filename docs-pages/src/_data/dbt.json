@@ -4913,6 +4913,1180 @@
       "linhas_sql": 21
     },
     {
+      "nome": "silver_agentes_agentes",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_agentes.sql",
+      "descricao": "Uma linha por agente cadastrado no SALIC, pessoa física ou jurídica, identificado por idagente. É a raiz do banco agentes: endereço, telefone, papel (visão), perfil e vínculo apontam para idagente. São 997.756 agentes, cadastrados de 2007 a 2026: 547.492 com CPF e 450.263 com CNPJ. O agente é a pessoa ou entidade; o papel que ela tem no SALIC (proponente, incentivador, fornecedor, dirigente) está em silver_agentes_vvisao, e um mesmo agente pode ter vários.\n\nArmadilhas: o nome do agente não está nesta tabela nem em nenhuma silver do banco, a não ser em silver_agentes_vwcadastrarparecerista. O cnpjcpf não é único: 244 documentos aparecem em mais de um agente. status vale 0 em todas as linhas e não serve para filtrar agente ativo.",
+      "colunas": [
+        {
+          "nome": "idagente",
+          "descricao": "Identificador do agente, sequencial do SQL Server. Único e preenchido nas 997.756 linhas. É a chave que as outras tabelas do banco agentes usam, e a que sac.preprojeto grava em idagente."
+        },
+        {
+          "nome": "cnpjcpf",
+          "descricao": "CPF (11 dígitos) ou CNPJ (14 dígitos) do agente, sem máscara e com zero à esquerda, por isso texto. Preenchido em todas as linhas. Não é único: 997.512 documentos distintos para 997.756 agentes. Uma linha tem 7 dígitos."
+        },
+        {
+          "nome": "cnpjcpfsuperior",
+          "descricao": "CNPJ da entidade superior do agente, pelo nome da coluna; o uso não foi confirmado no código do SalicWeb. Em 996.659 linhas vale só zeros, sem entidade superior; há 202 valores distintos no total. Para o vínculo entre pessoa e entidade, use silver_agentes_vvinculacao."
+        },
+        {
+          "nome": "tipopessoa",
+          "descricao": "Tipo de pessoa do agente: false é pessoa física e true é pessoa jurídica. Confirmado pelo documento: os 547.492 false têm CPF de 11 dígitos e os 450.263 true têm CNPJ de 14, menos 1 true com 7 dígitos."
+        },
+        {
+          "nome": "dtcadastro",
+          "descricao": "Data e hora do cadastro do agente, de 2007 a 2026. Vazia em 8 linhas."
+        },
+        {
+          "nome": "dtatualizacao",
+          "descricao": "Data e hora da última atualização do cadastro. Vazia em 8 linhas."
+        },
+        {
+          "nome": "dtvalidade",
+          "descricao": "Data de validade do cadastro. Em 805.245 das 997.748 linhas preenchidas é exatamente um ano depois de dtcadastro. Nenhuma é anterior ao cadastro. Vazia em 8 linhas."
+        },
+        {
+          "nome": "status",
+          "descricao": "Situação do agente na origem. Vale false (0) nas 997.756 linhas: não distingue nada e não indica agente ativo ou inativo."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que fez o último registro da linha. 98% dos valores existem em silver_controledeacesso_sgcacesso.idusuario, o login do público externo, e 22% também em tabelas.usuarios, o cadastro de servidores: as faixas se sobrepõem, e o destino não está confirmado. 19.152 linhas valem 0, sem conta."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_agentes"
+      ],
+      "linhas_sql": 20
+    },
+    {
+      "nome": "silver_agentes_endereconacional",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_endereconacional.sql",
+      "descricao": "Uma linha por endereço no Brasil de um agente. São 955.942 endereços para 950.302 agentes, todos existentes em silver_agentes_agentes: quase sempre um endereço por agente. O tipo do endereço diz de onde ele veio: 519.803 são \"Endereço - Receita Federal\", gravados pela integração com a Receita, e o resto foi informado no cadastro, 243.258 comerciais e 192.881 residenciais.\n\nArmadilhas: cidade e uf são códigos, não nomes, e as colunas municipio e ufdescricao estão vazias em 99,4% das linhas. Para o nome, junte cidade com silver_agentes_municipios.idmunicipioibge: 12.046 códigos de cidade não existem lá. O tipologradouro 1 aparece em 81.932 linhas, mas o código 1 de silver_agentes_verificacao é de outro grupo (natureza \"Público\"), então é valor sem significado de logradouro.",
+      "colunas": [
+        {
+          "nome": "idendereco",
+          "descricao": "Identificador do endereço. Único e preenchido nas 955.942 linhas."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Agente dono do endereço. Liga com silver_agentes_agentes.idagente, sem órfão."
+        },
+        {
+          "nome": "tipoendereco",
+          "descricao": "Tipo do endereço, código de silver_agentes_verificacao: 282 Endereço - Receita Federal, 519.803; 23 comercial, 243.258; 22 residencial, 192.881."
+        },
+        {
+          "nome": "tipologradouro",
+          "descricao": "Tipo do logradouro, código de silver_agentes_verificacao (grupo 13): os mais comuns são 45 rua, 558.470, e 41 avenida, 130.621. O código 1, em 81.932 linhas, e o 13, em 259, não são tipo de logradouro."
+        },
+        {
+          "nome": "logradouro",
+          "descricao": "Nome do logradouro, texto livre. Vazio em 15.854 linhas."
+        },
+        {
+          "nome": "numero",
+          "descricao": "Número do imóvel, em texto porque aceita \"S/N\" e letras: 6% dos valores preenchidos não são número. Vazio em 85.181 linhas."
+        },
+        {
+          "nome": "bairro",
+          "descricao": "Bairro, texto livre. Vazio em 86.900 linhas."
+        },
+        {
+          "nome": "complemento",
+          "descricao": "Complemento do endereço, texto livre. Preenchido em 54%."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Código IBGE do município, 6 dígitos, sem o dígito verificador. Junte com silver_agentes_municipios.idmunicipioibge para ter o nome: 12.046 linhas trazem código que não está lá. Vazio em 82.134 linhas, e 36 valores não numéricos viram NULL."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Código IBGE da UF, 2 dígitos. Liga com silver_agentes_uf.iduf; 1.203 linhas trazem código que não está lá. Vazio em 563."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP, 8 dígitos sem máscara, em texto para manter o zero à esquerda. Vazio em 81.902 linhas; 51 valores têm caractere que não é dígito."
+        },
+        {
+          "nome": "municipio",
+          "descricao": "Nome do município. Preenchido em só 6.068 linhas, 0,6%: use cidade."
+        },
+        {
+          "nome": "ufdescricao",
+          "descricao": "Nome da UF. Preenchido em só 6.068 linhas, 0,6%: use uf."
+        },
+        {
+          "nome": "status",
+          "descricao": "Se o endereço está ativo: true em 945.731 linhas e false em 10.211."
+        },
+        {
+          "nome": "divulgar",
+          "descricao": "Se o agente autorizou divulgar o endereço: true em 100.504 linhas, 11%. Endereço com false não pode aparecer em publicação."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que fez o último registro da linha. É o mesmo campo de silver_agentes_agentes.usuario; o destino não foi medido nesta tabela."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 17,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_endereconacional"
+      ],
+      "linhas_sql": 26
+    },
+    {
+      "nome": "silver_agentes_municipios",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_municipios.sql",
+      "descricao": "Uma linha por município brasileiro, com o código IBGE de 6 dígitos, a UF, a mesorregião e a microrregião. São 5.568 municípios, em 137 mesorregiões e 558 microrregiões. É o domínio de cidade em silver_agentes_endereconacional e alimenta dim_municipio_ibge. Todo idufibge existe em silver_agentes_uf.",
+      "colunas": [
+        {
+          "nome": "idmunicipioibge",
+          "descricao": "Código IBGE do município, 6 dígitos, sem o dígito verificador. Único. Para o código de 7 dígitos, use silver_agentes_populacaomunicipio.idmunicipio7."
+        },
+        {
+          "nome": "idufibge",
+          "descricao": "Código IBGE da UF, 2 dígitos. Liga com silver_agentes_uf.iduf, sem órfão."
+        },
+        {
+          "nome": "idmeso",
+          "descricao": "Código IBGE da mesorregião, 4 dígitos."
+        },
+        {
+          "nome": "idmicro",
+          "descricao": "Código IBGE da microrregião, 5 dígitos."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Nome do município, com acento."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_municipios"
+      ],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "silver_agentes_perfil",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_perfil.sql",
+      "descricao": "Uma linha por perfil institucional atribuído a um agente, usado pelos programas antigos do MinC: prefeitura, ponto de cultura, griô, prêmios de culturas populares e ciganas. São 8.236 linhas para 8.139 agentes. 5.563 são prefeituras (perfil 48, característica 64, órgão de administração municipal). perfil e caracteristica são códigos de silver_agentes_verificacao, não máscaras de bits.\n\nsilver_agentes_vperfil tem as mesmas 8.236 linhas, sem idperfil.",
+      "colunas": [
+        {
+          "nome": "idperfil",
+          "descricao": "Identificador da linha. Único e preenchido nas 8.236 linhas."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Agente que tem o perfil. Liga com silver_agentes_agentes.idagente."
+        },
+        {
+          "nome": "perfil",
+          "descricao": "Perfil, código de silver_agentes_verificacao com idtipo 14: 48 prefeitura, 5.563; 194 Prêmio Culturas Populares, 990; 60 griôs, 908; 50 ponto de cultura, 659; 193 Prêmio Culturas Ciganas, 108."
+        },
+        {
+          "nome": "caracteristica",
+          "descricao": "Característica do perfil, código de silver_agentes_verificacao: 64 órgão de administração municipal, nas prefeituras; 170 \"nenhum\", na maior parte das outras; 50 ponto de cultura, em 151."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que fez o último registro da linha. Mesmo campo de silver_agentes_agentes.usuario."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_perfil"
+      ],
+      "linhas_sql": 15
+    },
+    {
+      "nome": "silver_agentes_populacaomunicipio",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_populacaomunicipio.sql",
+      "descricao": "Uma linha por município com a população. São 5.563 municípios, somando 205,9 milhões de habitantes. O ano de referência não está na tabela, e o total não bate com os Censos de 2010 nem de 2022: não use como população atual. Alimenta dim_municipio_ibge. 2 municípios não existem em silver_agentes_municipios, e 7 de lá não têm população.",
+      "colunas": [
+        {
+          "nome": "idmunicipio",
+          "descricao": "Código IBGE do município, 6 dígitos. Único. Liga com silver_agentes_municipios.idmunicipioibge; 2 não existem lá."
+        },
+        {
+          "nome": "idmunicipio7",
+          "descricao": "Código IBGE do município com o dígito verificador, 7 dígitos. Os 6 primeiros são sempre idmunicipio. É o código que as bases do IBGE usam hoje."
+        },
+        {
+          "nome": "populacao",
+          "descricao": "Número de habitantes do município, de ano de referência não registrado."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_populacaomunicipio"
+      ],
+      "linhas_sql": 13
+    },
+    {
+      "nome": "silver_agentes_tbagentefisico",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_tbagentefisico.sql",
+      "descricao": "Uma linha por agente pessoa física com dados complementares: sexo, estado civil, necessidade especial, filiação, nascimento e cor ou raça. São 136.607 agentes, todos existentes em silver_agentes_agentes (liga por idagente); só um quarto dos agentes com CPF tem esta ficha, e 7 linhas apontam para agente com CNPJ. Os códigos vêm do formulário de informações adicionais do SalicWeb.\n\nDado sensível pela LGPD: cor ou raça e necessidade especial. Qualquer uso exige base legal e agregação que não identifique a pessoa.",
+      "colunas": [
+        {
+          "nome": "idagente",
+          "descricao": "Agente pessoa física. Único na tabela e existente em silver_agentes_agentes.idagente, sem órfão."
+        },
+        {
+          "nome": "stsexo",
+          "descricao": "Sexo declarado: F em 66.073 linhas, M em 70.534. Preenchido em todas."
+        },
+        {
+          "nome": "stestadocivil",
+          "descricao": "Estado civil, em código de duas letras do formulário do SalicWeb: SO solteiro(a), 36.290; CA casado(a), 16.873; DI divorciado(a), 3.770; VI viúvo(a), 499; SJ separado(a) judicialmente, 552; OU outros, 78.623. OU é a maior categoria, então a coluna diz pouco sobre o estado civil real."
+        },
+        {
+          "nome": "stnecessidadeespecial",
+          "descricao": "Se a pessoa declarou necessidade especial: S em 739 linhas, N em 135.868. O formulário não pergunta qual. Dado sensível de deficiência."
+        },
+        {
+          "nome": "nmmae",
+          "descricao": "Nome da mãe, texto livre de até 100 caracteres. Vazio em 36 linhas. Usado na origem para conferir identidade."
+        },
+        {
+          "nome": "nmpai",
+          "descricao": "Nome do pai, texto livre de até 100 caracteres. Vazio em 43 linhas."
+        },
+        {
+          "nome": "dtnascimento",
+          "descricao": "Data de nascimento, preenchida em todas as linhas. Não é confiável sem filtro: vai de 1790 a 9967, e 11 linhas têm ano anterior a 1901."
+        },
+        {
+          "nome": "stcorraca",
+          "descricao": "Cor ou raça autodeclarada, pelo formulário do SalicWeb: 1 branca, 17.504; 2 negra, 3.963; 3 parda, 7.079; 4 amarela, 313; 5 indígena, 227. O campo não é obrigatório: 107.499 linhas, 79%, não têm valor, e outras 22 têm um caractere que não é código e viram NULL. O formulário usa \"negra\", não \"preta\" como o IBGE."
+        },
+        {
+          "nome": "nridentificadorprocessual",
+          "descricao": "Número identificador processual, que o formulário só pede para um perfil específico de usuário. Preenchido em 1.545 linhas, 1%."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 10,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_tbagentefisico"
+      ],
+      "linhas_sql": 20
+    },
+    {
+      "nome": "silver_agentes_uf",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_uf.sql",
+      "descricao": "Uma linha por unidade da federação: as 27, com código IBGE, sigla, nome e região. Alimenta dim_municipio_ibge. silver_agentes_vuf tem as mesmas 27 linhas.",
+      "colunas": [
+        {
+          "nome": "iduf",
+          "descricao": "Código IBGE da UF, 2 dígitos. Único."
+        },
+        {
+          "nome": "sigla",
+          "descricao": "Sigla da UF, como SP. Única."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Nome da UF por extenso."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Região: Norte, Nordeste, Sudeste, Sul ou Centro Oeste, este sem hífen."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_uf"
+      ],
+      "linhas_sql": 13
+    },
+    {
+      "nome": "silver_agentes_verificacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_verificacao.sql",
+      "descricao": "Uma linha por valor de código usado no banco agentes: é a tabela de domínio genérica, com os valores agrupados por idtipo. São 293 valores em 27 grupos. Os grupos usados pelas outras silvers: 1 tipo de nome, 2 tipo de endereço, 3 tipo de telefone, 4 tipo de contato na internet, 13 tipo de logradouro, 14 perfil, 16 visão (papel do agente). Os valores com \"- Receita Federal\" no nome marcam o que veio da integração com a Receita.\n\nArmadilha: o grupo 26 tem nomes de pessoas, dirigentes que assinam documentos, e por isso a tabela não é publicável. A tabela de verificação do banco sac é outra, com outros códigos. silver_agentes_vverificacao tem as mesmas 293 linhas.",
+      "colunas": [
+        {
+          "nome": "idverificacao",
+          "descricao": "Código do valor, o que as outras tabelas gravam em colunas como tipoendereco, tipotelefone, visao e perfil. Único."
+        },
+        {
+          "nome": "idtipo",
+          "descricao": "Grupo a que o valor pertence, de 1 a 31, em 27 grupos usados. O código idverificacao é único na tabela inteira, então uma coluna pode receber código de outro grupo sem erro de chave, como tipologradouro 1."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Rótulo do valor, como Residencial, Proponente ou Rua. No grupo 26 é nome de pessoa."
+        },
+        {
+          "nome": "sistema",
+          "descricao": "Sistema que usa o valor, código de silver_agentes_vsistema; 0 é todos. O código 21, dos valores da Receita Federal e de vários papéis, não existe em silver_agentes_vsistema."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_verificacao"
+      ],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "silver_agentes_vpais",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vpais.sql",
+      "descricao": "Uma linha por país, com nome em português e continente. São 236 países. Nenhuma outra silver do banco usa idpais: o nome endereconacional sugere uma tabela de endereço no exterior, e ela não é ingerida. A coluna sigla está vazia em todas as linhas.",
+      "colunas": [
+        {
+          "nome": "idpais",
+          "descricao": "Código do país no SALIC. Único. Não é código ISO."
+        },
+        {
+          "nome": "sigla",
+          "descricao": "Sigla do país. Vazia nas 236 linhas."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Nome do país em português."
+        },
+        {
+          "nome": "continente",
+          "descricao": "Continente, em 7 valores: África, América Central, América do Norte, América do Sul, Ásia, Europa e Oceania."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vpais"
+      ],
+      "linhas_sql": 15
+    },
+    {
+      "nome": "silver_agentes_vperfil",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vperfil.sql",
+      "descricao": "Uma linha por perfil institucional de um agente, vinda de uma view da origem. Tem as mesmas 8.236 linhas de silver_agentes_perfil, sem a coluna idperfil: a comparação linha a linha não achou diferença. Prefira silver_agentes_perfil.",
+      "colunas": [
+        {
+          "nome": "idagente",
+          "descricao": "Agente que tem o perfil. Liga com silver_agentes_agentes.idagente."
+        },
+        {
+          "nome": "perfil",
+          "descricao": "Perfil, código de silver_agentes_verificacao. Ver silver_agentes_perfil.perfil."
+        },
+        {
+          "nome": "caracteristica",
+          "descricao": "Característica do perfil, código de silver_agentes_verificacao. Ver silver_agentes_perfil.caracteristica."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que fez o último registro da linha. Mesmo campo de silver_agentes_agentes.usuario."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 1,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vperfil"
+      ],
+      "linhas_sql": 15
+    },
+    {
+      "nome": "silver_agentes_vprefeiturasregiaouf",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vprefeiturasregiaouf.sql",
+      "descricao": "Uma linha por agente com perfil de prefeitura, com o CNPJ, o nome da prefeitura, o município, a UF por extenso e a região. São 5.609 linhas, 5.555 CNPJs e 5.553 municípios: algumas prefeituras têm mais de um cadastro. É a lista de prefeituras de silver_agentes_perfil com perfil 48, já com os nomes. Não tem código IBGE: o município vem só por nome.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": "Região do país: Nordeste 1.800, Sudeste 1.694, Sul 1.199, Centro Oeste 466, Norte 450."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Nome da UF por extenso, como Goiás. Não é sigla nem código."
+        },
+        {
+          "nome": "perfil",
+          "descricao": "Rótulo do perfil. Vale Prefeitura em todas as linhas."
+        },
+        {
+          "nome": "cnpj",
+          "descricao": "CNPJ da prefeitura, 14 dígitos. Dado público de órgão, não identifica pessoa. Não é único: 5.555 distintos em 5.609 linhas."
+        },
+        {
+          "nome": "prefeitura",
+          "descricao": "Nome da prefeitura como cadastrado. Vazio em 5 linhas."
+        },
+        {
+          "nome": "municipio",
+          "descricao": "Nome do município. Para o código IBGE, junte pelo nome e pela UF com silver_agentes_vufmunicipio."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 1,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vprefeiturasregiaouf"
+      ],
+      "linhas_sql": 17
+    },
+    {
+      "nome": "silver_agentes_vsistema",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vsistema.sql",
+      "descricao": "Uma linha por sistema do MinC que usa o cadastro de agentes. É o domínio da coluna sistema de silver_agentes_verificacao. São 20, de 0, todos os sistemas, a 19, como 3 PRONAC, 12 Cadastro de Proponentes, 13 Conselhos de Cultura e 14 Ticket Cultural. Não confundir com silver_controledeacesso_sgcsistema, que é outra lista.",
+      "colunas": [
+        {
+          "nome": "idsistema",
+          "descricao": "Código do sistema, de 0 a 19. Único."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Nome do sistema, como PRONAC ou Ticket Cultural."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que registrou o sistema. Tem um único valor nas 20 linhas, o da carga inicial, e não liga o sistema a uma pessoa."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vsistema"
+      ],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "silver_agentes_vtelefones",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vtelefones.sql",
+      "descricao": "Uma linha por telefone de um agente. São 493.419 telefones para 385.841 agentes. Metade, 247.484, é \"Telefone - Receita Federal\", gravado pela integração com a Receita; o resto foi informado no cadastro, a maior parte celular. O prefixo v indica view na origem; a tabela de telefones por trás dela não é ingerida.",
+      "colunas": [
+        {
+          "nome": "idtelefone",
+          "descricao": "Identificador do telefone. Único e preenchido nas 493.419 linhas."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Agente dono do telefone. Liga com silver_agentes_agentes.idagente."
+        },
+        {
+          "nome": "tipotelefone",
+          "descricao": "Tipo do telefone, código de silver_agentes_verificacao: 280 Telefone - Receita Federal, 247.484; 26 celular, 178.979; 25 comercial, 41.323; 24 residencial, 24.619; 27 fax, 1.014."
+        },
+        {
+          "nome": "ddd",
+          "descricao": "DDD do telefone, 2 dígitos."
+        },
+        {
+          "nome": "numero",
+          "descricao": "Número do telefone sem DDD, em texto: 154.496 valores têm hífen, e como inteiro virariam NULL. Vazio em 66 linhas."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Código IBGE da UF do telefone, 2 dígitos."
+        },
+        {
+          "nome": "divulgar",
+          "descricao": "Se o agente autorizou divulgar o telefone, em texto True ou False: True em 74.357 linhas, 15%."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que fez o último registro da linha. Mesmo campo de silver_agentes_agentes.usuario."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vtelefones"
+      ],
+      "linhas_sql": 19
+    },
+    {
+      "nome": "silver_agentes_vuf",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vuf.sql",
+      "descricao": "Uma linha por unidade da federação, vinda de uma view da origem. Tem as mesmas 27 linhas de silver_agentes_uf: a comparação não achou diferença. Prefira silver_agentes_uf.",
+      "colunas": [
+        {
+          "nome": "iduf",
+          "descricao": "Código IBGE da UF, 2 dígitos. Único."
+        },
+        {
+          "nome": "sigla",
+          "descricao": "Sigla da UF, como SP. Única."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Nome da UF por extenso."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Região, com Centro Oeste sem hífen."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vuf"
+      ],
+      "linhas_sql": 15
+    },
+    {
+      "nome": "silver_agentes_vufmunicipio",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vufmunicipio.sql",
+      "descricao": "Uma linha por município, com a sigla e o código da UF. São as mesmas 5.568 linhas de silver_agentes_municipios, com a sigla da UF no lugar da meso e microrregião: a comparação de código, UF e nome não achou diferença.",
+      "colunas": [
+        {
+          "nome": "iduf",
+          "descricao": "Código IBGE da UF, 2 dígitos."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF, como PA."
+        },
+        {
+          "nome": "idmunicipio",
+          "descricao": "Código IBGE do município, 6 dígitos. Único."
+        },
+        {
+          "nome": "municipio",
+          "descricao": "Nome do município, igual a silver_agentes_municipios.descricao."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vufmunicipio"
+      ],
+      "linhas_sql": 15
+    },
+    {
+      "nome": "silver_agentes_vverificacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vverificacao.sql",
+      "descricao": "Uma linha por valor de código do banco agentes, vinda de uma view da origem. Tem as mesmas 293 linhas de silver_agentes_verificacao: a comparação não achou diferença. Prefira silver_agentes_verificacao. Como ela, inclui nomes de pessoas no grupo 26.",
+      "colunas": [
+        {
+          "nome": "idverificacao",
+          "descricao": "Código do valor. Único. Ver silver_agentes_verificacao."
+        },
+        {
+          "nome": "idtipo",
+          "descricao": "Grupo a que o valor pertence. Ver silver_agentes_verificacao."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Rótulo do valor. No grupo 26 é nome de pessoa."
+        },
+        {
+          "nome": "sistema",
+          "descricao": "Sistema que usa o valor, código de silver_agentes_vsistema."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vverificacao"
+      ],
+      "linhas_sql": 15
+    },
+    {
+      "nome": "silver_agentes_vvinculacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vvinculacao.sql",
+      "descricao": "Uma linha por vínculo entre uma pessoa física e uma entidade: o dirigente ou representante (idagente, com CPF) ligado à pessoa jurídica que ele representa (idvinculoprincipal, com CNPJ). É o que o SalicWeb usa para saber em nome de que entidades um CPF logado pode agir. São 242.997 vínculos, 203.567 pessoas e 144.826 entidades; em 242.737 a pessoa tem CPF e a entidade tem CNPJ.\n\nArmadilha: idvinculado e idvinculoprincipal são iguais em 242.536 linhas, 99,8%. O SalicWeb filtra por idvinculoprincipal; use essa.",
+      "colunas": [
+        {
+          "nome": "idvinculacao",
+          "descricao": "Identificador do vínculo. Único e preenchido nas 242.997 linhas."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Pessoa vinculada, normalmente dirigente da entidade. Liga com silver_agentes_agentes.idagente. Em 198 linhas é o próprio idvinculado."
+        },
+        {
+          "nome": "idvinculado",
+          "descricao": "Entidade a que a pessoa está vinculada. Igual a idvinculoprincipal em 99,8% das linhas."
+        },
+        {
+          "nome": "idvinculoprincipal",
+          "descricao": "Entidade principal do vínculo, a que o SalicWeb consulta. Liga com silver_agentes_agentes.idagente."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que fez o último registro da linha. Mesmo campo de silver_agentes_agentes.usuario."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vvinculacao"
+      ],
+      "linhas_sql": 16
+    },
+    {
+      "nome": "silver_agentes_vvisao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vvisao.sql",
+      "descricao": "Uma linha por papel (\"visão\") de um agente no SALIC. É aqui que se sabe se o agente é proponente, incentivador, fornecedor ou outro: o código visao é de silver_agentes_verificacao (grupo 16). São 1.083.125 linhas para 992.990 agentes, e só 1 par agente e visão se repete. Os papéis mais comuns: 248 fornecedor, 423.846; 144 proponente, 237.232; 198 dirigente de instituição, 218.221; 145 incentivador, 113.957; 199 beneficiário de produtos do projeto cultural, 77.052. Há 21 papéis com uso, os outros abaixo de 6 mil cada.\n\nArmadilha: ter a visão 144 diz que o agente se cadastrou como proponente, não que apresentou ou teve projeto aprovado. Para isso, cruze com o banco sac.",
+      "colunas": [
+        {
+          "nome": "idvisao",
+          "descricao": "Identificador da linha. Único e preenchido nas 1.083.125 linhas."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Agente que tem o papel. Liga com silver_agentes_agentes.idagente."
+        },
+        {
+          "nome": "visao",
+          "descricao": "Papel do agente, código de silver_agentes_verificacao.idverificacao com idtipo 16, como 144 proponente, 145 incentivador, 248 fornecedor, 198 dirigente de instituição e 209 parecerista de projeto cultural."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que fez o último registro da linha. Mesmo campo de silver_agentes_agentes.usuario."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vvisao"
+      ],
+      "linhas_sql": 15
+    },
+    {
+      "nome": "silver_agentes_vwcadastrarparecerista",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vwcadastrarparecerista.sql",
+      "descricao": "Uma linha por agente pessoa física e endereço, com o nome de registro. É a view que a tela de cadastro de parecerista do SalicWeb usa para escolher uma pessoa, e não a lista de pareceristas: só 2.731 das 546.448 linhas são de agentes com a visão 209, parecerista. São 543.641 agentes, praticamente todos os de CPF de silver_agentes_agentes.\n\nÉ a única silver do banco agentes com o nome da pessoa, porque a tabela de nomes da origem não é ingerida. Os campos de endereço vêm de silver_agentes_endereconacional e estão vazios em 43.173 linhas, de agentes sem endereço.",
+      "colunas": [
+        {
+          "nome": "idagente",
+          "descricao": "Agente pessoa física. Liga com silver_agentes_agentes.idagente. Não é único: um agente com dois endereços aparece duas vezes."
+        },
+        {
+          "nome": "cnpjcpf",
+          "descricao": "CPF do agente, 11 dígitos sem máscara. 8 linhas não têm 11 dígitos."
+        },
+        {
+          "nome": "idnome",
+          "descricao": "Identificador do nome na tabela de nomes da origem, que não é ingerida."
+        },
+        {
+          "nome": "tiponome",
+          "descricao": "Tipo do nome, código de silver_agentes_verificacao. Vale 18, nome de registro, em todas as linhas."
+        },
+        {
+          "nome": "nome",
+          "descricao": "Nome de registro da pessoa. Vazio em 2.559 linhas."
+        },
+        {
+          "nome": "idendereco",
+          "descricao": "Endereço da linha. Liga com silver_agentes_endereconacional.idendereco. Vazio em 43.173 linhas."
+        },
+        {
+          "nome": "tipoendereco",
+          "descricao": "Tipo do endereço, código de silver_agentes_verificacao: 282 Receita Federal, 263.112; 22 residencial, 165.286; 23 comercial, 74.877."
+        },
+        {
+          "nome": "tipologradouro",
+          "descricao": "Tipo do logradouro, código de silver_agentes_verificacao. Ver silver_agentes_endereconacional.tipologradouro."
+        },
+        {
+          "nome": "logradouro",
+          "descricao": "Nome do logradouro, texto livre."
+        },
+        {
+          "nome": "numero",
+          "descricao": "Número do imóvel, em texto porque aceita \"S/N\" e letras."
+        },
+        {
+          "nome": "bairro",
+          "descricao": "Bairro, texto livre."
+        },
+        {
+          "nome": "complemento",
+          "descricao": "Complemento do endereço, texto livre. Preenchido em 60%."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Código IBGE do município, 6 dígitos. Liga com silver_agentes_municipios.idmunicipioibge."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Código IBGE da UF, 2 dígitos. Liga com silver_agentes_uf.iduf."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP, 8 dígitos sem máscara, em texto para manter o zero à esquerda: 40.561 CEPs começam com zero."
+        },
+        {
+          "nome": "divulgarendereco",
+          "descricao": "Se o agente autorizou divulgar o endereço, em texto True ou False."
+        },
+        {
+          "nome": "correspondencia",
+          "descricao": "Se o endereço é o de correspondência, em texto True ou False."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que fez o último registro da linha. Mesmo campo de silver_agentes_agentes.usuario."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 19,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vwcadastrarparecerista"
+      ],
+      "linhas_sql": 30
+    },
+    {
+      "nome": "silver_agentes_vwempresajuridica",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vwempresajuridica.sql",
+      "descricao": "Uma linha por CNPJ com os dados cadastrais da Receita Federal: razão social, situação cadastral, natureza jurídica, abertura, capital social, porte e opção pelo Simples e pelo MEI. São 273.447 CNPJs, únicos, todos menos 1 existentes em silver_agentes_agentes.cnpjcpf. 263.766 estão ativos.\n\nArmadilhas: tpestabelecimento diz 0 Matriz e 1 e 2 FILIAL, mas na Receita o código 1 é matriz, e 223.458 \"filiais\" é improvável; não use sem conferir. dsnaturezajuridica está vazia em 83%: use cdnaturezajuridica. vlcapitalsocial chega a 20 trilhões, valor digitado errado na origem.",
+      "colunas": [
+        {
+          "nome": "nrcnpj",
+          "descricao": "CNPJ, 14 dígitos sem máscara. Único e preenchido em todas as linhas. Liga com silver_agentes_agentes.cnpjcpf. É dado pessoal no caso do empresário individual."
+        },
+        {
+          "nome": "tpestabelecimento",
+          "descricao": "Código do tipo de estabelecimento: 0 em 39.079 linhas, 1 em 223.458, 2 em 10.910. Ver a armadilha na descrição da tabela."
+        },
+        {
+          "nome": "dsestabelecimento",
+          "descricao": "Descrição gravada do tipo de estabelecimento: Matriz para o código 0 e FILIAL para 1 e 2."
+        },
+        {
+          "nome": "nmempresarial",
+          "descricao": "Razão social. Preenchida em todas as linhas. No empresário individual, é o nome da pessoa."
+        },
+        {
+          "nome": "nmfantasia",
+          "descricao": "Nome fantasia. Preenchido em 44%."
+        },
+        {
+          "nome": "cdsituacaocadastral",
+          "descricao": "Situação cadastral na Receita, código: 2 ativa, 263.766; 8 baixada, 7.170; 4 inapta, 2.403; 3 suspensa, 100; 1 nula, 8."
+        },
+        {
+          "nome": "dssituacaocadastral",
+          "descricao": "Descrição da situação cadastral, uma para cada código."
+        },
+        {
+          "nome": "dtsituacaocadastral",
+          "descricao": "Data da última mudança de situação cadastral."
+        },
+        {
+          "nome": "cdnaturezajuridica",
+          "descricao": "Código de natureza jurídica da Receita, com 49 valores distintos. Há valores de um dígito, como 2 e 8, que não são códigos da tabela de natureza jurídica da Receita, que tem 4 dígitos."
+        },
+        {
+          "nome": "dsnaturezajuridica",
+          "descricao": "Descrição da natureza jurídica. Vazia em 226.269 linhas, 83%."
+        },
+        {
+          "nome": "dtabertura",
+          "descricao": "Data de abertura da empresa, de 1901 a 2026."
+        },
+        {
+          "nome": "eecorreioeletronico",
+          "descricao": "E-mail da empresa na Receita. Preenchido em 88%. No empresário individual, é contato da pessoa."
+        },
+        {
+          "nome": "vlcapitalsocial",
+          "descricao": "Capital social declarado, em reais. Vai de 0 a mais de 20 trilhões: há valores digitados errados, filtre antes de somar."
+        },
+        {
+          "nome": "cdporteempresa",
+          "descricao": "Porte da empresa, código: 01 microempresa, 186.485; 03 pequeno porte, 26.786; 05 demais, 60.173. Vazio em 3."
+        },
+        {
+          "nome": "dsporteempresa",
+          "descricao": "Descrição do porte da empresa, uma para cada código."
+        },
+        {
+          "nome": "sioptantesimples",
+          "descricao": "Se a empresa é optante do Simples Nacional, SIM ou NÃO: SIM em 184.842."
+        },
+        {
+          "nome": "sioptantemei",
+          "descricao": "Se a empresa é optante do MEI, SIM ou NÃO: SIM em 84.483, todas também optantes do Simples."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vwempresajuridica"
+      ],
+      "linhas_sql": 28
+    },
+    {
+      "nome": "silver_agentes_vwempresajuridicasocios",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vwempresajuridicasocios.sql",
+      "descricao": "Uma linha por sócio ou dirigente de uma empresa, pelo quadro societário da Receita Federal. São 306.522 linhas para 153.127 empresas, todas existentes em silver_agentes_vwempresajuridica. 290.955 sócios são pessoa física, com CPF; 13.045 são pessoa jurídica; 321 são estrangeiros. As qualificações mais comuns são sócio-administrador, sócio, diretor e presidente.",
+      "colunas": [
+        {
+          "nome": "idempresajuridicasocios",
+          "descricao": "Identificador da linha. Único e preenchido nas 306.522 linhas."
+        },
+        {
+          "nome": "nrcnpj",
+          "descricao": "CNPJ da empresa, 14 dígitos. Liga com silver_agentes_vwempresajuridica.nrcnpj, sem órfão."
+        },
+        {
+          "nome": "nmempresarial",
+          "descricao": "Razão social da empresa, repetida de silver_agentes_vwempresajuridica."
+        },
+        {
+          "nome": "tpsocio",
+          "descricao": "Tipo do sócio: 1 pessoa jurídica, 15.246; 2 pessoa física, 290.955; 3 sócio estrangeiro, 321."
+        },
+        {
+          "nome": "dstiposocio",
+          "descricao": "Descrição do tipo do sócio, uma para cada código."
+        },
+        {
+          "nome": "nrcnpjcpfsocio",
+          "descricao": "CPF ou CNPJ do sócio, sem máscara. Em 2.465 linhas, todas de sócio pessoa jurídica ou estrangeiro, tem um só dígito e não identifica ninguém."
+        },
+        {
+          "nome": "nmsocio",
+          "descricao": "Nome do sócio, pessoa ou empresa."
+        },
+        {
+          "nome": "dtinclusaosociedade",
+          "descricao": "Data em que o sócio entrou na sociedade."
+        },
+        {
+          "nome": "cdqualificacao",
+          "descricao": "Qualificação do sócio na Receita, código de 2 dígitos: 49 sócio-administrador, 156.480; 22 sócio, 55.441; 10 diretor, 32.109; 16 presidente, 26.229; 05 administrador, 22.012."
+        },
+        {
+          "nome": "dsqualificacaosocio",
+          "descricao": "Descrição da qualificação do sócio, uma para cada código."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 11,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vwempresajuridicasocios"
+      ],
+      "linhas_sql": 22
+    },
+    {
+      "nome": "silver_agentes_vwportifolio",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vwportifolio.sql",
+      "descricao": "Uma linha por análise do portfólio de um proponente. Pelo conteúdo, é a conferência da atuação cultural do proponente, que o MinC aceita ou rejeita; a regra não foi confirmada no código do SalicWeb. São 12.841 análises para 8.448 proponentes, de junho de 2024 a 2026: 7.848 aceitas, 4.982 rejeitadas e 11 pendentes. Um proponente rejeitado pode reapresentar, por isso há mais de uma linha por proponente. A view da origem liga pelo documento, sem idagente.",
+      "colunas": [
+        {
+          "nome": "cnpjcpf",
+          "descricao": "CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à esquerda: 3.818 começam com zero. Liga com silver_agentes_agentes.cnpjcpf."
+        },
+        {
+          "nome": "proponente",
+          "descricao": "Nome do proponente, pessoa ou entidade."
+        },
+        {
+          "nome": "dtportifolio",
+          "descricao": "Data da análise do portfólio, de 2024-06-05 a 2026-08-24."
+        },
+        {
+          "nome": "siportifolio",
+          "descricao": "Resultado da análise: Aceito, 7.848; Rejeitado, 4.982; Pendente de Validação, 11."
+        },
+        {
+          "nome": "responsavel",
+          "descricao": "Nome de quem analisou o portfólio, pelo que se vê no dado, um servidor do MinC."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vwportifolio"
+      ],
+      "linhas_sql": 16
+    },
+    {
+      "nome": "silver_agentes_vwpropostasemavaliacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_vwpropostasemavaliacao.sql",
+      "descricao": "Uma linha por proposta de projeto Rouanet que está em avaliação de admissibilidade, com o técnico responsável. Pelo nome e pelo conteúdo, só tem proposta ainda em avaliação: é a fila do momento da carga, não histórico. Na medição eram 5.868 linhas, de 5.864 propostas, 5.242 proponentes e 19 técnicos, das secretarias SEFIC e SAV, apresentadas de 2023 a 2026. Quase todas, 5.360, são de projeto aprovado em edital.\n\nLiga com o banco sac por idpreprojeto, sem órfão. 4 propostas aparecem duas vezes.",
+      "colunas": [
+        {
+          "nome": "idpreprojeto",
+          "descricao": "Proposta em avaliação. Liga com sac.preprojeto.idpreprojeto. Não é única: 4 propostas têm duas linhas."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Título da proposta, texto livre."
+        },
+        {
+          "nome": "tptipicidade",
+          "descricao": "Tipicidade da proposta, código da tabela de verificação do banco sac (grupo 28), com 9 valores. O mais comum é 836, editais compartilhados, 5.647."
+        },
+        {
+          "nome": "dstipicidade",
+          "descricao": "Descrição da tipicidade, uma para cada código."
+        },
+        {
+          "nome": "tptipologia",
+          "descricao": "Tipologia da proposta, código com 29 valores, como o edital ou programa a que ela pertence."
+        },
+        {
+          "nome": "dstipologia",
+          "descricao": "Descrição da tipologia, uma para cada código."
+        },
+        {
+          "nome": "stproposta",
+          "descricao": "Plano de execução imediata da proposta, código da tabela de verificação do banco sac (grupo 23), de 610 a 619: 618 projeto aprovado em editais, 5.360; 610 projeto normal, 466; 614 planos anuais, 22. O nome da coluna sugere situação, mas não é."
+        },
+        {
+          "nome": "dsplanoexecucaoimediata",
+          "descricao": "Descrição do plano de execução imediata, uma para cada código de stproposta."
+        },
+        {
+          "nome": "secretaria",
+          "descricao": "Secretaria responsável pela avaliação: SEFIC, Fomento e Incentivo à Cultura, 5.014; SAV, Audiovisual, 854."
+        },
+        {
+          "nome": "ano",
+          "descricao": "Ano da proposta, de 2023 a 2026."
+        },
+        {
+          "nome": "conformidade",
+          "descricao": "Etapa da avaliação: Aguardando análise, 5.741; Diligenciado, 78; Diligência respondida, 48. Vazia em 1."
+        },
+        {
+          "nome": "idtecnico",
+          "descricao": "Técnico do MinC responsável pela avaliação, 19 distintos."
+        },
+        {
+          "nome": "nmtecnico",
+          "descricao": "Nome abreviado do técnico responsável."
+        },
+        {
+          "nome": "cdproponente",
+          "descricao": "Agente proponente. Liga com silver_agentes_agentes.idagente, sem órfão."
+        },
+        {
+          "nome": "cnpjcpf",
+          "descricao": "CPF ou CNPJ do proponente, sem máscara."
+        },
+        {
+          "nome": "nmproponente",
+          "descricao": "Nome do proponente, pessoa ou entidade. Vazio em 3 linhas."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 17,
+      "testes": 1,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_agentes_vwpropostasemavaliacao"
+      ],
+      "linhas_sql": 28
+    },
+    {
       "nome": "silver_bdcorporativo_tbalteracaonomeproponente",
       "dominio": "salic",
       "camada": "silver",
@@ -5288,1176 +6462,6 @@
         "salic.bronze_sac_projetos"
       ],
       "linhas_sql": 77
-    },
-    {
-      "nome": "agentes__agentes",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__agentes.sql",
-      "descricao": "Uma linha por agente cultural — proponente, incentivador ou fornecedor — identificado por idagente e por cnpjcpf. ~998 mil linhas. Camada bronze tipada a partir de salic_bronze.agentes__agentes. É a raiz do domínio Agentes: agentes__tbagentefisico, agentes__perfil e agentes__endereconacional referenciam idagente. Armadilha: `tipopessoa` é um bit da origem (True/False) e a semântica física/jurídica NÃO foi confirmada; `cnpjcpfsuperior` chega constante zero.",
-      "colunas": [
-        {
-          "nome": "idagente",
-          "descricao": "Identificador do agente. Chave da tabela."
-        },
-        {
-          "nome": "cnpjcpf",
-          "descricao": "CNPJ (14) ou CPF (11) do agente, sem máscara. Dado pessoal; mantido text para preservar o zero à esquerda."
-        },
-        {
-          "nome": "cnpjcpfsuperior",
-          "descricao": "CNPJ/CPF da entidade superior. Medido constante '00000000000000' na amostra (sem entidade superior)."
-        },
-        {
-          "nome": "tipopessoa",
-          "descricao": "Bit da origem (True/False). [NÃO VERIFICADO] a correspondência com pessoa física/jurídica; não assumir sem checar."
-        },
-        {
-          "nome": "dtcadastro",
-          "descricao": "Data/hora de cadastro do agente."
-        },
-        {
-          "nome": "dtatualizacao",
-          "descricao": "Data/hora da última atualização do cadastro."
-        },
-        {
-          "nome": "dtvalidade",
-          "descricao": "Data/hora de validade do cadastro."
-        },
-        {
-          "nome": "status",
-          "descricao": "Flag de status do agente (bit 0/1)."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "Identificador/flag do usuário (valores 0/1 na amostra)."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 10,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__agentes"
-      ],
-      "linhas_sql": 19
-    },
-    {
-      "nome": "agentes__endereconacional",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__endereconacional.sql",
-      "descricao": "Uma linha por endereço nacional de agente. ~956 mil linhas. Camada bronze tipada a partir de salic_bronze.agentes__endereconacional. Liga a agentes__agentes por idagente; `cidade` casa com agentes__municipios por código IBGE. DADO PESSOAL (endereço). Armadilha: `cep` fica text (zero à esquerda); `cidade`/`uf` são códigos IBGE, não nomes.",
-      "colunas": [
-        {
-          "nome": "idendereco",
-          "descricao": "Identificador do endereço. Chave da tabela."
-        },
-        {
-          "nome": "idagente",
-          "descricao": "Agente dono do endereço. Chave estrangeira lógica para agentes__agentes.idagente."
-        },
-        {
-          "nome": "tipoendereco",
-          "descricao": "Código do tipo de endereço."
-        },
-        {
-          "nome": "tipologradouro",
-          "descricao": "Código do tipo de logradouro."
-        },
-        {
-          "nome": "logradouro",
-          "descricao": "Nome do logradouro. Dado pessoal."
-        },
-        {
-          "nome": "numero",
-          "descricao": "Número do endereço (mantido text; pode conter S/N). Dado pessoal."
-        },
-        {
-          "nome": "bairro",
-          "descricao": "Bairro. Dado pessoal."
-        },
-        {
-          "nome": "complemento",
-          "descricao": "Complemento do endereço. ~22% preenchida."
-        },
-        {
-          "nome": "cidade",
-          "descricao": "Código IBGE do município (6 dígitos). Casa com agentes__municipios.idmunicipioibge."
-        },
-        {
-          "nome": "uf",
-          "descricao": "Código da UF (2 dígitos IBGE)."
-        },
-        {
-          "nome": "cep",
-          "descricao": "CEP (8 dígitos). Mantido text (zero à esquerda). Dado pessoal."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "Nome do município. Origem char com espaços à direita — o cast já apara. ~98,5% preenchida."
-        },
-        {
-          "nome": "ufdescricao",
-          "descricao": "Nome da UF. ~98,5% preenchida."
-        },
-        {
-          "nome": "status",
-          "descricao": "Flag de status (bit True/False)."
-        },
-        {
-          "nome": "divulgar",
-          "descricao": "Flag de autorização de divulgação do endereço (bit True/False)."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "Identificador do usuário que registrou."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 17,
-      "testes": 12,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__endereconacional"
-      ],
-      "linhas_sql": 25
-    },
-    {
-      "nome": "agentes__municipios",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__municipios.sql",
-      "descricao": "Tabela de domínio geográfico: o município IBGE, sua UF, mesorregião e microrregião. 5.568 linhas. Camada bronze tipada a partir de salic_bronze.agentes__municipios.",
-      "colunas": [
-        {
-          "nome": "idmunicipioibge",
-          "descricao": "Código IBGE do município (6 dígitos). Chave da tabela."
-        },
-        {
-          "nome": "idufibge",
-          "descricao": "Código IBGE da UF (2 dígitos)."
-        },
-        {
-          "nome": "idmeso",
-          "descricao": "Código da mesorregião."
-        },
-        {
-          "nome": "idmicro",
-          "descricao": "Código da microrregião."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "Nome do município."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 6,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__municipios"
-      ],
-      "linhas_sql": 13
-    },
-    {
-      "nome": "agentes__perfil",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__perfil.sql",
-      "descricao": "Liga o agente a um perfil e uma característica de acesso ao sistema. ~8 mil linhas. Camada bronze tipada a partir de salic_bronze.agentes__perfil. Armadilha: `perfil` e `caracteristica` são códigos de bitmask da origem (medidos constantes 48 e 64 na amostra) — não são contagens.",
-      "colunas": [
-        {
-          "nome": "idperfil",
-          "descricao": "Identificador do vínculo de perfil. Chave da tabela."
-        },
-        {
-          "nome": "idagente",
-          "descricao": "Agente. Chave estrangeira lógica para agentes__agentes.idagente."
-        },
-        {
-          "nome": "perfil",
-          "descricao": "Código de perfil (bitmask da origem)."
-        },
-        {
-          "nome": "caracteristica",
-          "descricao": "Código de característica (bitmask da origem)."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "Identificador do usuário que registrou."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 6,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__perfil"
-      ],
-      "linhas_sql": 14
-    },
-    {
-      "nome": "agentes__populacaomunicipio",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__populacaomunicipio.sql",
-      "descricao": "População por município. 5.563 linhas. Camada bronze tipada a partir de salic_bronze.agentes__populacaomunicipio. Dois códigos IBGE: `idmunicipio` (6 dígitos, casa com agentes__municipios.idmunicipioibge) e `idmunicipio7` (7 dígitos, com dígito verificador).",
-      "colunas": [
-        {
-          "nome": "idmunicipio",
-          "descricao": "Código IBGE do município (6 dígitos). Chave da tabela."
-        },
-        {
-          "nome": "idmunicipio7",
-          "descricao": "Código IBGE do município (7 dígitos, com dígito verificador)."
-        },
-        {
-          "nome": "populacao",
-          "descricao": "População do município (contagem de habitantes)."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 4,
-      "testes": 4,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__populacaomunicipio"
-      ],
-      "linhas_sql": 12
-    },
-    {
-      "nome": "agentes__tbagentefisico",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__tbagentefisico.sql",
-      "descricao": "Uma linha por agente pessoa física, com atributos pessoais. ~137 mil linhas. Camada bronze tipada a partir de salic_bronze.agentes__tbagentefisico. Liga a agentes__agentes por idagente. DADO SENSÍVEL: nome dos pais, cor/raça (stcorraca) e necessidade especial (stnecessidadeespecial). Uso exige base legal; não expor em painel aberto.",
-      "colunas": [
-        {
-          "nome": "idagente",
-          "descricao": "Agente pessoa física. Chave, aponta para agentes__agentes.idagente."
-        },
-        {
-          "nome": "stsexo",
-          "descricao": "Sexo declarado (M/F)."
-        },
-        {
-          "nome": "stestadocivil",
-          "descricao": "Estado civil, código de 2 letras (SJ, DI, CA, ...)."
-        },
-        {
-          "nome": "stnecessidadeespecial",
-          "descricao": "Necessidade especial (N/S). Dado sensível de deficiência. Medido majoritariamente 'N' na amostra."
-        },
-        {
-          "nome": "nmmae",
-          "descricao": "Nome da mãe. Dado pessoal. Origem char(100) com espaços à direita — o cast (bronze_texto) já apara e transforma vazio em NULL."
-        },
-        {
-          "nome": "nmpai",
-          "descricao": "Nome do pai. Dado pessoal. Origem char(100) com espaços à direita."
-        },
-        {
-          "nome": "dtnascimento",
-          "descricao": "Data de nascimento. Dado pessoal."
-        },
-        {
-          "nome": "stcorraca",
-          "descricao": "Código de cor/raça autodeclarada. Dado sensível. Preenchida em apenas ~2,5% das linhas — a ausência é a regra, não a exceção."
-        },
-        {
-          "nome": "nridentificadorprocessual",
-          "descricao": "[VAZIA EM 100% DAS LINHAS]"
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 10,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__tbagentefisico"
-      ],
-      "linhas_sql": 19
-    },
-    {
-      "nome": "agentes__uf",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__uf.sql",
-      "descricao": "Tabela de domínio: as 27 unidades da federação, com sigla, nome e região. 27 linhas. Camada bronze tipada a partir de salic_bronze.agentes__uf.",
-      "colunas": [
-        {
-          "nome": "iduf",
-          "descricao": "Código da UF (2 dígitos IBGE). Chave da tabela."
-        },
-        {
-          "nome": "sigla",
-          "descricao": "Sigla da UF (ex. RO, SP)."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "Nome da UF."
-        },
-        {
-          "nome": "regiao",
-          "descricao": "Região (Norte, Nordeste, Sudeste, Sul, Centro-Oeste)."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__uf"
-      ],
-      "linhas_sql": 12
-    },
-    {
-      "nome": "agentes__verificacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__verificacao.sql",
-      "descricao": "Tabela de domínio dos valores de \"verificação\" de um agente (natureza jurídica, esfera administrativa etc.), agrupados por idtipo. 293 linhas. Camada bronze tipada a partir de salic_bronze.agentes__verificacao.",
-      "colunas": [
-        {
-          "nome": "idverificacao",
-          "descricao": "Identificador do valor de verificação. Chave da tabela."
-        },
-        {
-          "nome": "idtipo",
-          "descricao": "Tipo/grupo do valor de verificação."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "Descrição do valor (ex. Público, Privado com fins lucrativos, Municipal)."
-        },
-        {
-          "nome": "sistema",
-          "descricao": "Código do sistema de origem."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__verificacao"
-      ],
-      "linhas_sql": 13
-    },
-    {
-      "nome": "agentes__vpais",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vpais.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vpais.",
-      "colunas": [
-        {
-          "nome": "idpais",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sigla",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "continente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vpais"
-      ],
-      "linhas_sql": 14
-    },
-    {
-      "nome": "agentes__vperfil",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vperfil.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vperfil.",
-      "colunas": [
-        {
-          "nome": "idagente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "perfil",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "caracteristica",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 4,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vperfil"
-      ],
-      "linhas_sql": 14
-    },
-    {
-      "nome": "agentes__vprefeiturasregiaouf",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vprefeiturasregiaouf.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vprefeiturasregiaouf.",
-      "colunas": [
-        {
-          "nome": "regiao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "uf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "perfil",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cnpj",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "prefeitura",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 7,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vprefeiturasregiaouf"
-      ],
-      "linhas_sql": 16
-    },
-    {
-      "nome": "agentes__vsistema",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vsistema.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vsistema.",
-      "colunas": [
-        {
-          "nome": "idsistema",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 4,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vsistema"
-      ],
-      "linhas_sql": 13
-    },
-    {
-      "nome": "agentes__vtelefones",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vtelefones.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vtelefones.",
-      "colunas": [
-        {
-          "nome": "idtelefone",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idagente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tipotelefone",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "ddd",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "numero",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "uf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "divulgar",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 9,
-      "testes": 9,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vtelefones"
-      ],
-      "linhas_sql": 18
-    },
-    {
-      "nome": "agentes__vuf",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vuf.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vuf.",
-      "colunas": [
-        {
-          "nome": "iduf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sigla",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "regiao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vuf"
-      ],
-      "linhas_sql": 14
-    },
-    {
-      "nome": "agentes__vufmunicipio",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vufmunicipio.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vufmunicipio.",
-      "colunas": [
-        {
-          "nome": "iduf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "uf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idmunicipio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vufmunicipio"
-      ],
-      "linhas_sql": 14
-    },
-    {
-      "nome": "agentes__vverificacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vverificacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vverificacao.",
-      "colunas": [
-        {
-          "nome": "idverificacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idtipo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sistema",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vverificacao"
-      ],
-      "linhas_sql": 14
-    },
-    {
-      "nome": "agentes__vvinculacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vvinculacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vvinculacao.",
-      "colunas": [
-        {
-          "nome": "idvinculacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idagente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idvinculado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idvinculoprincipal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 6,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vvinculacao"
-      ],
-      "linhas_sql": 15
-    },
-    {
-      "nome": "agentes__vvisao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vvisao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vvisao.",
-      "colunas": [
-        {
-          "nome": "idvisao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idagente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "visao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vvisao"
-      ],
-      "linhas_sql": 14
-    },
-    {
-      "nome": "agentes__vwcadastrarparecerista",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vwcadastrarparecerista.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vwcadastrarparecerista.",
-      "colunas": [
-        {
-          "nome": "idagente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cnpjcpf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idnome",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tiponome",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nome",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idendereco",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tipoendereco",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tipologradouro",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "logradouro",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "numero",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "bairro",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "complemento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "uf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cep",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "divulgarendereco",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "correspondencia",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 19,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vwcadastrarparecerista"
-      ],
-      "linhas_sql": 28
-    },
-    {
-      "nome": "agentes__vwempresajuridica",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vwempresajuridica.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vwempresajuridica.",
-      "colunas": [
-        {
-          "nome": "nrcnpj",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpestabelecimento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsestabelecimento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nmempresarial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nmfantasia",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cdsituacaocadastral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dssituacaocadastral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtsituacaocadastral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cdnaturezajuridica",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsnaturezajuridica",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtabertura",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "eecorreioeletronico",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlcapitalsocial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cdporteempresa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsporteempresa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sioptantesimples",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sioptantemei",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 18,
-      "testes": 17,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vwempresajuridica"
-      ],
-      "linhas_sql": 27
-    },
-    {
-      "nome": "agentes__vwempresajuridicasocios",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vwempresajuridicasocios.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vwempresajuridicasocios.",
-      "colunas": [
-        {
-          "nome": "idempresajuridicasocios",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrcnpj",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nmempresarial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpsocio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dstiposocio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrcnpjcpfsocio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nmsocio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtinclusaosociedade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cdqualificacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsqualificacaosocio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 11,
-      "testes": 11,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vwempresajuridicasocios"
-      ],
-      "linhas_sql": 20
-    },
-    {
-      "nome": "agentes__vwportifolio",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vwportifolio.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vwportifolio.",
-      "colunas": [
-        {
-          "nome": "proponente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtportifolio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "siportifolio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "responsavel",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 4,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vwportifolio"
-      ],
-      "linhas_sql": 15
-    },
-    {
-      "nome": "agentes__vwpropostasemavaliacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/agentes/agentes__vwpropostasemavaliacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.agentes__vwpropostasemavaliacao.",
-      "colunas": [
-        {
-          "nome": "idpreprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tptipicidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dstipicidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tptipologia",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dstipologia",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stproposta",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsplanoexecucaoimediata",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "secretaria",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "ano",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "conformidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idtecnico",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nmtecnico",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cdproponente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cnpjcpf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nmproponente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 17,
-      "testes": 15,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_agentes.agentes__vwpropostasemavaliacao"
-      ],
-      "linhas_sql": 26
     },
     {
       "nome": "sac__aberturadecontabancaria",
@@ -41632,12 +41636,12 @@
       "testes": 3,
       "materializacao": "",
       "depende_de": [
-        "agentes__municipios",
-        "agentes__populacaomunicipio",
-        "agentes__uf"
+        "silver_agentes_municipios",
+        "silver_agentes_populacaomunicipio",
+        "silver_agentes_uf"
       ],
       "sources": [],
-      "linhas_sql": 66
+      "linhas_sql": 62
     },
     {
       "nome": "dim_projeto_rouanet",
@@ -44017,10 +44021,10 @@
     },
     "salic": {
       "modelos": 599,
-      "testes": 4943,
+      "testes": 4881,
       "camadas": {
-        "silver": 8,
-        "bronze": 581,
+        "silver": 31,
+        "bronze": 558,
         "outros": 10
       }
     },
@@ -44283,6 +44287,98 @@
       "descricao": "SALIC (Sistema de Apoio às Leis de Incentivo à Cultura). Bronze: réplica do sistema de origem via Trino, tudo text, sem tratamento, com a coluna técnica _fatia da carga em fatias. Uma tabela por <banco>__<tabela> da origem, como salic.bronze_<banco>_<tabela>. As descrições das tabelas vêm do dicionário de dados do SALIC (export SchemaSpy) cruzado com o perfil do banco; o catálogo completo está em dbt/minc/docs/salic/.",
       "tabelas": [
         {
+          "nome": "bronze_agentes_municipios",
+          "descricao": "Tabela de domínio geográfico: município IBGE, sua UF, meso e microrregião. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bronze_agentes_populacaomunicipio",
+          "descricao": "População por município. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bronze_agentes_uf",
+          "descricao": "Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04. Complementa `agentes__municipios` em `dim_municipio_ibge` — é onde estão a sigla e a região, que a tabela de municípios não carrega."
+        },
+        {
+          "nome": "bronze_agentes_vpais",
+          "descricao": "Uma linha por país, com nome em português e continente. Réplica em texto da origem; tipada e documentada em silver_agentes_vpais."
+        },
+        {
+          "nome": "bronze_agentes_vperfil",
+          "descricao": "Uma linha por perfil institucional de um agente, vinda de uma view da origem. Réplica em texto da origem; tipada e documentada em silver_agentes_vperfil."
+        },
+        {
+          "nome": "bronze_agentes_vprefeiturasregiaouf",
+          "descricao": "Uma linha por agente com perfil de prefeitura, com o CNPJ, o nome da prefeitura, o município, a UF por extenso e a região. Réplica em texto da origem; tipada e documentada em silver_agentes_vprefeiturasregiaouf."
+        },
+        {
+          "nome": "bronze_agentes_vsistema",
+          "descricao": "Uma linha por sistema do MinC que usa o cadastro de agentes. Réplica em texto da origem; tipada e documentada em silver_agentes_vsistema."
+        },
+        {
+          "nome": "bronze_agentes_vtelefones",
+          "descricao": "Uma linha por telefone de um agente. Réplica em texto da origem; tipada e documentada em silver_agentes_vtelefones."
+        },
+        {
+          "nome": "bronze_agentes_vuf",
+          "descricao": "Uma linha por unidade da federação, vinda de uma view da origem. Réplica em texto da origem; tipada e documentada em silver_agentes_vuf."
+        },
+        {
+          "nome": "bronze_agentes_vufmunicipio",
+          "descricao": "Uma linha por município, com a sigla e o código da UF. Réplica em texto da origem; tipada e documentada em silver_agentes_vufmunicipio."
+        },
+        {
+          "nome": "bronze_agentes_vverificacao",
+          "descricao": "Uma linha por valor de código do banco agentes, vinda de uma view da origem. Réplica em texto da origem; tipada e documentada em silver_agentes_vverificacao."
+        },
+        {
+          "nome": "bronze_agentes_vvinculacao",
+          "descricao": "Uma linha por vínculo entre uma pessoa física e uma entidade: o dirigente ou representante (idagente, com CPF) ligado à pessoa jurídica que ele representa (idvinculoprincipal, com CNPJ). Réplica em texto da origem; tipada e documentada em silver_agentes_vvinculacao."
+        },
+        {
+          "nome": "bronze_agentes_vvisao",
+          "descricao": "Uma linha por papel (\"visão\") de um agente no SALIC. Réplica em texto da origem; tipada e documentada em silver_agentes_vvisao."
+        },
+        {
+          "nome": "bronze_agentes_vwcadastrarparecerista",
+          "descricao": "Uma linha por agente pessoa física e endereço, com o nome de registro. Réplica em texto da origem; tipada e documentada em silver_agentes_vwcadastrarparecerista."
+        },
+        {
+          "nome": "bronze_agentes_vwempresajuridica",
+          "descricao": "Uma linha por CNPJ com os dados cadastrais da Receita Federal: razão social, situação cadastral, natureza jurídica, abertura, capital social, porte e opção pelo Simples e pelo MEI. Réplica em texto da origem; tipada e documentada em silver_agentes_vwempresajuridica."
+        },
+        {
+          "nome": "bronze_agentes_vwempresajuridicasocios",
+          "descricao": "Uma linha por sócio ou dirigente de uma empresa, pelo quadro societário da Receita Federal. Réplica em texto da origem; tipada e documentada em silver_agentes_vwempresajuridicasocios."
+        },
+        {
+          "nome": "bronze_agentes_vwportifolio",
+          "descricao": "Uma linha por análise do portfólio de um proponente. Réplica em texto da origem; tipada e documentada em silver_agentes_vwportifolio."
+        },
+        {
+          "nome": "bronze_agentes_vwpropostasemavaliacao",
+          "descricao": "Uma linha por proposta de projeto Rouanet que está em avaliação de admissibilidade, com o técnico responsável. Réplica em texto da origem; tipada e documentada em silver_agentes_vwpropostasemavaliacao."
+        },
+        {
+          "nome": "bronze_agentes_agentes",
+          "descricao": "Uma linha por agente cultural (proponente, incentivador ou fornecedor), identificado por idagente e por cnpjcpf. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bronze_agentes_tbagentefisico",
+          "descricao": "Uma linha por agente pessoa física, com atributos pessoais. DADO SENSÍVEL: nome dos pais, cor/raça e necessidade especial. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bronze_agentes_perfil",
+          "descricao": "Uma linha por perfil institucional de um agente, como prefeitura ou ponto de cultura. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bronze_agentes_verificacao",
+          "descricao": "Tabela de domínio: os valores de \"verificação\" de um agente (natureza jurídica, esfera etc.), agrupados por idtipo. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bronze_agentes_endereconacional",
+          "descricao": "Uma linha por endereço nacional de agente. DADO PESSOAL (endereço). Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
           "nome": "bronze_bdcorporativo_sysdiagrams",
           "descricao": "Tabela responsável por armazenar diagramas do SQL Server criados no ambiente."
         },
@@ -44321,105 +44417,6 @@
         {
           "nome": "bronze_sac_projetos",
           "descricao": "Uma linha por projeto cultural (PRONAC) submetido ao mecanismo de incentivo fiscal (Lei Rouanet). Núcleo do domínio SAC: liga proponente, situação, valores solicitados e datas de tramitação. Camada bronze (raw do SALIC via Trino, tudo text)."
-        }
-      ]
-    },
-    {
-      "nome": "bronze_agentes",
-      "schema": "salic",
-      "descricao": "Registro de identidade de agentes (pessoas físicas e jurídicas), compartilhado com outros domínios do MinC além do SALIC (ex.: LPG, PNAB). Camada bronze (dados brutos do SALIC, réplica do sistema de origem via Airflow, sem tratamento). Descrições e tiers gerados automaticamente a partir do dicionário de dados original do SALIC (export SchemaSpy) cruzado com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo (YAML semântico, dicionário e catálogo em DOCX/HTML).",
-      "tabelas": [
-        {
-          "nome": "agentes__municipios",
-          "descricao": "Tabela de domínio geográfico: município IBGE, sua UF, meso e microrregião. Camada bronze (raw do SALIC via Trino, tudo text)."
-        },
-        {
-          "nome": "agentes__populacaomunicipio",
-          "descricao": "População por município. Camada bronze (raw do SALIC via Trino, tudo text)."
-        },
-        {
-          "nome": "agentes__uf",
-          "descricao": "Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04. Complementa `agentes__municipios` em `dim_municipio_ibge` — é onde estão a sigla e a região, que a tabela de municípios não carrega."
-        },
-        {
-          "nome": "agentes__vpais",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vperfil",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vprefeiturasregiaouf",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vsistema",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vtelefones",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vuf",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vufmunicipio",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vverificacao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vvinculacao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vvisao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vwcadastrarparecerista",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vwempresajuridica",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vwempresajuridicasocios",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vwportifolio",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__vwpropostasemavaliacao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "agentes__agentes",
-          "descricao": "Uma linha por agente cultural (proponente, incentivador ou fornecedor), identificado por idagente e por cnpjcpf. Camada bronze (raw do SALIC via Trino, tudo text)."
-        },
-        {
-          "nome": "agentes__tbagentefisico",
-          "descricao": "Uma linha por agente pessoa física, com atributos pessoais. DADO SENSÍVEL: nome dos pais, cor/raça e necessidade especial. Camada bronze (raw do SALIC via Trino, tudo text)."
-        },
-        {
-          "nome": "agentes__perfil",
-          "descricao": "Liga o agente a um perfil e característica de acesso (codificados como inteiros de bitmask). Camada bronze (raw do SALIC via Trino, tudo text)."
-        },
-        {
-          "nome": "agentes__verificacao",
-          "descricao": "Tabela de domínio: os valores de \"verificação\" de um agente (natureza jurídica, esfera etc.), agrupados por idtipo. Camada bronze (raw do SALIC via Trino, tudo text)."
-        },
-        {
-          "nome": "agentes__endereconacional",
-          "descricao": "Uma linha por endereço nacional de agente. DADO PESSOAL (endereço). Camada bronze (raw do SALIC via Trino, tudo text)."
         }
       ]
     },
@@ -47082,7 +47079,7 @@
   ],
   "totais": {
     "modelos": 733,
-    "testes": 5185,
+    "testes": 5123,
     "com_descricao": 732,
     "sources": 730
   }

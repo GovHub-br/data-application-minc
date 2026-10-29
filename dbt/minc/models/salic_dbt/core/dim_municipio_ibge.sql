@@ -16,32 +16,30 @@
 -- porque nenhum começa com zero — o primeiro par identifica a UF, de 11 a 53.
 -- Mas o `transferegov` traz o código de 7 posições como texto, então cruzar
 -- com ele exige cast explícito de um dos lados.
-with municipios as (
-    select
-        idmunicipioibge as codigo_ibge_6,
-        descricao       as nome_municipio,
-        idufibge        as id_uf_ibge,
-        idmeso          as codigo_mesorregiao,
-        idmicro         as codigo_microrregiao
-    from {{ ref('silver_agentes_municipios') }}
-),
+with
+    municipios as (
+        select
+            idmunicipioibge as codigo_ibge_6,
+            descricao as nome_municipio,
+            idufibge as id_uf_ibge,
+            idmeso as codigo_mesorregiao,
+            idmicro as codigo_microrregiao
+        from {{ ref("silver_agentes_municipios") }}
+    ),
 
-ufs as (
-    select
-        iduf      as id_uf_ibge,
-        sigla     as sigla_uf,
-        descricao as nome_uf,
-        regiao    as regiao
-    from {{ ref('silver_agentes_uf') }}
-),
+    ufs as (
+        select
+            iduf as id_uf_ibge, sigla as sigla_uf, descricao as nome_uf, regiao as regiao
+        from {{ ref("silver_agentes_uf") }}
+    ),
 
-populacao as (
-    select
-        idmunicipio  as codigo_ibge_6,
-        idmunicipio7 as codigo_ibge_7,
-        populacao    as populacao
-    from {{ ref('silver_agentes_populacaomunicipio') }}
-)
+    populacao as (
+        select
+            idmunicipio as codigo_ibge_6,
+            idmunicipio7 as codigo_ibge_7,
+            populacao as populacao
+        from {{ ref("silver_agentes_populacaomunicipio") }}
+    )
 
 select
     m.codigo_ibge_6,
@@ -59,7 +57,5 @@ from municipios as m
 -- com os campos nulos. Descartar aqui esconderia falha de referência que
 -- precisa ficar visível — são 5.568 municípios contra 5.563 com população,
 -- então a diferença é esperada e tem de aparecer, não sumir.
-left join ufs as u
-    on m.id_uf_ibge = u.id_uf_ibge
-left join populacao as p
-    on m.codigo_ibge_6 = p.codigo_ibge_6
+left join ufs as u on m.id_uf_ibge = u.id_uf_ibge
+left join populacao as p on m.codigo_ibge_6 = p.codigo_ibge_6
