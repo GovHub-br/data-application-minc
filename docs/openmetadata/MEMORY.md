@@ -635,6 +635,44 @@ guarda do SQL para); 4. `psql -f scripts/salic_mover_bronze.sql`, ou a versão
 tabela pequena para provar o TRUNCATE. A contagem antes/depois da silver em
 `dev_salic` só dá para medir depois do passo 4, porque antes a source não existe.
 
+### 2026-10-28 · Claude · F17 — o rename rodou; as sources legadas viram ponte (PR #110)
+
+**O rename.** Rodou em produção em 28/10, como `dl_airflow`, dona das
+tabelas. Resultado: 672 tabelas em `salic.bronze_*` e as 2 `tmp_trino_*` em
+`salic_bronze`. Três lições para operações parecidas. Um teste dbt preso há
+horas, `relationships` de `sac__aprovacao` com ela mesma, segurava lock e
+travou a primeira tentativa. A VPN caiu no meio e deixou uma sessão órfã com
+transação aberta. A versão que funcionou é um bloco `DO` só, em autocommit,
+com `lock_timeout` e encerramento das sessões órfãs antes de começar.
+
+**A ponte.** As cinco `salic_dbt/bronze/sources_*.yml` declaram
+`schema: salic` e, por tabela, `identifier: bronze_<banco>_<tabela>`. Os
+nomes de source e de tabela no dbt continuam os mesmos. Sem isso, o próximo
+`dbt run` recriaria as 589 views a partir de `salic_bronze`, que ficou vazio.
+Cada lote de migração apaga o seu arquivo.
+
+**Pendências para os lotes e o PR 7.**
+- **Nomes acima de 63 caracteres.** Três tabelas do `sac` passam do limite e
+  o Postgres gravou o nome cortado. Duas estão nas sources, com o
+  `identifier` cortado: `vwpainelcoordenadorreadequacaoaguardandoanalise_20180323`
+  e `vwpaineldedocumentosdereadequacaoaguardandoassinatura`. A terceira não
+  está: `vwpainelreadequacaocoordenadorpareceraguardandoanalise`. O
+  `bronze_table_name` da DAG gera o nome inteiro, e o conector Postgres do
+  Trino deve recusar a criação. Precisa de uma regra para nome longo. Issue à
+  parte.
+- **Duas sources para a mesma tabela física.** `bronze_sac.sac__projetos` e
+  `salic.bronze_sac_projetos` resolvem para a mesma tabela, e o mesmo vale
+  para `captacao`. A linhagem do OpenMetadata mostra dois nós. O lote `sac`
+  remove a duplicata.
+- **OpenMetadata.** `^salic_bronze$` saiu das recipes. Com
+  `markDeletedTables: false`, as entidades antigas de `salic_bronze` ficam no
+  catálogo. Antes de apagá-las, decidir se alguma curadoria feita na UI
+  (descrição, tag, owner) precisa ser copiada para `salic.bronze_*`. Isso
+  entra no PR 7, junto com o `drop schema salic_bronze`.
+- **O teste autorreferente.** Os testes `relationships` de `sac__aprovacao`,
+  em `tipoaprovacao` e `sequencial`, comparam a tabela com ela mesma e rodam
+  por horas. O lote `sac` remove os dois.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG

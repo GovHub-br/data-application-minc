@@ -50,9 +50,12 @@ models:
     transferegov:
       +schema: transferegov
       +materialized: view
-    # SALIC no layout do ADR, lendo a ingestao v2 (salic_bronze). Divide o
-    # schema `salic` com o salic_dbt ate ele migrar; os nomes nao colidem
-    # (bronze_sac_*/silver_sac_* aqui, sac__* la).
+    # SALIC no layout do ADR. A Bronze nao e modelo: e a copia crua que a
+    # salic_ingestion_trino grava em salic.bronze_<banco>_<tabela>, declarada
+    # como source. As silvers caem no mesmo schema. Divide o schema `salic` com
+    # as views do salic_dbt ate ele migrar; os nomes nao colidem (bronze_* e
+    # silver_* aqui, <banco>__<tabela> la). Um modelo chamado bronze_* aqui
+    # substituiria a tabela que a DAG grava com esse nome.
     salic:
       +schema: salic
       +materialized: view
@@ -85,14 +88,15 @@ models:
     # SALIC — Lei Rouanet. Legado: um dominio, as camadas separadas por PASTA
     # (o unico que ainda esta assim; migra conforme o ADR 0010).
     #
-    # Schema `salic`, NAO `salic_bronze`. Com target `prod` o
-    # generate_schema_name_for_env aplica o custom schema literal, entao
-    # `+schema: salic_bronze` faria a bronze resolver para a MESMA relacao que a
-    # sua propria source -- e o dbt derrubaria a tabela raw de 157 M de linhas
-    # para por uma view no lugar.
+    # Schema `salic`, o mesmo da Bronze (salic.bronze_<banco>_<tabela>, que as
+    # sources daqui declaram por `identifier`). O que evita colisao e o nome:
+    # as views daqui se chamam <banco>__<tabela>, nunca bronze_*. Com target
+    # `prod` o generate_schema_name_for_env aplica o custom schema literal,
+    # entao um modelo com o nome de uma tabela da Bronze a derrubaria para por
+    # uma view no lugar.
     salic_dbt:
       +schema: salic
-      # Um modelo por tabela do raw `salic_bronze` (571 hoje), so aplicando
+      # Um modelo por tabela da Bronze do SALIC, so aplicando
       # cast. View por padrao: o objetivo e a camada semantica no dbt docs e no
       # OpenMetadata, e view entrega isso com zero armazenamento. Os 52,7 GB do
       # raw nao se duplicam antes de alguem saber quais modelos importam --
