@@ -26,6 +26,12 @@ models:
     config:
       tags: [silver, salic, controledeacesso]
       meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_controledeacesso_sgcacesso'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
         openmetadata:
           tier: "Tier.Tier3"
           domain: "Cultura.Incentivo Fiscal"
@@ -48,6 +54,10 @@ models:
           errada também casa: 96% dos idusuario de sac.tbdespacho existem
           aqui. Confira a tabela de destino antes de cruzar.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
           - not_null
           - unique
@@ -113,9 +123,10 @@ models:
             reiniciada, e o sistema pede a troca no próximo login. 142.192
             contas.
           - 3, senha definida pelo próprio usuário. 248.814 contas.
-          - 2, em 17.412 contas, e 5, em 675. [NÃO VERIFICADO] O código
-            público não os grava; podem vir de uma versão anterior ou de
-            outra rotina.
+          - 2, em 17.412 contas, e 5, em 675, sem significado conhecido:
+            o código público não os grava, e podem vir de uma versão
+            anterior ou de outra rotina. Não use esses dois códigos para
+            classificar contas.
         data_type: integer
         tests:
           - not_null
@@ -151,6 +162,12 @@ models:
     config:
       tags: [silver, salic, controledeacesso]
       meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_controledeacesso_sgcsistema'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
         openmetadata:
           tier: "Tier.Tier3"
           domain: "Cultura.Incentivo Fiscal"
@@ -195,6 +212,12 @@ models:
     config:
       tags: [silver, salic, controledeacesso]
       meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_controledeacesso_sgcusuarioxsistema'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
         openmetadata:
           tier: "Tier.Tier3"
           domain: "Cultura.Incentivo Fiscal"
@@ -209,6 +232,10 @@ models:
           Conta que tem o acesso. Liga com
           silver_controledeacesso_sgcacesso.idusuario.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
           - not_null
           - relationships:
