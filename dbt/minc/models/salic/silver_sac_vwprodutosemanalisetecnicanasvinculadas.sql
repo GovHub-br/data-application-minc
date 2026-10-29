@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vwprodutosemanalisetecnicanasvinculadas.
--- Origem: salic_bronze.sac__vwprodutosemanalisetecnicanasvinculadas, onde tudo chega
+-- Silver SALIC — silver_sac_vwprodutosemanalisetecnicanasvinculadas (ex-sac__vwprodutosemanalisetecnicanasvinculadas).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vwprodutosemanalisetecnicanasvinculadas, onde tudo chega
 -- como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 37 colunas: 22 tipadas, 14 mantidas como texto.
@@ -44,4 +45,4 @@ select
     {{ bronze_numerico("vlsolicitado") }} as vlsolicitado,
     {{ bronze_numerico("vlsugerido") }} as vlsugerido,
     _fatia
-from {{ source("bronze_sac", "sac__vwprodutosemanalisetecnicanasvinculadas") }}
+from {{ source("salic", "bronze_sac_vwprodutosemanalisetecnicanasvinculadas") }}

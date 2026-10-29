@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vwprecomedio_produto_item_unidade_uf_municipio.
--- Origem: salic_bronze.sac__vwprecomedio_produto_item_unidade_uf_municipio, onde tudo
+-- Silver SALIC — silver_sac_vwprecomedio_produto_item_unidade_uf_municipio (ex-sac__vwprecomedio_produto_item_unidade_uf_municipio).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vwprecomedio_produto_item_unidade_uf_municipio, onde tudo
 -- chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 14 colunas: 7 tipadas, 6 mantidas como texto.
@@ -20,4 +21,4 @@ select
     {{ bronze_numerico("preco_medio") }} as preco_medio,
     {{ bronze_numerico("preco_maximo") }} as preco_maximo,
     _fatia
-from {{ source("bronze_sac", "sac__vwprecomedio_produto_item_unidade_uf_municipio") }}
+from {{ source("salic", "bronze_sac_vwprecomedio_produto_item_unidade_uf_municipio") }}

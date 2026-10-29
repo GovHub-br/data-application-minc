@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vwplanilhaaprovada.
--- Origem: salic_bronze.sac__vwplanilhaaprovada, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_vwplanilhaaprovada (ex-sac__vwplanilhaaprovada).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vwplanilhaaprovada, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 27 colunas: 6 tipadas, 20 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -32,4 +33,4 @@ select
     {{ bronze_texto("aprovado") }} as aprovado,
     {{ bronze_texto("justcomponente") }} as justcomponente,
     _fatia
-from {{ source("bronze_sac", "sac__vwplanilhaaprovada") }}
+from {{ source("salic", "bronze_sac_vwplanilhaaprovada") }}

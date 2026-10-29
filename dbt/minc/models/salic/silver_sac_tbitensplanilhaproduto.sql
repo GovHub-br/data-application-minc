@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__tbitensplanilhaproduto.
--- Origem: salic_bronze.sac__tbitensplanilhaproduto, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbitensplanilhaproduto (ex-sac__tbitensplanilhaproduto).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbitensplanilhaproduto, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 6 colunas: 5 tipadas, 0 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -11,4 +12,4 @@ select
     {{ bronze_inteiro("idplanilhaitens") }} as idplanilhaitens,
     {{ bronze_inteiro("idusuario") }} as idusuario,
     _fatia
-from {{ source("bronze_sac", "sac__tbitensplanilhaproduto") }}
+from {{ source("salic", "bronze_sac_tbitensplanilhaproduto") }}

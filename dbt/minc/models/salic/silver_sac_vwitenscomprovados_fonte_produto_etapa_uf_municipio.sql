@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio.
--- Origem: salic_bronze.sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio, onde
+-- Silver SALIC — silver_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio (ex-sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio, onde
 -- tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 19 colunas: 8 tipadas, 10 mantidas como texto.
@@ -26,4 +27,4 @@ select
     {{ bronze_texto("stitemavaliado") }} as stitemavaliado,
     _fatia
 from
-    {{ source("bronze_sac", "sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio") }}
+    {{ source("salic", "bronze_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio") }}

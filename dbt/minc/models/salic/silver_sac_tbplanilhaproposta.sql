@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__tbplanilhaproposta.
--- Origem: salic_bronze.sac__tbplanilhaproposta, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbplanilhaproposta (ex-sac__tbplanilhaproposta).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbplanilhaproposta, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 21 colunas: 17 tipadas, 3 mantidas como texto.
 -- 1 coluna(s) ficaram texto porque a amostra do banco
@@ -28,4 +29,4 @@ select
     {{ bronze_texto("dsjustificativa") }} as dsjustificativa,
     {{ bronze_booleano("stcustopraticado") }} as stcustopraticado,
     _fatia
-from {{ source("bronze_sac", "sac__tbplanilhaproposta") }}
+from {{ source("salic", "bronze_sac_tbplanilhaproposta") }}

@@ -1,7 +1,8 @@
--- Bronze SALIC — sac__vwanalisedecusto.
--- Origem: salic_bronze.sac__vwanalisedecusto, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_vworcamentosolicitado (ex-sac__vworcamentosolicitado).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vworcamentosolicitado, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 27 colunas: 9 tipadas, 17 mantidas como texto.
+-- 23 colunas: 6 tipadas, 16 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -10,7 +11,7 @@ select
     {{ bronze_texto("sequencial") }} as sequencial,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_inteiro("idproduto") }} as idproduto,
-    {{ bronze_inteiro("idplanilhaprojeto") }} as idplanilhaprojeto,
+    {{ bronze_inteiro("idplanilhaproposta") }} as idplanilhaproposta,
     {{ bronze_texto("produto") }} as produto,
     {{ bronze_texto("etapa") }} as etapa,
     {{ bronze_texto("item") }} as item,
@@ -26,10 +27,6 @@ select
     {{ bronze_texto("fonterecurso") }} as fonterecurso,
     {{ bronze_texto("uf") }} as uf,
     {{ bronze_texto("municipio") }} as municipio,
-    {{ bronze_timestamp("data") }} as data,
-    {{ bronze_numerico("vlcorte") }} as vlcorte,
-    {{ bronze_texto("justificativasugerida") }} as justificativasugerida,
-    {{ bronze_texto("vlsugerido") }} as vlsugerido,
-    {{ bronze_inteiro("idusuario") }} as idusuario,
+    {{ bronze_texto("justificativa") }} as justificativa,
     _fatia
-from {{ source("bronze_sac", "sac__vwanalisedecusto") }}
+from {{ source("salic", "bronze_sac_vworcamentosolicitado") }}
