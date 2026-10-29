@@ -17,13 +17,17 @@ Mecânico, e só o que a migração permite (ADR 0010/0017, plano de 2026-10-27)
     o movido o substitui;
   - reescreve ref('<origem>__x') -> ref('silver_<origem>_x') e
     source('bronze_<origem>', '<origem>__x') -> source('salic', 'bronze_<origem>_x')
-    em models/, tests/ e macros/ do projeto dbt, porque a source
-    bronze_<origem> deixa de existir;
+    nos .sql de models/, tests/ e macros/ e nos .yml de models/ (os
+    relationships dos schema.yml), porque a source bronze_<origem> deixa de
+    existir;
   - apaga a subpasta vazia.
 
 Imprime tudo que fez e tudo que NÃO conseguiu fazer sozinho (bloco de schema
 sem a frase padrão, source() que sobrou com a source velha), para a pessoa
 terminar à mão.
+
+Antes de mexer em qualquer arquivo, para com erro se algum nome novo de modelo
+passar de 63 caracteres, o limite do Postgres: esses precisam de nome à mão.
 
 Uso: python3 scripts/migrar_lote_salic.py controledeacesso
 """
@@ -40,6 +44,7 @@ PROJETO = RAIZ / "dbt" / "minc"
 ORIGEM_DIR = PROJETO / "models" / "salic_dbt" / "bronze"
 DESTINO = PROJETO / "models" / "salic"
 ORIGENS = ("controledeacesso", "bdcorporativo", "agentes", "tabelas", "sac")
+LIMITE_NOME = 63
 
 RE_HEADER = re.compile(
     r"^-- Bronze SALIC — (?P<tabela>\S+?)(?P<view> \(VIEW na origem\))?\.$", re.M
@@ -71,6 +76,15 @@ def git(*args: str) -> None:
 def novo_nome(stem: str, origem: str) -> str:
     assert stem.startswith(f"{origem}__"), stem
     return f"silver_{origem}_{stem[len(origem) + 2:]}"
+
+
+def nomes_longos(origem: str) -> list[tuple[str, str]]:
+    """Modelos cujo nome novo passa do limite do Postgres, com o nome velho."""
+    return sorted(
+        (p.stem, novo)
+        for p in (ORIGEM_DIR / origem).glob("*.sql")
+        if len(novo := novo_nome(p.stem, origem)) > LIMITE_NOME
+    )
 
 
 def nome_bronze(origem: str, tabela: str) -> str:
@@ -213,8 +227,10 @@ def migrar_sources(origem: str) -> None:
 
 
 def reescrever_leitores(origem: str, renomes: dict[str, str]) -> None:
+    # .yml entra por causa dos relationships: to: ref('<origem>__x').
     alvos = (
         list((PROJETO / "models").rglob("*.sql"))
+        + list((PROJETO / "models").rglob("*.yml"))
         + list((PROJETO / "tests").glob("*.sql"))
         + list((PROJETO / "macros").rglob("*.sql"))
     )
@@ -238,6 +254,9 @@ def reescrever_leitores(origem: str, renomes: dict[str, str]) -> None:
                 f"  ATENÇÃO sobrou source('bronze_{origem}', ...) em "
                 f"{arq.relative_to(RAIZ)}"
             )
+        velho = re.search(rf"""ref\(\s*['"]{re.escape(origem)}__""", novo)
+        if velho:
+            print(f"  ATENÇÃO sobrou ref('{origem}__...') em {arq.relative_to(RAIZ)}")
 
 
 def main(argv: list[str]) -> int:
@@ -245,6 +264,15 @@ def main(argv: list[str]) -> int:
     if origem not in ORIGENS:
         print(f"uso: {argv[0]} <{'|'.join(ORIGENS)}>")
         return 2
+    longos = nomes_longos(origem)
+    if longos:
+        print(
+            f"ERRO: {len(longos)} modelo(s) passariam de {LIMITE_NOME} caracteres. "
+            "Dê nome à mão (alias ou nome mais curto) e rode de novo:"
+        )
+        for velho, novo in longos:
+            print(f"  {velho} -> {novo} ({len(novo)})")
+        return 1
     renomes = migrar_sql(origem)
     migrar_schema(origem, renomes)
     migrar_sources(origem)
