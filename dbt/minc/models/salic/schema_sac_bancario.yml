@@ -1,0 +1,3572 @@
+version: 2
+
+# Silvers do assunto bancário e captação do banco sac do SALIC: contas
+# dos projetos, lançamentos e extratos do Banco do Brasil, captação por
+# incentivador, empenho e ordem bancária, pagamento de parecerista e as
+# views de incentivador, renúncia e inconsistência. Medições de 29/10/2026 na
+# Bronze (salic.bronze_sac_*), por agregados, sem valor de linha.
+
+models:
+  - name: silver_sac_contabancaria
+    description: >
+      Uma linha por projeto com as duas contas correntes que o Banco do Brasil,
+      código 001, abre para ele: a conta bloqueada, que recebe a captação, e a
+      conta livre, de onde o proponente paga as despesas. São 138.482 contas,
+      uma por PRONAC, todas no Banco do Brasil. Liga ao projeto por anoprojeto
+      e sequencial; 2 não existem em silver_sac_projetos. ocorrenciacb e
+      ocorrenciacl são o retorno do banco ao pedido de abertura: 000 é aberta
+      sem ocorrência.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_contabancaria'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - ocorrenciacb
+            - ocorrenciacl
+            - loteremessacb
+            - loteremessacl
+            - dtloteremessacb
+            - dtloteremessacl
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    tests:
+      - unique:
+          arguments:
+            column_name: "anoprojeto || '-' || sequencial"
+    columns:
+      - name: idcontabancaria
+        description: >
+          Identificador da conta. Único.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: mecanismo
+        description: >
+          Mecanismo do projeto: 1, 2 ou 6.
+        data_type: text
+      - name: banco
+        description: >
+          Banco: 001, o Banco do Brasil, código 001, em todas as linhas.
+        data_type: text
+      - name: agencia
+        description: >
+          Agência bancária, em texto com zero à esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: contabloqueada
+        description: >
+          Número da conta bloqueada, que recebe a captação.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dtloteremessacb
+        description: >
+          Data do lote de remessa ao banco que pediu a conta bloqueada.
+        data_type: timestamp
+      - name: loteremessacb
+        description: >
+          Lote de remessa ao banco da conta bloqueada.
+        data_type: text
+      - name: ocorrenciacb
+        description: >
+          Retorno do banco à abertura da conta bloqueada: 000 sem ocorrência,
+          137.070; os outros são códigos de ocorrência do banco.
+        data_type: text
+      - name: contalivre
+        description: >
+          Número da conta livre, de movimentação.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dtloteremessacl
+        description: >
+          Data do lote de remessa ao banco que pediu a conta livre.
+        data_type: timestamp
+      - name: loteremessacl
+        description: >
+          Lote de remessa ao banco da conta livre.
+        data_type: text
+      - name: ocorrenciacl
+        description: >
+          Retorno do banco à abertura da conta livre: 000 sem ocorrência,
+          137.232.
+        data_type: text
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac. Preenchido só em 91: use anoprojeto e
+          sequencial.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbcontabancariabloqueada
+    description: >
+      Uma linha por liberação de recurso da conta bloqueada de um projeto para
+      a conta livre. São 8.035 liberações, somando 4,5 bilhões de reais, com o
+      servidor que liberou.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbcontabancariabloqueada'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idcontabancariabloqueada
+            - dtliberacao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idcontabancariabloqueada
+        description: >
+          Identificador da liberação. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+        tests:
+          - not_null
+      - name: dtliberacao
+        description: >
+          Data em que o recurso foi liberado para a conta livre.
+        data_type: timestamp
+      - name: dtbloqueio
+        description: >
+          Data em que a conta foi bloqueada.
+        data_type: timestamp
+      - name: tpbloqueio
+        description: >
+          Tipo do bloqueio: 1 em todas as linhas.
+        data_type: text
+      - name: idusuarioliberouconta
+        description: >
+          Servidor que liberou o recurso.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: vlliberado
+        description: >
+          Valor liberado para a conta livre, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbhistoricoexclusaoconta
+    description: >
+      Uma linha por conta bancária de projeto excluída do cadastro, com as
+      contas, o motivo e quem excluiu. São 4.085 exclusões.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbhistoricoexclusaoconta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idhistoricoexclusaoconta
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idhistoricoexclusaoconta
+        description: >
+          Identificador da exclusão. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idcontabancaria
+        description: >
+          Conta excluída, código de silver_sac_contabancaria.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: banco
+        description: >
+          Banco, em texto: 001 é o Banco do Brasil, código 001.
+        data_type: text
+      - name: agencia
+        description: >
+          Agência bancária, em texto com zero à esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: contabloqueada
+        description: >
+          Número da conta bloqueada excluída.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: contalivre
+        description: >
+          Número da conta livre excluída.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dtexclusao
+        description: >
+          Data em que a conta foi excluída do cadastro.
+        data_type: timestamp
+      - name: motivo
+        description: >
+          Motivo da exclusão, em texto livre.
+        data_type: text
+      - name: idusuario
+        description: >
+          Conta que gravou a linha. Confira a origem antes de cruzar: em
+          silver_sac_preprojeto quase todas são contas do SalicWeb
+          (silver_controledeacesso_sgcacesso).
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbcontacartao
+    description: >
+      Uma linha por cartão de pagamento ligado à conta de um projeto, com o
+      portador. Tem 3 linhas: o recurso quase não é usado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbcontacartao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idcontacartao
+        description: >
+          Identificador do cartão.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: idcontabancaria
+        description: >
+          Conta do projeto, código de silver_sac_contabancaria.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrcontacartao
+        description: >
+          Número da conta do cartão.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrcentrodecusto
+        description: >
+          Centro de custo do cartão no banco.
+        data_type: text
+      - name: nrcpfportadordocartao
+        description: >
+          CPF do portador do cartão.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cdproponentenobanco
+        description: >
+          Código do proponente no banco.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cdportadorcartaonobanco
+        description: >
+          Código do portador no banco.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: stestado
+        description: >
+          Se a linha está ativa na origem: true ativa, false inativa ou
+          substituída.
+        data_type: boolean
+      - name: idusuario
+        description: >
+          Conta que gravou a linha. Confira a origem antes de cruzar: em
+          silver_sac_preprojeto quase todas são contas do SalicWeb
+          (silver_controledeacesso_sgcacesso).
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vcontacorrente
+    description: >
+      Uma linha por conta corrente de projeto, numa view antiga da origem. Tem
+      1 linha: não é usada.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vcontacorrente'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: banco
+        description: >
+          Banco, em texto: 001 é o Banco do Brasil, código 001.
+        data_type: text
+      - name: agencia
+        description: >
+          Agência bancária, em texto com zero à esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: contacorrente
+        description: >
+          Número da conta corrente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: artigo
+        description: >
+          Artigo de enquadramento gravado pela view.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tblancamentobancario
+    description: >
+      Uma linha por lançamento no extrato da conta de um projeto, como o Banco
+      do Brasil envia: TED, transferência, cheque compensado, resgate de
+      aplicação, boleto, impostos. São 8.330.253 lançamentos de 42.849
+      projetos, de dezembro de 2008 a julho de 2026. Créditos (C) somam 108,9
+      bilhões e débitos (D) 108,9 bilhões. É a base do confronto entre o que
+      saiu da conta e o que foi comprovado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tblancamentobancario'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - stcontalancamento
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idlancamentobancario
+        description: >
+          Identificador do lançamento. Único.
+        data_type: integer
+        tests:
+          - not_null
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+        tests:
+          - not_null
+      - name: idmovimentacaobancariaitem
+        description: >
+          Linha do arquivo do banco de onde veio o lançamento, em
+          silver_sac_tbmovimentacaobancariaitem.
+        data_type: integer
+      - name: stcontalancamento
+        description: >
+          Se o lançamento é da conta de movimento (true, 7.514.526) ou da conta
+          de captação (false, 815.727). A leitura não está documentada; vem da
+          proporção e do fluxo da conta.
+        data_type: boolean
+      - name: nragencialancamento
+        description: >
+          Agência da conta, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrcontalancamento
+        description: >
+          Número da conta, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cdlancamento
+        description: >
+          Código do tipo de lançamento do banco, em texto.
+        data_type: text
+      - name: dslancamento
+        description: >
+          Descrição do lançamento pelo banco, como TED, CHEQ COMPENSADO ou
+          RESGATE AUTOMAT.
+        data_type: text
+      - name: nrlancamento
+        description: >
+          Número do documento do lançamento.
+        data_type: text
+      - name: dtlancamento
+        description: >
+          Data do lançamento no extrato.
+        data_type: timestamp
+      - name: vllancamento
+        description: >
+          Valor do lançamento, em reais, sempre positivo: o sentido está em
+          stlancamento.
+        data_type: numeric
+      - name: stlancamento
+        description: >
+          Sentido do lançamento: C crédito, 2.276.740; D débito, 6.053.513.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['C', 'D']
+              config:
+                severity: warn
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbmovimentacao
+    description: >
+      Uma linha por passo de tramitação de uma proposta, com o estado em que
+      ela entrou. São 1.682.584 passos de 448.920 propostas, de 2009 a 2026. O
+      estado é código da tabela de verificação do banco sac: 95 com o
+      proponente, 96 para análise inicial, 97 em conformidade visual ou análise
+      documental, 127 com o coordenador, 128 em análise final. 227.517
+      propostas têm mais de um passo com stestado true, então ele não marca só
+      o estado atual: para o estado de hoje, use o passo mais recente.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbmovimentacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - movimentacao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idmovimentacao
+        description: >
+          Identificador do passo. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto, sem órfão.
+        data_type: integer
+        tests:
+          - not_null
+      - name: movimentacao
+        description: >
+          Estado da proposta, código da tabela de verificação do banco sac: 95,
+          96, 97, 127 ou 128.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [95, 96, 97, 127, 128]
+                quote: False
+              config:
+                severity: warn
+      - name: dtmovimentacao
+        description: >
+          Data em que a proposta entrou no estado.
+        data_type: timestamp
+      - name: stestado
+        description: >
+          Se o passo está ativo: true em 1.233.664 linhas, mais de uma por
+          proposta em 227.517 delas.
+        data_type: boolean
+      - name: usuario
+        description: >
+          Usuário interno que gravou a linha.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbmovimentacaobancaria
+    description: >
+      Uma linha por arquivo de extrato recebido do Banco do Brasil. São 199
+      arquivos, de 2011 a 2026, cada um cobrindo um período de movimento.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbmovimentacaobancaria'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - idusuario
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idmovimentacaobancaria
+        description: >
+          Identificador do arquivo. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: nrbanco
+        description: >
+          Banco do arquivo: 001.
+        data_type: text
+      - name: nmarquivo
+        description: >
+          Nome do arquivo recebido.
+        data_type: text
+      - name: dtarquivo
+        description: >
+          Data em que o arquivo de extrato foi gerado.
+        data_type: timestamp
+      - name: dtiniciomovimento
+        description: >
+          Início do período de movimento.
+        data_type: timestamp
+      - name: dtfimmovimento
+        description: >
+          Fim do período de movimento.
+        data_type: timestamp
+      - name: idusuario
+        description: >
+          Usuário que carregou: um só valor, o do sistema.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbmovimentacaobancariaitem
+    description: >
+      Uma linha por registro dos arquivos de extrato do Banco do Brasil. São
+      18.588.833 registros, de dois tipos: 10.067.875 do tipo 2, cabeçalho da
+      conta, com titular, abertura e saldos; e 8.520.958 do tipo 3, movimento,
+      de 2010 a 2026. É a maior tabela do banco sac. Os lançamentos já
+      interpretados estão em silver_sac_tblancamentobancario.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbmovimentacaobancariaitem'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - dtaberturaconta
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idmovimentacaobancariaitem
+        description: >
+          Identificador do registro. Único.
+        data_type: integer
+        tests:
+          - not_null
+      - name: tpregistro
+        description: >
+          Tipo do registro: 2 cabeçalho da conta, 3 movimento.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['2', '3']
+              config:
+                severity: warn
+      - name: nragencia
+        description: >
+          Agência da conta, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrconta
+        description: >
+          Número da conta, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmtitulorazao
+        description: >
+          Título da conta, só no tipo 2.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: nmabreviado
+        description: >
+          Nome abreviado do titular, só no tipo 2.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtaberturaconta
+        description: >
+          Data de abertura da conta, só no tipo 2.
+        data_type: timestamp
+      - name: nrcnpjcpf
+        description: >
+          CPF ou CNPJ do titular, só no tipo 2.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: vlsaldoinicial
+        description: >
+          Saldo inicial do período, só no tipo 2.
+        data_type: numeric
+      - name: stsaldoinicial
+        description: >
+          Sinal do saldo inicial, C ou D, só no tipo 2.
+        data_type: text
+      - name: vlsaldofinal
+        description: >
+          Saldo final do período, só no tipo 2.
+        data_type: numeric
+      - name: stsaldofinal
+        description: >
+          Sinal do saldo final, só no tipo 2.
+        data_type: text
+      - name: dtmovimento
+        description: >
+          Data do movimento, só no tipo 3.
+        data_type: timestamp
+      - name: cdhistorico
+        description: >
+          Código do histórico do banco, só no tipo 3.
+        data_type: text
+      - name: dshistorico
+        description: >
+          Descrição do histórico, só no tipo 3, com 218 valores.
+        data_type: text
+      - name: nrdocumento
+        description: >
+          Número do documento do movimento, só no tipo 3.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: vlmovimento
+        description: >
+          Valor do movimento, só no tipo 3.
+        data_type: numeric
+      - name: stmovimento
+        description: >
+          Sentido do movimento, C ou D, só no tipo 3.
+        data_type: text
+      - name: idmovimentacaobancaria
+        description: >
+          Arquivo de origem, código de silver_sac_tbmovimentacaobancaria.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbmovimentacaobancariaitemxtipoinconsistencia
+    description: >
+      Uma linha por registro do extrato marcado com uma inconsistência na
+      conferência. São 1.613.195 registros, todos com o tipo 1, que não tem
+      descrição ingerida.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbmovimentacaobancariaitemxtipoinconsistencia'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idmovimentacaobancariaitem
+        description: >
+          Registro do extrato, código de silver_sac_tbmovimentacaobancariaitem.
+        data_type: integer
+      - name: idtipoinconsistencia
+        description: >
+          Tipo de inconsistência: 1 em todas as linhas.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwlancamentobancariosemcomprovacao
+    description: >
+      Uma linha por débito na conta de um projeto que não tem comprovante de
+      despesa ligado. São 2.113.114 lançamentos de 30.826 projetos, somando
+      12,4 bilhões de reais, de 2010 a 2026. Os mais comuns são cheque
+      compensado, TED e cheque pago. É a lista de gastos a explicar na
+      prestação de contas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwlancamentobancariosemcomprovacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - nrlancamento
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+        tests:
+          - not_null
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cdlancamento
+        description: >
+          Código do tipo de lançamento do banco.
+        data_type: text
+      - name: dslancamento
+        description: >
+          Descrição do lançamento pelo banco, como CHEQ COMPENSADO ou TED.
+        data_type: text
+      - name: nrlancamento
+        description: >
+          Número do documento do lançamento.
+        data_type: text
+      - name: dtlancamento
+        description: >
+          Data do lançamento no extrato.
+        data_type: timestamp
+      - name: vllancamento
+        description: >
+          Valor do lançamento sem comprovação, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_bancoagencia
+    description: >
+      Uma linha por agência do Banco do Brasil, com endereço e telefone, usada
+      para indicar onde abrir a conta do projeto. São 5.657 agências; 4.344
+      ativas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_bancoagencia'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - endereco
+            - bairro
+            - cep
+            - telefone
+            - agencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: banco
+        description: >
+          Banco, em texto: 001 é o Banco do Brasil, código 001.
+        data_type: text
+      - name: agencia
+        description: >
+          Agência bancária, em texto com zero à esquerda.
+        data_type: text
+      - name: descricao
+        description: >
+          Nome da agência, como o banco cadastra.
+        data_type: text
+      - name: endereco
+        description: >
+          Endereço da agência.
+        data_type: text
+      - name: bairro
+        description: >
+          Bairro do endereço da agência.
+        data_type: text
+      - name: cidade
+        description: >
+          Cidade em que a agência fica.
+        data_type: text
+      - name: uf
+        description: >
+          UF da agência, em sigla.
+        data_type: text
+      - name: cep
+        description: >
+          CEP do endereço da agência.
+        data_type: text
+      - name: telefone
+        description: >
+          Telefone da agência.
+        data_type: text
+      - name: fax
+        description: >
+          Número de fax da agência.
+        data_type: text
+      - name: perfil
+        description: >
+          Perfil da agência, de 0 a 3, sem tabela de domínio ingerida.
+        data_type: integer
+      - name: id
+        description: >
+          Identificador da agência no cadastro. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: stestado
+        description: >
+          Se a agência está ativa: 1 em 4.344.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_bancoagencia_08
+    description: >
+      Uma linha por código de agência, numa cópia antiga do cadastro de
+      agências. A Bronze só tem a coluna banco, com 581 valores de 000 a 709,
+      que pelo formato são números de agência e não de banco. São 4.935 linhas.
+      Use silver_sac_bancoagencia.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_bancoagencia_08'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: banco
+        description: >
+          Código de 3 dígitos, que pelo formato é de agência, não de banco.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_bancoagencianovo1
+    description: >
+      Uma linha por agência do Banco do Brasil numa versão do cadastro com a
+      agência no formato com dígito (9999-9). São 4.935 agências. Use
+      silver_sac_bancoagencia.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_bancoagencianovo1'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - endereco
+            - cep
+            - agencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: banco
+        description: >
+          Banco, em texto: 001 é o Banco do Brasil, código 001.
+        data_type: text
+      - name: agencia
+        description: >
+          Agência no formato 9999-9, com o dígito verificador.
+        data_type: text
+      - name: descricao
+        description: >
+          Nome da agência, como o banco cadastra.
+        data_type: text
+      - name: cidade
+        description: >
+          Cidade em que a agência fica.
+        data_type: text
+      - name: endereco
+        description: >
+          Endereço da agência.
+        data_type: text
+      - name: cep
+        description: >
+          CEP do endereço da agência.
+        data_type: text
+      - name: uf
+        description: >
+          UF da agência, em sigla.
+        data_type: text
+      - name: perfil
+        description: >
+          Perfil da agência, de 0 a 2.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_captacaoconversao
+    description: >
+      Uma linha por conversão de valor de recibo de captação antigo, de 1999 a
+      2001. Tem 7 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_captacaoconversao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: numerorecibo
+        description: >
+          Número do recibo convertido.
+        data_type: integer
+      - name: dtconversao
+        description: >
+          Data da conversão do valor do recibo.
+        data_type: timestamp
+      - name: valor
+        description: >
+          Valor convertido, em reais.
+        data_type: numeric
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_captacaoguia
+    description: >
+      Uma linha por guia de captação de projetos de 2000 e 2001. São 861 guias.
+      Sem uso atual.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_captacaoguia'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - observacao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: numeroguia
+        description: >
+          Número da guia de captação.
+        data_type: integer
+      - name: dtcaptacao
+        description: >
+          Data da captação registrada na guia.
+        data_type: timestamp
+      - name: observacao
+        description: >
+          Observação livre registrada na guia.
+        data_type: text
+      - name: captacaoreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_captacaoquotas
+    description: >
+      Uma linha por integralização de quotas de um certificado audiovisual por
+      um subscritor, em projetos de 2000 e 2001. São 4.054 linhas. É captação
+      do audiovisual por quotas, mecanismo antigo.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_captacaoquotas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: anocav
+        description: >
+          Ano do certificado audiovisual.
+        data_type: text
+      - name: sequencialcav
+        description: >
+          Sequencial do certificado audiovisual.
+        data_type: text
+      - name: nintegra
+        description: >
+          Número da integralização.
+        data_type: text
+      - name: cgccpfsub
+        description: >
+          CPF ou CNPJ do subscritor das quotas.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dtintegraliza
+        description: >
+          Data da integralização.
+        data_type: timestamp
+      - name: qtdquotasintegr
+        description: >
+          Quantidade de quotas integralizadas.
+        data_type: integer
+      - name: observacao
+        description: >
+          Observação livre. Preenchida em 35.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_incentivoporcgccpf
+    description: >
+      Uma linha por incentivador com o total que ele aportou em toda a série.
+      São 113.702 incentivadores, somando 35,5 bilhões de reais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_incentivoporcgccpf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: apoioreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbapiincentivos
+    description: >
+      Uma linha por recibo de captação como a API pública do SALIC publica:
+      projeto, proponente, incentivador com município e UF, data e valor. São
+      669.365 recibos de 55.088 projetos, de 1993 a 2026; 668.764 têm o mesmo
+      idcaptacao em silver_sac_captacao. Pessoas jurídicas aportaram 34,9
+      bilhões; pessoas físicas, 657 milhões.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbapiincentivos'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idcaptacao
+        description: >
+          Recibo, código de silver_sac_captacao.idcaptacao.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrpronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nmprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: nrcnpjcpfproponente
+        description: >
+          CPF ou CNPJ do proponente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: nrcnpjcpfincentivador
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmincentivador
+        description: >
+          Nome do incentivador.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: nmmunicipioincentivador
+        description: >
+          Município do incentivador.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: sgufincentivador
+        description: >
+          UF do incentivador, em sigla.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: tppessoa
+        description: >
+          Tipo de pessoa do incentivador: Pessoa Física, 358.829; Pessoa
+          Jurídica, 310.404; Não Informado, 132.
+        data_type: text
+      - name: nrlote
+        description: >
+          Lote do arquivo do banco que trouxe o recibo.
+        data_type: text
+      - name: aaincentivo
+        description: >
+          Ano do recibo de captação.
+        data_type: integer
+      - name: mmincentivo
+        description: >
+          Mês do recibo de captação, de 1 a 12.
+        data_type: integer
+      - name: dtincentivo
+        description: >
+          Data do recibo, de 1993 a 2026.
+        data_type: date
+      - name: vlcaptado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: dstransferenciarecurso
+        description: >
+          Se o recurso foi para a conta de movimento: Transferido p/Conta
+          Movimentacao, 337.023; vazio no resto.
+        data_type: text
+      - name: dttransferenciarecurso
+        description: >
+          Data da transferência para a conta de movimento.
+        data_type: timestamp
+      - name: dsbemservico
+        description: >
+          Tipo do aporte: Aporte em conta, 669.259; Sem aporte em conta, 106.
+        data_type: text
+      - name: hashregistro
+        description: >
+          Hash do registro na API, para detectar mudança entre cargas. Não é
+          credencial.
+        data_type: text
+      - name: dtatualizacao
+        description: >
+          Momento em que a carga da API gravou a linha.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_empenho
+    description: >
+      Uma linha por nota de empenho do orçamento do MinC para convênios do FNC,
+      com os códigos do SIAFI. São 1.462 empenhos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_empenho'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - contador
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: contador
+        description: >
+          Identificador do empenho. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: uggestao
+        description: >
+          Unidade gestora de gestão do SIAFI, em texto.
+        data_type: text
+      - name: ugr
+        description: >
+          Unidade gestora responsável, em texto.
+        data_type: text
+      - name: ptres
+        description: >
+          Plano de trabalho resumido do SIAFI, em texto.
+        data_type: text
+      - name: programatrabalho
+        description: >
+          Programa de trabalho do orçamento, 17 dígitos, em texto.
+        data_type: text
+      - name: fonterecurso
+        description: >
+          Fonte de recurso do orçamento, como 100 Tesouro.
+        data_type: text
+      - name: naturezadespesa
+        description: >
+          Natureza da despesa do orçamento, em texto.
+        data_type: text
+      - name: nrempenho
+        description: >
+          Número da nota de empenho no SIAFI.
+        data_type: text
+      - name: dtempenho
+        description: >
+          Data de emissão da nota de empenho.
+        data_type: timestamp
+      - name: valor
+        description: >
+          Valor empenhado, em reais.
+        data_type: numeric
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_empenhoprojeto
+    description: >
+      Uma linha por empenho ligado a um convênio. São 1.464 ligações.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_empenhoprojeto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: codigoempenho
+        description: >
+          Empenho, código de silver_sac_empenho.
+        data_type: integer
+      - name: codigoconvenio
+        description: >
+          Convênio que recebe o empenho.
+        data_type: integer
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vmostraempenho
+    description: >
+      Uma linha por nota de empenho com o projeto, numa view da origem sobre
+      silver_sac_empenho, para projetos de 2002 a 2007. São 1.461 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vmostraempenho'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrempenho
+        description: >
+          Número da nota de empenho no SIAFI.
+        data_type: text
+      - name: dtempenho
+        description: >
+          Data de emissão da nota de empenho.
+        data_type: timestamp
+      - name: valor
+        description: >
+          Valor empenhado, em reais.
+        data_type: numeric
+      - name: uggestao
+        description: >
+          Unidade gestora de gestão do SIAFI, em texto.
+        data_type: text
+      - name: ugr
+        description: >
+          Unidade gestora responsável, em texto.
+        data_type: text
+      - name: ptres
+        description: >
+          Plano de trabalho resumido do SIAFI, em texto.
+        data_type: text
+      - name: programatrabalho
+        description: >
+          Programa de trabalho do orçamento, 17 dígitos, em texto.
+        data_type: text
+      - name: fonterecurso
+        description: >
+          Fonte de recurso do orçamento, como 100 Tesouro.
+        data_type: text
+      - name: naturezadespesa
+        description: >
+          Natureza da despesa do orçamento, em texto.
+        data_type: text
+      - name: usuario
+        description: >
+          Usuário interno que gravou a linha.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vmostraordembancaria
+    description: >
+      Uma linha por ordem bancária de pagamento a projeto, para projetos de
+      2002 a 2005. São 1.434 ordens.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vmostraordembancaria'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrordembancaria
+        description: >
+          Número da ordem bancária no SIAFI.
+        data_type: text
+      - name: dtordembancaria
+        description: >
+          Data da ordem bancária.
+        data_type: timestamp
+      - name: valor
+        description: >
+          Valor da ordem bancária, em reais.
+        data_type: numeric
+      - name: usuario
+        description: >
+          Usuário interno que gravou a linha.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbconfigurarpagamento
+    description: >
+      Uma linha por configuração de lote de pagamento a pareceristas, com a
+      faixa de despachos. São 609 configurações; 1 ativa.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbconfigurarpagamento'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - dtconfiguracaopagamento
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idconfigurarpagamento
+        description: >
+          Identificador da configuração. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: nrdespachoinicial
+        description: >
+          Primeiro despacho da faixa.
+        data_type: integer
+      - name: nrdespachofinal
+        description: >
+          Último despacho da faixa, 0 quando aberta.
+        data_type: integer
+      - name: dtconfiguracaopagamento
+        description: >
+          Data da configuração.
+        data_type: timestamp
+      - name: stestado
+        description: >
+          Se a configuração está ativa: true em 1.
+        data_type: boolean
+      - name: idusuario
+        description: >
+          Conta que gravou a linha. Confira a origem antes de cruzar: em
+          silver_sac_preprojeto quase todas são contas do SalicWeb
+          (silver_controledeacesso_sgcacesso).
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbconfigurarpagamentoxtbassinantes
+    description: >
+      Uma linha por assinante de um lote de pagamento a pareceristas, na ordem
+      de assinatura. São 1.521 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbconfigurarpagamentoxtbassinantes'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idconfigurarpagamento
+        description: >
+          Lote, código de silver_sac_tbconfigurarpagamento.
+        data_type: integer
+      - name: idassinantes
+        description: >
+          Servidor que assina o lote de pagamento.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrordenacao
+        description: >
+          Ordem de assinatura, de 1 a 4.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbgerarpagamentoparecerista
+    description: >
+      Uma linha por pagamento gerado para parecerista de projeto, com a ordem
+      bancária e a situação. São 11.420 pagamentos, de 2014 a 2026, somando
+      17,8 milhões de reais. A situação mais comum é 7, em 5.677, que pelo
+      fluxo é o pagamento efetivado; o domínio não está ingerido.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbgerarpagamentoparecerista'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idgerarpagamentoparecerista
+            - dtgeracaopagamento
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idgerarpagamentoparecerista
+        description: >
+          Identificador do pagamento. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idconfigurarpagamento
+        description: >
+          Lote, código de silver_sac_tbconfigurarpagamento.
+        data_type: integer
+      - name: dtgeracaopagamento
+        description: >
+          Data da geração do pagamento.
+        data_type: timestamp
+      - name: dtefetivacaopagamento
+        description: >
+          Data em que o pagamento foi efetivado.
+        data_type: timestamp
+      - name: dtordembancaria
+        description: >
+          Data da ordem bancária.
+        data_type: timestamp
+      - name: nrordembancaria
+        description: >
+          Número da ordem bancária, em texto.
+        data_type: text
+      - name: nrdespacho
+        description: >
+          Despacho que autorizou.
+        data_type: text
+      - name: sipagamento
+        description: >
+          Situação do pagamento, código sem domínio ingerido: 7 em 5.677, 4 em
+          2.916, 5 em 2.761, 3 em 62, 1 em 4.
+        data_type: text
+      - name: vltotalpagamento
+        description: >
+          Valor total pago, em reais.
+        data_type: numeric
+      - name: idusuario
+        description: >
+          Conta que gravou a linha. Confira a origem antes de cruzar: em
+          silver_sac_preprojeto quase todas são contas do SalicWeb
+          (silver_controledeacesso_sgcacesso).
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbpagamentopareceristaxarquivo
+    description: >
+      Uma linha por arquivo anexado a um pagamento de parecerista. São 20.061
+      arquivos, em dois tipos (1 e 2) sem domínio ingerido.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpagamentopareceristaxarquivo'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - idgerarpagamentoparecerista
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idgerarpagamentoparecerista
+        description: >
+          Pagamento, código de silver_sac_tbgerarpagamentoparecerista.
+        data_type: integer
+      - name: idarquivo
+        description: >
+          Arquivo anexado ao pagamento.
+        data_type: integer
+      - name: siarquivo
+        description: >
+          Tipo do arquivo: 2 em 13.299, 1 em 6.762.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbpareceristaempenho
+    description: >
+      Uma linha por empenho em favor de um parecerista, por inexigibilidade de
+      licitação. São 1.266 empenhos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpareceristaempenho'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idpareceristaempenho
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpareceristaempenho
+        description: >
+          Identificador do empenho. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idinexigibilidade
+        description: >
+          Processo de inexigibilidade.
+        data_type: integer
+      - name: nrempenho
+        description: >
+          Número da nota de empenho.
+        data_type: text
+      - name: dtempenho
+        description: >
+          Data de emissão da nota de empenho.
+        data_type: timestamp
+      - name: idagente
+        description: >
+          Parecerista, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: vlempenho
+        description: >
+          Valor empenhado, em reais.
+        data_type: numeric
+      - name: stestado
+        description: >
+          Se o empenho está ativo.
+        data_type: boolean
+      - name: idusuario
+        description: >
+          Conta que gravou a linha. Confira a origem antes de cruzar: em
+          silver_sac_preprojeto quase todas são contas do SalicWeb
+          (silver_controledeacesso_sgcacesso).
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpagamentofinalizadoparecerista
+    description: >
+      Uma linha por produto de projeto avaliado por um parecerista, com o
+      pagamento. São 72.265 linhas de 873 pareceristas. O tipo é Inicial
+      (70.641), Readequação (1.612) ou Recurso (12).
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpagamentofinalizadoparecerista'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - dtgeracaopagamento
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: tppagamento
+        description: >
+          Tipo da avaliação paga: Inicial, Readequacao ou Recurso.
+        data_type: text
+      - name: idpagamento
+        description: >
+          Identificador do pagamento ao parecerista.
+        data_type: integer
+      - name: idparecerista
+        description: >
+          Parecerista, código de agente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmparecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrpronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nmprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: nmarea
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: nmsegmento
+        description: >
+          Segmento por extenso.
+        data_type: text
+      - name: situacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: nmsituacao
+        description: >
+          Situação do projeto por extenso.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural avaliado pelo parecerista.
+        data_type: integer
+      - name: nmproduto
+        description: >
+          Nome do produto avaliado.
+        data_type: text
+      - name: idunidade
+        description: >
+          Entidade vinculada que contratou: 92 FUNARTE, 93 FBN.
+        data_type: text
+      - name: sgunidade
+        description: >
+          Sigla da entidade vinculada.
+        data_type: text
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição do produto.
+        data_type: text
+      - name: dthomologacao
+        description: >
+          Data da homologação.
+        data_type: text
+      - name: nrempenho
+        description: >
+          Número da nota de empenho do pagamento.
+        data_type: text
+      - name: nrdespacho
+        description: >
+          Despacho do pagamento.
+        data_type: integer
+      - name: dtgeracaopagamento
+        description: >
+          Data da geração do pagamento.
+        data_type: timestamp
+      - name: dtefetivacaopagamento
+        description: >
+          Data em que o pagamento foi efetivado.
+        data_type: timestamp
+      - name: dtordembancaria
+        description: >
+          Data da ordem bancária.
+        data_type: timestamp
+      - name: nrordembancaria
+        description: >
+          Número da ordem bancária.
+        data_type: text
+      - name: sipagamento
+        description: >
+          Situação do pagamento: 7, 5 ou 4.
+        data_type: text
+      - name: vlpagamento
+        description: >
+          Valor pago, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpagamentoparecerista
+    description: >
+      Uma linha por produto avaliado num pagamento de parecerista, com a
+      reunião da CNIC e a ordem bancária. São 55.211 linhas, efetivadas de 2014
+      a 2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpagamentoparecerista'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idgerarpagamentoparecerista
+            - dtgeracaopagamento
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idgerarpagamentoparecerista
+        description: >
+          Pagamento, código de silver_sac_tbgerarpagamentoparecerista.
+        data_type: integer
+      - name: nrreuniao
+        description: >
+          Número da reunião da CNIC do pagamento.
+        data_type: integer
+      - name: anoefetivacao
+        description: >
+          Ano em que o pagamento foi efetivado.
+        data_type: integer
+      - name: mesefetivacao
+        description: >
+          Mês em que o pagamento foi efetivado.
+        data_type: integer
+      - name: sigla
+        description: >
+          Entidade que contratou: FBN, FUNARTE ou IBRAM.
+        data_type: text
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural avaliado pelo parecerista.
+        data_type: integer
+      - name: produto
+        description: >
+          Nome do produto cultural avaliado.
+        data_type: text
+      - name: nrdespacho
+        description: >
+          Despacho do pagamento.
+        data_type: integer
+      - name: dtgeracaopagamento
+        description: >
+          Data em que o pagamento foi gerado.
+        data_type: timestamp
+      - name: dtefetivacaopagamento
+        description: >
+          Data em que o pagamento foi efetivado.
+        data_type: timestamp
+      - name: dtordembancaria
+        description: >
+          Data da ordem bancária.
+        data_type: timestamp
+      - name: nrordembancaria
+        description: >
+          Número da ordem bancária.
+        data_type: text
+      - name: sipagamento
+        description: >
+          Situação do pagamento: 7, 5, 4 ou 3.
+        data_type: text
+      - name: vlpagamento
+        description: >
+          Valor pago, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vcaptacaoanoufareasegmentosemestre
+    description: >
+      Uma linha por ano, UF, área e segmento com o captado em cada semestre e
+      no total. São 11.440 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vcaptacaoanoufareasegmentosemestre'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: ufprojeto
+        description: >
+          UF do projeto, em sigla.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: segmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: semestre_1
+        description: >
+          Captado no primeiro semestre, em reais.
+        data_type: numeric
+      - name: semestre_2
+        description: >
+          Captado no segundo semestre, em reais.
+        data_type: numeric
+      - name: total
+        description: >
+          Captado no ano, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vcaptacaopormptipoapoiomecena
+    description: >
+      Uma linha por incentivador, ano, mês, enquadramento e tipo de apoio, com
+      o captado. São 543.511 linhas, de 1993 a 2026, somando 35,5 bilhões de
+      reais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vcaptacaopormptipoapoiomecena'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: mes
+        description: >
+          Mês da captação, de 1 a 12.
+        data_type: integer
+      - name: mp
+        description: >
+          Enquadramento do recibo: 1 artigo 26, 2 artigo 18, como
+          silver_sac_captacao.medidaprovisoria.
+        data_type: text
+      - name: tipoapoio
+        description: >
+          Tipo de apoio: 1 doação, 2 patrocínio, como
+          silver_sac_captacao.tipoapoio.
+        data_type: text
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: apoioufir
+        description: >
+          Valor captado em UFIR, unidade fiscal extinta em 2000.
+        data_type: numeric
+      - name: apoioreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vdtprimeiraultimacaptacao
+    description: >
+      Uma linha por projeto que captou, com a data do primeiro e do último
+      recibo. São 55.043 projetos, os mesmos de silver_sac_captacao.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vdtprimeiraultimacaptacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    tests:
+      - unique:
+          arguments:
+            column_name: "anoprojeto || '-' || sequencial"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: dtprimeira
+        description: >
+          Data do primeiro recibo de captação.
+        data_type: timestamp
+      - name: dtultima
+        description: >
+          Data do último recibo de captação.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vempresasincentivadorasano
+    description: >
+      Uma linha por empresa incentivadora, projeto e ano, com o valor aportado.
+      São 204.736 linhas, de 1993 a 2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vempresasincentivadorasano'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: text
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: empresa
+        description: >
+          Razão social da empresa incentivadora.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: apoioreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vincentivador
+    description: >
+      Uma linha por incentivador e área cultural, com o total aportado. São
+      174.316 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vincentivador'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: apoioufir
+        description: >
+          Valor captado em UFIR, unidade fiscal extinta em 2000.
+        data_type: numeric
+      - name: apoioreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vincentivadorano
+    description: >
+      Uma linha por incentivador, projeto, ano, enquadramento e tipo de apoio,
+      com o valor aportado. São 510.190 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vincentivadorano'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: mp
+        description: >
+          Enquadramento do recibo: 1 artigo 26, 2 artigo 18, como
+          silver_sac_captacao.medidaprovisoria.
+        data_type: text
+      - name: tipoapoio
+        description: >
+          Tipo de apoio: 1 doação, 2 patrocínio, como
+          silver_sac_captacao.tipoapoio.
+        data_type: text
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: apoioufir
+        description: >
+          Valor captado em UFIR, unidade fiscal extinta em 2000.
+        data_type: numeric
+      - name: apoioreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vincentivadoraudioano
+    description: >
+      Uma linha por incentivador e ano no mecenato do audiovisual, com o valor
+      aportado. São 14.783 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vincentivadoraudioano'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: apoioreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vincentivadoresma
+    description: >
+      Uma linha por incentivador e ano em que ele aportou, sem valor. São
+      376.831 linhas, de 1993 a 2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vincentivadoresma'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vincentivadorpessoaano
+    description: >
+      Uma linha por incentivador e ano, com região, UF por extenso, tipo de
+      pessoa e valor aportado. São 374.057 linhas, de 1993 a 2026: 286.030 de
+      pessoa física (1) e 88.027 de pessoa jurídica (2).
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vincentivadorpessoaano'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: text
+      - name: regiao
+        description: >
+          Região do incentivador.
+        data_type: text
+      - name: uf
+        description: >
+          UF do incentivador por extenso.
+        data_type: text
+      - name: tipopessoa
+        description: >
+          Tipo de pessoa: 1 física, 2 jurídica.
+        data_type: text
+      - name: nome
+        description: >
+          Nome do incentivador.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: apoioreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vincentivadorporprojeto
+    description: >
+      Uma linha por recibo de incentivador num projeto, com a data. São 444.771
+      linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vincentivadorporprojeto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: apoioreal
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: dtcaptacao
+        description: >
+          Data do recibo de captação.
+        data_type: date
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vmaioresincentivadoresprojetos
+    description: >
+      Uma linha por incentivador, projeto e ano, com o valor, base do ranking
+      de maiores incentivadores. São 374.809 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vmaioresincentivadoresprojetos'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: incentivador
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: valor
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vprazocaptacao
+    description: >
+      Uma linha por projeto com o prazo de captação vigente. São 181.292
+      projetos; 14.347 sem início de prazo.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vprazocaptacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: dtiniciocaptacao
+        description: >
+          Início do prazo de captação.
+        data_type: timestamp
+      - name: dtfimcaptacao
+        description: >
+          Fim do prazo de captação.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vproponentecaptacaoanouf
+    description: >
+      Uma linha por proponente, ano e UF, com o captado. São 62.675 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vproponentecaptacaoanouf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nome
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: uf
+        description: >
+          UF do proponente, em sigla.
+        data_type: text
+      - name: captacao
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vproponentemecenato
+    description: >
+      Uma linha por proponente de mecenato com nome, responsável, endereço e
+      CEP. São 15.389 proponentes. É cadastro de contato, com endereço
+      completo.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vproponentemecenato'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nome
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: responsavel
+        description: >
+          Nome do responsável pela entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: endereco
+        description: >
+          Endereço do proponente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cidade
+        description: >
+          Cidade do proponente.
+        data_type: text
+      - name: uf
+        description: >
+          UF do proponente, em sigla.
+        data_type: text
+      - name: cep
+        description: >
+          CEP do endereço do proponente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vrenunciaporincentivador
+    description: >
+      Uma linha por incentivador com a renúncia fiscal total do imposto que ele
+      abateu. São 313.481 incentivadores, somando 225 milhões de reais.
+      Armadilha: o total é muito menor que os 33,7 bilhões de
+      silver_sac_vrenunciageralporanoprojeto, então a view cobre só parte da
+      renúncia; o recorte não está documentado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vrenunciaporincentivador'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: renuncia
+        description: >
+          Renúncia fiscal do incentivador, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vw_captacao_ano_uf
+    description: >
+      Uma linha por ano e UF com a quantidade de recibos e o valor captado. São
+      788 linhas, de 1993 a 2026, nas 27 UFs, com a UF por extenso.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vw_captacao_ano_uf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: uf
+        description: >
+          UF por extenso, como São Paulo.
+        data_type: text
+      - name: quantidade
+        description: >
+          Quantidade de recibos.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwmaioresincentivadoresporanouf
+    description: >
+      Uma linha por incentivador, ano e UF, com o valor e a posição no ranking.
+      São 66.058 linhas, de 1993 a 2026, nas 29 UFs gravadas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwmaioresincentivadoresporanouf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: uf
+        description: >
+          UF do incentivador, em sigla.
+        data_type: text
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: integer
+      - name: tipopessoa
+        description: >
+          Tipo de pessoa: Física ou Jurídica.
+        data_type: text
+      - name: cnpj_cpf_incentivador
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: incentivador
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: vlincentivado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: ranking
+        description: >
+          Posição no ranking de incentivadores da UF no ano.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpagamentodefornecedordoprojetoporitem
+    description: >
+      Uma linha por pagamento a fornecedor, por item, sem o detalhe do
+      comprovante. São 1.405.860 linhas. A versão com comprovante, data e forma
+      de pagamento é
+      silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpagamentodefornecedordoprojetoporitem'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: fornecedor
+        description: >
+          Nome do fornecedor pago.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: item
+        description: >
+          Item da planilha pago.
+        data_type: text
+      - name: vlpago
+        description: >
+          Valor pago, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpagamentodespesaforaperiodoexecucao
+    description: >
+      Uma linha por despesa paga fora do período de execução do projeto. São
+      169.971 despesas de 6.206 projetos, somando 666 milhões de reais: 18.784
+      antes do início e 151.213 depois do fim. É lista de irregularidade para a
+      prestação de contas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpagamentodespesaforaperiodoexecucao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: item
+        description: >
+          Item da planilha orçamentária pago.
+        data_type: text
+      - name: fornecedor
+        description: >
+          Nome do fornecedor pago, pessoa ou empresa.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtinicioexecucao
+        description: >
+          Início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Fim da execução do projeto.
+        data_type: timestamp
+      - name: nrcomprovante
+        description: >
+          Número do comprovante.
+        data_type: text
+      - name: dtpagamento
+        description: >
+          Data do pagamento ao fornecedor.
+        data_type: timestamp
+      - name: vlcomprovado
+        description: >
+          Valor comprovado, em reais.
+        data_type: numeric
+      - name: obs
+        description: >
+          Observação da view, a mesma em todas as linhas.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpagamentofornecedorirregularreceitafederal
+    description: >
+      Uma linha por pagamento a fornecedor cuja empresa estava irregular na
+      Receita Federal: baixada, inapta ou nula. São 4.397 pagamentos, somando
+      14,6 milhões de reais, com produto, etapa, item e local.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpagamentofornecedorirregularreceitafederal'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cdproduto
+        description: >
+          Produto, código de produto do sac.
+        data_type: integer
+      - name: dsproduto
+        description: >
+          Produto por extenso.
+        data_type: text
+      - name: cdetapa
+        description: >
+          Etapa do orçamento, como 1 pré-produção ou 2 produção.
+        data_type: integer
+      - name: dsetapa
+        description: >
+          Etapa do orçamento, por extenso.
+        data_type: text
+      - name: cduf
+        description: >
+          UF da despesa, código IBGE.
+        data_type: integer
+      - name: dsuf
+        description: >
+          UF da despesa, por extenso.
+        data_type: text
+      - name: cdmunicipio
+        description: >
+          Município, código IBGE.
+        data_type: integer
+      - name: dsmunicipio
+        description: >
+          Município por extenso.
+        data_type: text
+      - name: cditem
+        description: >
+          Item da planilha orçamentária, código.
+        data_type: integer
+      - name: dsitem
+        description: >
+          Item da planilha orçamentária, por extenso.
+        data_type: text
+      - name: vlcomprovacao
+        description: >
+          Valor comprovado, em reais.
+        data_type: numeric
+      - name: nrcnpj
+        description: >
+          CNPJ do fornecedor irregular, sem máscara.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmempresarial
+        description: >
+          Razão social do fornecedor.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtabertura
+        description: >
+          Abertura da empresa.
+        data_type: date
+      - name: dtsituacaocadastral
+        description: >
+          Data da situação cadastral.
+        data_type: date
+      - name: dtpagamento
+        description: >
+          Data do pagamento ao fornecedor.
+        data_type: timestamp
+      - name: cdsituacaocadastral
+        description: >
+          Situação na Receita: 4 inapta, 2.159; 8 baixada, 2.098; 1 nula, 113;
+          3 suspensa, 27.
+        data_type: integer
+      - name: dssituacaocadastral
+        description: >
+          Situação na Receita por extenso.
+        data_type: text
+      - name: situacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprojetoscominconsistencianacaptacao
+    description: >
+      Uma linha por crédito de captação com inconsistência, que o sistema não
+      pôde lançar: captação fora do prazo, sem incentivador, sem saldo a captar
+      ou com proponente igual ao incentivador. São 117 créditos, de 2025 e
+      2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprojetoscominconsistencianacaptacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - vlsaldocontas
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano da captação, de 1993 a 2026.
+        data_type: text
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: situacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: dtsituacao
+        description: >
+          Data da situação atual do projeto.
+        data_type: timestamp
+      - name: orgao
+        description: >
+          Órgão, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sigla
+        description: >
+          Sigla do órgão do projeto.
+        data_type: text
+      - name: idsecretaria
+        description: >
+          Secretaria, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: nrcpfcnpjproponente
+        description: >
+          CPF ou CNPJ do proponente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrcpfcnpjincentivador
+        description: >
+          CPF ou CNPJ do incentivador, sem máscara, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmincentivador
+        description: >
+          Nome do incentivador, pessoa ou empresa.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtcredito
+        description: >
+          Data do crédito na conta do projeto.
+        data_type: timestamp
+      - name: vlvalorcredito
+        description: >
+          Valor do crédito, em reais.
+        data_type: numeric
+      - name: cdpatrocinio
+        description: >
+          Código de patrocínio do arquivo do banco: 1 patrocínio, 2 doação, 0
+          sem informação. A ordem é a inversa de silver_sac_captacao.tipoapoio.
+        data_type: integer
+      - name: nragenciaproponente
+        description: >
+          Agência do proponente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrcontaproponente
+        description: >
+          Conta do proponente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: tpvalidacao
+        description: >
+          Código da validação que falhou: 2, 3, 5 ou 9.
+        data_type: integer
+      - name: dstipoinconsistencia
+        description: >
+          Inconsistência: Captação não Vigente, Sem Incentivador, Sem saldo a
+          captar ou Prop./Incent. iguais.
+        data_type: text
+      - name: dstipoincentivo
+        description: >
+          Tipo de incentivo: Doação, Patrocínio ou Sem informação.
+        data_type: text
+      - name: vlsaldocontas
+        description: >
+          Saldo das contas do projeto, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
