@@ -11,6 +11,7 @@ aqui e nao sao substituidos por nenhum destes casos.
 """
 
 import re
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,10 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SALIC_DIR = REPO_ROOT / "dbt/minc/models/salic_dbt"
+# A estrutura do ADR 0010: as silvers migradas moram em models/salic/, pasta
+# plana, documentadas em schema.yml e schema_<banco>.yml. As sources_*.yml da
+# mesma pasta declaram a Bronze e nao tem bloco `models:`.
+SALIC_NOVO_DIR = REPO_ROOT / "dbt/minc/models/salic"
 GLOSSARIO_CSV = REPO_ROOT / "helpers/openmetadata/glossaries/minc.csv"
 
 # A bronze mora no mesmo grupo de modelos desde a unificacao, e ela tem outro
@@ -29,7 +34,21 @@ CAMADAS_NAO_SILVER = {"bronze"}
 
 
 def _e_silver(caminho: Path) -> bool:
+    if caminho.is_relative_to(SALIC_NOVO_DIR):
+        return True
     return caminho.relative_to(SALIC_DIR).parts[0] not in CAMADAS_NAO_SILVER
+
+
+def _arquivos(padrao: str) -> list[Path]:
+    """Os arquivos das duas pastas do SALIC, sem a bronze legada."""
+    candidatos = [*SALIC_DIR.rglob(padrao), *SALIC_NOVO_DIR.glob(padrao)]
+    return sorted(c for c in candidatos if _e_silver(c))
+
+
+def _sem_acento(texto: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFD", texto) if not unicodedata.combining(c)
+    )
 
 
 DOMINIO_ESPERADO = "Cultura.Incentivo Fiscal"
@@ -56,9 +75,7 @@ TAGS_PII = {"PII.Sensitive", "PII.NonSensitive"}
 def _modelos_documentados() -> dict[str, dict]:
     """Todo bloco `models:` dos schema.yml da silver, indexado por nome."""
     modelos: dict[str, dict] = {}
-    for caminho in sorted(SALIC_DIR.rglob("*.yml")):
-        if not _e_silver(caminho):
-            continue
+    for caminho in _arquivos("*.yml"):
         conteudo = yaml.safe_load(caminho.read_text(encoding="utf-8")) or {}
         for modelo in conteudo.get("models") or []:
             nome = modelo["name"]
@@ -68,7 +85,7 @@ def _modelos_documentados() -> dict[str, dict]:
 
 
 def _sqls_da_silver() -> list[Path]:
-    return sorted(c for c in SALIC_DIR.rglob("*.sql") if _e_silver(c))
+    return _arquivos("*.sql")
 
 
 def _governanca(modelo: dict) -> dict:
@@ -90,7 +107,9 @@ NOMES_SQL = [caminho.stem for caminho in SQLS]
 
 def test_ha_modelos_para_verificar() -> None:
     """Guarda do proprio arquivo: teste que nao coleta nada passa por engano."""
-    assert SQLS, "nenhum .sql de silver encontrado em models/salic_dbt"
+    assert (
+        SQLS
+    ), "nenhum .sql de silver encontrado em models/salic_dbt nem em models/salic"
     assert not any(
         "bronze" in c.parts for c in SQLS
     ), "a bronze entrou no escopo destas guardas; ela tem contrato proprio"
@@ -170,8 +189,10 @@ def test_nenhuma_descricao_herda_o_marcador_da_bronze(nome: str) -> None:
     textos = [modelo.get("description") or ""]
     textos += [c.get("description") or "" for c in modelo.get("columns") or []]
     for texto in textos:
-        assert "[NAO VERIFICADO]" not in texto.upper()
-        assert "NAO DOCUMENTADO NO DICIONARIO" not in texto.upper()
+        # sem acento: o marcador aparece como [NÃO VERIFICADO] e [NAO VERIFICADO]
+        normalizado = _sem_acento(texto).upper()
+        assert "[NAO VERIFICADO]" not in normalizado
+        assert "NAO DOCUMENTADO NO DICIONARIO" not in normalizado
 
 
 @pytest.mark.parametrize("nome", sorted(MODELOS))
@@ -248,16 +269,25 @@ def _fqns_do_glossario() -> set[str]:
     return fqns
 
 
-@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
-def test_silver_le_a_bronze_por_ref_e_nunca_a_source_direto(caminho: Path) -> None:
-    """A silver nao pode pular a camada de tipagem.
+RE_SOURCE = re.compile(r"source\(\s*[\"']([^\"']+)[\"']\s*,\s*[\"']([^\"']+)[\"']\s*\)")
 
-    `source()` aqui significaria ler texto cru do `salic_bronze` sem os casts
-    guardados das macros `bronze_*` -- e a linhagem no OpenMetadata perderia o
-    modelo intermediario.
+
+@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
+def test_silver_le_so_a_bronze_do_salic(caminho: Path) -> None:
+    """A silver le a Bronze da ingestao e mais nada por source().
+
+    Em models/salic/ (ADR 0017) a Bronze e a tabela salic.bronze_<banco>_<tabela>
+    que a DAG grava, declarada como source `salic`; a silver le dela e tipa com
+    as macros `bronze_*`. No legado salic_dbt/, as silvers leem os modelos da
+    bronze por ref() e nunca por source().
     """
     sql = caminho.read_text(encoding="utf-8")
-    assert "source(" not in sql, f"{caminho.name}: usa source() em vez de ref()"
+    fontes = RE_SOURCE.findall(sql)
+    if caminho.is_relative_to(SALIC_NOVO_DIR):
+        fora = [f for f in fontes if f[0] != "salic" or not f[1].startswith("bronze_")]
+        assert not fora, f"{caminho.name}: source() fora da Bronze do SALIC {fora}"
+    else:
+        assert "source(" not in sql, f"{caminho.name}: usa source() em vez de ref()"
 
 
 @pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)

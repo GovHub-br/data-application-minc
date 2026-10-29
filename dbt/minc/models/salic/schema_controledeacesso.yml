@@ -1,0 +1,262 @@
+version: 2
+
+# Silvers do banco controledeacesso do SALIC: as contas de acesso ao sistema,
+# o catálogo de subsistemas e o vínculo entre os dois. Medições de 28/10/2026
+# na Bronze (salic.bronze_controledeacesso_*), por agregados, sem valor de linha.
+
+models:
+  - name: silver_controledeacesso_sgcacesso
+    description: >
+      Uma linha por conta de login do público externo do SALIC, como o
+      proponente que apresenta projeto pelo SalicWeb, identificada por
+      idusuario. São 409.093 contas, cadastradas de 2006 a 2026, cada uma com
+      um CPF próprio: idusuario e cpf são únicos na tabela inteira. É o
+      cadastro de login, não o de agente cultural, que fica no banco agentes.
+      Os servidores do MinC têm outro cadastro, tabelas.usuarios.
+
+
+      Armadilhas: dtnascimento tem 113 contas com ano 1900, provável sentinela
+      de "não informado", e datas até 2076, que não são nascimento real. Em
+      1.568 contas a dtsituacao é anterior à dtcadastro. O e-mail se repete
+      entre contas: há 405.973 distintos para 409.093 contas.
+
+
+      A coluna senha existe na Bronze e foi retirada desta silver: credencial
+      não entra em camada analítica.
+    config:
+      tags: [silver, salic, controledeacesso]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_controledeacesso_sgcacesso'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idusuario
+        description: >
+          Identificador da conta, sequencial do SQL Server (int identity).
+          Único e preenchido nas 409.093 linhas. É a chave que
+          silver_controledeacesso_sgcusuarioxsistema usa para ligar a conta
+          aos subsistemas.
+
+
+          Armadilha no cruzamento com o banco sac: a coluna idusuario das
+          tabelas do sac aponta para cadastros diferentes conforme a tabela.
+          Em sac.preprojeto, a proposta enviada pelo proponente, 99,9% dos
+          valores existem aqui. Em sac.tbdespacho, trâmite interno, 99,98%
+          existem em tabelas.usuarios, o cadastro de servidores. Os dois
+          cadastros usam a mesma faixa de números, então o join com a tabela
+          errada também casa: 96% dos idusuario de sac.tbdespacho existem
+          aqui. Confira a tabela de destino antes de cruzar.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: cpf
+        description: >
+          CPF do titular da conta, 11 dígitos sem máscara. Único na tabela:
+          uma conta por CPF. 7 linhas não têm exatamente 11 dígitos. Não foi
+          validado o dígito verificador.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: nome
+        description: >
+          Nome do titular da conta, em texto livre. Vazio em 2 das 409.093
+          contas, que aqui viram NULL. Até 51 caracteres na amostra.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtnascimento
+        description: >
+          Data de nascimento informada no cadastro da conta, preenchida em
+          todas as linhas. Não é confiável sem filtro: 113 contas têm ano 1900,
+          provável sentinela de "não informado", e há datas até 2076.
+        data_type: timestamp
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: email
+        description: >
+          E-mail de contato da conta. Preenchido em todas as linhas, mas não
+          identifica a conta: 405.973 e-mails distintos, sem diferenciar
+          maiúsculas, para 409.093 contas.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: dtcadastro
+        description: >
+          Data e hora de criação da conta. Preenchida em todas as linhas, de
+          2006 a 2026.
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: situacao
+        description: >
+          Situação da senha da conta. Não há tabela de domínio no banco nem
+          descrição no dicionário. O significado de 1 e 3 vem do código do
+          SalicWeb, nos controladores de login e de troca de senha.
+          - 1, senha temporária: a conta foi criada ou teve a senha
+            reiniciada, e o sistema pede a troca no próximo login. 142.192
+            contas.
+          - 3, senha definida pelo próprio usuário. 248.814 contas.
+          - 2, em 17.412 contas, e 5, em 675, sem significado conhecido:
+            o código público não os grava, e podem vir de uma versão
+            anterior ou de outra rotina. Não use esses dois códigos para
+            classificar contas.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 5]
+                quote: false
+              config:
+                severity: warn
+      - name: dtsituacao
+        description: >
+          Data e hora da última mudança de situacao. Preenchida em todas as
+          linhas, de 2006 a 2026. Em 1.568 contas é anterior à dtcadastro.
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio. Na amostra de 200 linhas, vale 0.
+        data_type: text
+
+  - name: silver_controledeacesso_sgcsistema
+    description: >
+      Uma linha por subsistema em que uma conta pode ter acesso. É a tabela
+      de domínio de idsistema em silver_controledeacesso_sgcusuarioxsistema.
+      São 8: 1 Projeto_IDI, Inclusão Cultural da Pessoa Idosa; 2 Projeto_SAI,
+      Sistema de Informações Culturais; 3 Projeto_CP, Prêmio Culturas
+      Populares 2007; 4 Sistema_RH, Sistema de Recursos Humanos; 5 SalicWeb,
+      apresentação de projetos via web; 6 Ciganas, Prêmio Culturas Ciganas
+      2007; 7 SNIIC, Sistema Nacional de Indicadores e Informações Culturais;
+      8 SNC, Sistema Nacional de Cultura.
+    config:
+      tags: [silver, salic, controledeacesso]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_controledeacesso_sgcsistema'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idsistema
+        description: >
+          Identificador do subsistema, de 1 a 8, sequencial do SQL Server
+          (int identity).
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: nomesistema
+        description: >
+          Nome curto do subsistema, como SalicWeb ou SNIIC. Distinto entre os
+          8.
+        data_type: text
+      - name: descricaosistema
+        description: >
+          Nome por extenso do subsistema, como Sistema Nacional de Cultura.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_controledeacesso_sgcusuarioxsistema
+    description: >
+      Uma linha por par conta e subsistema: diz a que subsistemas cada conta
+      tem acesso. São 17.118 pares, sem repetição, para 15.805 contas. Só 4%
+      das contas de silver_controledeacesso_sgcacesso aparecem aqui: o
+      SalicWeb não exige vínculo. Quase todo vínculo é com o SNIIC, 13.832
+      pares, e o SNC, 3.169; os outros cinco subsistemas somam 117, e o
+      Projeto_SAI não tem nenhum.
+
+
+      3 pares apontam para um idusuario que não existe mais em
+      silver_controledeacesso_sgcacesso. O teste de relacionamento avisa,
+      sem travar o build.
+    config:
+      tags: [silver, salic, controledeacesso]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_controledeacesso_sgcusuarioxsistema'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    tests:
+      - unique:
+          arguments:
+            column_name: "idusuario || '-' || idsistema"
+    columns:
+      - name: idusuario
+        description: >
+          Conta que tem o acesso. Liga com
+          silver_controledeacesso_sgcacesso.idusuario.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_controledeacesso_sgcacesso')
+                field: idusuario
+              config:
+                severity: warn
+      - name: idsistema
+        description: >
+          Subsistema a que a conta tem acesso. Liga com
+          silver_controledeacesso_sgcsistema.idsistema, sem órfão.
+        data_type: integer
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_controledeacesso_sgcsistema')
+                field: idsistema
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text

@@ -111,6 +111,9 @@ viva nas sources deste repositório e devem ser reusados:
 [NÃO VERIFICADO]
 ```
 
+Na **silver**, o `[NÃO VERIFICADO]` não vale: a guarda de governança reprova.
+Escreva em prosa o que foi medido e o que não se sabe.
+
 **Não invente.** Se você não sabe o que a coluna significa, escreva o que
 **mediu** e diga que a semântica não foi confirmada. Descrição inventada é pior
 que ausência, porque ninguém sabe que precisa conferir.
@@ -168,6 +171,30 @@ Domínios em uso: `Cultura.Incentivo Fiscal`, `Cultura.Fomento Direto`,
 script de lote migra chegam sem `config` de modelo: acrescentar faz parte da
 análise do lote.
 
+## Governança (obrigatória)
+
+Toda silver do SALIC declara, em `config.meta`, o bloco que
+`tests/test_salic_silver_governance.py` exige:
+
+```yaml
+    config:
+      tags: [silver, salic, <banco>]
+      meta:
+        status: Disabled                 # Active só depois dos gates G1–G5
+        origem_dados: 'salic.bronze_<banco>_<tabela>'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito    # publico | interno | restrito
+          rag_publication: prohibited    # ou eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"   # nunca Cultura.Fomento Direto
+          owner: "minc-data-engineering"
+```
+
+Modelo com qualquer coluna de PII é `restrito` e `prohibited`: a guarda
+reprova PII em modelo elegível ao RAG.
+
 ## Dado pessoal e credencial
 
 Tag de coluna em `meta.openmetadata.tags`:
@@ -176,6 +203,7 @@ Tag de coluna em `meta.openmetadata.tags`:
 |---|---|
 | CPF, CNPJ de pessoa física, data de nascimento, e-mail, telefone, endereço, raça, deficiência | `PII.Sensitive` |
 | nome de pessoa, sem outro identificador na mesma coluna | `PII.NonSensitive` |
+| chave que leva a uma pessoa: `idusuario`, `idagente`, `idproponente` | `PII.Sensitive` |
 | senha, hash de senha, token, chave | **não entra na silver**: sai do `select` |
 
 A descrição de coluna sensível diz o **formato** ("CPF com 11 dígitos, sem

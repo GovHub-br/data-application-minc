@@ -70,15 +70,24 @@ categórica. Ver `references/conexao-e-vpn.md`.
 5. **Análise semântica.** Escreva as descrições pelo
    `references/template-documentacao.md`: grão, significado, volume, armadilha
    e como cruza. Cruze perfil, dicionário e o SQL dos modelos que consomem a
-   tabela (`grep` pelo nome em `dbt/minc/models`). O que for dedução sua sem
-   confirmação fica marcado `[NÃO VERIFICADO]`, com o que foi medido.
+   tabela (`grep` pelo nome em `dbt/minc/models`). Procure também o código
+   público do SalicWeb (`lablivre-unb/salic-br` no GitHub): é onde aparece o
+   significado de código que o banco não documenta. O que não se confirmar vai
+   em prosa, dizendo o que foi medido e o que não se sabe. **O marcador
+   `[NÃO VERIFICADO]` é proibido em silver**: a guarda
+   `tests/test_salic_silver_governance.py` reprova. Coluna cujo significado
+   ninguém consegue dizer não deveria ser publicada: tire do `select`.
 6. **Revisão.** Passe o checklist de "Antes de considerar o lote pronto",
-   abaixo. É onde entram tipos, testes, dado pessoal e credencial.
+   abaixo. É onde entram tipos, testes, dado pessoal, credencial e o bloco de
+   governança que todo modelo precisa declarar (`status`, `rag_publication`,
+   `produto_dados`, `classificacao_uso`; ver `references/template-documentacao.md`).
 7. **Validação.** `dbt parse`; um script para o usuário que roda
    `DBT_DEV_SCHEMA=dev_salic dbt run --target dev --select "salic.silver_<banco>_*"`,
    compara `count(*)` de cada `salic.bronze_*` com a silver em `dev_salic` e
-   apaga o schema no fim; `dbt test` das silvers do lote no mesmo schema; `verificar.py` da skill `arquitetura-lakehouse-minc`
-   em `dbt/minc/models/salic`; `pytest`; `make docs-collect`.
+   apaga o schema no fim; `dbt test` das silvers do lote no mesmo schema;
+   `verificar.py` da skill `arquitetura-lakehouse-minc` em
+   `dbt/minc/models/salic`; `pytest`, que inclui a guarda de governança das
+   silvers; `make docs-collect`.
 8. **PR**, com a skill `abrir-pr`, e a contagem antes e depois nas evidências.
 
 Commite cada lote. A VPN cai, e o que não foi commitado se perde.
@@ -119,7 +128,9 @@ nenhuma delas.
 
 - [ ] Nenhuma coluna de credencial no `select` de silver nenhuma
 - [ ] Toda tabela tem grão ("Uma linha por …") na descrição
-- [ ] Coluna sem significado confirmado diz o que foi medido e está `[NÃO VERIFICADO]`
+- [ ] Nenhum `[NÃO VERIFICADO]`: o que não se confirmou está em prosa, com o que foi medido
+- [ ] Todo modelo com `status`, `governance` (`rag_publication`, `produto_dados`, `classificacao_uso`) e `openmetadata` (domínio `Cultura.Incentivo Fiscal`, tier, dono)
+- [ ] Chave que leva a uma pessoa (`idusuario`, `idagente`) com tag de PII
 - [ ] Nenhuma descrição só repete o nome da coluna
 - [ ] Classificação de dado pessoal revista coluna a coluna
 - [ ] Todo teste `# inferido` confirmado pelo perfil completo ou removido

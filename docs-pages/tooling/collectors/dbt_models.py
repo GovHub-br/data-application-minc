@@ -44,15 +44,22 @@ RE_META = re.compile(r"^eixo\d+_meta(\d+)_")
 
 
 def _yaml_da_pasta(pasta: Path) -> dict[str, Any]:
-    """Lê o schema.yml da pasta. Devolve dict vazio quando não há ou é inválido."""
-    schema = pasta / "schema.yml"
-    if not schema.exists():
-        return {}
-    try:
-        return yaml.safe_load(schema.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as erro:
-        log.warning("schema.yml inválido em %s: %s", pasta, erro)
-        return {}
+    """Junta os modelos do schema.yml e dos schema_*.yml da pasta.
+
+    A pasta salic/ tem um schema_<banco>.yml por banco de origem do SALIC,
+    além do schema.yml. Arquivo ausente ou inválido não entra.
+    """
+    modelos: list[Any] = []
+    for schema in sorted([pasta / "schema.yml", *pasta.glob("schema_*.yml")]):
+        if not schema.exists():
+            continue
+        try:
+            dados = yaml.safe_load(schema.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError as erro:
+            log.warning("%s inválido em %s: %s", schema.name, pasta, erro)
+            continue
+        modelos += dados.get("models") or []
+    return {"models": modelos}
 
 
 def _metadados(pasta: Path) -> dict[str, dict[str, Any]]:
@@ -150,29 +157,34 @@ def coletar() -> dict[str, Any]:
             }
         )
 
-    # sources declaradas — a lista de origem, que o site mostra como "de onde vem"
-    sources: list[dict[str, Any]] = []
-    arquivo_sources = MODELS_DIR / "sources.yml"
-    if arquivo_sources.exists():
+    # sources declaradas — a lista de origem, que o site mostra como "de onde vem".
+    # Vêm do sources.yml da raiz e dos sources*.yml das pastas: a source `salic`
+    # é uma só, declarada num sources_<banco>.yml por banco. Mesmo nome e schema
+    # em vários arquivos viram uma entrada, com as tabelas somadas.
+    por_chave: dict[tuple[str, str], dict[str, Any]] = {}
+    for arquivo_sources in sorted(MODELS_DIR.rglob("sources*.yml")):
         try:
             dados = yaml.safe_load(arquivo_sources.read_text(encoding="utf-8")) or {}
-            for grupo in dados.get("sources") or []:
-                sources.append(
-                    {
-                        "nome": grupo.get("name", ""),
-                        "schema": grupo.get("schema", grupo.get("name", "")),
-                        "descricao": (grupo.get("description") or "").strip(),
-                        "tabelas": [
-                            {
-                                "nome": t.get("name", ""),
-                                "descricao": (t.get("description") or "").strip(),
-                            }
-                            for t in grupo.get("tables") or []
-                        ],
-                    }
-                )
         except yaml.YAMLError as erro:
-            log.warning("sources.yml inválido: %s", erro)
+            log.warning("%s inválido: %s", arquivo_sources.name, erro)
+            continue
+        for grupo in dados.get("sources") or []:
+            nome = grupo.get("name", "")
+            schema = grupo.get("schema", nome)
+            entrada = por_chave.setdefault(
+                (nome, schema),
+                {"nome": nome, "schema": schema, "descricao": "", "tabelas": []},
+            )
+            if not entrada["descricao"]:
+                entrada["descricao"] = (grupo.get("description") or "").strip()
+            entrada["tabelas"] += [
+                {
+                    "nome": t.get("name", ""),
+                    "descricao": (t.get("description") or "").strip(),
+                }
+                for t in grupo.get("tables") or []
+            ]
+    sources: list[dict[str, Any]] = list(por_chave.values())
 
     dominios: dict[str, Any] = {}
     for m in modelos:

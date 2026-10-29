@@ -1,5 +1,6 @@
--- Bronze SALIC — controledeacesso__sgcsistema.
--- Origem: salic_bronze.controledeacesso__sgcsistema, onde tudo chega como texto da
+-- Silver SALIC — silver_controledeacesso_sgcsistema (ex-controledeacesso__sgcsistema).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_controledeacesso_sgcsistema, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 4 colunas: 1 tipadas, 2 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -9,4 +10,4 @@ select
     {{ bronze_texto("nomesistema") }} as nomesistema,
     {{ bronze_texto("descricaosistema") }} as descricaosistema,
     _fatia
-from {{ source("bronze_controledeacesso", "controledeacesso__sgcsistema") }}
+from {{ source("salic", "bronze_controledeacesso_sgcsistema") }}

@@ -210,9 +210,14 @@ def imprimir(tabela: str, dados: dict) -> None:
             c = comp["colunas"][col]
             cheios = c["preenchidos"]
             passam = ", ".join(
-                f"{t} {pct(n, cheios)}" for t, n in c["passam"].items() if n
+                f"{t} {pct(n, cheios)} ({cheios - n} não)"
+                for t, n in c["passam"].items()
+                if n
             )
+            # o número absoluto: 2 vazios em 409 mil arredondam para 100,0%
+            vazios = comp["linhas"] - cheios
             linha += f"\n      tabela: preenchida {pct(cheios, comp['linhas'])}"
+            linha += f" ({vazios} vazios)" if vazios else " (nenhum vazio)"
             if passam:
                 linha += f"; dos preenchidos passam {passam}"
         print(linha)

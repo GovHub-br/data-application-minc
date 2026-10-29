@@ -635,6 +635,26 @@ guarda do SQL para); 4. `psql -f scripts/salic_mover_bronze.sql`, ou a versão
 tabela pequena para provar o TRUNCATE. A contagem antes/depois da silver em
 `dev_salic` só dá para medir depois do passo 4, porque antes a source não existe.
 
+### 2026-10-27 · Claude · F17 — PR 1 refeito: lote `controledeacesso` na leitura do ADR 0017
+
+**O que o PR faz.** Os 3 modelos de `salic_dbt/bronze/controledeacesso/` viram
+`salic/silver_controledeacesso_<t>.sql`, lendo
+`source('salic', 'bronze_controledeacesso_<t>')`; `schema_controledeacesso.yml`
+e `sources_controledeacesso.yml` vão juntos, a source renomeada para `salic`,
+schema `salic`, tabelas `bronze_controledeacesso_<t>`. Na migração, o corpo
+SQL só mudou no `source()`; a análise semântica de 28/10 tirou depois a `senha`
+do `select` de `sgcacesso`. Tudo pelo `scripts/migrar_lote_salic.py` v2, que
+também reescreve o `source()` nos leitores e padroniza a descrição da source
+`salic`, porque ela é uma só e declarada num `sources_<banco>.yml` por banco
+migrado (hoje dois: `sac` e `controledeacesso`). `verificar.py --tudo`:
+602 → 599.
+
+**Validação.** Feita em 28/10, depois do rename: contagem origem × silver em
+`dev_salic` igual nas 3 tabelas (409.093, 8 e 17.118), registrada no #117.
+
+**Ordem de merge.** Depois do PR B e da operação; antes disso o Cosmos falharia
+nestes 3 modelos por source inexistente.
+
 ### 2026-10-28 · Claude · F17 — o rename rodou; as sources legadas viram ponte (PR #110)
 
 **O rename.** Rodou em produção em 28/10, como `dl_airflow`, dona das
@@ -672,6 +692,43 @@ Cada lote de migração apaga o seu arquivo.
 - **O teste autorreferente.** Os testes `relationships` de `sac__aprovacao`,
   em `tipoaprovacao` e `sequencial`, comparam a tabela com ela mesma e rodam
   por horas. O lote `sac` remove os dois.
+
+### 2026-10-28 · Claude · F17 — lote `controledeacesso` documentado; a skill vira `silver-salic-dbt`
+
+**A skill.** `bronze-salic-dbt` virou `silver-salic-dbt` (#114). O perfil é
+rodado pela Luiza e imprime só contagem, formato e domínio de coluna não
+pessoal. Este lote foi o primeiro a usar o fluxo inteiro.
+
+**O que o perfil e os agregados mostraram.** O dicionário não tem nenhuma
+coluna destas tabelas, então tudo veio do dado.
+- `sgcacesso`: 409.093 contas, com `idusuario` e `cpf` únicos.
+  `dtnascimento` tem 113 contas no ano 1900 e datas até 2076.
+- `sgcusuarioxsistema`: cobre 4% das contas, quase todas nos subsistemas 7
+  e 8, e tem 3 pares órfãos.
+- Ficam `[NÃO VERIFICADO]` o público das contas, os códigos de `situacao` e
+  o cruzamento de `idusuario` com o `sac`.
+
+**Testes.** Os 13 inferidos foram conferidos na tabela inteira. Caíram o da
+senha, que saiu com a coluna, e o `not_null` de `nome`, porque 2 contas não
+têm nome. O perfil arredondava 2 em 409 mil para 100,0%. Ele passou a
+imprimir o número absoluto de vazios.
+
+**Com o banco aberto (serviço `dbanalytics_leitura`).** Os 8 subsistemas
+têm nome: o 7 é o SNIIC e o 8 é o SNC. O código público do SalicWeb
+(`lablivre-unb/salic-br`) dá o significado de `situacao` 1, senha
+temporária, e 3, senha definida pelo usuário. O 2 e o 5 seguem sem
+explicação. Achado que vale para o `sac`: `idusuario` aponta para
+`controledeacesso.sgcacesso` em tabelas do proponente, como
+`preprojeto`, e para `tabelas.usuarios` em tabelas de trâmite interno, como
+`tbdespacho`. As faixas de número se sobrepõem, então o join errado também
+casa.
+
+**Pendências.**
+- A `senha` saiu da silver, mas continua na Bronze, que `dl_analytics` lê e
+  o profiler do OpenMetadata perfila. Abrir issue para a ingestão não trazer
+  a coluna ou para o OpenMetadata ignorá-la.
+- `tabelas.usuarios` tem `usu_senha` e `usu_sql_senha`. O lote `tabelas`
+  tira as duas da silver.
 
 ---
 

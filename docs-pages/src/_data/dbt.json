@@ -4913,6 +4913,124 @@
       "linhas_sql": 21
     },
     {
+      "nome": "silver_controledeacesso_sgcacesso",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcacesso.sql",
+      "descricao": "Uma linha por conta de login do público externo do SALIC, como o proponente que apresenta projeto pelo SalicWeb, identificada por idusuario. São 409.093 contas, cadastradas de 2006 a 2026, cada uma com um CPF próprio: idusuario e cpf são únicos na tabela inteira. É o cadastro de login, não o de agente cultural, que fica no banco agentes. Os servidores do MinC têm outro cadastro, tabelas.usuarios.\n\nArmadilhas: dtnascimento tem 113 contas com ano 1900, provável sentinela de \"não informado\", e datas até 2076, que não são nascimento real. Em 1.568 contas a dtsituacao é anterior à dtcadastro. O e-mail se repete entre contas: há 405.973 distintos para 409.093 contas.\n\nA coluna senha existe na Bronze e foi retirada desta silver: credencial não entra em camada analítica.",
+      "colunas": [
+        {
+          "nome": "idusuario",
+          "descricao": "Identificador da conta, sequencial do SQL Server (int identity). Único e preenchido nas 409.093 linhas. É a chave que silver_controledeacesso_sgcusuarioxsistema usa para ligar a conta aos subsistemas.\n\nArmadilha no cruzamento com o banco sac: a coluna idusuario das tabelas do sac aponta para cadastros diferentes conforme a tabela. Em sac.preprojeto, a proposta enviada pelo proponente, 99,9% dos valores existem aqui. Em sac.tbdespacho, trâmite interno, 99,98% existem em tabelas.usuarios, o cadastro de servidores. Os dois cadastros usam a mesma faixa de números, então o join com a tabela errada também casa: 96% dos idusuario de sac.tbdespacho existem aqui. Confira a tabela de destino antes de cruzar."
+        },
+        {
+          "nome": "cpf",
+          "descricao": "CPF do titular da conta, 11 dígitos sem máscara. Único na tabela: uma conta por CPF. 7 linhas não têm exatamente 11 dígitos. Não foi validado o dígito verificador."
+        },
+        {
+          "nome": "nome",
+          "descricao": "Nome do titular da conta, em texto livre. Vazio em 2 das 409.093 contas, que aqui viram NULL. Até 51 caracteres na amostra."
+        },
+        {
+          "nome": "dtnascimento",
+          "descricao": "Data de nascimento informada no cadastro da conta, preenchida em todas as linhas. Não é confiável sem filtro: 113 contas têm ano 1900, provável sentinela de \"não informado\", e há datas até 2076."
+        },
+        {
+          "nome": "email",
+          "descricao": "E-mail de contato da conta. Preenchido em todas as linhas, mas não identifica a conta: 405.973 e-mails distintos, sem diferenciar maiúsculas, para 409.093 contas."
+        },
+        {
+          "nome": "dtcadastro",
+          "descricao": "Data e hora de criação da conta. Preenchida em todas as linhas, de 2006 a 2026."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Situação da senha da conta. Não há tabela de domínio no banco nem descrição no dicionário. O significado de 1 e 3 vem do código do SalicWeb, nos controladores de login e de troca de senha. - 1, senha temporária: a conta foi criada ou teve a senha\n  reiniciada, e o sistema pede a troca no próximo login. 142.192\n  contas.\n- 3, senha definida pelo próprio usuário. 248.814 contas. - 2, em 17.412 contas, e 5, em 675, sem significado conhecido:\n  o código público não os grava, e podem vir de uma versão\n  anterior ou de outra rotina. Não use esses dois códigos para\n  classificar contas."
+        },
+        {
+          "nome": "dtsituacao",
+          "descricao": "Data e hora da última mudança de situacao. Preenchida em todas as linhas, de 2006 a 2026. Em 1.568 contas é anterior à dtcadastro."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio. Na amostra de 200 linhas, vale 0."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 10,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_controledeacesso_sgcacesso"
+      ],
+      "linhas_sql": 20
+    },
+    {
+      "nome": "silver_controledeacesso_sgcsistema",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcsistema.sql",
+      "descricao": "Uma linha por subsistema em que uma conta pode ter acesso. É a tabela de domínio de idsistema em silver_controledeacesso_sgcusuarioxsistema. São 8: 1 Projeto_IDI, Inclusão Cultural da Pessoa Idosa; 2 Projeto_SAI, Sistema de Informações Culturais; 3 Projeto_CP, Prêmio Culturas Populares 2007; 4 Sistema_RH, Sistema de Recursos Humanos; 5 SalicWeb, apresentação de projetos via web; 6 Ciganas, Prêmio Culturas Ciganas 2007; 7 SNIIC, Sistema Nacional de Indicadores e Informações Culturais; 8 SNC, Sistema Nacional de Cultura.",
+      "colunas": [
+        {
+          "nome": "idsistema",
+          "descricao": "Identificador do subsistema, de 1 a 8, sequencial do SQL Server (int identity)."
+        },
+        {
+          "nome": "nomesistema",
+          "descricao": "Nome curto do subsistema, como SalicWeb ou SNIIC. Distinto entre os 8."
+        },
+        {
+          "nome": "descricaosistema",
+          "descricao": "Nome por extenso do subsistema, como Sistema Nacional de Cultura."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_controledeacesso_sgcsistema"
+      ],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "silver_controledeacesso_sgcusuarioxsistema",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcusuarioxsistema.sql",
+      "descricao": "Uma linha por par conta e subsistema: diz a que subsistemas cada conta tem acesso. São 17.118 pares, sem repetição, para 15.805 contas. Só 4% das contas de silver_controledeacesso_sgcacesso aparecem aqui: o SalicWeb não exige vínculo. Quase todo vínculo é com o SNIIC, 13.832 pares, e o SNC, 3.169; os outros cinco subsistemas somam 117, e o Projeto_SAI não tem nenhum.\n\n3 pares apontam para um idusuario que não existe mais em silver_controledeacesso_sgcacesso. O teste de relacionamento avisa, sem travar o build.",
+      "colunas": [
+        {
+          "nome": "idusuario",
+          "descricao": "Conta que tem o acesso. Liga com silver_controledeacesso_sgcacesso.idusuario."
+        },
+        {
+          "nome": "idsistema",
+          "descricao": "Subsistema a que a conta tem acesso. Liga com silver_controledeacesso_sgcsistema.idsistema, sem órfão."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_controledeacesso_sgcusuarioxsistema"
+      ],
+      "linhas_sql": 15
+    },
+    {
       "nome": "silver_sac_captacao_proponente",
       "dominio": "salic",
       "camada": "silver",
@@ -6386,128 +6504,6 @@
         "bronze_bdcorporativo.bdcorporativo__tbsituacaoencaminhamentoprestacaocontas"
       ],
       "linhas_sql": 12
-    },
-    {
-      "nome": "controledeacesso__sgcacesso",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/controledeacesso/controledeacesso__sgcacesso.sql",
-      "descricao": "Tabela responsável por armazenar os dados de acesso dos usuários, incluindo identificação, CPF, senha, e situação do cadastro. Camada bronze tipada a partir de salic_bronze.controledeacesso__sgcacesso.",
-      "colunas": [
-        {
-          "nome": "idusuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cpf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nome",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtnascimento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "email",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "senha",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtcadastro",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "situacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtsituacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 10,
-      "testes": 11,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_controledeacesso.controledeacesso__sgcacesso"
-      ],
-      "linhas_sql": 19
-    },
-    {
-      "nome": "controledeacesso__sgcsistema",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/controledeacesso/controledeacesso__sgcsistema.sql",
-      "descricao": "Tabela responsável por registrar os sistemas disponíveis no ambiente e suas respectivas descrições. Camada bronze tipada a partir de salic_bronze.controledeacesso__sgcsistema.",
-      "colunas": [
-        {
-          "nome": "idsistema",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomesistema",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "descricaosistema",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 4,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_controledeacesso.controledeacesso__sgcsistema"
-      ],
-      "linhas_sql": 13
-    },
-    {
-      "nome": "controledeacesso__sgcusuarioxsistema",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/controledeacesso/controledeacesso__sgcusuarioxsistema.sql",
-      "descricao": "Tabela responsável por controlar quais usuários têm permissão para acessar cada sistema. Camada bronze tipada a partir de salic_bronze.controledeacesso__sgcusuarioxsistema.",
-      "colunas": [
-        {
-          "nome": "idusuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idsistema",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 3,
-      "testes": 2,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_controledeacesso.controledeacesso__sgcusuarioxsistema"
-      ],
-      "linhas_sql": 13
     },
     {
       "nome": "sac__aberturadecontabancaria",
@@ -44067,10 +44063,10 @@
     },
     "salic": {
       "modelos": 600,
-      "testes": 4941,
+      "testes": 4945,
       "camadas": {
-        "silver": 1,
-        "bronze": 589,
+        "silver": 4,
+        "bronze": 586,
         "outros": 10
       }
     },
@@ -44084,6 +44080,2663 @@
     }
   },
   "sources": [
+    {
+      "nome": "mapas",
+      "schema": "mapas",
+      "descricao": "Mapas Culturais (Hacklab) — cadastro de agentes, espaços, eventos, oportunidades e inscrições. Bronze: cópia fiel do banco da plataforma, sem tipagem nem regra de negócio, gravada pela DAG `mapas_ingestion_trino` como `mapas.bronze_<tabela>`. Toda coluna é `varchar`, mais a coluna técnica `_fatia`.\nO Mapas não passa pelo MinIO (camada Raw): a origem já é um banco de dados, então a DAG lê dele direto pelo Trino. Só o schema `public` da origem é ingerido, sem as tabelas descritas no ADR 0008.\nEsta fonte é distinta de `dados_mapa_cultura`, a cópia antiga do Mapas, que não está ligada a nenhum modelo.",
+      "tabelas": [
+        {
+          "nome": "bronze_agent",
+          "descricao": "Agentes culturais (pessoa física ou coletivo). 17 colunas na origem. Chave: `id`. `location` chega como texto do `point` do PostgreSQL (\"(x,y)\") e `_geo_location` como o hexadecimal EWKB do `geography`."
+        },
+        {
+          "nome": "bronze_agent_meta",
+          "descricao": "Atributos dos agentes no formato chave-valor: uma linha por (`object_id`, `key`). Chave: `id`. É onde ficam campos como documento e autodeclaração, e por isso contém dado pessoal."
+        },
+        {
+          "nome": "bronze_agent_relation",
+          "descricao": "Relação de um agente com outro objeto do Mapas (inscrição, espaço, projeto etc.), com o tipo do objeto em `object_type`. Chave: `id`."
+        },
+        {
+          "nome": "bronze_usr",
+          "descricao": "Usuários da plataforma. Chave: `id`. `agent.user_id` aponta para cá. A origem tem também `auth_uid` e `email`, que NÃO são levados para a silver por serem identificadores pessoais sem uso analítico."
+        },
+        {
+          "nome": "bronze_chat_message",
+          "descricao": "Cópia fiel de `public.chat_message` do Mapas (6 colunas na origem; mensagens do chat da plataforma, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_chat_thread",
+          "descricao": "Cópia fiel de `public.chat_thread` do Mapas (9 colunas na origem; conversas do chat, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_cultbr_request_log",
+          "descricao": "Cópia fiel de `public.cultbr_request_log` do Mapas (8 colunas na origem; registro das chamadas à integração CultBR, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_cultbr_request_log_attempt",
+          "descricao": "Cópia fiel de `public.cultbr_request_log_attempt` do Mapas (14 colunas na origem; tentativas de cada chamada à integração CultBR, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_db_update",
+          "descricao": "Cópia fiel de `public.db_update` do Mapas (2 colunas na origem; controle das atualizações de banco já aplicadas, inferido do nome). Chave: `name`."
+        },
+        {
+          "nome": "bronze_evaluation_method_configuration",
+          "descricao": "Cópia fiel de `public.evaluation_method_configuration` do Mapas (6 colunas na origem; configuração do método de avaliação de uma oportunidade, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_evaluationmethodconfiguration_meta",
+          "descricao": "Cópia fiel de `public.evaluationmethodconfiguration_meta` do Mapas (4 colunas na origem; atributos da configuração do método de avaliação, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_event",
+          "descricao": "Cópia fiel de `public.event` do Mapas (13 colunas na origem; eventos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_event_attendance",
+          "descricao": "Cópia fiel de `public.event_attendance` do Mapas (10 colunas na origem; presenças confirmadas em ocorrências de eventos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_event_meta",
+          "descricao": "Cópia fiel de `public.event_meta` do Mapas (4 colunas na origem; atributos dos eventos, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_event_occurrence",
+          "descricao": "Cópia fiel de `public.event_occurrence` do Mapas (17 colunas na origem; ocorrências (data, hora e local) dos eventos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_event_occurrence_cancellation",
+          "descricao": "Cópia fiel de `public.event_occurrence_cancellation` do Mapas (3 colunas na origem; cancelamentos de ocorrências de eventos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_event_occurrence_recurrence",
+          "descricao": "Cópia fiel de `public.event_occurrence_recurrence` do Mapas (5 colunas na origem; regras de recorrência das ocorrências de eventos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_federative_entity",
+          "descricao": "Cópia fiel de `public.federative_entity` do Mapas (7 colunas na origem; entes federativos (estados e municípios), inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_file",
+          "descricao": "Cópia fiel de `public.file` do Mapas (12 colunas na origem; metadados dos arquivos anexados aos objetos do Mapas (não o conteúdo do arquivo), inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_metadata",
+          "descricao": "Cópia fiel de `public.metadata` do Mapas (4 colunas na origem; metadados genéricos de objetos, em chave-valor, inferido do nome). Chave: `object_id`, `object_type`, `key`."
+        },
+        {
+          "nome": "bronze_metalist",
+          "descricao": "Cópia fiel de `public.metalist` do Mapas (9 colunas na origem; listas de links e vídeos associados aos objetos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_notification",
+          "descricao": "Cópia fiel de `public.notification` do Mapas (7 colunas na origem; notificações enviadas aos usuários, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_notification_meta",
+          "descricao": "Cópia fiel de `public.notification_meta` do Mapas (4 colunas na origem; atributos das notificações, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_opportunity",
+          "descricao": "Cópia fiel de `public.opportunity` do Mapas (24 colunas na origem; oportunidades (editais e chamadas), inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_opportunity_meta",
+          "descricao": "Cópia fiel de `public.opportunity_meta` do Mapas (4 colunas na origem; atributos das oportunidades, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_procuration",
+          "descricao": "Cópia fiel de `public.procuration` do Mapas (6 colunas na origem; procurações: um usuário autorizado a agir em nome de outro, inferido do nome). Chave: `token`."
+        },
+        {
+          "nome": "bronze_project",
+          "descricao": "Cópia fiel de `public.project` do Mapas (14 colunas na origem; projetos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_project_event",
+          "descricao": "Cópia fiel de `public.project_event` do Mapas (5 colunas na origem; relação entre projetos e eventos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_project_meta",
+          "descricao": "Cópia fiel de `public.project_meta` do Mapas (4 colunas na origem; atributos dos projetos, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration",
+          "descricao": "Cópia fiel de `public.registration` do Mapas (22 colunas na origem; inscrições nas oportunidades, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_evaluation",
+          "descricao": "Cópia fiel de `public.registration_evaluation` do Mapas (11 colunas na origem; avaliações das inscrições, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_field_configuration",
+          "descricao": "Cópia fiel de `public.registration_field_configuration` do Mapas (17 colunas na origem; configuração dos campos do formulário de inscrição, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_file_configuration",
+          "descricao": "Cópia fiel de `public.registration_file_configuration` do Mapas (14 colunas na origem; configuração dos anexos exigidos na inscrição, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_meta",
+          "descricao": "Cópia fiel de `public.registration_meta` do Mapas (4 colunas na origem; atributos das inscrições, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_step",
+          "descricao": "Cópia fiel de `public.registration_step` do Mapas (7 colunas na origem; etapas das oportunidades, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_workplan",
+          "descricao": "Cópia fiel de `public.registration_workplan` do Mapas (5 colunas na origem; planos de trabalho das inscrições, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_workplan_goal",
+          "descricao": "Cópia fiel de `public.registration_workplan_goal` do Mapas (6 colunas na origem; metas dos planos de trabalho, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_workplan_goal_delivery",
+          "descricao": "Cópia fiel de `public.registration_workplan_goal_delivery` do Mapas (6 colunas na origem; entregas das metas dos planos de trabalho, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_registration_workplan_goal_delivery_meta",
+          "descricao": "Cópia fiel de `public.registration_workplan_goal_delivery_meta` do Mapas (4 colunas na origem; atributos das entregas das metas, em chave-valor, inferido do nome). Chave: nenhuma."
+        },
+        {
+          "nome": "bronze_registration_workplan_goal_meta",
+          "descricao": "Cópia fiel de `public.registration_workplan_goal_meta` do Mapas (4 colunas na origem; atributos das metas, em chave-valor, inferido do nome). Chave: nenhuma."
+        },
+        {
+          "nome": "bronze_registration_workplan_meta",
+          "descricao": "Cópia fiel de `public.registration_workplan_meta` do Mapas (4 colunas na origem; atributos dos planos de trabalho, em chave-valor, inferido do nome). Chave: nenhuma."
+        },
+        {
+          "nome": "bronze_request",
+          "descricao": "Cópia fiel de `public.request` do Mapas (12 colunas na origem; solicitações de aprovação entre objetos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_role",
+          "descricao": "Cópia fiel de `public.role` do Mapas (4 colunas na origem; papéis atribuídos a usuários em subsites, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_seal",
+          "descricao": "Cópia fiel de `public.seal` do Mapas (12 colunas na origem; selos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_seal_meta",
+          "descricao": "Cópia fiel de `public.seal_meta` do Mapas (4 colunas na origem; atributos dos selos, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_seal_relation",
+          "descricao": "Cópia fiel de `public.seal_relation` do Mapas (10 colunas na origem; selos concedidos a objetos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_security_allowlist",
+          "descricao": "Cópia fiel de `public.security_allowlist` do Mapas (9 colunas na origem; endereços IP permitidos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_security_blacklist",
+          "descricao": "Cópia fiel de `public.security_blacklist` do Mapas (13 colunas na origem; endereços IP bloqueados, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_security_meta",
+          "descricao": "Cópia fiel de `public.security_meta` do Mapas (3 colunas na origem; atributos da configuração de segurança, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_space",
+          "descricao": "Cópia fiel de `public.space` do Mapas (16 colunas na origem; espaços culturais, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_space_meta",
+          "descricao": "Cópia fiel de `public.space_meta` do Mapas (4 colunas na origem; atributos dos espaços, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_space_relation",
+          "descricao": "Cópia fiel de `public.space_relation` do Mapas (6 colunas na origem; relações dos espaços com agentes, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_subsite",
+          "descricao": "Cópia fiel de `public.subsite` do Mapas (9 colunas na origem; subsites (instâncias) da plataforma, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_subsite_meta",
+          "descricao": "Cópia fiel de `public.subsite_meta` do Mapas (4 colunas na origem; atributos dos subsites, em chave-valor, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_system_role",
+          "descricao": "Cópia fiel de `public.system_role` do Mapas (8 colunas na origem; papéis do sistema e suas permissões, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_term",
+          "descricao": "Cópia fiel de `public.term` do Mapas (4 colunas na origem; termos de taxonomia (áreas, linguagens, tags), inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_term_relation",
+          "descricao": "Cópia fiel de `public.term_relation` do Mapas (4 colunas na origem; termos associados a objetos, inferido do nome). Chave: `id`."
+        },
+        {
+          "nome": "bronze_user_app",
+          "descricao": "Cópia fiel de `public.user_app` do Mapas (7 colunas na origem; aplicações (chaves de API) cadastradas, sem a chave privada, inferido do nome). Chave: `public_key`."
+        },
+        {
+          "nome": "bronze_user_meta",
+          "descricao": "Cópia fiel de `public.user_meta` do Mapas (4 colunas na origem; atributos dos usuários, em chave-valor, inferido do nome). Chave: `id`."
+        }
+      ]
+    },
+    {
+      "nome": "salic",
+      "schema": "salic",
+      "descricao": "SALIC (Sistema de Apoio às Leis de Incentivo à Cultura). Bronze: réplica do sistema de origem via Trino, tudo text, sem tratamento, com a coluna técnica _fatia da carga em fatias. Uma tabela por <banco>__<tabela> da origem, como salic.bronze_<banco>_<tabela>. As descrições das tabelas vêm do dicionário de dados do SALIC (export SchemaSpy) cruzado com o perfil do banco; o catálogo completo está em dbt/minc/docs/salic/.",
+      "tabelas": [
+        {
+          "nome": "bronze_controledeacesso_sgcacesso",
+          "descricao": "Tabela responsável por armazenar os dados de acesso dos usuários, incluindo identificação, CPF, senha, e situação do cadastro."
+        },
+        {
+          "nome": "bronze_controledeacesso_sgcsistema",
+          "descricao": "Tabela responsável por registrar os sistemas disponíveis no ambiente e suas respectivas descrições."
+        },
+        {
+          "nome": "bronze_controledeacesso_sgcusuarioxsistema",
+          "descricao": "Tabela responsável por controlar quais usuários têm permissão para acessar cada sistema."
+        },
+        {
+          "nome": "bronze_sac_captacao",
+          "descricao": "Tabela responsável por registrar as captações de recursos dos projetos, incluindo recibos, datas, valores captados, tipo de apoio e informações do mecenas."
+        },
+        {
+          "nome": "bronze_sac_projetos",
+          "descricao": "Uma linha por projeto cultural (PRONAC) submetido ao mecanismo de incentivo fiscal (Lei Rouanet). Núcleo do domínio SAC: liga proponente, situação, valores solicitados e datas de tramitação. Camada bronze (raw do SALIC via Trino, tudo text)."
+        }
+      ]
+    },
+    {
+      "nome": "bronze_agentes",
+      "schema": "salic",
+      "descricao": "Registro de identidade de agentes (pessoas físicas e jurídicas), compartilhado com outros domínios do MinC além do SALIC (ex.: LPG, PNAB). Camada bronze (dados brutos do SALIC, réplica do sistema de origem via Airflow, sem tratamento). Descrições e tiers gerados automaticamente a partir do dicionário de dados original do SALIC (export SchemaSpy) cruzado com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo (YAML semântico, dicionário e catálogo em DOCX/HTML).",
+      "tabelas": [
+        {
+          "nome": "agentes__municipios",
+          "descricao": "Tabela de domínio geográfico: município IBGE, sua UF, meso e microrregião. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "agentes__populacaomunicipio",
+          "descricao": "População por município. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "agentes__uf",
+          "descricao": "Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04. Complementa `agentes__municipios` em `dim_municipio_ibge` — é onde estão a sigla e a região, que a tabela de municípios não carrega."
+        },
+        {
+          "nome": "agentes__vpais",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vperfil",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vprefeiturasregiaouf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vsistema",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vtelefones",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vuf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vufmunicipio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vverificacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vvinculacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vvisao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vwcadastrarparecerista",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vwempresajuridica",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vwempresajuridicasocios",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vwportifolio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__vwpropostasemavaliacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "agentes__agentes",
+          "descricao": "Uma linha por agente cultural (proponente, incentivador ou fornecedor), identificado por idagente e por cnpjcpf. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "agentes__tbagentefisico",
+          "descricao": "Uma linha por agente pessoa física, com atributos pessoais. DADO SENSÍVEL: nome dos pais, cor/raça e necessidade especial. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "agentes__perfil",
+          "descricao": "Liga o agente a um perfil e característica de acesso (codificados como inteiros de bitmask). Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "agentes__verificacao",
+          "descricao": "Tabela de domínio: os valores de \"verificação\" de um agente (natureza jurídica, esfera etc.), agrupados por idtipo. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "agentes__endereconacional",
+          "descricao": "Uma linha por endereço nacional de agente. DADO PESSOAL (endereço). Camada bronze (raw do SALIC via Trino, tudo text)."
+        }
+      ]
+    },
+    {
+      "nome": "bronze_bdcorporativo",
+      "schema": "salic",
+      "descricao": "Metadados técnicos do banco de dados corporativo (ex.: diagramas do SQL Server). Não é dado de negócio do SALIC. Camada bronze (dados brutos do SALIC, réplica do sistema de origem via Airflow, sem tratamento). Descrições e tiers gerados automaticamente a partir do dicionário de dados original do SALIC (export SchemaSpy) cruzado com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo (YAML semântico, dicionário e catálogo em DOCX/HTML).",
+      "tabelas": [
+        {
+          "nome": "bdcorporativo__sysdiagrams",
+          "descricao": "Tabela responsável por armazenar diagramas do SQL Server criados no ambiente."
+        },
+        {
+          "nome": "bdcorporativo__tbalteracaonomeproponente",
+          "descricao": "Pedidos de alteração do nome do proponente (schema scsac do banco corporativo). Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bdcorporativo__tbcomprovantepagamento",
+          "descricao": "Uma linha por comprovante de pagamento da execução do projeto (schema scsac do banco corporativo, ~4,2 M linhas). Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bdcorporativo__tbencaminhamentoprestacaocontas",
+          "descricao": "Uma linha por encaminhamento de prestação de contas de um projeto entre órgãos/agentes (schema scsac do banco corporativo). Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "bdcorporativo__tbsituacaoencaminhamentoprestacaocontas",
+          "descricao": "Tabela de domínio: as situações possíveis de um encaminhamento de prestação de contas (schema scsac do banco corporativo). Camada bronze (raw do SALIC via Trino, tudo text)."
+        }
+      ]
+    },
+    {
+      "nome": "bronze_sac",
+      "schema": "salic",
+      "descricao": "Núcleo do SALIC (Sistema de Apoio às Leis de Incentivo à Cultura) — projetos culturais incentivados, proponentes, captação de recursos, editais, prestação de contas, pareceres e patrocínio (Lei Rouanet e leis correlatas de incentivo fiscal à cultura). Camada bronze (dados brutos do SALIC, réplica do sistema de origem via Airflow, sem tratamento). Descrições e tiers gerados automaticamente a partir do dicionário de dados original do SALIC (export SchemaSpy) cruzado com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo (YAML semântico, dicionário e catálogo em DOCX/HTML).",
+      "tabelas": [
+        {
+          "nome": "sac__tbapicomprovacoes",
+          "descricao": "Comprovações de pagamento dos projetos da Lei Rouanet: um registro por item comprovado, com fornecedor, documento, valor e localidade. 2.620.988 linhas. Ingerida em 2026-09-04.\nÉ a fonte do indicador de primeiro acesso da Meta 5 e dos indicadores territoriais da Meta 4 — carrega `sguf`, `nmmunicipio` e `dsregiao` no próprio registro, além do PRONAC em `nrpronac`."
+        },
+        {
+          "nome": "sac__aberturadecontabancaria",
+          "descricao": "Tabela responsável por armazenar informações sobre a abertura de contas bancárias vinculadas aos projetos, incluindo status da conta, datas de liberação/bloqueio, órgão responsável e identificação do projeto."
+        },
+        {
+          "nome": "sac__aberturadecontasav39215",
+          "descricao": "Tabela responsável por registrar informações auxiliares do tipo SAV39215 utilizadas como complemento no processo de abertura de contas bancárias."
+        },
+        {
+          "nome": "sac__aberturadecontasav39224",
+          "descricao": "Tabela responsável por registrar informações auxiliares do tipo SAV39224 relacionadas ao fluxo de abertura de contas."
+        },
+        {
+          "nome": "sac__aberturadecontasav39225",
+          "descricao": "Tabela utilizada para armazenar dados complementares referentes ao tipo SAV39225 no processo de abertura de contas."
+        },
+        {
+          "nome": "sac__aberturadecontasav39227",
+          "descricao": "Tabela responsável por armazenar registros adicionais do tipo SAV39227 usados como apoio ao processo bancário."
+        },
+        {
+          "nome": "sac__aberturadecontaseficpf40979",
+          "descricao": "Tabela responsável por registrar informações do modelo SEFIC Pessoa Física 40979, utilizadas em procedimentos específicos de abertura de conta."
+        },
+        {
+          "nome": "sac__aberturadecontaseficpf40980",
+          "descricao": "Tabela utilizada para armazenar dados auxiliares do tipo SEFIC Pessoa Física 40980 relacionados à abertura de contas."
+        },
+        {
+          "nome": "sac__aberturadecontaseficpj40975",
+          "descricao": "Tabela responsável por armazenar informações do modelo SEFIC Pessoa Jurídica 40975 utilizadas em processos bancários de abertura de contas."
+        },
+        {
+          "nome": "sac__aberturadecontaseficpj40981",
+          "descricao": "Tabela utilizada para registrar dados complementares do tipo SEFIC Pessoa Jurídica 40981 no fluxo de abertura de contas."
+        },
+        {
+          "nome": "sac__abrangencia",
+          "descricao": "Tabela responsável por registrar a abrangência territorial dos projetos, incluindo país, UF, município, datas de realização, justificativas e status."
+        },
+        {
+          "nome": "sac__acaoproduto",
+          "descricao": "Tabela responsável por armazenar informações sobre produtos vinculados às ações dos projetos, como quantidades produzidas, recebidas, estoque e localização."
+        },
+        {
+          "nome": "sac__acaoprojeto",
+          "descricao": "Tabela responsável por registrar as ações vinculadas aos projetos, contendo informações como tipo, nome, localização, área, segmento, datas, mecanismo e entidade responsável."
+        },
+        {
+          "nome": "sac__acompanhamentobandasx",
+          "descricao": "Tabela responsável por armazenar dados detalhados de acompanhamento dos projetos do tipo BandasX, incluindo avaliações, métricas institucionais e informações específicas de execução."
+        },
+        {
+          "nome": "sac__agenciasbb",
+          "descricao": "Tabela responsável por armazenar informações das agências do Banco do Brasil, incluindo nome, UF, perfil, endereço completo e município."
+        },
+        {
+          "nome": "sac__aprovacao",
+          "descricao": "Tabela responsável por registrar os dados de aprovação dos projetos, incluindo portarias, valores aprovados, datas e tipo de aprovação."
+        },
+        {
+          "nome": "sac__area",
+          "descricao": "Tabela utilizada para armazenar as áreas classificatórias dos projetos, com código, descrição e status."
+        },
+        {
+          "nome": "sac__aspectosfisicosx",
+          "descricao": "Tabela responsável por armazenar dados referentes aos aspectos físicos dos projetos, com campos avaliativos e justificativas."
+        },
+        {
+          "nome": "sac__atualizaorgaoprojetosx",
+          "descricao": "Tabela utilizada para armazenar atualizações do órgão responsável pelos projetos, vinculada ao PRONAC."
+        },
+        {
+          "nome": "sac__auditoria",
+          "descricao": "Tabela responsável por registrar informações de auditoria interna, contendo nome do banco, schema, tipo de objeto e instruções executadas."
+        },
+        {
+          "nome": "sac__autuacaox",
+          "descricao": "Tabela responsável por armazenar registros de autuação do projeto, como datas, folhas, providências e observações."
+        },
+        {
+          "nome": "sac__avaliacaopc",
+          "descricao": "Tabela responsável por armazenar avaliações de prestação de contas, incluindo analista, data, campos técnicos, resultado e pronunciamentos."
+        },
+        {
+          "nome": "sac__avaliacaoprojeto",
+          "descricao": "Tabela utilizada para armazenar avaliações gerais dos projetos, com parâmetros e pesos utilizados."
+        },
+        {
+          "nome": "sac__avaliacaoproponente",
+          "descricao": "Tabela responsável por registrar avaliações vinculadas ao proponente, com parâmetros e pesos aplicados."
+        },
+        {
+          "nome": "sac__bancoagencia",
+          "descricao": "Tabela responsável por armazenar dados de agências bancárias, incluindo endereço, UF, telefone, fax, perfil e status."
+        },
+        {
+          "nome": "sac__bancoagencia20100824",
+          "descricao": "Tabela utilizada para armazenar o snapshot das agências bancárias referente à atualização de 24/08/2010.\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado. [heurística] nome termina em sufixo numérico e existe uma tabela base 'sac__bancoagencia' sem sufixo — possível variante/versão numerada."
+        },
+        {
+          "nome": "sac__bancoagencia_08",
+          "descricao": "Tabela auxiliar responsável por armazenar dados antigos de agências bancárias (versão 08)."
+        },
+        {
+          "nome": "sac__bancoagencia_bkp_04112009x",
+          "descricao": "Tabela utilizada como backup histórico das agências bancárias cadastradas até 04/11/2009.\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado. [heurística] nome contém o termo 'bkp', indicativo de backup/versão/teste."
+        },
+        {
+          "nome": "sac__bancoagencianovo1",
+          "descricao": "Tabela complementar usada para armazenar variações da nova estrutura de cadastro de agências bancárias.\n\nObservações do levantamento automatizado: [heurística] nome contém o termo 'novo', indicativo de backup/versão/teste."
+        },
+        {
+          "nome": "sac__bandas",
+          "descricao": "Tabela responsável por armazenar informações sobre bandas vinculadas a projetos, incluindo finalidade, data de fundação, número de componentes e pontuações regionais/nacionais."
+        },
+        {
+          "nome": "sac__bcoagmar2011$",
+          "descricao": "[Não documentado no dicionário de dados original do SALIC — tabela presente apenas no bronze, sem descrição confirmada.]\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado. [observado] tabela ausente do dicionário de dados original do SALIC (export SchemaSpy) — pode ter sido criada após a extração do dicionário, ou ser uma tabela técnica não catalogada na origem."
+        },
+        {
+          "nome": "sac__bolsa",
+          "descricao": "Tabela responsável por armazenar dados de bolsas concedidas, incluindo país, instituição, orientador, datas de início e fim, e contatos."
+        },
+        {
+          "nome": "sac__captacao",
+          "descricao": "Tabela responsável por registrar as captações de recursos dos projetos, incluindo recibos, datas, valores captados, tipo de apoio e informações do mecenas."
+        },
+        {
+          "nome": "sac__captacaoconversao",
+          "descricao": "Tabela responsável por registrar conversões de valores captados, incluindo data, número do recibo e valor convertido."
+        },
+        {
+          "nome": "sac__captacaoguia",
+          "descricao": "Tabela responsável por armazenar informações de guias de captação, com datas, números, valores e observações."
+        },
+        {
+          "nome": "sac__captacaoold",
+          "descricao": "Tabela utilizada como histórico das captações, preservando registros antigos com mesma estrutura da tabela atual.\n\nObservações do levantamento automatizado: [heurística] nome contém o termo 'old', indicativo de backup/versão/teste."
+        },
+        {
+          "nome": "sac__captacaoquotas",
+          "descricao": "Tabela responsável por registrar captação via quotas, incluindo integração, datas, quantidade e dados do subscritor."
+        },
+        {
+          "nome": "sac__carregarecibocaptacaodanca",
+          "descricao": "Tabela responsável por carregar registros de recibos de captação para projetos de Dança, contendo dados do mecenas, valores e datas."
+        },
+        {
+          "nome": "sac__carregarecibocaptacaodanca2010",
+          "descricao": "Tabela utilizada para armazenar recibos de captação de dança referentes ao ano-base 2010.\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado. [heurística] nome termina em sufixo numérico e existe uma tabela base 'sac__carregarecibocaptacaodanca' sem sufixo — possível variante/versão numerada."
+        },
+        {
+          "nome": "sac__carregarecibocaptacaodanca2012",
+          "descricao": "Tabela utilizada para armazenar recibos de captação de dança do ano-base 2012.\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado. [heurística] nome termina em sufixo numérico e existe uma tabela base 'sac__carregarecibocaptacaodanca' sem sufixo — possível variante/versão numerada."
+        },
+        {
+          "nome": "sac__carregarecibocaptacaodanca2013",
+          "descricao": "Tabela responsável por armazenar recibos de captação de dança referentes ao ano-base 2013.\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado. [heurística] nome termina em sufixo numérico e existe uma tabela base 'sac__carregarecibocaptacaodanca' sem sufixo — possível variante/versão numerada."
+        },
+        {
+          "nome": "sac__carta",
+          "descricao": "Tabela responsável por armazenar tipos de cartas institucionais, com código, descrição e status."
+        },
+        {
+          "nome": "sac__cartaeventual",
+          "descricao": "Tabela responsável por armazenar cartas eventuais emitidas para projetos, com data, texto, órgão e logon."
+        },
+        {
+          "nome": "sac__certidoesnegativas",
+          "descricao": "Tabela responsável por registrar certidões negativas relacionadas aos projetos, incluindo emissão, validade, protocolo e situação."
+        },
+        {
+          "nome": "sac__cnic",
+          "descricao": "Tabela responsável por armazenar informações das reuniões da CNIC, incluindo número, data, pauta, resultados e observações."
+        },
+        {
+          "nome": "sac__complementacao",
+          "descricao": "Tabela responsável por registrar pedidos de complementação de recursos dos projetos, incluindo valores solicitados e justificativas."
+        },
+        {
+          "nome": "sac__conselheiro",
+          "descricao": "Tabela responsável por armazenar os conselheiros cadastrados, com nome, condição e status."
+        },
+        {
+          "nome": "sac__consultor",
+          "descricao": "Tabela responsável por armazenar consultores, com nome, área de atuação e status."
+        },
+        {
+          "nome": "sac__consultorespc",
+          "descricao": "Tabela responsável por armazenar consultores vinculados à Prestação de Contas, incluindo datas, volume, observações e vínculos com PRONAC."
+        },
+        {
+          "nome": "sac__contabancaria",
+          "descricao": "Tabela responsável por armazenar informações de contas bancárias vinculadas aos projetos, incluindo conta bloqueada/livre, lotes, ocorrências e banco/agência."
+        },
+        {
+          "nome": "sac__convenio",
+          "descricao": "Tabela responsável por registrar convênios associados aos projetos, com datas, vigência, objeto, valor e dados de publicação."
+        },
+        {
+          "nome": "sac__criteriosx",
+          "descricao": "Tabela responsável por armazenar critérios utilizados na análise de projetos do tipo X, incluindo prioridade, tipo de apoio e justificativas."
+        },
+        {
+          "nome": "sac__curriculo",
+          "descricao": "Tabela responsável por armazenar currículos de proponentes ou participantes, incluindo nível, CPF/CNPJ e logon."
+        },
+        {
+          "nome": "sac__dbf",
+          "descricao": "Tabela responsável por armazenar registros genéricos em formato DBF, contendo tipo de registro, ano, sequencial e informações básicas."
+        },
+        {
+          "nome": "sac__dbf_agosto",
+          "descricao": "Tabela utilizada para armazenar informações provenientes de arquivos DBF específicos do período de agosto."
+        },
+        {
+          "nome": "sac__dbf_dezembro",
+          "descricao": "Tabela utilizada para armazenar informações provenientes de arquivos DBF específicos do período de dezembro."
+        },
+        {
+          "nome": "sac__dbf_maio",
+          "descricao": "Tabela utilizada para armazenar informações provenientes de arquivos DBF específicos do período de maio."
+        },
+        {
+          "nome": "sac__deorgaoparaorgao",
+          "descricao": "Tabela responsável por registrar transferências ou encaminhamentos entre órgãos, indicando órgão de origem e destino."
+        },
+        {
+          "nome": "sac__distribuicao_avaliacao_proposta",
+          "descricao": "Tabela responsável por registrar a distribuição de propostas para avaliação, incluindo avaliador, órgão, perfil e data."
+        },
+        {
+          "nome": "sac__distribuicao_avaliacao_proposta_bkp",
+          "descricao": "Tabela utilizada como backup dos registros de distribuição de propostas para avaliação.\n\nObservações do levantamento automatizado: [heurística] nome contém o termo 'bkp', indicativo de backup/versão/teste."
+        },
+        {
+          "nome": "sac__distribuicaopassagem",
+          "descricao": "Tabela responsável por registrar a distribuição de passagens para projetos, incluindo fatura, valores concedidos, entrega e devolução de bilhetes."
+        },
+        {
+          "nome": "sac__documentopessoal",
+          "descricao": "Tabela responsável por armazenar documentos pessoais vinculados aos projetos, com campos variáveis e status."
+        },
+        {
+          "nome": "sac__documentosexigidos",
+          "descricao": "Tabela responsável por listar documentos obrigatórios exigidos, contendo área, descrição, opções, estado e upload."
+        },
+        {
+          "nome": "sac__documentosprojeto",
+          "descricao": "Tabela responsável por armazenar documentos apresentados pelos projetos, com código, PRONAC e identificadores."
+        },
+        {
+          "nome": "sac__documentosproponente",
+          "descricao": "Tabela responsável por registrar documentos enviados pelos proponentes, vinculados a CPF/CNPJ, PRONAC e projeto."
+        },
+        {
+          "nome": "sac__dtproperties",
+          "descricao": "Tabela técnica utilizada pelo SQL Server para armazenar propriedades internas do banco."
+        },
+        {
+          "nome": "sac__edital",
+          "descricao": "Tabela responsável por armazenar informações sobre editais, incluindo número, objeto, órgão, datas e parâmetros de avaliação."
+        },
+        {
+          "nome": "sac__editaldesembolso",
+          "descricao": "Tabela responsável por registrar desembolsos associados aos editais, incluindo parcelas, valores e empenhos."
+        },
+        {
+          "nome": "sac__editalparcelas",
+          "descricao": "Tabela responsável por armazenar a distribuição das parcelas previstas no edital, incluindo valores, faixas e exigência de PC."
+        },
+        {
+          "nome": "sac__editalprojeto",
+          "descricao": "Tabela responsável por vincular projetos a editais específicos."
+        },
+        {
+          "nome": "sac__editalrelatorio",
+          "descricao": "Tabela responsável por armazenar relatórios exigidos pelos editais, com datas, aprovação e comprovações."
+        },
+        {
+          "nome": "sac__efeitosresultado",
+          "descricao": "Tabela responsável por armazenar códigos, opções e descrições de efeitos de resultado dos projetos."
+        },
+        {
+          "nome": "sac__empenho",
+          "descricao": "Tabela responsável por registrar empenhos realizados, contendo UG, PT, natureza de despesa, data e valor."
+        },
+        {
+          "nome": "sac__empenhoprojeto",
+          "descricao": "Tabela utilizada para vincular empenhos aos projetos e convênios correspondentes."
+        },
+        {
+          "nome": "sac__enquadramento",
+          "descricao": "Tabela responsável por armazenar o enquadramento dos projetos, registrando data, tipo, observações e PRONAC."
+        },
+        {
+          "nome": "sac__entregaproduto",
+          "descricao": "Tabela responsável por registrar a entrega de produtos dos projetos, com datas e observações."
+        },
+        {
+          "nome": "sac__estados",
+          "descricao": "Tabela utilizada para armazenar estados ou fases do fluxo operacional do sistema, com indicação de próximo passo."
+        },
+        {
+          "nome": "sac__etiqueta",
+          "descricao": "Tabela responsável por armazenar etiquetas relacionadas a ano, mecanismo e sequencial."
+        },
+        {
+          "nome": "sac__evolucao",
+          "descricao": "Tabela responsável por registrar a evolução dos projetos, com fases, datas e informações relevantes."
+        },
+        {
+          "nome": "sac__fase",
+          "descricao": "Tabela responsável por armazenar os tipos de fases utilizadas nos processos e fluxos dos projetos."
+        },
+        {
+          "nome": "sac__fluxos",
+          "descricao": "Tabela responsável por registrar os fluxos operacionais do sistema, contendo identificadores e descrições."
+        },
+        {
+          "nome": "sac__fluxosprojeto",
+          "descricao": "Tabela responsável por armazenar o fluxo atual dos projetos, incluindo estado, órgão, grupo e agente responsável."
+        },
+        {
+          "nome": "sac__fonte",
+          "descricao": "Tabela responsável por registrar fontes de recurso ou classificação de origem de dados utilizadas no sistema."
+        },
+        {
+          "nome": "sac__genero",
+          "descricao": "Tabela responsável por armazenar gêneros ou categorias utilizadas para classificar projetos ou ações culturais."
+        },
+        {
+          "nome": "sac__geralext",
+          "descricao": "Tabela responsável por consolidar informações gerais extraídas de pareceres, incluindo dados do projeto, análise técnica, proponente e valores."
+        },
+        {
+          "nome": "sac__grupoempresarial",
+          "descricao": "Tabela responsável por registrar grupos empresariais, incluindo endereço, cidade, UF, país e representante."
+        },
+        {
+          "nome": "sac__guiarecolhimento",
+          "descricao": "Tabela responsável por armazenar informações de guias de recolhimento, com datas, valores, status e dados do proponente."
+        },
+        {
+          "nome": "sac__historicoaspectosfisicosx",
+          "descricao": "Tabela responsável por registrar o histórico dos aspectos físicos dos projetos, com itens, propostas e controle."
+        },
+        {
+          "nome": "sac__historicoautuacaox",
+          "descricao": "Tabela responsável por armazenar o histórico de autuação dos projetos, com datas, folhas e providências adotadas."
+        },
+        {
+          "nome": "sac__historicocarta",
+          "descricao": "Tabela responsável por registrar o histórico de cartas emitidas, com datas, numeração, órgão e status."
+        },
+        {
+          "nome": "sac__historicodelecaoaprovacao",
+          "descricao": "Tabela responsável por armazenar informações sobre deleções de aprovações, incluindo tipo, data, portaria e justificativas."
+        },
+        {
+          "nome": "sac__historicoinabilitado",
+          "descricao": "Tabela responsável por registrar o histórico de habilitação e inabilitação de proponentes, incluindo datas, órgão e situação."
+        },
+        {
+          "nome": "sac__historicosituacao",
+          "descricao": "Tabela responsável por armazenar o histórico da situação dos projetos, incluindo providências tomadas e datas."
+        },
+        {
+          "nome": "sac__historicounidade",
+          "descricao": "Tabela responsável por registrar o histórico de movimentação dos projetos entre unidades de análise, com datas de entrada e saída."
+        },
+        {
+          "nome": "sac__humanidades",
+          "descricao": "Tabela responsável por armazenar informações de projetos de Humanidades, incluindo edição, tiragem, acervo, equipamentos e percentuais de patrocínio/doação."
+        },
+        {
+          "nome": "sac__inabilitado",
+          "descricao": "Tabela responsável por armazenar registros de inabilitação de proponentes ou projetos, com datas, órgão, tipo e situação de habilitação."
+        },
+        {
+          "nome": "sac__informacaotrimestralx",
+          "descricao": "Tabela responsável por registrar informações trimestrais dos projetos do tipo X, incluindo dados físico-financeiros e observações."
+        },
+        {
+          "nome": "sac__instrumentobanda",
+          "descricao": "Tabela responsável por registrar os instrumentos utilizados por bandas dentro dos projetos, com códigos e opções de classificação."
+        },
+        {
+          "nome": "sac__interessado",
+          "descricao": "Tabela responsável por armazenar dados completos de interessados vinculados ao sistema, incluindo contatos, endereço, natureza jurídica e grupo."
+        },
+        {
+          "nome": "sac__internet",
+          "descricao": "Tabela utilizada para armazenar informações estruturadas destinadas a operações via internet, contendo chaves, campos e valores configuráveis."
+        },
+        {
+          "nome": "sac__intranet",
+          "descricao": "Tabela utilizada para armazenar informações estruturadas destinadas à intranet, com chaves, campos, quantidades, valores e datas de referência."
+        },
+        {
+          "nome": "sac__kitbanda",
+          "descricao": "Tabela responsável por registrar kits de instrumentos e equipamentos de bandas, incluindo descrição, especificação, acabamento e preço unitário."
+        },
+        {
+          "nome": "sac__kitentregue",
+          "descricao": "Tabela responsável por armazenar informações sobre kits entregues aos projetos, incluindo datas, documentos e valores."
+        },
+        {
+          "nome": "sac__tbcomplianceitemcomprovado",
+          "descricao": "Tabela responsável por registrar itens auditados, valores comprovados e diferenças."
+        },
+        {
+          "nome": "sac__tbcomprovacaopassivo",
+          "descricao": "Tabela responsável por registrar comprovantes de passivos financeiros ou orçamentários."
+        },
+        {
+          "nome": "sac__tbcomprovantetrimestral",
+          "descricao": "Tabela responsável por registrar comprovantes trimestrais de execução física e financeira."
+        },
+        {
+          "nome": "sac__tbcomunicados",
+          "descricao": "Tabela responsável por armazenar comunicados e avisos publicados no sistema."
+        },
+        {
+          "nome": "sac__tbconfigurarpagamento",
+          "descricao": "Tabela responsável por registrar configurações de pagamento, despachos e vigências."
+        },
+        {
+          "nome": "sac__tbconfigurarpagamentoxtbassinantes",
+          "descricao": "Tabela responsável por associar configurações de pagamento aos assinantes."
+        },
+        {
+          "nome": "sac__tbcontabancariabloqueada",
+          "descricao": "Tabela responsável por registrar contas bancárias bloqueadas ou liberadas e seus motivos."
+        },
+        {
+          "nome": "sac__tbcontacartao",
+          "descricao": "Tabela responsável por registrar informações de cartões vinculados às contas dos projetos."
+        },
+        {
+          "nome": "sac__tbcovid",
+          "descricao": "Tabela responsável por registrar procedimentos e ações realizadas no período de pandemia nos projetos."
+        },
+        {
+          "nome": "sac__tbcredenciaparecerista_2020",
+          "descricao": "Tabela responsável por armazenar os registros de credenciamento de pareceristas no ano de 2020, incluindo unidade, área, segmento e status de atividade.\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado."
+        },
+        {
+          "nome": "sac__tbcumprimentoobjeto",
+          "descricao": "Tabela responsável por registrar o cumprimento do objeto pelos projetos, incluindo etapas concluídas, acessibilidade, fruição, geração de empregos e conclusão técnica.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbcumprimentoobjetoxarquivo",
+          "descricao": "Tabela responsável por vincular arquivos/documentos às informações de cumprimento de objeto."
+        },
+        {
+          "nome": "sac__tbcustosvinculados",
+          "descricao": "Tabela responsável por armazenar custos vinculados a itens de planilha dos projetos, incluindo observações e percentual de cálculo."
+        },
+        {
+          "nome": "sac__tbdeclaracaobeneficiosfiscais",
+          "descricao": "Tabela responsável por armazenar declarações de benefícios fiscais, com dados de proponente, doador, contribuições e base legal."
+        },
+        {
+          "nome": "sac__tbdemandasdeorgaosdecontrole",
+          "descricao": "Tabela responsável por registrar demandas recebidas de órgãos de controle, incluindo documentos, prazos e informações de resposta."
+        },
+        {
+          "nome": "sac__tbdemandasdeorgaosdecontrolexprojetos",
+          "descricao": "Tabela responsável por relacionar demandas de órgãos de controle aos respectivos projetos PRONAC."
+        },
+        {
+          "nome": "sac__tbdeslocamento",
+          "descricao": "Tabela responsável por registrar deslocamentos nacionais ou internacionais relacionados ao projeto, com origem, destino e quantidades."
+        },
+        {
+          "nome": "sac__tbdespacho",
+          "descricao": "Tabela responsável por armazenar despachos emitidos no processo, incluindo tipo, data, estado e encaminhamentos."
+        },
+        {
+          "nome": "sac__tbdetalhaplanodistribuicao",
+          "descricao": "Tabela responsável por detalhar o plano de distribuição dos produtos culturais, incluindo quantidades, preços, tipos e destinos.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbdetalhaplanodistribuicaoreadequacao",
+          "descricao": "Tabela responsável por armazenar detalhamentos do plano de distribuição após readequações, vinculando UF, município, produtos e receitas."
+        },
+        {
+          "nome": "sac__tbdiligencia",
+          "descricao": "Tabela responsável por registrar diligências emitidas aos projetos, seus prazos, produtos, documentos exigidos e situação.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbdiligenciaxarquivo",
+          "descricao": "Tabela utilizada para vincular arquivos às diligências."
+        },
+        {
+          "nome": "sac__tbdispositivomovel",
+          "descricao": "Tabela responsável por armazenar registros de dispositivos móveis utilizados para acesso ao sistema (push notifications e autenticações)."
+        },
+        {
+          "nome": "sac__tbdistribuirparecer",
+          "descricao": "Tabela responsável por distribuir projetos/produtos para pareceristas, com datas, órgãos, análises e status.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbdistribuirprojeto",
+          "descricao": "Tabela responsável por distribuir projetos para avaliadores internos, incluindo envio, devolução, fechamento e estado."
+        },
+        {
+          "nome": "sac__tbdistribuirprojetopassivo",
+          "descricao": "Tabela utilizada para distribuir passivos de projetos para análise técnica, registrando recebimento, devolução e justificativas."
+        },
+        {
+          "nome": "sac__tbdistribuirreadequacao",
+          "descricao": "Tabela responsável por distribuir readequações para avaliadores e coordenadores, com datas, status e orientações."
+        },
+        {
+          "nome": "sac__tbdocumento20100107_1x",
+          "descricao": "Tabela histórica contendo documentos registrados em layout anterior (versão 1X de 2010).\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado. [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbdocumentoassinatura",
+          "descricao": "Tabela responsável por armazenar documentos assinados digitalmente, vinculados ao ato administrativo.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbfiscalizacao",
+          "descricao": "Tabela responsável por registrar as fiscalizações realizadas nos projetos, incluindo datas de início e fim, demandante, situação e responsáveis internos."
+        },
+        {
+          "nome": "sac__tbfundopatrimonial",
+          "descricao": "[Não documentado no dicionário de dados original do SALIC — tabela presente apenas no bronze, sem descrição confirmada.]"
+        },
+        {
+          "nome": "sac__tbfundopatrimonialusuario",
+          "descricao": "[Não documentado no dicionário de dados original do SALIC — tabela presente apenas no bronze, sem descrição confirmada.]"
+        },
+        {
+          "nome": "sac__tbgerarpagamentoparecerista",
+          "descricao": "Tabela responsável por armazenar os registros de geração de pagamento de pareceristas, com despacho, ordem bancária, datas e valor total."
+        },
+        {
+          "nome": "sac__tbhistoricoalteracaodocumento",
+          "descricao": "Tabela responsável por registrar o histórico de alterações realizadas em documentos vinculados a projetos."
+        },
+        {
+          "nome": "sac__tbhistoricoalteracaoprojeto",
+          "descricao": "Tabela responsável por registrar o histórico de alterações de dados dos projetos (área, segmento, situação, órgão, execução, enquadramento e providências).\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbhistoricodevolucaofiscalizacao",
+          "descricao": "Tabela responsável por registrar devoluções de relatórios de fiscalização, com justificativas, datas e status."
+        },
+        {
+          "nome": "sac__tbhistoricodiligencia",
+          "descricao": "Tabela responsável por registrar o histórico de solicitações e respostas de diligências, com datas e usuários envolvidos.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbhistoricodocumento",
+          "descricao": "Tabela responsável por registrar o histórico de tramitação de documentos entre unidades, incluindo envio, recebimento, ação e justificativa.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbhistoricoemail",
+          "descricao": "Tabela responsável por registrar o histórico de e-mails relacionados a projetos, propostas e textos padrão enviados pelo sistema.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbhistoricoexclusaoconta",
+          "descricao": "Tabela responsável por registrar exclusões de contas bancárias de projetos, com dados da conta, motivo, data e usuário."
+        },
+        {
+          "nome": "sac__tbhomologacao",
+          "descricao": "Tabela responsável por registrar as homologações de decisões relativas aos projetos, com tipo, data, decisão, descrição e usuário.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbinadimplente",
+          "descricao": "Tabela responsável por registrar situações de inadimplência e adimplência de proponentes e projetos, com datas, documentos e posicionamento."
+        },
+        {
+          "nome": "sac__tbitensplanilhaproduto",
+          "descricao": "Tabela responsável por relacionar produtos aos itens e etapas da planilha, vinculando-os ao usuário que cadastrou."
+        },
+        {
+          "nome": "sac__tblancamentobancario",
+          "descricao": "Tabela responsável por registrar lançamentos bancários associados aos projetos, com dados de agência, conta, valores e datas.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tblaudofinal",
+          "descricao": "Tabela responsável por armazenar laudos finais do projeto, contendo manifestação, data, descrição e usuário responsável."
+        },
+        {
+          "nome": "sac__tblogintentativasacesso",
+          "descricao": "Tabela responsável por registrar tentativas de login, com CPF, IP, data e quantidade de tentativas."
+        },
+        {
+          "nome": "sac__tblote",
+          "descricao": "Tabela responsável por registrar lotes de processamento, com data de geração."
+        },
+        {
+          "nome": "sac__tbmanterportaria",
+          "descricao": "Tabela responsável por armazenar portarias publicadas, com assinante, cargo, estado e descrição."
+        },
+        {
+          "nome": "sac__tbmensagem",
+          "descricao": "Tabela responsável por registrar mensagens enviadas aos usuários, contendo título, descrição, datas e identificadores."
+        },
+        {
+          "nome": "sac__tbmensagemdispositivomovel",
+          "descricao": "Tabela responsável por relacionar mensagens aos dispositivos móveis vinculados aos usuários."
+        },
+        {
+          "nome": "sac__tbmodelotermodecisao",
+          "descricao": "Tabela responsável por armazenar modelos de termos de decisão utilizados no sistema."
+        },
+        {
+          "nome": "sac__tbmonitoramentoprojeto",
+          "descricao": "Tabela responsável por registrar o monitoramento completo dos projetos, incluindo valores homologados, captados, utilizados e saldos.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbmotivodevolucao",
+          "descricao": "Tabela responsável por registrar motivos de devolução relacionados a documentos assinados."
+        },
+        {
+          "nome": "sac__tbmovimentacao",
+          "descricao": "Tabela responsável por registrar movimentações gerais de projetos, com datas e estado."
+        },
+        {
+          "nome": "sac__tbmovimentacaobancaria",
+          "descricao": "Tabela responsável por armazenar arquivos de movimentação bancária importados, incluindo período, banco e usuário."
+        },
+        {
+          "nome": "sac__tbmovimentacaobancariaitem",
+          "descricao": "Tabela responsável por registrar cada item de movimentação bancária, com saldos, valores, histórico, conta e data.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbmovimentacaobancariaitemxtipoinconsistencia",
+          "descricao": "Tabela responsável por relacionar movimentações bancárias com tipos de inconsistências identificadas."
+        },
+        {
+          "nome": "sac__tbnormativos",
+          "descricao": "Tabela responsável por armazenar normativos do sistema, com justificativas, comentários, datas de publicação, revogação e status."
+        },
+        {
+          "nome": "sac__tbnotificacao",
+          "descricao": "Tabela responsável por registrar notificações enviadas aos usuários e proponentes, incluindo datas, visualização e conteúdo.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbopinarprojeto",
+          "descricao": "Tabela responsável por registrar opiniões, feedbacks e questionamentos feitos sobre projetos em avaliação."
+        },
+        {
+          "nome": "sac__tborgaofiscalizador",
+          "descricao": "Tabela responsável por vincular fiscalizações a órgãos fiscalizadores, contendo datas, observações e responsáveis."
+        },
+        {
+          "nome": "sac__tbpagamentopareceristaxarquivo",
+          "descricao": "Tabela responsável por vincular arquivos aos registros de pagamento de pareceristas."
+        },
+        {
+          "nome": "sac__tbpagarparecerista",
+          "descricao": "Tabela responsável por armazenar pagamentos realizados a pareceristas, com valores, datas, unidade e empenho."
+        },
+        {
+          "nome": "sac__tbpagarpareceristareadequacao",
+          "descricao": "Tabela responsável por registrar pagamentos a pareceristas referentes a análises de readequação."
+        },
+        {
+          "nome": "sac__tbpagarpareceristarecurso",
+          "descricao": "Tabela responsável por registrar pagamentos a pareceristas referentes a análises de recursos."
+        },
+        {
+          "nome": "sac__tbpareceristaafastamento",
+          "descricao": "Tabela responsável por registrar afastamentos de pareceristas, com motivos, datas, justificativas e anexos."
+        },
+        {
+          "nome": "sac__tbpareceristaedital",
+          "descricao": "Tabela responsável por registrar a participação de pareceristas em editais, incluindo vigência, credenciamento e estado."
+        },
+        {
+          "nome": "sac__tbpareceristaempenho",
+          "descricao": "Tabela responsável por armazenar empenhos emitidos a pareceristas, com valores, datas e situação."
+        },
+        {
+          "nome": "sac__tbpareceristainexigibilidade",
+          "descricao": "Tabela responsável por registrar pagamentos ou procedimentos de inexigibilidade relacionados a pareceristas."
+        },
+        {
+          "nome": "sac__tbpareceristaprojetoredistribuido",
+          "descricao": "Tabela responsável por registrar redistribuições de projetos entre pareceristas."
+        },
+        {
+          "nome": "sac__tbpareceristaprorrogarprazo",
+          "descricao": "Tabela responsável por registrar prorrogações de prazo solicitadas por pareceristas durante análises."
+        },
+        {
+          "nome": "sac__tbpareceristaprorrogarprazoxdistribuicao",
+          "descricao": "Tabela responsável por vincular prorrogações de prazo às distribuições de análises."
+        },
+        {
+          "nome": "sac__tbpareceristavaloranalisado",
+          "descricao": "Tabela responsável por registrar valores analisados pelos pareceristas durante a etapa de avaliação."
+        },
+        {
+          "nome": "sac__tbplanilhaaprovacao",
+          "descricao": "Tabela responsável por armazenar planilhas de aprovação orçamentária, contendo itens, valores, justificativas e vínculos com etapas.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbplanilhaetapa",
+          "descricao": "Tabela responsável por registrar etapas orçamentárias, incluindo descrição, tipo, ordenação e status."
+        },
+        {
+          "nome": "sac__tbplanilhaitens",
+          "descricao": "Tabela responsável por armazenar itens orçamentários cadastrados pelos usuários."
+        },
+        {
+          "nome": "sac__tbplanilhajustificativa",
+          "descricao": "Tabela responsável por registrar justificativas sugeridas e aprovadas dentro das planilhas de orçamento."
+        },
+        {
+          "nome": "sac__tbplanilhaprojeto",
+          "descricao": "Tabela responsável por armazenar a estrutura orçamentária aprovada para o projeto, com itens, valores e justificativas.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbplanilhaproposta",
+          "descricao": "Tabela responsável por registrar a planilha de orçamento proposta pelo proponente antes da aprovação.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbplanilhaunidade",
+          "descricao": "Tabela responsável por armazenar unidades de medida utilizadas nas planilhas de orçamento."
+        },
+        {
+          "nome": "sac__tbplanodistribuicao",
+          "descricao": "Tabela responsável por registrar o plano de distribuição de produtos culturais, com quantitativos, preços e regras de distribuição."
+        },
+        {
+          "nome": "sac__tbplanodivulgacao",
+          "descricao": "Tabela responsável por registrar o plano de divulgação do projeto, incluindo peças, veículos e análises."
+        },
+        {
+          "nome": "sac__tbpreprojetometa",
+          "descricao": "Tabela responsável por registrar metas adicionais, atributos e histórico de alterações vinculados ao pré-projeto.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "sac__tbpreprojetoxenquadramento",
+          "descricao": "Tabela responsável por registrar o estado de análise do enquadramento dos pré-projetos."
+        },
+        {
+          "nome": "sac__tbprioridadedeanalise",
+          "descricao": "Tabela responsável por registrar prioridades de análise dos projetos, incluindo motivação, tipo, urgência e responsável."
+        },
+        {
+          "nome": "sac__tbprodutoxtipicidade",
+          "descricao": "Tabela responsável por relacionar produtos às tipicidades e tipologias, vinculando área, segmento e indicação de principal."
+        },
+        {
+          "nome": "sac__tbprogramarouanet",
+          "descricao": "Tabela responsável por cadastrar programas Rouanet, com dados de período, objetivos, limites de proposta, valores e situação."
+        },
+        {
+          "nome": "sac__tbprogramarouanetareasegmento",
+          "descricao": "Tabela responsável por vincular programas Rouanet às respectivas áreas e segmentos culturais."
+        },
+        {
+          "nome": "sac__tbprogramarouanetavaliacao",
+          "descricao": "Tabela responsável por registrar as avaliações dos avaliadores sobre as propostas do programa Rouanet, com pontuação e situação."
+        },
+        {
+          "nome": "sac__tbprogramarouanetavaliacaorecurso",
+          "descricao": "Tabela responsável por registrar as avaliações em fase de recurso, com médias de pontos e situação do recurso."
+        },
+        {
+          "nome": "sac__tbprogramarouanetavaliador",
+          "descricao": "Tabela responsável por relacionar avaliadores aos programas Rouanet, por área e segmento de atuação."
+        },
+        {
+          "nome": "sac__tbprogramarouanetdistribuirproposta",
+          "descricao": "Tabela responsável por distribuir propostas de pré-projetos aos avaliadores do programa Rouanet, indicando tipo de análise e avaliação."
+        },
+        {
+          "nome": "sac__tbprogramarouanethabilitacao",
+          "descricao": "Tabela responsável por registrar a habilitação das propostas no programa Rouanet, com datas, descrição e situação."
+        },
+        {
+          "nome": "sac__tbprogramarouanetlocalidade",
+          "descricao": "Tabela responsável por vincular programas Rouanet a UF e municípios atendidos."
+        },
+        {
+          "nome": "sac__tbprogramarouanetpergunta",
+          "descricao": "Tabela responsável por cadastrar as perguntas/itens de avaliação do programa Rouanet, com faixas de pontuação e ordem."
+        },
+        {
+          "nome": "sac__tbprogramarouanetpropostaselecionada",
+          "descricao": "Tabela responsável por registrar as propostas selecionadas no programa Rouanet, com dados de UF, região, pontuação, ranking e valores alocados."
+        },
+        {
+          "nome": "sac__tbprogramarouanetrecurso",
+          "descricao": "Tabela responsável por registrar recursos interpostos no âmbito do programa Rouanet, com datas, manifestações e situação."
+        },
+        {
+          "nome": "sac__tbprogramarouanetresultadofinal",
+          "descricao": "Tabela responsável por consolidar o resultado final de avaliação das propostas do programa Rouanet, com pontuação total, ranking e situação."
+        },
+        {
+          "nome": "sac__tbprogramarouanetresultadopreliminar",
+          "descricao": "Tabela responsável por registrar o resultado preliminar de avaliação das propostas do programa Rouanet."
+        },
+        {
+          "nome": "sac__tbprogramarouanetselecaopatrocinador",
+          "descricao": "[Não documentado no dicionário de dados original do SALIC — tabela presente apenas no bronze, sem descrição confirmada.]\n\nObservações do levantamento automatizado: [observado] tabela ausente do dicionário de dados original do SALIC (export SchemaSpy) — pode ter sido criada após a extração do dicionário, ou ser uma tabela técnica não catalogada na origem."
+        },
+        {
+          "nome": "sac__tbprogramarouanetxproposta",
+          "descricao": "Tabela responsável por relacionar propostas de pré-projeto aos programas Rouanet em que estão inscritas."
+        },
+        {
+          "nome": "sac__tbprojetofase",
+          "descricao": "Tabela responsável por registrar as fases de cada projeto, com datas de início, fim, normativos e estado."
+        },
+        {
+          "nome": "sac__tbprojetoreadequacao",
+          "descricao": "Tabela responsável por armazenar as informações textuais do projeto em contexto de readequação (resumo, objetivos, justificativas, etapas etc.)."
+        },
+        {
+          "nome": "sac__tbprojetorecebedorrecurso",
+          "descricao": "Tabela responsável por registrar projetos que recebem recursos de outros projetos, com valores, tipo de transferência e datas."
+        },
+        {
+          "nome": "sac__tbprojetosclonados",
+          "descricao": "Tabela responsável por registrar projetos e propostas clonadas, com referências ao projeto original, situação e valores."
+        },
+        {
+          "nome": "sac__tbprojetosituacaoanterior",
+          "descricao": "Tabela responsável por armazenar o histórico da situação anterior do projeto, com providências, órgão e usuário responsáveis."
+        },
+        {
+          "nome": "sac__tbreadequacao",
+          "descricao": "Tabela responsável por registrar solicitações de readequação de projetos, com justificativa, avaliação, reunião e situação."
+        },
+        {
+          "nome": "sac__tbreadequacaoxparecer",
+          "descricao": "Tabela responsável por relacionar readequações aos pareceres emitidos."
+        },
+        {
+          "nome": "sac__tbreadequacaoxtbdiligencia",
+          "descricao": "Tabela responsável por relacionar readequações às diligências associadas."
+        },
+        {
+          "nome": "sac__tbrecurso",
+          "descricao": "Tabela responsável por registrar recursos de projetos já aprovados/avaliados, com solicitação, avaliação, reunião e situação de análise."
+        },
+        {
+          "nome": "sac__tbrecursoproposta",
+          "descricao": "Tabela responsável por registrar recursos de propostas (pré-projetos), com manifestação do proponente e avaliação técnica."
+        },
+        {
+          "nome": "sac__veiculacao",
+          "descricao": "Tabela responsável por cadastrar tipos de veiculação."
+        },
+        {
+          "nome": "sac__verificacao",
+          "descricao": "Tabela responsável por registrar verificações, tipos e estados associados."
+        },
+        {
+          "nome": "sac__verificacaopecaxveiculo",
+          "descricao": "Tabela responsável por relacionar peças e veículos em processos de verificação."
+        },
+        {
+          "nome": "sac__dba_captacaoanoufmunicipio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_2008",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_2009",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_2010",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_2011",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_2012",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_2013",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_2014",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_fred",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_geral_sem_abrangencia",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_qtd_apresentado_aprovado_ano_mes",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_qtd_apresentado_aprovado_captado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_qtd_proponentes_inabilitados",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_relacao_projetos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_relacao_projetos_fred",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_relacao_projetos_geral",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_tcu_captacao_sav",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_tcu_captacao_sefic",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_total_investido_investidor_ano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_valor_solicitado_captado_projeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__dba_valor_solicitado_captado_projeto_sav",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__incentivoporcgccpf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcapmecaudioanoprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcapmecaudioprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcaptacaoanoufareasegmentosemestre",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcaptacaopormptipoapoiomecena",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcaptado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcaptadoano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcaptadoanomesdiaprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcaptadoanoprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcartaaudio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcartapropaudio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcartas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vchecaproponente",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vchecaqteinabilitacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vci",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcnpjcpf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcnpjvalido",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcomparativoano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcomparativoanomec",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcontacorrente",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vconvenioanoarea",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vconvenioanouf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vcustodoprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vdadoscomplementaresdecartas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vdadosconvenio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vdadosportariaaprovacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vdiligencias",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vdocumentoexigido",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vdtprimeiraultimacaptacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vempresasincentivadorasano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vetiquetaeneida",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vfnaprocapproj",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vfnaprocapprojmec",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vfninccaprenuncia",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vfnorcdetalhado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vfntotalaprocapproj",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vforadaportaria",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vfsac3485",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vfunarte",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vgerentes",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vguianaovinculada",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vguiasderecolhimento",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vincentivador",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vincentivadorano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vincentivadoraudioano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vincentivadoresma",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vincentivadorpessoaano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vincentivadorporprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vliberado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vmaioresincentivadoresprojetos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vmostraconvenio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vmostraempenho",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vmostraordembancaria",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vnacional",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vnegativainabilitado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vnegativainabilitadoetiqueta",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vnuncacaptou",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__voutrasinformacoesaudio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vparecerinicial",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vpautadereuniaofncintercambio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vportariaaprovado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vportariacomplementacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vportarianormal",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vportariaprorrogacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vportariareducao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprazocaptacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprestacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprojetoavaliado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprojetodiligencia",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprojetosemanalise",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprojetosemexecucao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprojetosexecutados",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprojprazodecaptvencnoexerc",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vpropapreaproexec",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponenteanouf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponenteavaliado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponentecaptacaoanouf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponentecommaisdecincoproj",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponentemecenato",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponenteporarea",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponenteprojetos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponenteprojetosongs",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproponentetipopessoa",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vpropquereceberbandadenovo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vproprecebeubanda",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vpropufareaseg",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vprorrogacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vqtdeprojaproanouf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrankbanda",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vregularidade",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrenunciaanoareageral",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrenunciaanoareaufgeral",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrenunciafiscal",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrenunciafiscalanoarea",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrenunciafiscalgeral",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrenunciageralporanoprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrenunciaporano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vrenunciaporincentivador",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vricardoreis",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vsaldoaprovado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vsaldoaprovadoporano",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vsaldoquotascav",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vsegmento",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vtemposemcaptar",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vtermoaditivo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vtermodecompromisso",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vtodaaprovacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vtotalaprovado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vtotalcaptado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vultimafase",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vusuarios",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vvaloresprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vversepodeprorrogar",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vw_captacao_ano_uf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vw_dba_captacao_2007_2017",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwagentesseusprojetos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwalteraranalistaproposta",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwalterarorgao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwalterarprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwalterarsituacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwanalisedeconteudo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwanalisedecusto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwanalisedocumentalportecnico",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwanalisefinanceiravirtual",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwanalisevisualportecnico",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwinformacoes_tcu_etce",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwinformacoesconsolidadasparaavaliacaofinanceira",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwinformacoesdoatoadministrativo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwitemorcamentarioimpugnado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwlancamentobancariosemcomprovacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwlaudofinalavaliacaoderesultadodoprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwliberacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwlistarcaptacoes",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwlistarpropostas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwmaioresincentivadoresporanouf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwmaioresproponentesporanouf",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwmediana",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwmemoriadecalculo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwnatureza",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwnotificacaoaoproponente",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vworcamentosolicitado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpagamentodefornecedordoprojetoporitem",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpagamentodefornecedordoprojetoporitemdetalhado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpagamentodespesaforaperiodoexecucao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpagamentofinalizadoparecerista",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpagamentofornecedorirregularreceitafederal",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpagamentoparecerista",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineladequacaorealidadeexecucao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineladmissibilidade",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelaguardandodistribuicaoanalisetecnica",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelavaliarpropostas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadoravaliacaotrimestral",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorreadequacaoaguardandoanalise",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorreadequacaoaguardandoanalise_20180323",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorreadequacaoanalisados",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorreadequacaoanalisados_20180323",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorreadequacaoemanalise",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorreadequacaoemanalise_20180323",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorvinculadasemanalise",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorvinculadasemvalidacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelcoordenadorvinculadasreanalisar",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldedocumentosaguardandoassinatura",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldedocumentosdereadequacaoaguardandoassinatura",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldeemissaodelaudofinalderesultado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldeemissaodelaudofinalderesultadopassivo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldehomologacaodeprojetos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldeliberacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldemensagens",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldetransferenciaderecursos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldocomponentedacomissao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldocoordenador",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldocoordenadorgeral",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineldotecnicodeadmissibilidade",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelemanalisetecnica",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelemvalidacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelenquadramentopropostas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelparecerista",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelpareceristaunificado",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelpresidentevinculadas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelprojetossgptc",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelreadequacaoaguardandopublicacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelreadequacaocoordenadorpareceranalisados",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelreadequacaocoordenadorpareceremanalise",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelreadequacaotecnico",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineltecnicoavaliacaotrimestral",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpaineltransferenciarecursoscaptacaomovimento",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpainelvalidadoscomdevolucao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpareceresdereadequacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpareceristascredenciados",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpareceristasorgao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpautados_cnic_mais_trinta_dias",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpecadedivulgacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwpedidodeprorrogacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwplanilhaaprovada",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwplanilhasugerida",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwplanilhasugeridacompleta",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwportariasgeradas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprecomedio_produto_item_unidade_uf_municipio",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprocuradordeprojeto",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprodutos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprodutosemanalisetecnicanasvinculadas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanet",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetavaliacaofinalizada",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetavaliacaoinicialmediasnotasproposta",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetavaliacaoinicialnotasporproposta",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetavaliadores",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetdistribuirproposta",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetdistribuirpropostarecurso",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouaneteditais",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanethabilitarproposta",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetincentivadorprojetosapoiados",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetnotasporproposta",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetpainelresultadofinal",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetpainelsolicitarrecurso",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetprojetosselecionados",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetpropostasavaliadas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetpropostasnaoavaliadas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetpropostasrecebidas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetrecursopropostaavaliadas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetrecursospropostasnaoavaliadas",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanetresultadoavaliacaoinicial",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprogramarouanettipologia",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetobeneficiarioprodutocultural",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetodistribuidovinculada",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetoorgao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetos_na_pauta_cnic",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetosadequadosrealidadeexecucao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetosapreciadosaguardandohomologacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetosaprovadossemhomologacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetoscominconsistencianacaptacao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetosconsolidados",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetosemanalisecomparecerista",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetosgratuitopago",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetositinerantes",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetosliberadosparaadequacaorealidadeexecucao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__vwprojetosporfase",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "sac__projetos",
+          "descricao": "Uma linha por projeto cultural (PRONAC) submetido ao mecanismo de incentivo fiscal (Lei Rouanet). Núcleo do domínio SAC: liga proponente, situação, valores solicitados e datas de tramitação. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "sac__situacao",
+          "descricao": "Tabela de domínio das situações de tramitação de um projeto: o código (A01, K00, ...) e sua descrição. É a ponta de sac__projetos.situacao. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "sac__preprojeto",
+          "descricao": "Uma linha por pré-projeto (proposta antes de virar PRONAC): descreve a proposta, seus textos longos em HTML (justificativa, objetivos, sinopse, ficha técnica) e o ciclo de aceite/arquivamento. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "sac__tbapiincentivos",
+          "descricao": "Uma linha por aporte de incentivo (captação) publicado pela API pública do SALIC: quem incentivou, quanto e quando, por projeto. Camada bronze (raw do SALIC via Trino, tudo text)."
+        },
+        {
+          "nome": "sac__tbapiaprovacoes",
+          "descricao": "Uma linha por aprovação/prorrogação do projeto, publicada pela API pública do SALIC: portaria, datas de captação e valor aprovado. Camada bronze (raw do SALIC via Trino, tudo text)."
+        }
+      ]
+    },
+    {
+      "nome": "bronze_sac_legado",
+      "schema": "bronze",
+      "descricao": "Núcleo do SALIC na ingestão v1 (schema `bronze`), preservado apenas para as tabelas ainda consumidas por modelos existentes. A ingestão oficial é a v2, no schema `salic_bronze`.",
+      "tabelas": [
+        {
+          "nome": "sac__captacao",
+          "descricao": "Tabela responsável por registrar as captações de recursos dos projetos, incluindo recibos, datas, valores captados, tipo de apoio e informações do mecenas."
+        },
+        {
+          "nome": "sac__projetos",
+          "descricao": "Tabela responsável por armazenar as informações cadastrais e de acompanhamento dos projetos, incluindo PRONAC, área, segmento, situação, valores solicitados e períodos de execução."
+        }
+      ]
+    },
+    {
+      "nome": "bronze_tabelas",
+      "schema": "salic",
+      "descricao": "Cadastro auxiliar do SALIC: pessoas, endereços, órgãos e domínios de apoio (categorias, localidades) usados pelo núcleo SAC. Camada bronze (dados brutos do SALIC, réplica do sistema de origem via Airflow, sem tratamento). Descrições e tiers gerados automaticamente a partir do dicionário de dados original do SALIC (export SchemaSpy) cruzado com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo (YAML semântico, dicionário e catálogo em DOCX/HTML).",
+      "tabelas": [
+        {
+          "nome": "tabelas__autorizados",
+          "descricao": "Tabela responsável por registrar permissões, operações e códigos autorizados no sistema."
+        },
+        {
+          "nome": "tabelas__avisos",
+          "descricao": "Tabela responsável por armazenar avisos, textos informativos e seus períodos de vigência."
+        },
+        {
+          "nome": "tabelas__bairros",
+          "descricao": "Tabela responsável por cadastrar bairros e sua vinculação com localidades."
+        },
+        {
+          "nome": "tabelas__cadastro",
+          "descricao": "Tabela responsável por registrar dados cadastrais básicos de usuários e contatos."
+        },
+        {
+          "nome": "tabelas__categorias_pessoa",
+          "descricao": "Tabela responsável por classificar tipos de pessoas e seus órgãos responsáveis."
+        },
+        {
+          "nome": "tabelas__cdpe",
+          "descricao": "Tabela responsável por armazenar campos auxiliares utilizados em processos internos."
+        },
+        {
+          "nome": "tabelas__dtproperties",
+          "descricao": "Tabela responsável por propriedades internas de objetos do SQL Server (uso técnico)."
+        },
+        {
+          "nome": "tabelas__ect_bairros",
+          "descricao": "Tabela responsável por armazenar dados estruturados de bairros segundo padrões da ECT."
+        },
+        {
+          "nome": "tabelas__ect_localidades",
+          "descricao": "Tabela responsável por registrar localidades e classificações de acordo com a ECT."
+        },
+        {
+          "nome": "tabelas__ect_recusados",
+          "descricao": "Tabela responsável por armazenar endereços recusados segundo regras postais da ECT."
+        },
+        {
+          "nome": "tabelas__emails",
+          "descricao": "Tabela responsável por cadastrar contas de e-mail, domínios, alias e informações de uso."
+        },
+        {
+          "nome": "tabelas__eventos",
+          "descricao": "Tabela responsável por registrar logs de eventos, operações e resultados no sistema."
+        },
+        {
+          "nome": "tabelas__funcoes",
+          "descricao": "Tabela responsável por cadastrar funções e seus status de utilização."
+        },
+        {
+          "nome": "tabelas__grupos",
+          "descricao": "Tabela responsável por agrupar usuários/sistemas e definir perfis de acesso."
+        },
+        {
+          "nome": "tabelas__grupos_ares",
+          "descricao": "Tabela responsável por agrupar perfis de acesso específicos do sistema ARES."
+        },
+        {
+          "nome": "tabelas__grupos_minc11",
+          "descricao": "Tabela responsável por agrupar perfis e acessos específicos do sistema MinC11."
+        },
+        {
+          "nome": "tabelas__gruposxservicos",
+          "descricao": "Tabela responsável por vincular grupos aos serviços disponíveis."
+        },
+        {
+          "nome": "tabelas__headers",
+          "descricao": "Tabela responsável por armazenar cabeçalhos e metadados de documentos ou registros."
+        },
+        {
+          "nome": "tabelas__indice_palavras",
+          "descricao": "Tabela responsável por indexação de palavras para busca e localização de termos."
+        },
+        {
+          "nome": "tabelas__localidades",
+          "descricao": "Tabela responsável por registrar localidades, tipos e informações de CEP."
+        },
+        {
+          "nome": "tabelas__logonnt",
+          "descricao": "Tabela responsável por armazenar informações de logons Windows/NT."
+        },
+        {
+          "nome": "tabelas__logradouros",
+          "descricao": "Tabela responsável por cadastrar logradouros, limites, CEPs e bairros relacionados."
+        },
+        {
+          "nome": "tabelas__mei_grupos_intranet",
+          "descricao": "Tabela responsável por agrupar permissões de grupos na intranet."
+        },
+        {
+          "nome": "tabelas__mei_gruposxservicos_intranet",
+          "descricao": "Tabela responsável por vincular grupos da intranet aos serviços disponíveis."
+        },
+        {
+          "nome": "tabelas__mei_servicos_intranet",
+          "descricao": "Tabela responsável por cadastrar serviços da intranet e suas propriedades visuais/funcionais."
+        },
+        {
+          "nome": "tabelas__mei_usuariosxservicos_intranet",
+          "descricao": "Tabela responsável por vincular usuários da intranet aos serviços permitidos."
+        },
+        {
+          "nome": "tabelas__menus",
+          "descricao": "Tabela responsável por cadastrar menus, opções e estruturas de navegação do sistema."
+        },
+        {
+          "nome": "tabelas__menus_ares",
+          "descricao": "Tabela responsável por configurar menus e navegação do sistema ARES."
+        },
+        {
+          "nome": "tabelas__menus_minc11",
+          "descricao": "Tabela responsável por configurar menus e navegação do sistema MinC11."
+        },
+        {
+          "nome": "tabelas__menusxgrupos",
+          "descricao": "Tabela responsável por vincular menus aos grupos de acesso."
+        },
+        {
+          "nome": "tabelas__menusxgrupos_ares",
+          "descricao": "Tabela responsável por vincular menus aos grupos do sistema ARES."
+        },
+        {
+          "nome": "tabelas__menusxgrupos_minc11",
+          "descricao": "Tabela responsável por vincular menus aos grupos do MinC11."
+        },
+        {
+          "nome": "tabelas__meta_dados",
+          "descricao": "Tabela responsável por metadados de tabelas, tamanho, tipo, critérios e ocorrências."
+        },
+        {
+          "nome": "tabelas__orgaos",
+          "descricao": "Tabela responsável por cadastrar órgãos, siglas, gerente, vínculos e informações administrativas."
+        },
+        {
+          "nome": "tabelas__orgaos_ares",
+          "descricao": "Tabela responsável por armazenar órgãos e dados institucionais específicos do sistema ARES."
+        },
+        {
+          "nome": "tabelas__orgaos_subordinados",
+          "descricao": "Tabela responsável por registrar a hierarquia entre órgãos e seus níveis de subordinação."
+        },
+        {
+          "nome": "tabelas__palavras",
+          "descricao": "Tabela responsável por armazenar palavras indexadas e seus status para busca."
+        },
+        {
+          "nome": "tabelas__palavras2",
+          "descricao": "Tabela responsável por registrar conjunto paralelo de palavras para indexação e consulta."
+        },
+        {
+          "nome": "tabelas__pessoa_dados",
+          "descricao": "Tabela responsável por armazenar metadados e valores vinculados a pessoas."
+        },
+        {
+          "nome": "tabelas__pessoa_dados_bkp",
+          "descricao": "Tabela responsável por backup de dados e metadados associados às pessoas.\n\nObservações do levantamento automatizado: [heurística] nome contém o termo 'bkp', indicativo de backup/versão/teste."
+        },
+        {
+          "nome": "tabelas__pessoa_enderecos",
+          "descricao": "Tabela responsável por cadastrar endereços das pessoas, tipos, CEP e localidades."
+        },
+        {
+          "nome": "tabelas__pessoa_identificacoes",
+          "descricao": "Tabela responsável por registrar identificações e documentos das pessoas."
+        },
+        {
+          "nome": "tabelas__pessoa_identificacoes_alteradas",
+          "descricao": "Tabela responsável por registrar alterações históricas das identificações das pessoas."
+        },
+        {
+          "nome": "tabelas__pessoa_identificacoes_bkp",
+          "descricao": "Tabela responsável por backup de identificações associadas às pessoas.\n\nObservações do levantamento automatizado: [heurística] nome contém o termo 'bkp', indicativo de backup/versão/teste."
+        },
+        {
+          "nome": "tabelas__pessoas",
+          "descricao": "Tabela responsável por cadastrar pessoas, categorias, utilidade pública, orgãos vinculados e status."
+        },
+        {
+          "nome": "tabelas__pessoas_bkp",
+          "descricao": "Tabela responsável por armazenar backup de dados cadastrais de pessoas.\n\nObservações do levantamento automatizado: [heurística] nome contém o termo 'bkp', indicativo de backup/versão/teste."
+        },
+        {
+          "nome": "tabelas__pessoasxfuncoes",
+          "descricao": "Tabela responsável por vincular pessoas às funções e entidades associadas."
+        },
+        {
+          "nome": "tabelas__servicos_intranet",
+          "descricao": "Tabela responsável por cadastrar serviços disponíveis na intranet e suas características."
+        },
+        {
+          "nome": "tabelas__sistemas",
+          "descricao": "Tabela responsável por registrar sistemas, siglas, URLs, segurança e status de utilização."
+        },
+        {
+          "nome": "tabelas__sistemas_ares",
+          "descricao": "Tabela responsável por registrar sistemas específicos da plataforma ARES."
+        },
+        {
+          "nome": "tabelas__sysdiagrams",
+          "descricao": "Tabela responsável por armazenar diagramas e estruturas criadas no SQL Server."
+        },
+        {
+          "nome": "tabelas__tabelas",
+          "descricao": "Tabela responsável por registrar informações sobre tabelas, tipos, status e descrição."
+        },
+        {
+          "nome": "tabelas__temp_tbl",
+          "descricao": "Tabela responsável por armazenar textos temporários para uso interno da aplicação.\n\nObservações do levantamento automatizado: [heurística] nome contém o termo 'temp', indicativo de backup/versão/teste."
+        },
+        {
+          "nome": "tabelas__tipos_logradouro",
+          "descricao": "Tabela responsável por cadastrar tipos de logradouros e abreviações."
+        },
+        {
+          "nome": "tabelas__tipos_pessoa",
+          "descricao": "Tabela responsável por definir tipos de pessoa e características jurídicas."
+        },
+        {
+          "nome": "tabelas__usuarios",
+          "descricao": "Tabela responsável por registrar usuários, credenciais, permissões, dados de segurança e vínculos."
+        },
+        {
+          "nome": "tabelas__usuarios_ares",
+          "descricao": "Tabela responsável por armazenar usuários e permissões específicas do sistema ARES."
+        },
+        {
+          "nome": "tabelas__usuariosxgrupos_intranet",
+          "descricao": "Tabela responsável por vincular usuários a grupos de acesso da intranet."
+        },
+        {
+          "nome": "tabelas__usuariosxorgaosxgrupos",
+          "descricao": "Tabela responsável por relacionar usuários, órgãos e grupos de acesso."
+        },
+        {
+          "nome": "tabelas__usuariosxorgaosxgrupos_ares",
+          "descricao": "Tabela responsável por registrar vínculos entre usuários, órgãos e grupos no ambiente ARES."
+        },
+        {
+          "nome": "tabelas__usuexternosistemas",
+          "descricao": "Tabela responsável por armazenar usuários externos, senhas, nomes e permissões de acesso aos sistemas."
+        },
+        {
+          "nome": "tabelas__listainstitucionais",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__listapessoais",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_distritos_por_palavra",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_estados_por_palavra",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_hierarquia_orgaos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_localidade_completa",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_logradouro_completo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_municipios_por_palavra",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_paises_por_palavra",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_pessoas_nome_completo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_usuario_completo",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_usuario_orgaos_grupos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__v_usuarios",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__vwrelservidorhpimpressao",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__vwusuarios",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        },
+        {
+          "nome": "tabelas__vwusuariosorgaosgrupos",
+          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
+        }
+      ]
+    },
     {
       "nome": "bb_agil",
       "schema": "bb_agil",
@@ -44482,8 +47135,8 @@
   ],
   "totais": {
     "modelos": 734,
-    "testes": 5183,
+    "testes": 5187,
     "com_descricao": 733,
-    "sources": 78
+    "sources": 730
   }
 }
