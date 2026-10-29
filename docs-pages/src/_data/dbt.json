@@ -4918,10 +4918,47 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcacesso.sql",
-      "descricao": "",
-      "colunas": [],
-      "colunas_descritas": 0,
-      "testes": 0,
+      "descricao": "Uma linha por conta de acesso ao SALIC, identificada por idusuario. São 409.093 contas, cadastradas de 2006 a 2026, cada uma com um CPF próprio: idusuario e cpf são únicos na tabela inteira. É o cadastro de login do sistema, não o cadastro de agente cultural, que fica no banco agentes. [NÃO VERIFICADO] Se a tabela inclui proponentes, servidores ou os dois; o volume sugere que inclui o público externo.\n\nArmadilhas: dtnascimento tem 113 contas com ano 1900, provável sentinela de \"não informado\", e datas até 2076, que não são nascimento real. Em 1.568 contas a dtsituacao é anterior à dtcadastro. O e-mail se repete entre contas: há 405.973 distintos para 409.093 contas.\n\nA coluna senha existe na Bronze e foi retirada desta silver: credencial não entra em camada analítica.",
+      "colunas": [
+        {
+          "nome": "idusuario",
+          "descricao": "Identificador da conta, sequencial do SQL Server (int identity). Único e preenchido nas 409.093 linhas. É a chave que silver_controledeacesso_sgcusuarioxsistema usa para ligar a conta aos subsistemas. [NÃO VERIFICADO] Se é o mesmo idusuario que aparece em cerca de 45 tabelas do banco sac."
+        },
+        {
+          "nome": "cpf",
+          "descricao": "CPF do titular da conta, 11 dígitos sem máscara. Único na tabela: uma conta por CPF. 7 linhas não têm exatamente 11 dígitos. Não foi validado o dígito verificador."
+        },
+        {
+          "nome": "nome",
+          "descricao": "Nome do titular da conta, em texto livre. Vazio em 2 das 409.093 contas, que aqui viram NULL. Até 51 caracteres na amostra."
+        },
+        {
+          "nome": "dtnascimento",
+          "descricao": "Data de nascimento informada no cadastro da conta, preenchida em todas as linhas. Não é confiável sem filtro: 113 contas têm ano 1900, provável sentinela de \"não informado\", e há datas até 2076."
+        },
+        {
+          "nome": "email",
+          "descricao": "E-mail de contato da conta. Preenchido em todas as linhas, mas não identifica a conta: 405.973 e-mails distintos, sem diferenciar maiúsculas, para 409.093 contas."
+        },
+        {
+          "nome": "dtcadastro",
+          "descricao": "Data e hora de criação da conta. Preenchida em todas as linhas, de 2006 a 2026."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Código da situação da conta. Quatro valores: 1 em 142.192 contas, 2 em 17.412, 3 em 248.814 e 5 em 675. [NÃO VERIFICADO] O significado de cada código: não há tabela de domínio no banco controledeacesso nem descrição no dicionário."
+        },
+        {
+          "nome": "dtsituacao",
+          "descricao": "Data e hora da última mudança de situacao. Preenchida em todas as linhas, de 2006 a 2026. Em 1.568 contas é anterior à dtcadastro."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio. Na amostra de 200 linhas, vale 0."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 9,
       "materializacao": "",
       "depende_de": [],
       "sources": [
@@ -4935,10 +4972,27 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcsistema.sql",
-      "descricao": "",
-      "colunas": [],
-      "colunas_descritas": 0,
-      "testes": 0,
+      "descricao": "Uma linha por subsistema do SALIC em que uma conta pode ter acesso. São 8 subsistemas, com idsistema de 1 a 8 e nomes distintos. É a tabela de domínio de idsistema em silver_controledeacesso_sgcusuarioxsistema.",
+      "colunas": [
+        {
+          "nome": "idsistema",
+          "descricao": "Identificador do subsistema, de 1 a 8, sequencial do SQL Server (int identity)."
+        },
+        {
+          "nome": "nomesistema",
+          "descricao": "Nome curto do subsistema, até 20 caracteres. Distinto entre os 8."
+        },
+        {
+          "nome": "descricaosistema",
+          "descricao": "Descrição do subsistema em texto livre, até 100 caracteres."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
       "materializacao": "",
       "depende_de": [],
       "sources": [
@@ -4952,10 +5006,23 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_controledeacesso_sgcusuarioxsistema.sql",
-      "descricao": "",
-      "colunas": [],
-      "colunas_descritas": 0,
-      "testes": 0,
+      "descricao": "Uma linha por par conta e subsistema: diz a que subsistemas cada conta tem acesso. São 17.118 pares, sem repetição, para 15.805 contas. Só 4% das contas de silver_controledeacesso_sgcacesso aparecem aqui. Quase todo vínculo é com os subsistemas 7, com 13.832 pares, e 8, com 3.169; os outros cinco somam 117.\n\n3 pares apontam para um idusuario que não existe mais em silver_controledeacesso_sgcacesso. O teste de relacionamento avisa, sem travar o build.",
+      "colunas": [
+        {
+          "nome": "idusuario",
+          "descricao": "Conta que tem o acesso. Liga com silver_controledeacesso_sgcacesso.idusuario."
+        },
+        {
+          "nome": "idsistema",
+          "descricao": "Subsistema a que a conta tem acesso. Liga com silver_controledeacesso_sgcsistema.idsistema, sem órfão."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 5,
       "materializacao": "",
       "depende_de": [],
       "sources": [
@@ -43996,7 +44063,7 @@
     },
     "salic": {
       "modelos": 600,
-      "testes": 4928,
+      "testes": 4944,
       "camadas": {
         "silver": 4,
         "bronze": 586,
@@ -44411,8 +44478,8 @@
   ],
   "totais": {
     "modelos": 734,
-    "testes": 5170,
-    "com_descricao": 730,
+    "testes": 5186,
+    "com_descricao": 733,
     "sources": 78
   }
 }

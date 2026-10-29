@@ -44,15 +44,22 @@ RE_META = re.compile(r"^eixo\d+_meta(\d+)_")
 
 
 def _yaml_da_pasta(pasta: Path) -> dict[str, Any]:
-    """Lê o schema.yml da pasta. Devolve dict vazio quando não há ou é inválido."""
-    schema = pasta / "schema.yml"
-    if not schema.exists():
-        return {}
-    try:
-        return yaml.safe_load(schema.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as erro:
-        log.warning("schema.yml inválido em %s: %s", pasta, erro)
-        return {}
+    """Junta os modelos do schema.yml e dos schema_*.yml da pasta.
+
+    A pasta salic/ tem um schema_<banco>.yml por banco de origem do SALIC,
+    além do schema.yml. Arquivo ausente ou inválido não entra.
+    """
+    modelos: list[Any] = []
+    for schema in sorted([pasta / "schema.yml", *pasta.glob("schema_*.yml")]):
+        if not schema.exists():
+            continue
+        try:
+            dados = yaml.safe_load(schema.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError as erro:
+            log.warning("%s inválido em %s: %s", schema.name, pasta, erro)
+            continue
+        modelos += dados.get("models") or []
+    return {"models": modelos}
 
 
 def _metadados(pasta: Path) -> dict[str, dict[str, Any]]:
