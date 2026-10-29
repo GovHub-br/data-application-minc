@@ -1,8 +1,11 @@
--- Bronze SALIC — bdcorporativo__tbcomprovantepagamento.
--- Origem: salic_bronze.bdcorporativo__tbcomprovantepagamento (schema scsac do
+-- Silver SALIC — silver_bdcorporativo_tbcomprovantepagamento
+-- (ex-bdcorporativo__tbcomprovantepagamento).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_bdcorporativo_tbcomprovantepagamento (schema scsac do
 -- banco corporativo), tudo em texto da ingestão via Trino (ADR 0005).
 -- Uma linha por comprovante de pagamento da execução (~4,2 M linhas). Números de
 -- comprovante/documento ficam TEXT (identificadores); valores e datas convertidos.
+-- A coluna tbcomprovantepagamento da origem, vazia em todas as linhas, não entra.
 select
     {{ bronze_inteiro("tpdocumento") }} as tpdocumento,
     {{ bronze_texto("nrcomprovante") }} as nrcomprovante,
@@ -18,6 +21,5 @@ select
     {{ bronze_texto("dsoutrasfontes") }} as dsoutrasfontes,
     {{ bronze_inteiro("tpformadepagamento") }} as tpformadepagamento,
     {{ bronze_texto("nrdocumentodepagamento") }} as nrdocumentodepagamento,
-    {{ bronze_texto("tbcomprovantepagamento") }} as tbcomprovantepagamento,
     _fatia
-from {{ source("bronze_bdcorporativo", "bdcorporativo__tbcomprovantepagamento") }}
+from {{ source("salic", "bronze_bdcorporativo_tbcomprovantepagamento") }}

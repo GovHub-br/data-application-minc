@@ -730,6 +730,35 @@ casa.
 - `tabelas.usuarios` tem `usu_senha` e `usu_sql_senha`. O lote `tabelas`
   tira as duas da silver.
 
+### 2026-10-29 · Claude · F17 — lote `bdcorporativo`, já com o banco aberto
+
+**O que entrou.** 4 silvers. A `sysdiagrams`, diagrama binário interno do
+SQL Server, ficou só na Bronze: não tem dado de negócio. A coluna
+`tbcomprovantepagamento`, vazia em todas as linhas, saiu do `select`.
+
+**Achados.**
+- `tbcomprovantepagamento`, com 4,19 M de linhas, são os comprovantes da
+  comprovação financeira. Os códigos de `tpdocumento` (1 a 5) e
+  `tpformadepagamento` (0 a 3) vêm do formulário do SalicWeb. O 6 e o 7 de
+  `tpdocumento` não têm significado conhecido. Há datas de 1767 a 9201, e em
+  6,4% dos comprovantes o pagamento é anterior à emissão. A ligação com o
+  projeto passa por `tbComprovantePagamentoxPlanilhaAprovacao`, que a
+  ingestão não traz: sem ela, não se soma comprovação por PRONAC.
+- `tbencaminhamentoprestacaocontas` tem exatamente um encaminhamento ativo
+  por PRONAC, e isso virou teste. Órgãos e grupos se traduzem por
+  `tabelas.orgaos` e `tabelas.grupos`. `idsituacao` usa os códigos de
+  `sac.situacao`, mas 96% das linhas têm o valor `1`, que não é código de lá.
+
+**Testes.** Dos inferidos, caíram os que a tabela inteira desmente:
+`idfornecedor`, `nrcomprovante`, `tpformadepagamento`,
+`nrdocumentodepagamento` e `dsjustificativa`. Caiu também o `unique` de
+`idcomprovantepagamento`, porque são 4 M de linhas e nada a jusante usa a
+chave. Os falsos positivos da busca de PII, como alte**raca**o e
+prest**conta**s, ficam dispensados no próprio modelo.
+
+**Para a ingestão.** Vale trazer `tbComprovantePagamentoxPlanilhaAprovacao`:
+é o que liga 4 M de comprovantes ao projeto.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG
