@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75 e o núcleo do `sac` 13 (#117 a #121). Faltam 468 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`) |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13 e proposta 37. Faltam 431 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -910,6 +910,32 @@ Segunda revisão (devwallyson, no #122), também no #122:
   deixar de ser publicável ou parar de ler uma delas;
 - `origem_dados` de `map_chave`, `dim_projeto`, `dim_municipio_ibge` e
   `fct_proponente_ano` citam as silvers.
+
+---
+
+### 2026-10-29 · Claude · F17 — `sac`, lote proposta
+
+**Triagem do resto do `sac`.** As 468 tabelas restantes foram agrupadas por
+assunto (proposta, bancário, planilha, prestação de contas, parecer,
+documentos, readequação, Programa Rouanet, pessoas e CNIC, domínios, cópias
+datadas e DBA, painéis). Decisão da usuária: todas ganham silver, inclusive
+cópias datadas, extrações de DBA e painéis de tela.
+
+**O que entrou.** 37 silvers de proposta e projeto. `preprojeto` é a proposta
+antes de virar projeto (450 mil, 35% viraram projeto); `stTipoDemanda` NA é
+proposta comum de incentivo fiscal e ED é de edital. `tbprojetofase` traz a
+fase (647 a 652 na verificação do sac) e o normativo (`sac.tbnormativos`, 15
+instruções de 1995 a 2026). `tbmonitoramentoprojeto` é a fotografia
+financeira do projeto desde 2023. `vrenunciageralporanoprojeto` dá a renúncia
+fiscal por projeto, ano e lei.
+
+**Armadilhas.** `tbdetalhaplanodistribuicao` detalha `sac.PlanoDistribuicaoProduto`,
+que não é ingerida; `tbplanodistribuicao` é o plano da readequação. A
+renúncia por projeto e ano só é única com a lei.
+
+**Lição.** Afirmação "em todas as linhas" precisa da tabela inteira, não da
+amostra de 200: a revisão pegou nove erros assim neste lote, o maior dizendo
+que `vvaloresprojeto.captado` era sempre zero (soma 35,9 bilhões).
 
 ---
 
