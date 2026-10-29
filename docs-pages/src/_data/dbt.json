@@ -6425,6 +6425,306 @@
       "linhas_sql": 15
     },
     {
+      "nome": "silver_sac_abrangencia",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_abrangencia.sql",
+      "descricao": "Uma linha por local onde uma proposta pretende realizar ações: país, UF e município. São 860.304 locais para 365.548 propostas. Liga com sac.preprojeto por idprojeto, que é o idpreprojeto, e não com silver_sac_projetos. 832.003 locais são no Brasil.\n\nArmadilha: 30.228 linhas têm município que não existe em silver_agentes_municipios. Só 52.332 locais dizem se a ação foi realizada (siabrangencia diferente de 0).",
+      "colunas": [
+        {
+          "nome": "idabrangencia",
+          "descricao": "Identificador do local. Único."
+        },
+        {
+          "nome": "idprojeto",
+          "descricao": "Proposta, pelo idpreprojeto de sac.preprojeto. Não é o idpronac."
+        },
+        {
+          "nome": "idpais",
+          "descricao": "País, código de silver_agentes_vpais: 31 é Brasil."
+        },
+        {
+          "nome": "iduf",
+          "descricao": "UF, código IBGE de 2 dígitos."
+        },
+        {
+          "nome": "idmunicipioibge",
+          "descricao": "Município, código IBGE de 6 dígitos. Liga com silver_agentes_municipios.idmunicipioibge; 30.228 não existem lá."
+        },
+        {
+          "nome": "usuario",
+          "descricao": "Conta que gravou o local na proposta."
+        },
+        {
+          "nome": "stabrangencia",
+          "descricao": "Se o local está ativo na proposta: true em 821.234, false em 39.070."
+        },
+        {
+          "nome": "siabrangencia",
+          "descricao": "Se a ação foi realizada no local, pelo dicionário: 0 sem informação, 807.972; 1 não, 9.454; 2 sim, 42.447. O código 3, em 431 linhas, não está no dicionário."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Por que a ação não foi realizada no local. Preenchida em 9.770."
+        },
+        {
+          "nome": "dtiniciorealizacao",
+          "descricao": "Data de início da ação no local. Preenchida em 42.832."
+        },
+        {
+          "nome": "dtfimrealizacao",
+          "descricao": "Data de fim da ação no local. Preenchida em 41.375."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_abrangencia"
+      ],
+      "linhas_sql": 22
+    },
+    {
+      "nome": "silver_sac_aprovacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_aprovacao.sql",
+      "descricao": "Uma linha por ato de aprovação de um projeto: a aprovação inicial e cada mudança depois dela. São 472.606 aprovações para 181.291 projetos, de 1992 a 2026. O tipo vem do SalicWeb: 1 inicial, 181.746; 2 complementação, 10.793; 3 prorrogação, 260.007; 4 redução, 14.862; 8 readequação, 4.053; 5 e 6, com 1.145, sem significado no código.\n\nComo somar: o SalicWeb calcula o valor aprovado do projeto como a soma dos tipos 1 e 2 menos a do tipo 4. A prorrogação (3) só muda o prazo e tem valor perto de zero. Somar aprovadoreal de todas as linhas mistura essas coisas. 1.507 linhas não têm idpronac; nas outras, 66 têm PRONAC diferente do projeto.",
+      "colunas": [
+        {
+          "nome": "idaprovacao",
+          "descricao": "Identificador da aprovação. Único."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac. Vazio em 1.507 linhas, sem órfão nas outras."
+        },
+        {
+          "nome": "idparecer",
+          "descricao": "Parecer que fundamentou a aprovação. Preenchido em 10%."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "tipoaprovacao",
+          "descricao": "Tipo da aprovação, em texto, pelo SalicWeb: 1 inicial, 2 complementação, 3 prorrogação, 4 redução, 8 readequação. 5 e 6 não têm significado no código."
+        },
+        {
+          "nome": "dtaprovacao",
+          "descricao": "Data da aprovação, de 1992 a 2026."
+        },
+        {
+          "nome": "resumoaprovacao",
+          "descricao": "Resumo do ato de aprovação, em texto livre."
+        },
+        {
+          "nome": "portariaaprovacao",
+          "descricao": "Número da portaria que publicou a aprovação, no formato número/ano. Vazio em 5%."
+        },
+        {
+          "nome": "dtportariaaprovacao",
+          "descricao": "Data da portaria de aprovação."
+        },
+        {
+          "nome": "dtpublicacaoaprovacao",
+          "descricao": "Data de publicação da portaria no Diário Oficial."
+        },
+        {
+          "nome": "dtiniciocaptacao",
+          "descricao": "Início do prazo de captação autorizado por esta aprovação."
+        },
+        {
+          "nome": "dtfimcaptacao",
+          "descricao": "Fim do prazo de captação autorizado por esta aprovação. É o que a prorrogação muda."
+        },
+        {
+          "nome": "aprovadoufir",
+          "descricao": "Valor aprovado em UFIR."
+        },
+        {
+          "nome": "aprovadoreal",
+          "descricao": "Valor aprovado por este ato, em reais. Na redução (tipo 4), é o valor reduzido, a subtrair."
+        },
+        {
+          "nome": "autorizadoufir",
+          "descricao": "Valor autorizado em UFIR. Vale 0 em todas as linhas."
+        },
+        {
+          "nome": "autorizadoreal",
+          "descricao": "Valor autorizado em reais. Vale 0 em todas as linhas."
+        },
+        {
+          "nome": "concedidocusteioreal",
+          "descricao": "Parte de custeio concedida, em reais. Quase sempre 0."
+        },
+        {
+          "nome": "concedidocapitalreal",
+          "descricao": "Parte de capital concedida, em reais. Quase sempre 0."
+        },
+        {
+          "nome": "contrapartidareal",
+          "descricao": "Contrapartida do proponente, em reais. Quase sempre 0."
+        },
+        {
+          "nome": "logon",
+          "descricao": "Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de servidores."
+        },
+        {
+          "nome": "idprorrogacao",
+          "descricao": "Pedido de prorrogação que gerou esta linha. Preenchido em 33%."
+        },
+        {
+          "nome": "idreadequacao",
+          "descricao": "Pedido de readequação que gerou esta linha. Preenchido em 2%."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 24,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_aprovacao"
+      ],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "silver_sac_area",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_area.sql",
+      "descricao": "Uma linha por área cultural: 8, de 1 Artes Cênicas a 9 Museus e Memória. Artes Integradas (7) está desativada, mas 54.789 projetos ainda têm essa área.",
+      "colunas": [
+        {
+          "nome": "codigo",
+          "descricao": "Código da área, em texto: 1 a 7 e 9."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Nome da área cultural, como Música ou Audiovisual."
+        },
+        {
+          "nome": "stestado",
+          "descricao": "Se a área está ativa: false só em Artes Integradas."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_area"
+      ],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "silver_sac_captacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_captacao.sql",
+      "descricao": "Uma linha por recibo de captação: dinheiro que um incentivador depositou na conta de um projeto. São 668.765 recibos, de 1993 a 2026, para 55.043 projetos e 126.552 incentivadores. Não tem idpronac: liga ao projeto por anoprojeto e sequencial, sem órfão. É a fonte de fct_captacao_rouanet.\n\nArmadilhas: o tipo de apoio é ambíguo no próprio SalicWeb (ver tipoapoio). 28.304 recibos têm incentivador que não existe em silver_agentes_agentes. Captação não é pagamento: o valor captado entra na conta do projeto, e o que foi gasto está nas comprovações.",
+      "colunas": [
+        {
+          "nome": "idcaptacao",
+          "descricao": "Identificador do recibo. Único."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC. Na origem vem com espaço à direita, que o cast retira."
+        },
+        {
+          "nome": "numerorecibo",
+          "descricao": "Número do recibo de captação, em texto. Vazio em 10."
+        },
+        {
+          "nome": "cgccpfmecena",
+          "descricao": "CPF (358.844 recibos) ou CNPJ (309.921) do incentivador, sem máscara. 28.304 não existem em silver_agentes_agentes.cnpjcpf."
+        },
+        {
+          "nome": "tipoapoio",
+          "descricao": "Tipo de apoio do incentivador: 1 em 274.957 recibos, 2 em 393.808. O dicionário de dados do SALIC e três consultas do SalicWeb leem 1 como doação e 2 como patrocínio; outras duas consultas do SalicWeb leem ao contrário. Confirme antes de usar."
+        },
+        {
+          "nome": "medidaprovisoria",
+          "descricao": "Enquadramento legal do recibo: 1 artigo 26 e 2 artigo 18 da Lei 8.313/91, pelo dicionário de dados, o mesmo código de silver_sac_enquadramento. 2 tem 600.894 recibos e 32 bilhões de reais; 1 tem 67.855. O 0, em 15 recibos, e o 3, em 1, não estão no dicionário."
+        },
+        {
+          "nome": "dtchegadarecibo",
+          "descricao": "Data em que o recibo chegou ao MinC."
+        },
+        {
+          "nome": "dtrecibo",
+          "descricao": "Data do depósito, de 1993 a 2026. É a data da captação."
+        },
+        {
+          "nome": "captacaoreal",
+          "descricao": "Valor captado, em reais. Um recibo tem valor zero ou negativo."
+        },
+        {
+          "nome": "captacaoufir",
+          "descricao": "Valor captado em UFIR."
+        },
+        {
+          "nome": "logon",
+          "descricao": "Usuário interno que registrou o recibo. Três valores em todas as linhas."
+        },
+        {
+          "nome": "idprojeto",
+          "descricao": "Código de projeto da origem. Vale 0 em 237.540 linhas e vazio em 72.611; não é chave. Use anoprojeto e sequencial."
+        },
+        {
+          "nome": "sitransferenciarecurso",
+          "descricao": "Se o recurso foi liberado ao proponente, pelo dicionário: 1 liberado, 336.648; 0 bloqueado, 20.276. Vazio em 311.841."
+        },
+        {
+          "nome": "dttransferenciarecurso",
+          "descricao": "Data da liberação do recurso. Preenchida em 336.642."
+        },
+        {
+          "nome": "isbemservico",
+          "descricao": "Se a captação foi em bem ou serviço, e não em dinheiro. Vale 0 em todas as linhas."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 17,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_captacao"
+      ],
+      "linhas_sql": 27
+    },
+    {
       "nome": "silver_sac_captacao_proponente",
       "dominio": "salic",
       "camada": "silver",
@@ -6462,6 +6762,732 @@
         "salic.bronze_sac_projetos"
       ],
       "linhas_sql": 77
+    },
+    {
+      "nome": "silver_sac_documentosprojeto",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_documentosprojeto.sql",
+      "descricao": "Uma linha por documento entregue por um projeto antigo. São 31.886 documentos de 14.403 projetos, de PRONACs até 2008, com 4 depois disso: a tabela deixou de ser usada. O tipo se traduz por sac.documentosexigidos, sem órfão.",
+      "colunas": [
+        {
+          "nome": "contador",
+          "descricao": "Identificador do documento. Único."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "codigodocumento",
+          "descricao": "Tipo do documento, código de sac.documentosexigidos."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac. Vazio em 4."
+        },
+        {
+          "nome": "idprojeto",
+          "descricao": "Código de projeto da origem. Vazio em todas as linhas."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_documentosprojeto"
+      ],
+      "linhas_sql": 17
+    },
+    {
+      "nome": "silver_sac_enquadramento",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_enquadramento.sql",
+      "descricao": "Uma linha por projeto enquadrado, com o artigo da Lei 8.313/91 que define o abatimento do incentivador: 1 artigo 26, 34.299 projetos; 2 artigo 18, 145.880. A tradução vem do SalicWeb. São 180.190 linhas e o idpronac é único: a tabela guarda só o enquadramento atual, sem histórico de reenquadramento.",
+      "colunas": [
+        {
+          "nome": "idenquadramento",
+          "descricao": "Identificador do enquadramento. Único."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "enquadramento",
+          "descricao": "Artigo da Lei 8.313/91: 1 artigo 26, em que o incentivador abate parte do valor; 2 artigo 18, em que abate 100%. 0 em 11 linhas."
+        },
+        {
+          "nome": "dtenquadramento",
+          "descricao": "Data do enquadramento."
+        },
+        {
+          "nome": "observacao",
+          "descricao": "Observação livre do enquadramento. Preenchida em 47%."
+        },
+        {
+          "nome": "logon",
+          "descricao": "Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de servidores."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac. Único: um enquadramento por projeto."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_enquadramento"
+      ],
+      "linhas_sql": 19
+    },
+    {
+      "nome": "silver_sac_projetos",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_projetos.sql",
+      "descricao": "Uma linha por projeto cultural do SALIC, identificado por idpronac e pelo PRONAC (anoprojeto e sequencial), ambos únicos. São 277.187 projetos, protocolados de 1992 a 2026, de 102.757 proponentes. É a tabela central do banco sac: aprovação, enquadramento, captação e comprovação ligam aqui. Inclui todos os mecanismos, não só a Rouanet: 195.777 são de incentivo fiscal (mecanismo 1) e 80.356 de convênio (2 e 6).\n\nArmadilhas: a situação mais comum é K00, arquivado, com 78 mil projetos; muitos outros códigos também são de arquivamento. O segmento tem códigos com letra, e 135.921 projetos têm segmento que não está em silver_sac_vsegmento. 33.409 projetos têm cgccpf que não existe em silver_agentes_agentes.",
+      "colunas": [
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto. Único e preenchido em todas as linhas. É a chave que as outras tabelas do sac usam."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "ufprojeto",
+          "descricao": "UF do projeto, em sigla."
+        },
+        {
+          "nome": "area",
+          "descricao": "Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas, 2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6 Humanidades, 7 Artes Integradas, 9 Museus e Memória."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Segmento cultural, código de silver_sac_vsegmento, em texto porque há códigos com letra. O código só é único junto com a área."
+        },
+        {
+          "nome": "mecanismo",
+          "descricao": "Mecanismo de financiamento: 1 é Incentivo Fiscal Federal, o mecenato da Lei Rouanet, confirmado pela descrição que a origem grava em vwanalisefinanceiravirtual. 2 e 6 são tratados como convênio pelo SalicWeb. 3 e 5 não têm significado confirmado; a tabela sac.Mecanismo, com os nomes, não é ingerida."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "processo",
+          "descricao": "Número do processo administrativo do projeto, 15 dígitos, em texto."
+        },
+        {
+          "nome": "cgccpf",
+          "descricao": "CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à esquerda. 33.409 não existem em silver_agentes_agentes.cnpjcpf."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Situação atual do projeto, código de três caracteres da tabela sac.situacao, como K00 arquivado, E10 autorizada a captação total ou E19 prestação de contas aprovada."
+        },
+        {
+          "nome": "dtprotocolo",
+          "descricao": "Data de protocolo do projeto, de 1992 a 2026."
+        },
+        {
+          "nome": "dtanalise",
+          "descricao": "Data de análise do projeto."
+        },
+        {
+          "nome": "modalidade",
+          "descricao": "Código de modalidade do projeto. Preenchido em 29% das linhas, com dezenas de valores e sem tabela de domínio ingerida."
+        },
+        {
+          "nome": "orgaoorigem",
+          "descricao": "Órgão de origem. Vale 0 em todas as linhas."
+        },
+        {
+          "nome": "orgao",
+          "descricao": "Órgão do MinC responsável pelo projeto, código de silver_tabelas_orgaos: 290, DCA, tem 190.818 projetos."
+        },
+        {
+          "nome": "dtsaida",
+          "descricao": "Data de saída do processo para análise externa. Preenchida em 27%."
+        },
+        {
+          "nome": "dtretorno",
+          "descricao": "Data de retorno do processo. Preenchida em 29%."
+        },
+        {
+          "nome": "unidadeanalise",
+          "descricao": "Unidade que analisou o projeto, em texto: códigos numéricos e siglas misturados. Preenchida em 25%."
+        },
+        {
+          "nome": "analista",
+          "descricao": "Nome do servidor que analisou o projeto, em texto livre. Preenchido em 43%."
+        },
+        {
+          "nome": "dtsituacao",
+          "descricao": "Data da situação atual. Vazia em 2.719 linhas."
+        },
+        {
+          "nome": "resumoprojeto",
+          "descricao": "Resumo do projeto, em texto livre."
+        },
+        {
+          "nome": "providenciatomada",
+          "descricao": "Última providência registrada no projeto, em texto livre."
+        },
+        {
+          "nome": "localizacao",
+          "descricao": "Localização física do processo em papel, como ARQUIVO GERAL. Preenchida em 11%."
+        },
+        {
+          "nome": "dtinicioexecucao",
+          "descricao": "Data de início da execução. Preenchida em 51%."
+        },
+        {
+          "nome": "dtfimexecucao",
+          "descricao": "Data de fim da execução. Preenchida em 51%."
+        },
+        {
+          "nome": "solicitadoufir",
+          "descricao": "Valor solicitado em UFIR, unidade fiscal extinta em 2000."
+        },
+        {
+          "nome": "solicitadoreal",
+          "descricao": "Valor solicitado em reais. Vazio em 33.126 projetos."
+        },
+        {
+          "nome": "solicitadocusteioufir",
+          "descricao": "Parte de custeio do valor solicitado, em UFIR."
+        },
+        {
+          "nome": "solicitadocusteioreal",
+          "descricao": "Parte de custeio do valor solicitado, em reais."
+        },
+        {
+          "nome": "solicitadocapitalufir",
+          "descricao": "Parte de capital do valor solicitado, em UFIR. Quase sempre 0."
+        },
+        {
+          "nome": "solicitadocapitalreal",
+          "descricao": "Parte de capital do valor solicitado, em reais. Quase sempre 0."
+        },
+        {
+          "nome": "logon",
+          "descricao": "Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de servidores."
+        },
+        {
+          "nome": "idprojeto",
+          "descricao": "Proposta de origem do projeto. Liga com sac.preprojeto.idpreprojeto, sem órfão. Preenchido em 56%, nos projetos que vieram de proposta pelo SalicWeb."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 35,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_projetos"
+      ],
+      "linhas_sql": 45
+    },
+    {
+      "nome": "silver_sac_tbapicomprovacoes",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbapicomprovacoes.sql",
+      "descricao": "Uma linha por comprovante de despesa de um projeto, como publicado pela API pública do SALIC. São 2.621.182 comprovantes de 21.134 projetos. Vem de uma carga própria da API, atualizada em 386 momentos diferentes. É a fonte de fct_proponente_ano_rouanet, da Meta 5.\n\nArmadilhas: sguf não é sigla de UF, são as duas primeiras letras do nome do estado, e é ambíguo: Ri é Rio de Janeiro, Rio Grande do Sul ou Rio Grande do Norte, e Ma no Centro-Oeste é Mato Grosso ou Mato Grosso do Sul. As datas vão de 1767 a 9201. Os comprovantes são os mesmos de silver_bdcorporativo_tbcomprovantepagamento, vistos pela API.",
+      "colunas": [
+        {
+          "nome": "idapicomprovacoes",
+          "descricao": "Identificador do comprovante na API. Único."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "nrpronac",
+          "descricao": "PRONAC do projeto, em texto: 6 dígitos em 2.463.542 linhas e 7 em 157.640."
+        },
+        {
+          "nome": "nmprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "nmitem",
+          "descricao": "Item da planilha do projeto a que a despesa se refere."
+        },
+        {
+          "nome": "nmfornecedor",
+          "descricao": "Nome do fornecedor pago. Vazio em 561."
+        },
+        {
+          "nome": "tpfornecedor",
+          "descricao": "Tipo do fornecedor: Nacional em todas as linhas."
+        },
+        {
+          "nome": "dsregiao",
+          "descricao": "Região do fornecedor. Vazia em 61.275."
+        },
+        {
+          "nome": "sguf",
+          "descricao": "Duas primeiras letras do nome do estado do fornecedor, como Sã ou Ri. Não é sigla e é ambíguo; só junto com dsregiao separa Pará, Paraná e Paraíba. Não use como UF."
+        },
+        {
+          "nome": "nmmunicipio",
+          "descricao": "Município do fornecedor. Vazio em 309.471."
+        },
+        {
+          "nome": "dtcomprovacao",
+          "descricao": "Data em que a despesa foi comprovada no sistema."
+        },
+        {
+          "nome": "aaanocomprovacao",
+          "descricao": "Ano de dtcomprovacao."
+        },
+        {
+          "nome": "mmmescomprovacao",
+          "descricao": "Mês de dtcomprovacao."
+        },
+        {
+          "nome": "tpdocumento",
+          "descricao": "Tipo do documento por extenso: Nota Fiscal/Fatura, Recibo de Pagamento, RPA ou Guia de Recolhimento."
+        },
+        {
+          "nome": "nrcomprovante",
+          "descricao": "Número do documento fiscal, em texto: 20% não são número."
+        },
+        {
+          "nome": "dtemissao",
+          "descricao": "Data de emissão do documento, de 1767 a 9201: há datas digitadas errado."
+        },
+        {
+          "nome": "tpformadepagamento",
+          "descricao": "Forma de pagamento: Transferência Bancária ou Cheque. Vazia em 9.655."
+        },
+        {
+          "nome": "nrdocumentodepagamento",
+          "descricao": "Número do cheque ou da transferência, em texto."
+        },
+        {
+          "nome": "vlpagamento",
+          "descricao": "Valor pago, em reais."
+        },
+        {
+          "nome": "idarquivo",
+          "descricao": "Arquivo do comprovante anexado na origem."
+        },
+        {
+          "nome": "nmarquivo",
+          "descricao": "Nome do arquivo do comprovante."
+        },
+        {
+          "nome": "hashregistro",
+          "descricao": "Hash do registro na API, para detectar mudança entre cargas. Não é credencial."
+        },
+        {
+          "nome": "dtatualizacao",
+          "descricao": "Momento em que a carga da API gravou a linha. Não é data de negócio."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 24,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbapicomprovacoes"
+      ],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "silver_sac_vsegmento",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vsegmento.sql",
+      "descricao": "Uma linha por segmento cultural ativo, com a área e o órgão responsável. São 71 segmentos, com código em texto porque a maioria tem letra. O segmento só é único junto com a área. Não cobre os segmentos antigos: 135.921 projetos têm segmento que não está aqui, e a tabela completa, sac.Segmento, não é ingerida.",
+      "colunas": [
+        {
+          "nome": "area",
+          "descricao": "Área do segmento, código de silver_sac_area."
+        },
+        {
+          "nome": "codigo",
+          "descricao": "Código do segmento, em texto, como 1A. Só é único junto com a área."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Nome do segmento cultural."
+        },
+        {
+          "nome": "idorgao",
+          "descricao": "Órgão responsável pelo segmento, código de silver_tabelas_orgaos."
+        },
+        {
+          "nome": "tp_enquadramento",
+          "descricao": "Artigo da Lei 8.313/91 do segmento, no mesmo código de silver_sac_enquadramento: 1 artigo 26, 13 segmentos; 2 artigo 18, 58."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vsegmento"
+      ],
+      "linhas_sql": 16
+    },
+    {
+      "nome": "silver_sac_vwagentesseusprojetos",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwagentesseusprojetos.sql",
+      "descricao": "Uma linha por projeto ligado a uma conta do SalicWeb: é a lista de \"meus projetos\" que o proponente vê ao entrar. São 264.510 linhas, 205.728 projetos, 69.702 agentes e 65.505 contas. Lida por dim_projeto_rouanet e pela ponte de proponentes.",
+      "colunas": [
+        {
+          "nome": "ordem",
+          "descricao": "Ordem de exibição. Vale 0 em todas as linhas."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "cgccpf",
+          "descricao": "CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à esquerda."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Situação atual do projeto, código de três caracteres da tabela sac.situacao, como K00 arquivado, E10 autorizada a captação total ou E19 prestação de contas aprovada."
+        },
+        {
+          "nome": "dtiniciodeexecucao",
+          "descricao": "Data de início da execução."
+        },
+        {
+          "nome": "dtfinaldeexecucao",
+          "descricao": "Data de fim da execução."
+        },
+        {
+          "nome": "mecanismo",
+          "descricao": "Mecanismo de financiamento: 1 é Incentivo Fiscal Federal, o mecenato da Lei Rouanet, confirmado pela descrição que a origem grava em vwanalisefinanceiravirtual. 2 e 6 são tratados como convênio pelo SalicWeb. 3 e 5 não têm significado confirmado; a tabela sac.Mecanismo, com os nomes, não é ingerida."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Agente proponente. Liga com silver_agentes_agentes.idagente."
+        },
+        {
+          "nome": "nomeproponente",
+          "descricao": "Nome do proponente, pessoa ou entidade."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Descrição da situação, a mesma de sac.situacao para o código em situacao."
+        },
+        {
+          "nome": "idsolicitante",
+          "descricao": "Solicitante. Vale 0 em todas as linhas."
+        },
+        {
+          "nome": "idusuario",
+          "descricao": "Conta do SalicWeb que vê o projeto. Todas existem em silver_controledeacesso_sgcacesso.idusuario."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 15,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwagentesseusprojetos"
+      ],
+      "linhas_sql": 25
+    },
+    {
+      "nome": "silver_sac_vwalterarprojeto",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwalterarprojeto.sql",
+      "descricao": "Uma linha por projeto, com proponente, área, segmento e situação, vinda da view que a tela de alteração de projeto do SalicWeb usa. São 276.866 projetos, quase todos os de silver_sac_projetos. Lida por dim_projeto_rouanet para o cadastro do projeto.",
+      "colunas": [
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto. Único."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda. Único."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "cgccpf",
+          "descricao": "CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à esquerda."
+        },
+        {
+          "nome": "proponente",
+          "descricao": "Nome do proponente, pessoa ou entidade."
+        },
+        {
+          "nome": "area",
+          "descricao": "Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas, 2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6 Humanidades, 7 Artes Integradas, 9 Museus e Memória."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Segmento cultural, código de silver_sac_vsegmento, em texto porque há códigos com letra. O código só é único junto com a área."
+        },
+        {
+          "nome": "dtsituacao",
+          "descricao": "Data da situação atual."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Situação atual do projeto, código de três caracteres da tabela sac.situacao, como K00 arquivado, E10 autorizada a captação total ou E19 prestação de contas aprovada."
+        },
+        {
+          "nome": "providenciatomada",
+          "descricao": "Última providência registrada, em texto livre."
+        },
+        {
+          "nome": "dtinicioexecucao",
+          "descricao": "Data de início da execução."
+        },
+        {
+          "nome": "dtfimexecucao",
+          "descricao": "Data de fim da execução."
+        },
+        {
+          "nome": "idusuario",
+          "descricao": "Conta que pode alterar o projeto."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 14,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwalterarprojeto"
+      ],
+      "linhas_sql": 24
+    },
+    {
+      "nome": "silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado.sql",
+      "descricao": "Uma linha por pagamento a fornecedor, item a item, vinda de uma view da origem sobre os comprovantes. São 4.182.025 linhas de 21.064 projetos, de 1767 a 9201 pelas datas, que têm erros. É a fonte de fct_pagamento_profissional_rouanet, da Meta 3. Traz o CPF ou CNPJ do fornecedor, que silver_sac_tbapicomprovacoes não traz.",
+      "colunas": [
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "cnpjcpf",
+          "descricao": "CPF ou CNPJ do fornecedor, sem máscara. Vazio em 15.752."
+        },
+        {
+          "nome": "fornecedor",
+          "descricao": "Nome do fornecedor pago, pessoa ou empresa."
+        },
+        {
+          "nome": "item",
+          "descricao": "Item da planilha do projeto pago."
+        },
+        {
+          "nome": "idplanilhaitem",
+          "descricao": "Item da planilha, código."
+        },
+        {
+          "nome": "nrcomprovante",
+          "descricao": "Número do documento fiscal, em texto: 26% não são número."
+        },
+        {
+          "nome": "dtemissao",
+          "descricao": "Data de emissão do documento."
+        },
+        {
+          "nome": "tpdocumento",
+          "descricao": "Tipo do documento por extenso, como Nota Fiscal/Fatura ou RPA. Vazio em 15.294."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa do pagamento, em texto livre. Preenchida em 35%."
+        },
+        {
+          "nome": "dtpagamento",
+          "descricao": "Data do pagamento ao fornecedor."
+        },
+        {
+          "nome": "tpformadepagamento",
+          "descricao": "Forma de pagamento: Transferência Bancária, 3.597.350; Cheque, 530.115; Dinheiro, 40.481."
+        },
+        {
+          "nome": "nrdocumentodepagamento",
+          "descricao": "Número do cheque ou da transferência, em texto."
+        },
+        {
+          "nome": "vlpago",
+          "descricao": "Valor pago, em reais."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 16,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwpagamentodefornecedordoprojetoporitemdetalhado"
+      ],
+      "linhas_sql": 28
+    },
+    {
+      "nome": "silver_sac_vwprojetositinerantes",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwprojetositinerantes.sql",
+      "descricao": "Uma linha por local de um projeto itinerante, com UF e município. São 44.706 locais de 4.269 projetos. Lida por brg_projeto_local_execucao, da Meta 4. Os códigos tptipicidade, tptipologia e idfase são da tabela de verificação do banco sac: 713 singulares até 1 milhão de reais, 712 projetos normais, 651 avaliação dos resultados da ação cultural.",
+      "colunas": [
+        {
+          "nome": "idprojeto",
+          "descricao": "Proposta de origem, pelo idpreprojeto."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "ufprojeto",
+          "descricao": "UF sede do projeto, em sigla."
+        },
+        {
+          "nome": "area",
+          "descricao": "Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas, 2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6 Humanidades, 7 Artes Integradas, 9 Museus e Memória."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Segmento cultural, código de silver_sac_vsegmento, em texto porque há códigos com letra. O código só é único junto com a área."
+        },
+        {
+          "nome": "tptipicidade",
+          "descricao": "Tipicidade do projeto, código da verificação do sac: 713 em todas as preenchidas."
+        },
+        {
+          "nome": "tptipologia",
+          "descricao": "Tipologia do projeto, código da verificação do sac: 712 em todas as preenchidas."
+        },
+        {
+          "nome": "dtiniciofase",
+          "descricao": "Data de início da fase do projeto."
+        },
+        {
+          "nome": "resumoprojeto",
+          "descricao": "Resumo do projeto, em texto livre."
+        },
+        {
+          "nome": "uf",
+          "descricao": "UF do local itinerante, código IBGE."
+        },
+        {
+          "nome": "municipio",
+          "descricao": "Município do local itinerante, código IBGE de 6 dígitos."
+        },
+        {
+          "nome": "idfase",
+          "descricao": "Fase do projeto, código da verificação do sac: 651, avaliação dos resultados."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 15,
+      "testes": 1,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwprojetositinerantes"
+      ],
+      "linhas_sql": 25
     },
     {
       "nome": "silver_tabelas_autorizados",
@@ -10364,72 +11390,6 @@
       "linhas_sql": 9
     },
     {
-      "nome": "sac__abrangencia",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__abrangencia.sql",
-      "descricao": "Tabela responsável por registrar a abrangência territorial dos projetos, incluindo país, UF, município, datas de realização, justificativas e status. Camada bronze tipada a partir de salic_bronze.sac__abrangencia.",
-      "colunas": [
-        {
-          "nome": "idabrangencia",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpais",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iduf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idmunicipioibge",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "usuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stabrangencia",
-          "descricao": "Representa o status da abrangência sendo 0 para desativado e 1 para ativado."
-        },
-        {
-          "nome": "siabrangencia",
-          "descricao": "Diz se realizou ou não o evento na localidade indicada. 0 - Sem informação 1 - Não, 2 - Sim."
-        },
-        {
-          "nome": "dsjustificativa",
-          "descricao": "Descreve o por que do evento não ter sido realizado no local descrito."
-        },
-        {
-          "nome": "dtiniciorealizacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfimrealizacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 9,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__abrangencia"
-      ],
-      "linhas_sql": 21
-    },
-    {
       "nome": "sac__acaoproduto",
       "dominio": "salic",
       "camada": "bronze",
@@ -10892,154 +11852,6 @@
         "bronze_sac.sac__agenciasbb"
       ],
       "linhas_sql": 17
-    },
-    {
-      "nome": "sac__aprovacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__aprovacao.sql",
-      "descricao": "Tabela responsável por registrar os dados de aprovação dos projetos, incluindo portarias, valores aprovados, datas e tipo de aprovação. Camada bronze tipada a partir de salic_bronze.sac__aprovacao.",
-      "colunas": [
-        {
-          "nome": "idaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idparecer",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tipoaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "resumoaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "portariaaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtportariaaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtpublicacaoaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtiniciocaptacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfimcaptacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "aprovadoufir",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "aprovadoreal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "autorizadoufir",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "autorizadoreal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "concedidocusteioreal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "concedidocapitalreal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "contrapartidareal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "logon",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idprorrogacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 24,
-      "testes": 18,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__aprovacao"
-      ],
-      "linhas_sql": 33
-    },
-    {
-      "nome": "sac__area",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__area.sql",
-      "descricao": "Tabela utilizada para armazenar as áreas classificatórias dos projetos, com código, descrição e status. Camada bronze tipada a partir de salic_bronze.sac__area.",
-      "colunas": [
-        {
-          "nome": "codigo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stestado",
-          "descricao": "0.Desativado; 1.ativo"
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 4,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__area"
-      ],
-      "linhas_sql": 13
     },
     {
       "nome": "sac__aspectosfisicosx",
@@ -11978,92 +12790,6 @@
         "bronze_sac.sac__bolsa"
       ],
       "linhas_sql": 28
-    },
-    {
-      "nome": "sac__captacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__captacao.sql",
-      "descricao": "Tabela responsável por registrar as captações de recursos dos projetos, incluindo recibos, datas, valores captados, tipo de apoio e informações do mecenas. Camada bronze tipada a partir de salic_bronze.sac__captacao.",
-      "colunas": [
-        {
-          "nome": "idcaptacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "numerorecibo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cgccpfmecena",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tipoapoio",
-          "descricao": "patrocinio ou doação 1 Doação 2 Patrocínio"
-        },
-        {
-          "nome": "medidaprovisoria",
-          "descricao": "1 - artigo 26 (lei 8.313/91) e 2 - artigo 18 MedidaProvisoria : 1.Artigo 26 e 2.100%"
-        },
-        {
-          "nome": "dtchegadarecibo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtrecibo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "captacaoreal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "captacaoufir",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "logon",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sitransferenciarecurso",
-          "descricao": "0. Recurso Bloqueado; 1.Recurso Liberado"
-        },
-        {
-          "nome": "dttransferenciarecurso",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "isbemservico",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 17,
-      "testes": 15,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__captacao"
-      ],
-      "linhas_sql": 26
     },
     {
       "nome": "sac__captacaoconversao",
@@ -15194,52 +15920,6 @@
       "linhas_sql": 16
     },
     {
-      "nome": "sac__documentosprojeto",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__documentosprojeto.sql",
-      "descricao": "Tabela responsável por armazenar documentos apresentados pelos projetos, com código, PRONAC e identificadores. Camada bronze tipada a partir de salic_bronze.sac__documentosprojeto.",
-      "colunas": [
-        {
-          "nome": "contador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "codigodocumento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 7,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__documentosprojeto"
-      ],
-      "linhas_sql": 16
-    },
-    {
       "nome": "sac__documentosproponente",
       "dominio": "salic",
       "camada": "bronze",
@@ -15786,60 +16466,6 @@
         "bronze_sac.sac__empenhoprojeto"
       ],
       "linhas_sql": 13
-    },
-    {
-      "nome": "sac__enquadramento",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__enquadramento.sql",
-      "descricao": "Tabela responsável por armazenar o enquadramento dos projetos, registrando data, tipo, observações e PRONAC. Camada bronze tipada a partir de salic_bronze.sac__enquadramento.",
-      "colunas": [
-        {
-          "nome": "idenquadramento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "enquadramento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtenquadramento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "observacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "logon",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 9,
-      "testes": 10,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__enquadramento"
-      ],
-      "linhas_sql": 18
     },
     {
       "nome": "sac__entregaproduto",
@@ -17566,164 +18192,6 @@
       "linhas_sql": 46
     },
     {
-      "nome": "sac__projetos",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__projetos.sql",
-      "descricao": "Uma linha por projeto cultural do mecanismo de incentivo fiscal (Lei Rouanet), identificado pelo PRONAC. É a tabela-núcleo do domínio SAC: liga proponente (cgccpf), situação, órgão, valores solicitados e as datas de tramitação. ~277 mil linhas. Camada bronze tipada a partir de salic_bronze.sac__projetos. Cruza com sac__situacao por `situacao` = codigo e com sac__tbapiaprovacoes/sac__tbapiincentivos por idpronac. Armadilha: a coluna `idprojeto` chega 100% vazia; use `idpronac` como chave.",
-      "colunas": [
-        {
-          "nome": "idpronac",
-          "descricao": "Identificador interno do PRONAC. Chave do projeto, preenchida em 100% das linhas."
-        },
-        {
-          "nome": "anoprojeto",
-          "descricao": "Ano do projeto em 2 dígitos ('00'=2000, '08'=2008). Mantido text para não perder o zero à esquerda."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "Sequencial do projeto no ano, 4 dígitos com zero à esquerda."
-        },
-        {
-          "nome": "ufprojeto",
-          "descricao": "Sigla da UF do projeto."
-        },
-        {
-          "nome": "area",
-          "descricao": "Código da área cultural."
-        },
-        {
-          "nome": "segmento",
-          "descricao": "Código do segmento cultural."
-        },
-        {
-          "nome": "mecanismo",
-          "descricao": "Código do mecanismo de incentivo."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "Nome do projeto cultural."
-        },
-        {
-          "nome": "processo",
-          "descricao": "Número do processo administrativo (15 dígitos). Identificador, mantido text (não é quantidade)."
-        },
-        {
-          "nome": "cgccpf",
-          "descricao": "CNPJ (14) ou CPF (11) do proponente, sem máscara. Dado pessoal; mantido text para preservar o zero à esquerda. Não interpretar como número."
-        },
-        {
-          "nome": "situacao",
-          "descricao": "Código da situação de tramitação (3 caracteres). Chave estrangeira lógica para sac__situacao.codigo."
-        },
-        {
-          "nome": "dtprotocolo",
-          "descricao": "Data de protocolo do projeto."
-        },
-        {
-          "nome": "dtanalise",
-          "descricao": "Data de análise."
-        },
-        {
-          "nome": "modalidade",
-          "descricao": "Código da modalidade. Preenchida em ~21% das linhas."
-        },
-        {
-          "nome": "orgaoorigem",
-          "descricao": "Código do órgão de origem."
-        },
-        {
-          "nome": "orgao",
-          "descricao": "Código do órgão responsável."
-        },
-        {
-          "nome": "dtsaida",
-          "descricao": "Data de saída para análise externa. Preenchida em ~77% das linhas."
-        },
-        {
-          "nome": "dtretorno",
-          "descricao": "Data de retorno da análise externa. Preenchida em ~75% das linhas."
-        },
-        {
-          "nome": "unidadeanalise",
-          "descricao": "Unidade responsável pela análise. ~56% preenchida."
-        },
-        {
-          "nome": "analista",
-          "descricao": "Nome do analista responsável (servidor). Dado pessoal."
-        },
-        {
-          "nome": "dtsituacao",
-          "descricao": "Data da situação atual. A origem mistura precisões (só data e data-hora com milissegundos); o cast normaliza ambas para timestamp."
-        },
-        {
-          "nome": "resumoprojeto",
-          "descricao": "Resumo textual do projeto."
-        },
-        {
-          "nome": "providenciatomada",
-          "descricao": "Providência administrativa registrada."
-        },
-        {
-          "nome": "localizacao",
-          "descricao": "Localização física do processo. ~18% preenchida."
-        },
-        {
-          "nome": "dtinicioexecucao",
-          "descricao": "Data de início da execução. Preenchida em ~5% das linhas."
-        },
-        {
-          "nome": "dtfimexecucao",
-          "descricao": "Data de fim da execução. Preenchida em ~5% das linhas."
-        },
-        {
-          "nome": "solicitadoufir",
-          "descricao": "Valor total solicitado, em UFIR."
-        },
-        {
-          "nome": "solicitadoreal",
-          "descricao": "Valor total solicitado, em reais."
-        },
-        {
-          "nome": "solicitadocusteioufir",
-          "descricao": "Valor de custeio solicitado, em UFIR."
-        },
-        {
-          "nome": "solicitadocusteioreal",
-          "descricao": "Valor de custeio solicitado, em reais."
-        },
-        {
-          "nome": "solicitadocapitalufir",
-          "descricao": "Valor de capital solicitado, em UFIR. Quase sempre 0."
-        },
-        {
-          "nome": "solicitadocapitalreal",
-          "descricao": "Valor de capital solicitado, em reais. Quase sempre 0."
-        },
-        {
-          "nome": "logon",
-          "descricao": "Identificador do usuário que registrou."
-        },
-        {
-          "nome": "idprojeto",
-          "descricao": "[VAZIA EM 100% DAS LINHAS] Sem valor na origem; não é a chave. Use idpronac."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 35,
-      "testes": 10,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__projetos"
-      ],
-      "linhas_sql": 44
-    },
-    {
       "nome": "sac__situacao",
       "dominio": "salic",
       "camada": "bronze",
@@ -17850,120 +18318,6 @@
         "bronze_sac.sac__tbapiaprovacoes"
       ],
       "linhas_sql": 27
-    },
-    {
-      "nome": "sac__tbapicomprovacoes",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbapicomprovacoes.sql",
-      "descricao": "Uma linha por comprovante de pagamento da execução do projeto, publicado pela API pública do SALIC. É a maior tabela deste lote (~2,6 M linhas). Camada bronze tipada a partir de salic_bronze.sac__tbapicomprovacoes. Cruza com sac__projetos por idpronac. Armadilha: a coluna `sguf` NÃO contém sigla de UF (valores medidos como 'Mi', 'Ri'); não usar como UF sem checagem. `dtatualizacao` é o instante da carga da API, não data de negócio.",
-      "colunas": [
-        {
-          "nome": "idapicomprovacoes",
-          "descricao": "Identificador do comprovante. Chave da tabela."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "Identificador interno do PRONAC."
-        },
-        {
-          "nome": "nrpronac",
-          "descricao": "Número PRONAC (zero à esquerda). Mantido text."
-        },
-        {
-          "nome": "nmprojeto",
-          "descricao": "Nome do projeto."
-        },
-        {
-          "nome": "nmitem",
-          "descricao": "Nome do item comprovado."
-        },
-        {
-          "nome": "nmfornecedor",
-          "descricao": "Nome do fornecedor."
-        },
-        {
-          "nome": "tpfornecedor",
-          "descricao": "Tipo do fornecedor (medido constante 'Nacional')."
-        },
-        {
-          "nome": "dsregiao",
-          "descricao": "Região do fornecedor (Sudeste, Nordeste, ...)."
-        },
-        {
-          "nome": "sguf",
-          "descricao": "[NÃO VERIFICADO] Deveria ser a sigla da UF, mas os valores medidos ('Mi', 'Ri') têm 2 letras que não formam sigla de UF válida — parecem truncamento de outro campo. Não usar como UF sem confirmar na origem."
-        },
-        {
-          "nome": "nmmunicipio",
-          "descricao": "Nome do município. ~99% preenchida."
-        },
-        {
-          "nome": "dtcomprovacao",
-          "descricao": "Data da comprovação (AAAA-MM-DD)."
-        },
-        {
-          "nome": "aaanocomprovacao",
-          "descricao": "Ano da comprovação."
-        },
-        {
-          "nome": "mmmescomprovacao",
-          "descricao": "Mês da comprovação (1 a 12)."
-        },
-        {
-          "nome": "tpdocumento",
-          "descricao": "Tipo do documento comprobatório (Nota Fiscal/Fatura, Guia de Recolhimento, ...)."
-        },
-        {
-          "nome": "nrcomprovante",
-          "descricao": "Número do comprovante."
-        },
-        {
-          "nome": "dtemissao",
-          "descricao": "Data de emissão do documento (AAAA-MM-DD)."
-        },
-        {
-          "nome": "tpformadepagamento",
-          "descricao": "Forma de pagamento (Transferência Bancária, ...)."
-        },
-        {
-          "nome": "nrdocumentodepagamento",
-          "descricao": "Número do documento de pagamento (ex. 2019OB0369)."
-        },
-        {
-          "nome": "vlpagamento",
-          "descricao": "Valor do pagamento, em reais."
-        },
-        {
-          "nome": "idarquivo",
-          "descricao": "Identificador do arquivo anexado."
-        },
-        {
-          "nome": "nmarquivo",
-          "descricao": "Nome do arquivo anexado (ex. NF_5521.pdf)."
-        },
-        {
-          "nome": "hashregistro",
-          "descricao": "Hash SHA (hex, 64 caracteres) do registro na API."
-        },
-        {
-          "nome": "dtatualizacao",
-          "descricao": "Instante da carga do registro pela API. Não é data de negócio."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha (ADR 0005). Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 24,
-      "testes": 20,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbapicomprovacoes"
-      ],
-      "linhas_sql": 33
     },
     {
       "nome": "sac__tbapiincentivos",
@@ -29886,48 +30240,6 @@
       "linhas_sql": 14
     },
     {
-      "nome": "sac__vsegmento",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vsegmento.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vsegmento.",
-      "colunas": [
-        {
-          "nome": "area",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "codigo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "segmento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idorgao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tp_enquadramento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 6,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vsegmento"
-      ],
-      "linhas_sql": 15
-    },
-    {
       "nome": "sac__vtemposemcaptar",
       "dominio": "salic",
       "camada": "bronze",
@@ -30524,84 +30836,6 @@
       "linhas_sql": 12
     },
     {
-      "nome": "sac__vwagentesseusprojetos",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwagentesseusprojetos.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwagentesseusprojetos.",
-      "colunas": [
-        {
-          "nome": "ordem",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cgccpf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "situacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtiniciodeexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfinaldeexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "mecanismo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idagente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeproponente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idsolicitante",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idusuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 15,
-      "testes": 12,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwagentesseusprojetos"
-      ],
-      "linhas_sql": 24
-    },
-    {
       "nome": "sac__vwalteraranalistaproposta",
       "dominio": "salic",
       "camada": "bronze",
@@ -30680,80 +30914,6 @@
         "bronze_sac.sac__vwalterarorgao"
       ],
       "linhas_sql": 14
-    },
-    {
-      "nome": "sac__vwalterarprojeto",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwalterarprojeto.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwalterarprojeto.",
-      "colunas": [
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cgccpf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "proponente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "area",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "segmento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtsituacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "situacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "providenciatomada",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtinicioexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfimexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idusuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 14,
-      "testes": 10,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwalterarprojeto"
-      ],
-      "linhas_sql": 23
     },
     {
       "nome": "sac__vwalterarsituacao",
@@ -32494,88 +32654,6 @@
         "bronze_sac.sac__vwpagamentodefornecedordoprojetoporitem"
       ],
       "linhas_sql": 18
-    },
-    {
-      "nome": "sac__vwpagamentodefornecedordoprojetoporitemdetalhado",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwpagamentodefornecedordoprojetoporitemdetalhado.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwpagamentodefornecedordoprojetoporitemdetalhado.",
-      "colunas": [
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cnpjcpf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "fornecedor",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "item",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idplanilhaitem",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrcomprovante",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtemissao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpdocumento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsjustificativa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtpagamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpformadepagamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrdocumentodepagamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlpago",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 16,
-      "testes": 12,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwpagamentodefornecedordoprojetoporitemdetalhado"
-      ],
-      "linhas_sql": 26
     },
     {
       "nome": "sac__vwpagamentodespesaforaperiodoexecucao",
@@ -41112,84 +41190,6 @@
       "linhas_sql": 27
     },
     {
-      "nome": "sac__vwprojetositinerantes",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwprojetositinerantes.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwprojetositinerantes.",
-      "colunas": [
-        {
-          "nome": "idprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "ufprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "area",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "segmento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tptipicidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tptipologia",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtiniciofase",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "resumoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "uf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idfase",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 15,
-      "testes": 11,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwprojetositinerantes"
-      ],
-      "linhas_sql": 24
-    },
-    {
       "nome": "sac__vwprojetosliberadosparaadequacaorealidadeexecucao",
       "dominio": "salic",
       "camada": "bronze",
@@ -41434,7 +41434,7 @@
       "testes": 7,
       "materializacao": "",
       "depende_de": [
-        "sac__vwagentesseusprojetos"
+        "silver_sac_vwagentesseusprojetos"
       ],
       "sources": [],
       "linhas_sql": 83
@@ -41613,12 +41613,12 @@
       "materializacao": "",
       "depende_de": [
         "map_chave_projeto_rouanet",
-        "sac__aprovacao",
-        "sac__area",
-        "sac__enquadramento",
-        "sac__vsegmento",
-        "sac__vwagentesseusprojetos",
-        "sac__vwalterarprojeto"
+        "silver_sac_aprovacao",
+        "silver_sac_area",
+        "silver_sac_enquadramento",
+        "silver_sac_vsegmento",
+        "silver_sac_vwagentesseusprojetos",
+        "silver_sac_vwalterarprojeto"
       ],
       "sources": [],
       "linhas_sql": 194
@@ -41720,7 +41720,7 @@
       "testes": 4,
       "materializacao": "",
       "depende_de": [
-        "sac__aprovacao"
+        "silver_sac_aprovacao"
       ],
       "sources": [],
       "linhas_sql": 55
@@ -41794,7 +41794,7 @@
       "testes": 7,
       "materializacao": "",
       "depende_de": [
-        "sac__captacao"
+        "silver_sac_captacao"
       ],
       "sources": [],
       "linhas_sql": 55
@@ -41899,13 +41899,13 @@
       "testes": 7,
       "materializacao": "",
       "depende_de": [
-        "sac__aprovacao",
-        "sac__captacao",
-        "sac__documentosprojeto",
-        "sac__enquadramento",
-        "sac__vwagentesseusprojetos",
-        "sac__vwalterarprojeto",
-        "sac__vwprojetositinerantes"
+        "silver_sac_aprovacao",
+        "silver_sac_captacao",
+        "silver_sac_documentosprojeto",
+        "silver_sac_enquadramento",
+        "silver_sac_vwagentesseusprojetos",
+        "silver_sac_vwalterarprojeto",
+        "silver_sac_vwprojetositinerantes"
       ],
       "sources": [],
       "linhas_sql": 150
@@ -41996,7 +41996,7 @@
       "materializacao": "",
       "depende_de": [
         "map_chave_projeto_rouanet",
-        "sac__vwpagamentodefornecedordoprojetoporitemdetalhado"
+        "silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado"
       ],
       "sources": [],
       "linhas_sql": 102
@@ -42067,7 +42067,7 @@
       "materializacao": "",
       "depende_de": [
         "map_chave_projeto_rouanet",
-        "sac__abrangencia"
+        "silver_sac_abrangencia"
       ],
       "sources": [],
       "linhas_sql": 54
@@ -42118,10 +42118,10 @@
       "materializacao": "",
       "depende_de": [
         "brg_projeto_proponente_rouanet",
-        "sac__tbapicomprovacoes"
+        "silver_sac_tbapicomprovacoes"
       ],
       "sources": [],
-      "linhas_sql": 82
+      "linhas_sql": 74
     },
     {
       "nome": "bronze_anexos_relatorios",
@@ -43877,10 +43877,10 @@
     },
     "salic": {
       "modelos": 597,
-      "testes": 4533,
+      "testes": 4439,
       "camadas": {
-        "silver": 106,
-        "bronze": 481,
+        "silver": 119,
+        "bronze": 468,
         "outros": 10
       }
     },
@@ -44267,8 +44267,52 @@
           "descricao": "Tabela responsável por controlar quais usuários têm permissão para acessar cada sistema."
         },
         {
+          "nome": "bronze_sac_tbapicomprovacoes",
+          "descricao": "Comprovações de pagamento dos projetos da Lei Rouanet: um registro por item comprovado, com fornecedor, documento, valor e localidade. 2.621.182 linhas em 29/10/2026. Ingerida em 2026-09-04.\nÉ a fonte do indicador de primeiro acesso da Meta 5. Traz `nmmunicipio` e `dsregiao` no próprio registro e o PRONAC em `nrpronac`. `sguf` não é sigla de UF: são as duas primeiras letras do nome do estado, ambíguas."
+        },
+        {
+          "nome": "bronze_sac_abrangencia",
+          "descricao": "Tabela responsável por registrar a abrangência territorial dos projetos, incluindo país, UF, município, datas de realização, justificativas e status."
+        },
+        {
+          "nome": "bronze_sac_aprovacao",
+          "descricao": "Tabela responsável por registrar os dados de aprovação dos projetos, incluindo portarias, valores aprovados, datas e tipo de aprovação."
+        },
+        {
+          "nome": "bronze_sac_area",
+          "descricao": "Tabela utilizada para armazenar as áreas classificatórias dos projetos, com código, descrição e status."
+        },
+        {
           "nome": "bronze_sac_captacao",
           "descricao": "Tabela responsável por registrar as captações de recursos dos projetos, incluindo recibos, datas, valores captados, tipo de apoio e informações do mecenas."
+        },
+        {
+          "nome": "bronze_sac_documentosprojeto",
+          "descricao": "Tabela responsável por armazenar documentos apresentados pelos projetos, com código, PRONAC e identificadores."
+        },
+        {
+          "nome": "bronze_sac_enquadramento",
+          "descricao": "Tabela responsável por armazenar o enquadramento dos projetos, registrando data, tipo, observações e PRONAC."
+        },
+        {
+          "nome": "bronze_sac_vsegmento",
+          "descricao": "Uma linha por segmento cultural ativo, com a área e o órgão responsável. Réplica em texto da origem; tipada e documentada em silver_sac_vsegmento."
+        },
+        {
+          "nome": "bronze_sac_vwagentesseusprojetos",
+          "descricao": "Uma linha por projeto ligado a uma conta do SalicWeb: é a lista de \"meus projetos\" que o proponente vê ao entrar. Réplica em texto da origem; tipada e documentada em silver_sac_vwagentesseusprojetos."
+        },
+        {
+          "nome": "bronze_sac_vwalterarprojeto",
+          "descricao": "Uma linha por projeto, com proponente, área, segmento e situação, vinda da view que a tela de alteração de projeto do SalicWeb usa. Réplica em texto da origem; tipada e documentada em silver_sac_vwalterarprojeto."
+        },
+        {
+          "nome": "bronze_sac_vwpagamentodefornecedordoprojetoporitemdetalhado",
+          "descricao": "Uma linha por pagamento a fornecedor, item a item, vinda de uma view da origem sobre os comprovantes. Réplica em texto da origem; tipada e documentada em silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado."
+        },
+        {
+          "nome": "bronze_sac_vwprojetositinerantes",
+          "descricao": "Uma linha por local de um projeto itinerante, com UF e município. Réplica em texto da origem; tipada e documentada em silver_sac_vwprojetositinerantes."
         },
         {
           "nome": "bronze_sac_projetos",
@@ -44590,10 +44634,6 @@
       "descricao": "Núcleo do SALIC (Sistema de Apoio às Leis de Incentivo à Cultura) — projetos culturais incentivados, proponentes, captação de recursos, editais, prestação de contas, pareceres e patrocínio (Lei Rouanet e leis correlatas de incentivo fiscal à cultura). Camada bronze (dados brutos do SALIC, réplica do sistema de origem via Airflow, sem tratamento). Descrições e tiers gerados automaticamente a partir do dicionário de dados original do SALIC (export SchemaSpy) cruzado com o levantamento estatístico do bronze — ver dbt/minc/docs/salic/ para o catálogo completo (YAML semântico, dicionário e catálogo em DOCX/HTML).",
       "tabelas": [
         {
-          "nome": "sac__tbapicomprovacoes",
-          "descricao": "Comprovações de pagamento dos projetos da Lei Rouanet: um registro por item comprovado, com fornecedor, documento, valor e localidade. 2.620.988 linhas. Ingerida em 2026-09-04.\nÉ a fonte do indicador de primeiro acesso da Meta 5 e dos indicadores territoriais da Meta 4 — carrega `sguf`, `nmmunicipio` e `dsregiao` no próprio registro, além do PRONAC em `nrpronac`."
-        },
-        {
           "nome": "sac__aberturadecontabancaria",
           "descricao": "Tabela responsável por armazenar informações sobre a abertura de contas bancárias vinculadas aos projetos, incluindo status da conta, datas de liberação/bloqueio, órgão responsável e identificação do projeto."
         },
@@ -44630,10 +44670,6 @@
           "descricao": "Tabela utilizada para registrar dados complementares do tipo SEFIC Pessoa Jurídica 40981 no fluxo de abertura de contas."
         },
         {
-          "nome": "sac__abrangencia",
-          "descricao": "Tabela responsável por registrar a abrangência territorial dos projetos, incluindo país, UF, município, datas de realização, justificativas e status."
-        },
-        {
           "nome": "sac__acaoproduto",
           "descricao": "Tabela responsável por armazenar informações sobre produtos vinculados às ações dos projetos, como quantidades produzidas, recebidas, estoque e localização."
         },
@@ -44648,14 +44684,6 @@
         {
           "nome": "sac__agenciasbb",
           "descricao": "Tabela responsável por armazenar informações das agências do Banco do Brasil, incluindo nome, UF, perfil, endereço completo e município."
-        },
-        {
-          "nome": "sac__aprovacao",
-          "descricao": "Tabela responsável por registrar os dados de aprovação dos projetos, incluindo portarias, valores aprovados, datas e tipo de aprovação."
-        },
-        {
-          "nome": "sac__area",
-          "descricao": "Tabela utilizada para armazenar as áreas classificatórias dos projetos, com código, descrição e status."
         },
         {
           "nome": "sac__aspectosfisicosx",
@@ -44716,10 +44744,6 @@
         {
           "nome": "sac__bolsa",
           "descricao": "Tabela responsável por armazenar dados de bolsas concedidas, incluindo país, instituição, orientador, datas de início e fim, e contatos."
-        },
-        {
-          "nome": "sac__captacao",
-          "descricao": "Tabela responsável por registrar as captações de recursos dos projetos, incluindo recibos, datas, valores captados, tipo de apoio e informações do mecenas."
         },
         {
           "nome": "sac__captacaoconversao",
@@ -44842,10 +44866,6 @@
           "descricao": "Tabela responsável por listar documentos obrigatórios exigidos, contendo área, descrição, opções, estado e upload."
         },
         {
-          "nome": "sac__documentosprojeto",
-          "descricao": "Tabela responsável por armazenar documentos apresentados pelos projetos, com código, PRONAC e identificadores."
-        },
-        {
           "nome": "sac__documentosproponente",
           "descricao": "Tabela responsável por registrar documentos enviados pelos proponentes, vinculados a CPF/CNPJ, PRONAC e projeto."
         },
@@ -44884,10 +44904,6 @@
         {
           "nome": "sac__empenhoprojeto",
           "descricao": "Tabela utilizada para vincular empenhos aos projetos e convênios correspondentes."
-        },
-        {
-          "nome": "sac__enquadramento",
-          "descricao": "Tabela responsável por armazenar o enquadramento dos projetos, registrando data, tipo, observações e PRONAC."
         },
         {
           "nome": "sac__entregaproduto",
@@ -45954,10 +45970,6 @@
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
-          "nome": "sac__vsegmento",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
           "nome": "sac__vtemposemcaptar",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
@@ -46006,19 +46018,11 @@
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
-          "nome": "sac__vwagentesseusprojetos",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
           "nome": "sac__vwalteraranalistaproposta",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
           "nome": "sac__vwalterarorgao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vwalterarprojeto",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
@@ -46115,10 +46119,6 @@
         },
         {
           "nome": "sac__vwpagamentodefornecedordoprojetoporitem",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vwpagamentodefornecedordoprojetoporitemdetalhado",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
@@ -46482,20 +46482,12 @@
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
-          "nome": "sac__vwprojetositinerantes",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
           "nome": "sac__vwprojetosliberadosparaadequacaorealidadeexecucao",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
           "nome": "sac__vwprojetosporfase",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__projetos",
-          "descricao": "Uma linha por projeto cultural (PRONAC) submetido ao mecanismo de incentivo fiscal (Lei Rouanet). Núcleo do domínio SAC: liga proponente, situação, valores solicitados e datas de tramitação. Camada bronze (raw do SALIC via Trino, tudo text)."
         },
         {
           "nome": "sac__situacao",
@@ -46928,8 +46920,8 @@
   ],
   "totais": {
     "modelos": 731,
-    "testes": 4775,
+    "testes": 4681,
     "com_descricao": 730,
-    "sources": 730
+    "sources": 728
   }
 }
