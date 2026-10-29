@@ -384,10 +384,11 @@ models:
       anoprojeto e sequencial, sem órfão. É a fonte de fct_captacao_rouanet.
 
 
-      Armadilhas: o tipo de apoio é ambíguo no próprio SalicWeb (ver
-      tipoapoio). 28.304 recibos têm incentivador que não existe em
-      silver_agentes_agentes. Captação não é pagamento: o valor captado entra
-      na conta do projeto, e o que foi gasto está nas comprovações.
+      Armadilhas: o SalicWeb lê o tipo de apoio de dois jeitos; o dado apoia 1
+      doação e 2 patrocínio (ver tipoapoio). 28.304 recibos têm incentivador
+      que não existe em silver_agentes_agentes. Captação não é pagamento: o
+      valor captado entra na conta do projeto, e o que foi gasto está nas
+      comprovações.
     config:
       tags: [silver, salic, sac]
       meta:
@@ -435,10 +436,13 @@ models:
               - PII.Sensitive
       - name: tipoapoio
         description: >
-          Tipo de apoio do incentivador: 1 em 274.957 recibos, 2 em 393.808. O
-          dicionário de dados do SALIC e três consultas do SalicWeb leem 1 como
-          doação e 2 como patrocínio; outras duas consultas do SalicWeb leem ao
-          contrário. Confirme antes de usar.
+          Tipo de apoio do incentivador: 1 doação, 2 patrocínio, pela leitura
+          do dicionário de dados e de três consultas do SalicWeb. Duas outras
+          consultas leem ao contrário, mas o dado apoia o dicionário: empresas
+          (CNPJ) têm 272.649 recibos no tipo 2, com 32 bilhões, e 37.272 no
+          tipo 1; pessoas físicas têm 237.685 no tipo 1 e 121.159 no tipo 2. O
+          código de patrocínio do arquivo do banco usa a ordem inversa e não
+          deve ser usado para traduzir esta coluna.
         data_type: text
         tests:
           - accepted_values:

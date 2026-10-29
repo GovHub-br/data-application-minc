@@ -355,3 +355,18 @@ def test_excecao_de_legado_ainda_e_necessaria() -> None:
         assert rag != "prohibited", f"{nome}: nao e mais publicavel; tire da lista"
         sobram = sorted(permitidos - set(_restritos_lidos(caminho)))
         assert not sobram, f"{nome}: nao le mais {sobram}; tire da lista"
+
+
+@pytest.mark.parametrize("nome", sorted(MODELOS))
+def test_accepted_values_sem_aspas_so_em_coluna_numerica(nome: str) -> None:
+    """``quote: false`` compara a coluna com número; em coluna texto o Postgres
+    recusa a comparação e o teste dá ERROR no build, não FAIL."""
+    for coluna in MODELOS[nome].get("columns") or []:
+        for teste in coluna.get("tests") or []:
+            if not isinstance(teste, dict) or "accepted_values" not in teste:
+                continue
+            argumentos = teste["accepted_values"].get("arguments") or {}
+            if argumentos.get("quote") is False:
+                assert (
+                    coluna.get("data_type") != "text"
+                ), f"{nome}.{coluna['name']}: accepted_values sem aspas em coluna text"

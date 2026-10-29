@@ -2491,3 +2491,1917 @@ sources:
           - name: _fatia
             description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
             data_type: text
+      - name: bronze_sac_bancoagencia
+        description: >
+          Tabela responsável por armazenar dados de agências bancárias, incluindo endereço,
+          UF, telefone, fax, perfil e status.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: banco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(3).
+            data_type: text
+          - name: agencia
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: descricao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(50).
+            data_type: text
+          - name: endereco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(100).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: bairro
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(50).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: cidade
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(50).
+            data_type: text
+          - name: uf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: cep
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(8).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: telefone
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: fax
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+          - name: perfil
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: id
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: stestado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+      - name: bronze_sac_bancoagencia_08
+        description: >
+          Tabela auxiliar responsável por armazenar dados antigos de agências bancárias (versão
+          08).
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: banco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(3).
+            data_type: text
+      - name: bronze_sac_bancoagencianovo1
+        description: >
+          Tabela complementar usada para armazenar variações da nova estrutura de cadastro de
+          agências bancárias.
+
+
+          Observações do levantamento automatizado: [heurística] nome contém o termo 'novo',
+          indicativo de backup/versão/teste.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+            - possivel_obsoleta
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: banco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): nvarchar(510).
+            data_type: text
+          - name: agencia
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): nvarchar(510).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: descricao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): nvarchar(510).
+            data_type: text
+          - name: cidade
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): nvarchar(510).
+            data_type: text
+          - name: endereco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): nvarchar(510).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: cep
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): nvarchar(510).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: uf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): nvarchar(510).
+            data_type: text
+          - name: perfil
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): nvarchar(510).
+            data_type: text
+      - name: bronze_sac_captacaoconversao
+        description: >
+          Tabela responsável por registrar conversões de valores captados, incluindo data, número
+          do recibo e valor convertido.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: anoprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: sequencial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+          - name: numerorecibo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dtconversao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: valor
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_captacaoguia
+        description: >
+          Tabela responsável por armazenar informações de guias de captação, com datas, números,
+          valores e observações.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: anoprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: sequencial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+          - name: numeroguia
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dtcaptacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: observacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(250).
+            data_type: text
+          - name: captacaoreal
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_captacaoquotas
+        description: >
+          Tabela responsável por registrar captação via quotas, incluindo integração, datas,
+          quantidade e dados do subscritor.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: anoprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: sequencial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+          - name: anocav
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(4).
+            data_type: text
+          - name: sequencialcav
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(4).
+            data_type: text
+          - name: nintegra
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+          - name: cgccpfsub
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(14).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: dtintegraliza
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: qtdquotasintegr
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: observacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(255).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_contabancaria
+        description: >
+          Tabela responsável por armazenar informações de contas bancárias vinculadas aos projetos,
+          incluindo conta bloqueada/livre, lotes, ocorrências e banco/agência.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idcontabancaria
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: anoprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: sequencial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+          - name: mecanismo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: banco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(3).
+            data_type: text
+          - name: agencia
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: contabloqueada
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: dtloteremessacb
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: loteremessacb
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(5).
+            data_type: text
+          - name: ocorrenciacb
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(3).
+            data_type: text
+          - name: contalivre
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: dtloteremessacl
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: loteremessacl
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(5).
+            data_type: text
+          - name: ocorrenciacl
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(3).
+            data_type: text
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: idpronac
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+      - name: bronze_sac_empenho
+        description: >
+          Tabela responsável por registrar empenhos realizados, contendo UG, PT, natureza de
+          despesa, data e valor.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: contador
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: uggestao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(6).
+            data_type: text
+          - name: ugr
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(6).
+            data_type: text
+          - name: ptres
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(6).
+            data_type: text
+          - name: programatrabalho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(17).
+            data_type: text
+          - name: fonterecurso
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(3).
+            data_type: text
+          - name: naturezadespesa
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(8).
+            data_type: text
+          - name: nrempenho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(12).
+            data_type: text
+          - name: dtempenho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: valor
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_empenhoprojeto
+        description: >
+          Tabela utilizada para vincular empenhos aos projetos e convênios correspondentes.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: codigoempenho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: codigoconvenio
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_tbconfigurarpagamento
+        description: >
+          Tabela responsável por registrar configurações de pagamento, despachos e vigências.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idconfigurarpagamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: nrdespachoinicial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: nrdespachofinal
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dtconfiguracaopagamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: stestado
+            description: >
+              0.Histórico;1.Atual Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: idusuario
+            description: >
+              0.Histórico;1.Atual Tipo original (SQL Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_tbconfigurarpagamentoxtbassinantes
+        description: >
+          Tabela responsável por associar configurações de pagamento aos assinantes.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idconfigurarpagamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idassinantes
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nrordenacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+      - name: bronze_sac_tbcontabancariabloqueada
+        description: >
+          Tabela responsável por registrar contas bancárias bloqueadas ou liberadas e seus motivos.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idcontabancariabloqueada
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: idpronac
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dtliberacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dtbloqueio
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: tpbloqueio
+            description: >
+              Sanção, 1. Projeto finalizado Tipo original (SQL Server): char(1).
+            data_type: text
+          - name: idusuarioliberouconta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: vlliberado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+      - name: bronze_sac_tbcontacartao
+        description: >
+          Tabela responsável por registrar informações de cartões vinculados às contas dos projetos.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idcontacartao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: idcontabancaria
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nrcontacartao
+            description: >
+              Nº do cartão Tipo original (SQL Server): char(9).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nrcentrodecusto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(9).
+            data_type: text
+          - name: nrcpfportadordocartao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(11).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cdproponentenobanco
+            description: >
+              Código do banco para identificar o proponente Tipo original (SQL Server): char(9).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cdportadorcartaonobanco
+            description: >
+              Código do banco para identificar o portador do cartão de pagamento Tipo original
+              (SQL Server): char(9).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: stestado
+            description: >
+              0.Inativo; 1.Ativo Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: idusuario
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_tbgerarpagamentoparecerista
+        description: >
+          Tabela responsável por armazenar os registros de geração de pagamento de pareceristas,
+          com despacho, ordem bancária, datas e valor total.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idgerarpagamentoparecerista
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idconfigurarpagamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dtgeracaopagamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dtefetivacaopagamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dtordembancaria
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: nrordembancaria
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(12).
+            data_type: text
+          - name: nrdespacho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(10).
+            data_type: text
+          - name: sipagamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: vltotalpagamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(20,2).
+            data_type: text
+          - name: idusuario
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_tbhistoricoexclusaoconta
+        description: >
+          Tabela responsável por registrar exclusões de contas bancárias de projetos, com dados
+          da conta, motivo, data e usuário.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idhistoricoexclusaoconta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idcontabancaria
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: banco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(3).
+            data_type: text
+          - name: agencia
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: contabloqueada
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: contalivre
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: dtexclusao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: motivo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(500).
+            data_type: text
+          - name: idusuario
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_tblancamentobancario
+        description: >
+          Tabela responsável por registrar lançamentos bancários associados aos projetos, com
+          dados de agência, conta, valores e datas.
+
+
+          Observações do levantamento automatizado: [observado] tabela sem nenhuma linha no
+          bronze hoje (0 registros).
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+            - possivel_obsoleta
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idlancamentobancario
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idpronac
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idmovimentacaobancariaitem
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: stcontalancamento
+            description: >
+              0.Conta Captação;1.Conta Movimento Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: nragencialancamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(5).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nrcontalancamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cdlancamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(4).
+            data_type: text
+          - name: dslancamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(25).
+            data_type: text
+          - name: nrlancamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(10).
+            data_type: text
+          - name: dtlancamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: vllancamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(18,2).
+            data_type: text
+          - name: stlancamento
+            description: >
+              (D)ÉBITO OU (C)RÉDITO DO MOVIMENTO Tipo original (SQL Server): char(1).
+            data_type: text
+      - name: bronze_sac_tbmovimentacao
+        description: >
+          Tabela responsável por registrar movimentações gerais de projetos, com datas e estado.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idmovimentacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: movimentacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dtmovimentacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: stestado
+            description: >
+              0.Atual;1.Histórico Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: usuario
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_tbmovimentacaobancaria
+        description: >
+          Tabela responsável por armazenar arquivos de movimentação bancária importados, incluindo
+          período, banco e usuário.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idmovimentacaobancaria
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: nrbanco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(3).
+            data_type: text
+          - name: nmarquivo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(40).
+            data_type: text
+          - name: dtarquivo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dtiniciomovimento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dtfimmovimento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: idusuario
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+      - name: bronze_sac_tbmovimentacaobancariaitem
+        description: >
+          Tabela responsável por registrar cada item de movimentação bancária, com saldos, valores,
+          histórico, conta e data.
+
+
+          Observações do levantamento automatizado: [observado] tabela sem nenhuma linha no
+          bronze hoje (0 registros).
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+            - possivel_obsoleta
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idmovimentacaobancariaitem
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: tpregistro
+            description: >
+              Registro de saldo anterior;1.Registro de lançamento;2.Registro de Saldo Atual
+              Tipo original (SQL Server): char(1).
+            data_type: text
+          - name: nragencia
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(5).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nrconta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nmtitulorazao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: nmabreviado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(30).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: dtaberturaconta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: nrcnpjcpf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(14).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: vlsaldoinicial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(14,2).
+            data_type: text
+          - name: stsaldoinicial
+            description: >
+              (D)ÉBITO OU (C)RÉDITO Tipo original (SQL Server): char(1).
+            data_type: text
+          - name: vlsaldofinal
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(14,2).
+            data_type: text
+          - name: stsaldofinal
+            description: >
+              (D)ÉBITO OU (C)RÉDITO Tipo original (SQL Server): char(1).
+            data_type: text
+          - name: dtmovimento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: cdhistorico
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(4).
+            data_type: text
+          - name: dshistorico
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(15).
+            data_type: text
+          - name: nrdocumento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(10).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: vlmovimento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(14,2).
+            data_type: text
+          - name: stmovimento
+            description: >
+              (D)ÉBITO OU (C)RÉDITO Tipo original (SQL Server): char(1).
+            data_type: text
+          - name: idmovimentacaobancaria
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+      - name: bronze_sac_tbmovimentacaobancariaitemxtipoinconsistencia
+        description: >
+          Tabela responsável por relacionar movimentações bancárias com tipos de inconsistências
+          identificadas.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idmovimentacaobancariaitem
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idtipoinconsistencia
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+      - name: bronze_sac_tbpagamentopareceristaxarquivo
+        description: >
+          Tabela responsável por vincular arquivos aos registros de pagamento de pareceristas.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idgerarpagamentoparecerista
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idarquivo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: siarquivo
+            description: >
+              1.Enviado para assinatura;2.Assinado pelo parecerista Tipo original (SQL Server):
+              char(1).
+            data_type: text
+      - name: bronze_sac_tbpareceristaempenho
+        description: >
+          Tabela responsável por armazenar empenhos emitidos a pareceristas, com valores, datas
+          e situação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idpareceristaempenho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idinexigibilidade
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: nrempenho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+          - name: dtempenho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: idagente
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: vlempenho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: stestado
+            description: >
+              Ativo; 1.Histórico Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: idusuario
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_incentivoporcgccpf
+        description: >
+          Uma linha por incentivador com o total que ele aportou em toda a série.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_incentivoporcgccpf.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vcaptacaoanoufareasegmentosemestre
+        description: >
+          Uma linha por ano, UF, área e segmento com o captado em cada semestre e no
+          total. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vcaptacaoanoufareasegmentosemestre.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vcaptacaopormptipoapoiomecena
+        description: >
+          Uma linha por incentivador, ano, mês, enquadramento e tipo de apoio, com o
+          captado. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vcaptacaopormptipoapoiomecena.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vcontacorrente
+        description: >
+          Uma linha por conta corrente de projeto, numa view antiga da origem. Réplica
+          em texto da origem; tipada e documentada em silver_sac_vcontacorrente.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vdtprimeiraultimacaptacao
+        description: >
+          Uma linha por projeto que captou, com a data do primeiro e do último recibo.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_vdtprimeiraultimacaptacao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vempresasincentivadorasano
+        description: >
+          Uma linha por empresa incentivadora, projeto e ano, com o valor aportado.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_vempresasincentivadorasano.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vincentivador
+        description: >
+          Uma linha por incentivador e área cultural, com o total aportado. Réplica em
+          texto da origem; tipada e documentada em silver_sac_vincentivador.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vincentivadorano
+        description: >
+          Uma linha por incentivador, projeto, ano, enquadramento e tipo de apoio, com o
+          valor aportado. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vincentivadorano.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vincentivadoraudioano
+        description: >
+          Uma linha por incentivador e ano no mecenato do audiovisual, com o valor
+          aportado. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vincentivadoraudioano.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vincentivadoresma
+        description: >
+          Uma linha por incentivador e ano em que ele aportou, sem valor. Réplica em
+          texto da origem; tipada e documentada em silver_sac_vincentivadoresma.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vincentivadorpessoaano
+        description: >
+          Uma linha por incentivador e ano, com região, UF por extenso, tipo de pessoa e
+          valor aportado. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vincentivadorpessoaano.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vincentivadorporprojeto
+        description: >
+          Uma linha por recibo de incentivador num projeto, com a data. Réplica em texto
+          da origem; tipada e documentada em silver_sac_vincentivadorporprojeto.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vmaioresincentivadoresprojetos
+        description: >
+          Uma linha por incentivador, projeto e ano, com o valor, base do ranking de
+          maiores incentivadores. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vmaioresincentivadoresprojetos.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vmostraempenho
+        description: >
+          Uma linha por nota de empenho com o projeto, numa view da origem sobre
+          silver_sac_empenho, para projetos de 2002 a 2007. Réplica em texto da origem;
+          tipada e documentada em silver_sac_vmostraempenho.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vmostraordembancaria
+        description: >
+          Uma linha por ordem bancária de pagamento a projeto, para projetos de 2002 a
+          2005. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vmostraordembancaria.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vprazocaptacao
+        description: >
+          Uma linha por projeto com o prazo de captação vigente. Réplica em texto da
+          origem; tipada e documentada em silver_sac_vprazocaptacao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vproponentecaptacaoanouf
+        description: >
+          Uma linha por proponente, ano e UF, com o captado. Réplica em texto da origem;
+          tipada e documentada em silver_sac_vproponentecaptacaoanouf.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vproponentemecenato
+        description: >
+          Uma linha por proponente de mecenato com nome, responsável, endereço e CEP.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_vproponentemecenato.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vrenunciaporincentivador
+        description: >
+          Uma linha por incentivador com a renúncia fiscal total do imposto que ele
+          abateu. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vrenunciaporincentivador.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vw_captacao_ano_uf
+        description: >
+          Uma linha por ano e UF com a quantidade de recibos e o valor captado. Réplica
+          em texto da origem; tipada e documentada em silver_sac_vw_captacao_ano_uf.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwlancamentobancariosemcomprovacao
+        description: >
+          Uma linha por débito na conta de um projeto que não tem comprovante de despesa
+          ligado. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwlancamentobancariosemcomprovacao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwmaioresincentivadoresporanouf
+        description: >
+          Uma linha por incentivador, ano e UF, com o valor e a posição no ranking.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwmaioresincentivadoresporanouf.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwpagamentodefornecedordoprojetoporitem
+        description: >
+          Uma linha por pagamento a fornecedor, por item, sem o detalhe do comprovante.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwpagamentodefornecedordoprojetoporitem.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwpagamentodespesaforaperiodoexecucao
+        description: >
+          Uma linha por despesa paga fora do período de execução do projeto. Réplica em
+          texto da origem; tipada e documentada em
+          silver_sac_vwpagamentodespesaforaperiodoexecucao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwpagamentofinalizadoparecerista
+        description: >
+          Uma linha por produto de projeto avaliado por um parecerista, com o pagamento.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwpagamentofinalizadoparecerista.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwpagamentofornecedorirregularreceitafederal
+        description: >
+          Uma linha por pagamento a fornecedor cuja empresa estava irregular na Receita
+          Federal: baixada, inapta ou nula. Réplica em texto da origem; tipada e
+          documentada em silver_sac_vwpagamentofornecedorirregularreceitafederal.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwpagamentoparecerista
+        description: >
+          Uma linha por produto avaliado num pagamento de parecerista, com a reunião da
+          CNIC e a ordem bancária. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwpagamentoparecerista.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprojetoscominconsistencianacaptacao
+        description: >
+          Uma linha por crédito de captação com inconsistência, que o sistema não pôde
+          lançar: captação fora do prazo, sem incentivador, sem saldo a captar ou com
+          proponente igual ao incentivador. Réplica em texto da origem; tipada e
+          documentada em silver_sac_vwprojetoscominconsistencianacaptacao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_tbapiincentivos
+        description: >
+          Uma linha por aporte de incentivo (captação) publicado pela API pública
+          do SALIC: quem incentivou, quanto e quando, por projeto. Camada bronze
+          (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, sac]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idcaptacao
+            description: Identificador da captação. Chave da tabela.
+            data_type: text
+          - name: idpronac
+            description: Identificador interno do PRONAC.
+            data_type: text
+          - name: nrpronac
+            description: Número PRONAC (6 dígitos, zero à esquerda).
+            data_type: text
+          - name: nmprojeto
+            description: Nome do projeto.
+            data_type: text
+          - name: nrcnpjcpfproponente
+            description: CNPJ/CPF do proponente. Dado pessoal; text.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nmproponente
+            description: Nome do proponente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: nrcnpjcpfincentivador
+            description: CNPJ/CPF do incentivador. Dado pessoal; text.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nmincentivador
+            description: Nome do incentivador.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: nmmunicipioincentivador
+            description: Município do incentivador.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: sgufincentivador
+            description: Sigla da UF do incentivador.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: tppessoa
+            description: Tipo de pessoa do incentivador (Pessoa Física/Jurídica).
+            data_type: text
+          - name: nrlote
+            description: Número do lote (5 dígitos, zero à esquerda).
+            data_type: text
+          - name: aaincentivo
+            description: Ano do incentivo.
+            data_type: text
+          - name: mmincentivo
+            description: Mês do incentivo.
+            data_type: text
+          - name: dtincentivo
+            description: Data do incentivo (AAAA-MM-DD).
+            data_type: text
+          - name: vlcaptado
+            description: Valor captado, em reais.
+            data_type: text
+          - name: dstransferenciarecurso
+            description: '[VAZIA EM 100% DAS LINHAS]'
+            data_type: text
+          - name: dttransferenciarecurso
+            description: '[VAZIA EM 100% DAS LINHAS]'
+            data_type: text
+          - name: dsbemservico
+            description: "[CONSTANTE 'Aporte em conta'] Descrição do bem/serviço."
+            data_type: text
+          - name: hashregistro
+            description: Hash SHA (hex) do registro na API, controle de integridade.
+            data_type: text
+          - name: dtatualizacao
+            description: Instante da carga do registro pela API (constante por lote).
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
