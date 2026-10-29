@@ -7,8 +7,8 @@
 -- não do nome da coluna: exige 100% dos valores preenchidos casando.
 select
     {{ bronze_timestamp("dt_ingest") }} as dt_ingest,
-    {{ bronze_inteiro("id_plano_acao") }} as id_plano_acao,
-    {{ bronze_inteiro("id_relatorio_gestao") }} as id_relatorio_gestao,
+    {{ bronze_inteiro("id_plano_acao", "bigint") }} as id_plano_acao,
+    {{ bronze_inteiro("id_relatorio_gestao", "bigint") }} as id_relatorio_gestao,
     {{ bronze_data("data_relatorio_gestao") }} as data_relatorio_gestao,
     {{ bronze_texto("tipo_relatorio_gestao") }} as tipo_relatorio_gestao,
     {{ bronze_texto("situacao_relatorio_gestao") }} as situacao_relatorio_gestao,

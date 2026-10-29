@@ -8,7 +8,7 @@
 select
     {{ bronze_texto("versao") }} as versao,
     {{ bronze_texto("auditlogin") }} as auditlogin,
-    {{ bronze_inteiro("id") }} as id,
+    {{ bronze_inteiro("id", "bigint") }} as id,
     {{ bronze_texto("nome") }} as nome,
     {{ bronze_texto("descricao") }} as descricao,
     {{ bronze_texto("arquivo") }} as arquivo,
@@ -18,7 +18,7 @@ select
     {{ bronze_texto("tipoanexo") }} as tipoanexo,
     {{ bronze_texto("tipoanexoid") }} as tipoanexoid,
     {{ bronze_texto("inadministrativo") }} as inadministrativo,
-    {{ bronze_inteiro("id_relatorio_gestao") }} as id_relatorio_gestao,
+    {{ bronze_inteiro("id_relatorio_gestao", "bigint") }} as id_relatorio_gestao,
     {{ bronze_timestamp("dt_ingest") }} as dt_ingest,
     {{ bronze_texto("tipoanexo__versao") }} as tipoanexo__versao,
     {{ bronze_texto("tipoanexo__auditlogin") }} as tipoanexo__auditlogin,
