@@ -46,7 +46,7 @@ with
             dtsituacao,
             dtinicioexecucao,
             dtfimexecucao
-        from {{ ref("sac__vwalterarprojeto") }}
+        from {{ ref("silver_sac_vwalterarprojeto") }}
     ),
 
     cadastro as (
@@ -67,7 +67,7 @@ with
 
     mecanismo_bruto as (
         select {{ pronac_normalizado("pronac") }} as pronac, mecanismo
-        from {{ ref("sac__vwagentesseusprojetos") }}
+        from {{ ref("silver_sac_vwagentesseusprojetos") }}
     ),
 
     mecanismo as (
@@ -82,7 +82,7 @@ with
             {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} as pronac,
             enquadramento,
             dtenquadramento
-        from {{ ref("sac__enquadramento") }}
+        from {{ ref("silver_sac_enquadramento") }}
     ),
 
     enquadramento as (
@@ -105,7 +105,7 @@ with
             dtfimcaptacao,
             aprovadoreal,
             autorizadoreal
-        from {{ ref("sac__aprovacao") }}
+        from {{ ref("silver_sac_aprovacao") }}
     ),
 
     aprovacao_ultima as (
@@ -138,7 +138,7 @@ with
         select
             descricao as nome_area,
             nullif(regexp_replace(codigo, '[^0-9]', '', 'g'), '')::integer as codigo_area
-        from {{ ref("sac__area") }}
+        from {{ ref("silver_sac_area") }}
     ),
 
     segmento as (
@@ -149,7 +149,7 @@ with
             area as codigo_area,
             codigo as codigo_segmento,
             segmento as nome_segmento
-        from {{ ref("sac__vsegmento") }}
+        from {{ ref("silver_sac_vsegmento") }}
         where area is not null and codigo is not null
         order by area asc, codigo asc, segmento asc
     )

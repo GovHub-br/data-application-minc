@@ -49,5 +49,5 @@ select  -- noqa: ST06
     end as situacao_realizacao,
     a.dtiniciorealizacao::date as data_inicio_realizacao,
     a.dtfimrealizacao::date as data_fim_realizacao
-from {{ ref("sac__abrangencia") }} as a
+from {{ ref("silver_sac_abrangencia") }} as a
 left join chave_por_id_projeto as m on a.idprojeto = m.id_projeto

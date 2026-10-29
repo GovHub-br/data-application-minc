@@ -829,6 +829,52 @@ eram inteiro e cortavam o zero dos 130 mil logradouros de São Paulo.
 (`eve_texto` tinha nomes de pessoa). A regra de coluna sensível agora pega
 `texto`, `obs`, `parametro`, `aliases` e `conta`.
 
+### 2026-10-29 · Claude · F17 — `sac`, núcleo (primeiro lote parcial)
+
+**Modo parcial.** O `scripts/migrar_lote_salic.py` ganhou `--assunto` e
+`--tabelas`: só as tabelas listadas migram, os blocos delas saem do
+`schema.yml` e do `sources_sac.yml` legados e vão para
+`salic/schema_sac_<assunto>.yml` e `salic/sources_sac.yml`, e a troca de
+`source()` fica restrita a elas. A primeira versão trocava a source dos 468
+legados que ficavam; foi desfeito antes do commit.
+
+**O que entrou.** 13 silvers: as 12 que `core` e as metas 3, 4 e 5 leem, mais
+`projetos`. Os modelos manuais passam a ler `silver_sac_*`.
+
+**Códigos que passaram a ter significado.**
+- `tipoaprovacao`: 1 inicial, 2 complementação, 3 prorrogação, 4 redução,
+  8 readequação (SalicWeb). Valor aprovado = tipo 1 + tipo 2 - tipo 4.
+- `enquadramento`: 1 artigo 26, 2 artigo 18 (SalicWeb). Um registro por
+  projeto: não há histórico de reenquadramento, ao contrário do que
+  `dim_projeto_rouanet` supõe.
+- `mecanismo`: 1 é Incentivo Fiscal Federal, confirmado cruzando com a
+  descrição em `vwanalisefinanceiravirtual`. 2 e 6 são convênio no SalicWeb.
+  3 e 5 sem significado; `sac.Mecanismo` não é ingerida.
+- `tipoapoio` é ambíguo no próprio SalicWeb (três consultas leem 2 como
+  patrocínio, duas leem 1).
+
+**Armadilhas.** `tbapicomprovacoes.sguf` são as duas primeiras letras do nome
+do estado, ambíguas (Ri, Pa, Ma). `vsegmento` só tem os 71 segmentos ativos:
+135.921 projetos têm segmento fora dela, e `sac.Segmento` não é ingerida.
+
+**Casts.** Segmento tinha letra e virava NULL (41.492 projetos, 56 dos 71
+segmentos); PRONAC e números de documento do pagamento detalhado perdiam o
+zero à esquerda. Só afetam `dim_projeto` e `fct_pagamento`, que nunca rodaram
+em produção. Os 5 modelos em produção foram reconstruídos sobre as silvers
+novas com a mesma contagem.
+
+**Governança.** A anonimização é do Ranger, na consulta (decisão da usuária):
+a silver não descarta coluna pessoal. A regra da guarda "publicável não lê
+restrito" passa a valer só em `models/salic/`; `core` e metas entram quando
+migrarem.
+
+**Custo.** `map_chave_projeto_rouanet` passou de 20 minutos no dev e foi
+interrompida; é view sobre texto sem índice. Medir no PR 6.
+
+**Na skill.** O perfil imprimiu primeiros nomes de servidores em
+`projetos.analista`; a regra de coluna sensível agora pega papéis de pessoa
+(analista, técnico, responsável, parecerista, proponente e outros).
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG

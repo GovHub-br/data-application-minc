@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__documentosprojeto.
--- Origem: salic_bronze.sac__documentosprojeto, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_documentosprojeto (ex-sac__documentosprojeto).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_documentosprojeto, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 7 colunas: 4 tipadas, 2 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -12,4 +13,4 @@ select
     {{ bronze_inteiro("idpronac") }} as idpronac,
     {{ bronze_inteiro("idprojeto") }} as idprojeto,
     _fatia
-from {{ source("bronze_sac", "sac__documentosprojeto") }}
+from {{ source("salic", "bronze_sac_documentosprojeto") }}

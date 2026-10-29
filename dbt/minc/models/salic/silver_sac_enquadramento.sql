@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__enquadramento.
--- Origem: salic_bronze.sac__enquadramento, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_enquadramento (ex-sac__enquadramento).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_enquadramento, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 9 colunas: 5 tipadas, 3 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -14,4 +15,4 @@ select
     {{ bronze_inteiro("logon") }} as logon,
     {{ bronze_inteiro("idpronac") }} as idpronac,
     _fatia
-from {{ source("bronze_sac", "sac__enquadramento") }}
+from {{ source("salic", "bronze_sac_enquadramento") }}
