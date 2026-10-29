@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprojetodistribuidovinculada (ex-sac__vwprojetodistribuidovinculada).
+-- Silver SALIC — silver_sac_vwprojetodistribuidovinculada
+-- (ex-sac__vwprojetodistribuidovinculada).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprojetodistribuidovinculada, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
