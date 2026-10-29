@@ -1,5 +1,7 @@
--- Bronze SALIC — bdcorporativo__tbencaminhamentoprestacaocontas.
--- Origem: salic_bronze.bdcorporativo__tbencaminhamentoprestacaocontas (schema
+-- Silver SALIC — silver_bdcorporativo_tbencaminhamentoprestacaocontas
+-- (ex-bdcorporativo__tbencaminhamentoprestacaocontas).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_bdcorporativo_tbencaminhamentoprestacaocontas (schema
 -- scsac do banco corporativo), tudo em texto da ingestão via Trino (ADR 0005).
 -- Uma linha por encaminhamento de prestação de contas de um projeto entre
 -- órgãos/agentes. `idsituacao` é código textual (E27); `idsituacaoencprestcontas`
@@ -20,4 +22,4 @@ select
     {{ bronze_texto("idsituacao") }} as idsituacao,
     {{ bronze_booleano("stativo") }} as stativo,
     _fatia
-from {{ source("bronze_bdcorporativo", "bdcorporativo__tbencaminhamentoprestacaocontas") }}
+from {{ source("salic", "bronze_bdcorporativo_tbencaminhamentoprestacaocontas") }}
