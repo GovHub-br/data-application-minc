@@ -693,6 +693,30 @@ Cada lote de migração apaga o seu arquivo.
   em `tipoaprovacao` e `sequencial`, comparam a tabela com ela mesma e rodam
   por horas. O lote `sac` remove os dois.
 
+### 2026-10-28 · Claude · F17 — lote `controledeacesso` documentado; a skill vira `silver-salic-dbt`
+
+**A skill.** `bronze-salic-dbt` virou `silver-salic-dbt` (#114). O perfil é
+rodado pela Luiza e imprime só contagem, formato e domínio de coluna não
+pessoal. Este lote foi o primeiro a usar o fluxo inteiro.
+
+**O que o perfil e os agregados mostraram.** O dicionário não tem nenhuma
+coluna destas tabelas, então tudo veio do dado.
+- `sgcacesso`: 409.093 contas, com `idusuario` e `cpf` únicos.
+  `dtnascimento` tem 113 contas no ano 1900 e datas até 2076.
+- `sgcusuarioxsistema`: cobre 4% das contas, quase todas nos subsistemas 7
+  e 8, e tem 3 pares órfãos.
+- Ficam `[NÃO VERIFICADO]` o público das contas, os códigos de `situacao` e
+  o cruzamento de `idusuario` com o `sac`.
+
+**Testes.** Os 13 inferidos foram conferidos na tabela inteira. Caíram o da
+senha, que saiu com a coluna, e o `not_null` de `nome`, porque 2 contas não
+têm nome. O perfil arredondava 2 em 409 mil para 100,0%. Ele passou a
+imprimir o número absoluto de vazios.
+
+**Pendência.** A `senha` saiu da silver, mas continua na Bronze, que
+`dl_analytics` lê e o profiler do OpenMetadata perfila. Abrir issue para a
+ingestão não trazer a coluna ou para o OpenMetadata ignorá-la.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG
