@@ -1,138 +1,209 @@
 version: 2
 
+# Silvers do banco controledeacesso do SALIC: as contas de acesso ao sistema,
+# o catálogo de subsistemas e o vínculo entre os dois. Medições de 28/10/2026
+# na Bronze (salic.bronze_controledeacesso_*), por agregados, sem valor de linha.
+
 models:
   - name: silver_controledeacesso_sgcacesso
     description: >
-      Tabela responsável por armazenar os dados de acesso dos usuários, incluindo
-      identificação, CPF, senha, e situação do cadastro. Camada Silver tipada a partir de
-      salic.bronze_controledeacesso_sgcacesso.
+      Uma linha por conta de acesso ao SALIC, identificada por idusuario. São
+      409.093 contas, cadastradas de 2006 a 2026, cada uma com um CPF próprio:
+      idusuario e cpf são únicos na tabela inteira. É o cadastro de login do
+      sistema, não o cadastro de agente cultural, que fica no banco agentes.
+      [NÃO VERIFICADO] Se a tabela inclui proponentes, servidores ou os dois;
+      o volume sugere que inclui o público externo.
+
+
+      Armadilhas: dtnascimento tem 113 contas com ano 1900, provável sentinela
+      de "não informado", e datas até 2076, que não são nascimento real. Em
+      1.568 contas a dtsituacao é anterior à dtcadastro. O e-mail se repete
+      entre contas: há 405.973 distintos para 409.093 contas.
+
+
+      A coluna senha existe na Bronze e foi retirada desta silver: credencial
+      não entra em camada analítica.
+    config:
+      tags: [silver, salic, controledeacesso]
+      meta:
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da conta, sequencial do SQL Server (int identity).
+          Único e preenchido nas 409.093 linhas. É a chave que
+          silver_controledeacesso_sgcusuarioxsistema usa para ligar a conta
+          aos subsistemas. [NÃO VERIFICADO] Se é o mesmo idusuario que aparece
+          em cerca de 45 tabelas do banco sac.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: cpf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          CPF do titular da conta, 11 dígitos sem máscara. Único na tabela:
+          uma conta por CPF. 7 linhas não têm exatamente 11 dígitos. Não foi
+          validado o dígito verificador.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: nome
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do titular da conta, em texto livre, preenchido em todas as
+          linhas. Até 51 caracteres na amostra.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.NonSensitive
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: dtnascimento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de nascimento informada no cadastro da conta, preenchida em
+          todas as linhas. Não é confiável sem filtro: 113 contas têm ano 1900,
+          provável sentinela de "não informado", e há datas até 2076.
         data_type: timestamp
         meta:
           openmetadata:
             tags:
-              - PII.NonSensitive
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: email
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: senha
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          E-mail de contato da conta. Preenchido em todas as linhas, mas não
+          identifica a conta: 405.973 e-mails distintos, sem diferenciar
+          maiúsculas, para 409.093 contas.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: dtcadastro
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data e hora de criação da conta. Preenchida em todas as linhas, de
+          2006 a 2026.
         data_type: timestamp
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: situacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Código da situação da conta. Quatro valores: 1 em 142.192 contas, 2
+          em 17.412, 3 em 248.814 e 5 em 675. [NÃO VERIFICADO] O significado
+          de cada código: não há tabela de domínio no banco controledeacesso
+          nem descrição no dicionário.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: dtsituacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data e hora da última mudança de situacao. Preenchida em todas as
+          linhas, de 2006 a 2026. Em 1.568 contas é anterior à dtcadastro.
         data_type: timestamp
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio. Na amostra de 200 linhas, vale 0.
+        data_type: text
 
   - name: silver_controledeacesso_sgcsistema
     description: >
-      Tabela responsável por registrar os sistemas disponíveis no ambiente e suas respectivas
-      descrições. Camada Silver tipada a partir de salic.bronze_controledeacesso_sgcsistema.
+      Uma linha por subsistema do SALIC em que uma conta pode ter acesso. São
+      8 subsistemas, com idsistema de 1 a 8 e nomes distintos. É a tabela de
+      domínio de idsistema em silver_controledeacesso_sgcusuarioxsistema.
+    config:
+      tags: [silver, salic, controledeacesso]
+      meta:
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idsistema
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador do subsistema, de 1 a 8, sequencial do SQL Server
+          (int identity).
         data_type: integer
+        tests:
+          - not_null
+          - unique
       - name: nomesistema
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome curto do subsistema, até 20 caracteres. Distinto entre os 8.
         data_type: text
       - name: descricaosistema
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Descrição do subsistema em texto livre, até 100 caracteres.
         data_type: text
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_controledeacesso_sgcusuarioxsistema
     description: >
-      Tabela responsável por controlar quais usuários têm permissão para acessar cada
-      sistema. Camada Silver tipada a partir de
-      salic.bronze_controledeacesso_sgcusuarioxsistema.
+      Uma linha por par conta e subsistema: diz a que subsistemas cada conta
+      tem acesso. São 17.118 pares, sem repetição, para 15.805 contas. Só 4%
+      das contas de silver_controledeacesso_sgcacesso aparecem aqui. Quase
+      todo vínculo é com os subsistemas 7, com 13.832 pares, e 8, com 3.169;
+      os outros cinco somam 117.
+
+
+      3 pares apontam para um idusuario que não existe mais em
+      silver_controledeacesso_sgcacesso. O teste de relacionamento avisa,
+      sem travar o build.
+    config:
+      tags: [silver, salic, controledeacesso]
+      meta:
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    tests:
+      - unique:
+          arguments:
+            column_name: "idusuario || '-' || idsistema"
     columns:
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Conta que tem o acesso. Liga com
+          silver_controledeacesso_sgcacesso.idusuario.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_controledeacesso_sgcacesso')
+                field: idusuario
+              config:
+                severity: warn
       - name: idsistema
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Subsistema a que a conta tem acesso. Liga com
+          silver_controledeacesso_sgcsistema.idsistema, sem órfão.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_controledeacesso_sgcsistema')
+                field: idsistema
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
