@@ -1,1275 +1,1954 @@
 version: 2
 
+# Silvers do banco agentes do SALIC: o cadastro de agentes culturais
+# (pessoa física e jurídica), seus endereços, telefones, papéis e vínculos, os
+# dados da Receita Federal sobre empresas e sócios, e as tabelas de domínio
+# geográfico e de códigos. Medições de 29/10/2026 na Bronze
+# (salic.bronze_agentes_*), por agregados, sem valor de linha. O significado
+# dos códigos vem da tabela de domínio silver_agentes_verificacao e do código
+# público do SalicWeb.
+#
+# O nome do agente não está aqui: ele fica na tabela agentes.Nomes da origem,
+# que a ingestão não traz. A única fonte de nome neste banco é
+# silver_agentes_vwcadastrarparecerista, para pessoa física.
+
 models:
-  - name: silver_agentes_vpais
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vpais.
-    columns:
-      - name: idpais
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: sigla
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: descricao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: continente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vperfil
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vperfil.
-    columns:
-      - name: idagente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: perfil
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: caracteristica
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: usuario
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vprefeiturasregiaouf
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vprefeiturasregiaouf.
-    columns:
-      - name: regiao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: uf
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: perfil
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: cnpj
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: prefeitura
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: municipio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vsistema
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vsistema.
-    columns:
-      - name: idsistema
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-      - name: descricao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: usuario
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vtelefones
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vtelefones.
-    columns:
-      - name: idtelefone
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: idagente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: tipotelefone
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: ddd
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: numero
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: uf
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: divulgar
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: usuario
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vuf
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vuf.
-    columns:
-      - name: iduf
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-      - name: sigla
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: descricao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: regiao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vufmunicipio
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vufmunicipio.
-    columns:
-      - name: iduf
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: uf
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idmunicipio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: municipio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vverificacao
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vverificacao.
-    columns:
-      - name: idverificacao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: idtipo
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: descricao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: sistema
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vvinculacao
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vvinculacao.
-    columns:
-      - name: idvinculacao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: idagente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idvinculado
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idvinculoprincipal
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: usuario
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vvisao
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vvisao.
-    columns:
-      - name: idvisao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: idagente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: visao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: usuario
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vwcadastrarparecerista
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vwcadastrarparecerista.
-    columns:
-      - name: idagente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: cnpjcpf
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idnome
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: tiponome
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nome
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idendereco
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-      - name: tipoendereco
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-      - name: tipologradouro
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-      - name: logradouro
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-      - name: numero
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-      - name: bairro
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-      - name: complemento
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: cidade
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-      - name: uf
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-      - name: cep
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-      - name: divulgarendereco
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-      - name: correspondencia
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: usuario
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vwempresajuridica
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vwempresajuridica.
-    columns:
-      - name: nrcnpj
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: tpestabelecimento
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dsestabelecimento
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nmempresarial
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nmfantasia
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: cdsituacaocadastral
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dssituacaocadastral
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dtsituacaocadastral
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: date
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: cdnaturezajuridica
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dsnaturezajuridica
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: dtabertura
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: date
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: eecorreioeletronico
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: vlcapitalsocial
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: cdporteempresa
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dsporteempresa
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: sioptantesimples
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: sioptantemei
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vwempresajuridicasocios
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vwempresajuridicasocios.
-    columns:
-      - name: idempresajuridicasocios
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: nrcnpj
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nmempresarial
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: tpsocio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dstiposocio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nrcnpjcpfsocio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nmsocio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dtinclusaosociedade
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: date
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: cdqualificacao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dsqualificacaosocio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vwportifolio
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vwportifolio.
-    columns:
-      - name: proponente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dtportifolio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: siportifolio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: responsavel
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_vwpropostasemavaliacao
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_agentes_vwpropostasemavaliacao.
-    columns:
-      - name: idpreprojeto
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nomeprojeto
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: tptipicidade
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dstipicidade
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: tptipologia
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dstipologia
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: stproposta
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dsplanoexecucaoimediata
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: secretaria
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: ano
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: conformidade
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-      - name: idtecnico
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nmtecnico
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: cdproponente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: cnpjcpf
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nmproponente
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        meta:
-          openmetadata:
-            tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-
   - name: silver_agentes_agentes
     description: >
-      Uma linha por agente cultural — proponente, incentivador ou fornecedor —
-      identificado por idagente e por cnpjcpf. ~998 mil linhas. Camada Silver tipada a partir de salic.bronze_agentes_agentes. É a raiz do domínio
-      Agentes: agentes__tbagentefisico, agentes__perfil e agentes__endereconacional
-      referenciam idagente.
-      Armadilha: `tipopessoa` é um bit da origem (True/False) e a semântica
-      física/jurídica NÃO foi confirmada; `cnpjcpfsuperior` chega constante zero.
+      Uma linha por agente cadastrado no SALIC, pessoa física ou jurídica,
+      identificado por idagente. É a raiz do banco agentes: endereço,
+      telefone, papel (visão), perfil e vínculo apontam para idagente. São
+      997.756 agentes, cadastrados de 2007 a 2026: 547.492 com CPF e 450.263
+      com CNPJ. O agente é a pessoa ou entidade; o papel que ela tem no SALIC
+      (proponente, incentivador, fornecedor, dirigente) está em
+      silver_agentes_vvisao, e um mesmo agente pode ter vários.
+
+
+      Armadilhas: o nome do agente não está nesta tabela nem em nenhuma
+      silver do banco, a não ser em silver_agentes_vwcadastrarparecerista. O
+      cnpjcpf não é único: 244 documentos aparecem em mais de um agente.
+      status vale 0 em todas as linhas e não serve para filtrar agente ativo.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_agentes'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idagente
-        description: Identificador do agente. Chave da tabela.
+        description: >
+          Identificador do agente, sequencial do SQL Server. Único e
+          preenchido nas 997.756 linhas. É a chave que as outras tabelas do
+          banco agentes usam, e a que sac.preprojeto grava em idagente.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: cnpjcpf
         description: >
-          CNPJ (14) ou CPF (11) do agente, sem máscara. Dado pessoal; mantido text
-          para preservar o zero à esquerda.
+          CPF (11 dígitos) ou CNPJ (14 dígitos) do agente, sem máscara e com
+          zero à esquerda, por isso texto. Preenchido em todas as linhas. Não
+          é único: 997.512 documentos distintos para 997.756 agentes. Uma
+          linha tem 7 dígitos.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: cnpjcpfsuperior
         description: >
-          CNPJ/CPF da entidade superior. Medido constante '00000000000000' na
-          amostra (sem entidade superior).
+          CNPJ da entidade superior do agente, pelo nome da coluna; o uso não
+          foi confirmado no código do SalicWeb. Em 996.659 linhas vale só zeros, sem entidade
+          superior; há 202 valores distintos no total. Para o vínculo entre
+          pessoa e entidade, use silver_agentes_vvinculacao.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: tipopessoa
         description: >
-          Bit da origem (True/False). [NÃO VERIFICADO] a correspondência com
-          pessoa física/jurídica; não assumir sem checar.
+          Tipo de pessoa do agente: false é pessoa física e true é pessoa
+          jurídica. Confirmado pelo documento: os 547.492 false têm CPF de 11
+          dígitos e os 450.263 true têm CNPJ de 14, menos 1 true com 7
+          dígitos.
         data_type: boolean
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: dtcadastro
-        description: Data/hora de cadastro do agente.
+        description: >
+          Data e hora do cadastro do agente, de 2007 a 2026. Vazia em 8
+          linhas.
         data_type: timestamp
       - name: dtatualizacao
-        description: Data/hora da última atualização do cadastro.
+        description: >
+          Data e hora da última atualização do cadastro. Vazia em 8 linhas.
         data_type: timestamp
       - name: dtvalidade
-        description: Data/hora de validade do cadastro.
+        description: >
+          Data de validade do cadastro. Em 805.245 das 997.748 linhas
+          preenchidas é exatamente um ano depois de dtcadastro. Nenhuma é
+          anterior ao cadastro. Vazia em 8 linhas.
         data_type: timestamp
       - name: status
-        description: Flag de status do agente (bit 0/1).
+        description: >
+          Situação do agente na origem. Vale false (0) nas 997.756 linhas:
+          não distingue nada e não indica agente ativo ou inativo.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: usuario
-        description: Identificador/flag do usuário (valores 0/1 na amostra).
+        description: >
+          Conta que fez o último registro da linha. 98% dos valores existem
+          em silver_controledeacesso_sgcacesso.idusuario, o login do público
+          externo, e 22% também em tabelas.usuarios, o cadastro de
+          servidores: as faixas se sobrepõem, e o destino não está
+          confirmado. 19.152 linhas valem 0, sem conta.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
-          linha (ADR 0005). Não é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_agentes_tbagentefisico
     description: >
-      Uma linha por agente pessoa física, com atributos pessoais. ~137 mil linhas.
-      Camada Silver tipada a partir de salic.bronze_agentes_tbagentefisico. Liga
-      a agentes__agentes por idagente.
-      DADO SENSÍVEL: nome dos pais, cor/raça (stcorraca) e necessidade especial
-      (stnecessidadeespecial). Uso exige base legal; não expor em painel aberto.
+      Uma linha por agente pessoa física com dados complementares: sexo,
+      estado civil, necessidade especial, filiação, nascimento e cor ou raça.
+      São 136.607 agentes, todos existentes em silver_agentes_agentes (liga
+      por idagente); só um quarto dos agentes com CPF tem esta ficha, e 7
+      linhas apontam para agente com CNPJ. Os códigos vêm do formulário de
+      informações adicionais do SalicWeb.
+
+
+      Dado sensível pela LGPD: cor ou raça e necessidade especial. Qualquer
+      uso exige base legal e agregação que não identifique a pessoa.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_tbagentefisico'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idagente
-        description: Agente pessoa física. Chave, aponta para agentes__agentes.idagente.
+        description: >
+          Agente pessoa física. Único na tabela e existente em
+          silver_agentes_agentes.idagente, sem órfão.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: stsexo
-        description: Sexo declarado (M/F).
+        description: >
+          Sexo declarado: F em 66.073 linhas, M em 70.534. Preenchido em
+          todas.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['F', 'M']
+              config:
+                severity: warn
       - name: stestadocivil
-        description: Estado civil, código de 2 letras (SJ, DI, CA, ...).
+        description: >
+          Estado civil, em código de duas letras do formulário do SalicWeb:
+          SO solteiro(a), 36.290; CA casado(a), 16.873; DI divorciado(a),
+          3.770; VI viúvo(a), 499; SJ separado(a) judicialmente, 552; OU
+          outros, 78.623. OU é a maior categoria, então a coluna diz pouco
+          sobre o estado civil real.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['SO', 'CA', 'DI', 'VI', 'SJ', 'OU']
+              config:
+                severity: warn
       - name: stnecessidadeespecial
         description: >
-          Necessidade especial (N/S). Dado sensível de deficiência. Medido
-          majoritariamente 'N' na amostra.
+          Se a pessoa declarou necessidade especial: S em 739 linhas, N em
+          135.868. O formulário não pergunta qual. Dado sensível de
+          deficiência.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['N', 'S']
+              config:
+                severity: warn
       - name: nmmae
         description: >
-          Nome da mãe. Dado pessoal. Origem char(100) com espaços à direita — o
-          cast (bronze_texto) já apara e transforma vazio em NULL.
+          Nome da mãe, texto livre de até 100 caracteres. Vazio em 36 linhas.
+          Usado na origem para conferir identidade.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: nmpai
         description: >
-          Nome do pai. Dado pessoal. Origem char(100) com espaços à direita.
+          Nome do pai, texto livre de até 100 caracteres. Vazio em 43 linhas.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: dtnascimento
-        description: Data de nascimento. Dado pessoal.
+        description: >
+          Data de nascimento, preenchida em todas as linhas. Não é confiável
+          sem filtro: vai de 1790 a 9967, e 11 linhas têm ano anterior a 1901.
         data_type: timestamp
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
       - name: stcorraca
         description: >
-          Código de cor/raça autodeclarada. Dado sensível. Preenchida em apenas
-          ~2,5% das linhas — a ausência é a regra, não a exceção.
+          Cor ou raça autodeclarada, pelo formulário do SalicWeb: 1 branca,
+          17.504; 2 negra, 3.963; 3 parda, 7.079; 4 amarela, 313; 5 indígena,
+          227. O campo não é obrigatório: 107.499 linhas, 79%, não têm valor,
+          e outras 22 têm um caractere que não é código e viram NULL. O
+          formulário usa "negra", não "preta" como o IBGE.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+                quote: false
+              config:
+                severity: warn
       - name: nridentificadorprocessual
-        description: '[VAZIA EM 100% DAS LINHAS]'
+        description: >
+          Número identificador processual, que o formulário só pede para um
+          perfil específico de usuário. Preenchido em 1.545 linhas, 1%.
         data_type: text
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
-          linha (ADR 0005). Não é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_perfil
-    description: >
-      Liga o agente a um perfil e uma característica de acesso ao sistema. ~8 mil
-      linhas. Camada Silver tipada a partir de salic.bronze_agentes_perfil.
-      Armadilha: `perfil` e `caracteristica` são códigos de bitmask da origem
-      (medidos constantes 48 e 64 na amostra) — não são contagens.
-    columns:
-      - name: idperfil
-        description: Identificador do vínculo de perfil. Chave da tabela.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: idagente
-        description: Agente. Chave estrangeira lógica para agentes__agentes.idagente.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: perfil
-        description: Código de perfil (bitmask da origem).
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: caracteristica
-        description: Código de característica (bitmask da origem).
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: usuario
-        description: Identificador do usuário que registrou.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
-          linha (ADR 0005). Não é campo de negócio.
-        data_type: integer
-
-  - name: silver_agentes_verificacao
-    description: >
-      Tabela de domínio dos valores de "verificação" de um agente (natureza
-      jurídica, esfera administrativa etc.), agrupados por idtipo. 293 linhas.
-      Camada Silver tipada a partir de salic.bronze_agentes_verificacao.
-    columns:
-      - name: idverificacao
-        description: Identificador do valor de verificação. Chave da tabela.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-      - name: idtipo
-        description: Tipo/grupo do valor de verificação.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: descricao
-        description: Descrição do valor (ex. Público, Privado com fins lucrativos, Municipal).
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: sistema
-        description: Código do sistema de origem.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
-          linha (ADR 0005). Não é campo de negócio.
-        data_type: integer
 
   - name: silver_agentes_endereconacional
     description: >
-      Uma linha por endereço nacional de agente. ~956 mil linhas. Camada Silver tipada a partir de salic.bronze_agentes_endereconacional. Liga a
-      agentes__agentes por idagente; `cidade` casa com agentes__municipios por
-      código IBGE. DADO PESSOAL (endereço).
-      Armadilha: `cep` fica text (zero à esquerda); `cidade`/`uf` são códigos
-      IBGE, não nomes.
+      Uma linha por endereço no Brasil de um agente. São 955.942 endereços
+      para 950.302 agentes, todos existentes em silver_agentes_agentes: quase
+      sempre um endereço por agente. O tipo do endereço diz de onde ele veio:
+      519.803 são "Endereço - Receita Federal", gravados pela integração com
+      a Receita, e o resto foi informado no cadastro, 243.258 comerciais e
+      192.881 residenciais.
+
+
+      Armadilhas: cidade e uf são códigos, não nomes, e as colunas municipio
+      e ufdescricao estão vazias em 99,4% das linhas. Para o nome, junte
+      cidade com silver_agentes_municipios.idmunicipioibge: 12.046 códigos de
+      cidade não existem lá. O tipologradouro 1 aparece em 81.932 linhas, mas
+      o código 1 de silver_agentes_verificacao é de outro grupo (natureza
+      "Público"), então é valor sem significado de logradouro.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_endereconacional'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - tipoendereco
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idendereco
-        description: Identificador do endereço. Chave da tabela.
+        description: >
+          Identificador do endereço. Único e preenchido nas 955.942 linhas.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idagente
-        description: Agente dono do endereço. Chave estrangeira lógica para agentes__agentes.idagente.
+        description: >
+          Agente dono do endereço. Liga com silver_agentes_agentes.idagente,
+          sem órfão.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: tipoendereco
-        description: Código do tipo de endereço.
+        description: >
+          Tipo do endereço, código de silver_agentes_verificacao: 282
+          Endereço - Receita Federal, 519.803; 23 comercial, 243.258; 22
+          residencial, 192.881.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [22, 23, 282]
+                quote: false
+              config:
+                severity: warn
       - name: tipologradouro
-        description: Código do tipo de logradouro.
+        description: >
+          Tipo do logradouro, código de silver_agentes_verificacao (grupo
+          13): os mais comuns são 45 rua, 558.470, e 41 avenida, 130.621. O
+          código 1, em 81.932 linhas, e o 13, em 259, não são tipo de
+          logradouro.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: logradouro
-        description: Nome do logradouro. Dado pessoal.
+        description: >
+          Nome do logradouro, texto livre. Vazio em 15.854 linhas.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: numero
-        description: Número do endereço (mantido text; pode conter S/N). Dado pessoal.
+        description: >
+          Número do imóvel, em texto porque aceita "S/N" e letras: 6% dos
+          valores preenchidos não são número. Vazio em 85.181 linhas.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: bairro
-        description: Bairro. Dado pessoal.
+        description: >
+          Bairro, texto livre. Vazio em 86.900 linhas.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: complemento
-        description: Complemento do endereço. ~22% preenchida.
+        description: >
+          Complemento do endereço, texto livre. Preenchido em 54%.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: cidade
-        description: Código IBGE do município (6 dígitos). Casa com agentes__municipios.idmunicipioibge.
+        description: >
+          Código IBGE do município, 6 dígitos, sem o dígito verificador. Junte
+          com silver_agentes_municipios.idmunicipioibge para ter o nome: 12.046
+          linhas trazem código que não está lá. Vazio em 82.134 linhas, e 36
+          valores não numéricos viram NULL.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: uf
-        description: Código da UF (2 dígitos IBGE).
+        description: >
+          Código IBGE da UF, 2 dígitos. Liga com silver_agentes_uf.iduf; 1.203
+          linhas trazem código que não está lá. Vazio em 563.
+        data_type: integer
+      - name: cep
+        description: >
+          CEP, 8 dígitos sem máscara, em texto para manter o zero à esquerda.
+          Vazio em 81.902 linhas; 51 valores têm caractere que não é dígito.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: municipio
+        description: >
+          Nome do município. Preenchido em só 6.068 linhas, 0,6%: use cidade.
+        data_type: text
+      - name: ufdescricao
+        description: >
+          Nome da UF. Preenchido em só 6.068 linhas, 0,6%: use uf.
+        data_type: text
+      - name: status
+        description: >
+          Se o endereço está ativo: true em 945.731 linhas e false em 10.211.
+        data_type: boolean
+      - name: divulgar
+        description: >
+          Se o agente autorizou divulgar o endereço: true em 100.504 linhas,
+          11%. Endereço com false não pode aparecer em publicação.
+        data_type: boolean
+      - name: usuario
+        description: >
+          Conta que fez o último registro da linha. É o mesmo campo de
+          silver_agentes_agentes.usuario; o destino não foi medido nesta
+          tabela.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vtelefones
+    description: >
+      Uma linha por telefone de um agente. São 493.419 telefones para 385.841
+      agentes. Metade, 247.484, é "Telefone - Receita Federal", gravado pela
+      integração com a Receita; o resto foi informado no cadastro, a maior
+      parte celular. O prefixo v indica view na origem; a tabela de
+      telefones por trás dela não é ingerida.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vtelefones'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - tipotelefone
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idtelefone
+        description: >
+          Identificador do telefone. Único e preenchido nas 493.419 linhas.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: idagente
+        description: >
+          Agente dono do telefone. Liga com silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: tipotelefone
+        description: >
+          Tipo do telefone, código de silver_agentes_verificacao: 280
+          Telefone - Receita Federal, 247.484; 26 celular, 178.979; 25
+          comercial, 41.323; 24 residencial, 24.619; 27 fax, 1.014.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [24, 25, 26, 27, 280]
+                quote: false
+              config:
+                severity: warn
+      - name: ddd
+        description: >
+          DDD do telefone, 2 dígitos.
+        data_type: integer
+      - name: numero
+        description: >
+          Número do telefone sem DDD, em texto: 154.496 valores têm hífen, e
+          como inteiro virariam NULL. Vazio em 66 linhas.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: uf
+        description: >
+          Código IBGE da UF do telefone, 2 dígitos.
+        data_type: integer
+      - name: divulgar
+        description: >
+          Se o agente autorizou divulgar o telefone, em texto True ou False:
+          True em 74.357 linhas, 15%.
+        data_type: text
+      - name: usuario
+        description: >
+          Conta que fez o último registro da linha. Mesmo campo de
+          silver_agentes_agentes.usuario.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vvisao
+    description: >
+      Uma linha por papel ("visão") de um agente no SALIC. É aqui que se sabe
+      se o agente é proponente, incentivador, fornecedor ou outro: o código
+      visao é de silver_agentes_verificacao (grupo 16). São 1.083.125 linhas
+      para 992.990 agentes, e só 1 par agente e visão se repete. Os papéis
+      mais comuns: 248 fornecedor, 423.846; 144 proponente, 237.232; 198
+      dirigente de instituição, 218.221; 145 incentivador, 113.957; 199
+      beneficiário de produtos do projeto cultural, 77.052. Há 21 papéis com
+      uso, os outros abaixo de 6 mil cada.
+
+
+      Armadilha: ter a visão 144 diz que o agente se cadastrou como
+      proponente, não que apresentou ou teve projeto aprovado. Para isso,
+      cruze com o banco sac.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vvisao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idvisao
+        description: >
+          Identificador da linha. Único e preenchido nas 1.083.125 linhas.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idagente
+        description: >
+          Agente que tem o papel. Liga com silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: visao
+        description: >
+          Papel do agente, código de silver_agentes_verificacao.idverificacao
+          com idtipo 16, como 144 proponente, 145 incentivador, 248
+          fornecedor, 198 dirigente de instituição e 209 parecerista de
+          projeto cultural.
+        data_type: integer
+        tests:
+          - not_null
+      - name: usuario
+        description: >
+          Conta que fez o último registro da linha. Mesmo campo de
+          silver_agentes_agentes.usuario.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vvinculacao
+    description: >
+      Uma linha por vínculo entre uma pessoa física e uma entidade: o
+      dirigente ou representante (idagente, com CPF) ligado à pessoa
+      jurídica que ele representa (idvinculoprincipal, com CNPJ). É o que o
+      SalicWeb usa para saber em nome de que entidades um CPF logado pode
+      agir. São 242.997 vínculos, 203.567 pessoas e 144.826 entidades; em
+      242.737 a pessoa tem CPF e a entidade tem CNPJ.
+
+
+      Armadilha: idvinculado e idvinculoprincipal são iguais em 242.536
+      linhas, 99,8%. O SalicWeb filtra por idvinculoprincipal; use essa.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vvinculacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idvinculacao
+        description: >
+          Identificador do vínculo. Único e preenchido nas 242.997 linhas.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idagente
+        description: >
+          Pessoa vinculada, normalmente dirigente da entidade. Liga com
+          silver_agentes_agentes.idagente. Em 198 linhas é o próprio
+          idvinculado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: idvinculado
+        description: >
+          Entidade a que a pessoa está vinculada. Igual a idvinculoprincipal
+          em 99,8% das linhas.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: idvinculoprincipal
+        description: >
+          Entidade principal do vínculo, a que o SalicWeb consulta. Liga com
+          silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: usuario
+        description: >
+          Conta que fez o último registro da linha. Mesmo campo de
+          silver_agentes_agentes.usuario.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_perfil
+    description: >
+      Uma linha por perfil institucional atribuído a um agente, usado pelos
+      programas antigos do MinC: prefeitura, ponto de cultura, griô, prêmios
+      de culturas populares e ciganas. São 8.236 linhas para 8.139 agentes.
+      5.563 são prefeituras (perfil 48, característica 64, órgão de
+      administração municipal). perfil e caracteristica são códigos de
+      silver_agentes_verificacao, não máscaras de bits.
+
+
+      silver_agentes_vperfil tem as mesmas 8.236 linhas, sem idperfil.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_perfil'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idperfil
+        description: >
+          Identificador da linha. Único e preenchido nas 8.236 linhas.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idagente
+        description: >
+          Agente que tem o perfil. Liga com silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: perfil
+        description: >
+          Perfil, código de silver_agentes_verificacao com idtipo 14: 48
+          prefeitura, 5.563; 194 Prêmio Culturas Populares, 990; 60 griôs,
+          908; 50 ponto de cultura, 659; 193 Prêmio Culturas Ciganas, 108.
+        data_type: integer
+        tests:
+          - not_null
+      - name: caracteristica
+        description: >
+          Característica do perfil, código de silver_agentes_verificacao: 64
+          órgão de administração municipal, nas prefeituras; 170 "nenhum",
+          na maior parte das outras; 50 ponto de cultura, em 151.
+        data_type: integer
+        tests:
+          - not_null
+      - name: usuario
+        description: >
+          Conta que fez o último registro da linha. Mesmo campo de
+          silver_agentes_agentes.usuario.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vperfil
+    description: >
+      Uma linha por perfil institucional de um agente, vinda de uma view da
+      origem. Tem as mesmas 8.236 linhas de silver_agentes_perfil, sem a
+      coluna idperfil: a comparação linha a linha não achou diferença. Prefira
+      silver_agentes_perfil.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vperfil'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idagente
+        description: >
+          Agente que tem o perfil. Liga com silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: perfil
+        description: >
+          Perfil, código de silver_agentes_verificacao. Ver
+          silver_agentes_perfil.perfil.
+        data_type: integer
+      - name: caracteristica
+        description: >
+          Característica do perfil, código de silver_agentes_verificacao. Ver
+          silver_agentes_perfil.caracteristica.
+        data_type: integer
+      - name: usuario
+        description: >
+          Conta que fez o último registro da linha. Mesmo campo de
+          silver_agentes_agentes.usuario.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vwcadastrarparecerista
+    description: >
+      Uma linha por agente pessoa física e endereço, com o nome de registro.
+      É a view que a tela de cadastro de parecerista do SalicWeb usa para
+      escolher uma pessoa, e não a lista de pareceristas: só 2.731 das
+      546.448 linhas são de agentes com a visão 209, parecerista. São 543.641
+      agentes, praticamente todos os de CPF de silver_agentes_agentes.
+
+
+      É a única silver do banco agentes com o nome da pessoa, porque a
+      tabela de nomes da origem não é ingerida. Os campos de endereço vêm de
+      silver_agentes_endereconacional e estão vazios em 43.173 linhas, de
+      agentes sem endereço.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vwcadastrarparecerista'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - tipoendereco
+            - divulgarendereco
+            - correspondencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idagente
+        description: >
+          Agente pessoa física. Liga com silver_agentes_agentes.idagente. Não é
+          único: um agente com dois endereços aparece duas vezes.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: cnpjcpf
+        description: >
+          CPF do agente, 11 dígitos sem máscara. 8 linhas não têm 11 dígitos.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: idnome
+        description: >
+          Identificador do nome na tabela de nomes da origem, que não é
+          ingerida.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: tiponome
+        description: >
+          Tipo do nome, código de silver_agentes_verificacao. Vale 18, nome
+          de registro, em todas as linhas.
+        data_type: integer
+      - name: nome
+        description: >
+          Nome de registro da pessoa. Vazio em 2.559 linhas.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idendereco
+        description: >
+          Endereço da linha. Liga com silver_agentes_endereconacional.idendereco.
+          Vazio em 43.173 linhas.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: tipoendereco
+        description: >
+          Tipo do endereço, código de silver_agentes_verificacao: 282 Receita
+          Federal, 263.112; 22 residencial, 165.286; 23 comercial, 74.877.
+        data_type: integer
+      - name: tipologradouro
+        description: >
+          Tipo do logradouro, código de silver_agentes_verificacao. Ver
+          silver_agentes_endereconacional.tipologradouro.
+        data_type: integer
+      - name: logradouro
+        description: >
+          Nome do logradouro, texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: numero
+        description: >
+          Número do imóvel, em texto porque aceita "S/N" e letras.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: bairro
+        description: >
+          Bairro, texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: complemento
+        description: >
+          Complemento do endereço, texto livre. Preenchido em 60%.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cidade
+        description: >
+          Código IBGE do município, 6 dígitos. Liga com
+          silver_agentes_municipios.idmunicipioibge.
+        data_type: integer
+      - name: uf
+        description: >
+          Código IBGE da UF, 2 dígitos. Liga com silver_agentes_uf.iduf.
+        data_type: integer
       - name: cep
-        description: CEP (8 dígitos). Mantido text (zero à esquerda). Dado pessoal.
+        description: >
+          CEP, 8 dígitos sem máscara, em texto para manter o zero à esquerda:
+          40.561 CEPs começam com zero.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: divulgarendereco
+        description: >
+          Se o agente autorizou divulgar o endereço, em texto True ou False.
+        data_type: text
+      - name: correspondencia
+        description: >
+          Se o endereço é o de correspondência, em texto True ou False.
+        data_type: text
+      - name: usuario
+        description: >
+          Conta que fez o último registro da linha. Mesmo campo de
+          silver_agentes_agentes.usuario.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vwempresajuridica
+    description: >
+      Uma linha por CNPJ com os dados cadastrais da Receita Federal: razão
+      social, situação cadastral, natureza jurídica, abertura, capital
+      social, porte e opção pelo Simples e pelo MEI. São 273.447 CNPJs,
+      únicos, todos menos 1 existentes em silver_agentes_agentes.cnpjcpf.
+      263.766 estão ativos.
+
+
+      Armadilhas: tpestabelecimento diz 0 Matriz e 1 e 2 FILIAL, mas na
+      Receita o código 1 é matriz, e 223.458 "filiais" é improvável; não use
+      sem conferir. dsnaturezajuridica está vazia em 83%: use
+      cdnaturezajuridica. vlcapitalsocial chega a 20 trilhões, valor
+      digitado errado na origem.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vwempresajuridica'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrcnpj
+        description: >
+          CNPJ, 14 dígitos sem máscara. Único e preenchido em todas as linhas.
+          Liga com silver_agentes_agentes.cnpjcpf. É dado pessoal no caso do
+          empresário individual.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: tpestabelecimento
+        description: >
+          Código do tipo de estabelecimento: 0 em 39.079 linhas, 1 em
+          223.458, 2 em 10.910. Ver a armadilha na descrição da tabela.
+        data_type: integer
+      - name: dsestabelecimento
+        description: >
+          Descrição gravada do tipo de estabelecimento: Matriz para o código 0
+          e FILIAL para 1 e 2.
+        data_type: text
+      - name: nmempresarial
+        description: >
+          Razão social. Preenchida em todas as linhas. No empresário
+          individual, é o nome da pessoa.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: nmfantasia
+        description: >
+          Nome fantasia. Preenchido em 44%.
+        data_type: text
+      - name: cdsituacaocadastral
+        description: >
+          Situação cadastral na Receita, código: 2 ativa, 263.766; 8 baixada,
+          7.170; 4 inapta, 2.403; 3 suspensa, 100; 1 nula, 8.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['1', '2', '3', '4', '8']
+              config:
+                severity: warn
+      - name: dssituacaocadastral
+        description: >
+          Descrição da situação cadastral, uma para cada código.
+        data_type: text
+      - name: dtsituacaocadastral
+        description: >
+          Data da última mudança de situação cadastral.
+        data_type: date
+      - name: cdnaturezajuridica
+        description: >
+          Código de natureza jurídica da Receita, com 49 valores distintos.
+          Há valores de um dígito, como 2 e 8, que não são códigos da tabela
+          de natureza jurídica da Receita, que tem 4 dígitos.
+        data_type: integer
+      - name: dsnaturezajuridica
+        description: >
+          Descrição da natureza jurídica. Vazia em 226.269 linhas, 83%.
+        data_type: text
+      - name: dtabertura
+        description: >
+          Data de abertura da empresa, de 1901 a 2026.
+        data_type: date
+      - name: eecorreioeletronico
+        description: >
+          E-mail da empresa na Receita. Preenchido em 88%. No empresário
+          individual, é contato da pessoa.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: vlcapitalsocial
+        description: >
+          Capital social declarado, em reais. Vai de 0 a mais de 20 trilhões:
+          há valores digitados errados, filtre antes de somar.
+        data_type: numeric
+      - name: cdporteempresa
+        description: >
+          Porte da empresa, código: 01 microempresa, 186.485; 03 pequeno
+          porte, 26.786; 05 demais, 60.173. Vazio em 3.
+        data_type: text
+      - name: dsporteempresa
+        description: >
+          Descrição do porte da empresa, uma para cada código.
+        data_type: text
+      - name: sioptantesimples
+        description: >
+          Se a empresa é optante do Simples Nacional, SIM ou NÃO: SIM em
+          184.842.
+        data_type: text
+      - name: sioptantemei
+        description: >
+          Se a empresa é optante do MEI, SIM ou NÃO: SIM em 84.483, todas
+          também optantes do Simples.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vwempresajuridicasocios
+    description: >
+      Uma linha por sócio ou dirigente de uma empresa, pelo quadro societário
+      da Receita Federal. São 306.522 linhas para 153.127 empresas, todas
+      existentes em silver_agentes_vwempresajuridica. 290.955 sócios são
+      pessoa física, com CPF; 13.045 são pessoa jurídica; 321 são
+      estrangeiros. As qualificações mais comuns são sócio-administrador,
+      sócio, diretor e presidente.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vwempresajuridicasocios'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idempresajuridicasocios
+        description: >
+          Identificador da linha. Único e preenchido nas 306.522 linhas.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: nrcnpj
+        description: >
+          CNPJ da empresa, 14 dígitos. Liga com
+          silver_agentes_vwempresajuridica.nrcnpj, sem órfão.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: nmempresarial
+        description: >
+          Razão social da empresa, repetida de
+          silver_agentes_vwempresajuridica.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: tpsocio
+        description: >
+          Tipo do sócio: 1 pessoa jurídica, 15.246; 2 pessoa física, 290.955;
+          3 sócio estrangeiro, 321.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3]
+                quote: false
+              config:
+                severity: warn
+      - name: dstiposocio
+        description: >
+          Descrição do tipo do sócio, uma para cada código.
+        data_type: text
+      - name: nrcnpjcpfsocio
+        description: >
+          CPF ou CNPJ do sócio, sem máscara. Em 2.465 linhas, todas de sócio
+          pessoa jurídica ou estrangeiro, tem um só dígito e não identifica
+          ninguém.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: nmsocio
+        description: >
+          Nome do sócio, pessoa ou empresa.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtinclusaosociedade
+        description: >
+          Data em que o sócio entrou na sociedade.
+        data_type: date
+      - name: cdqualificacao
+        description: >
+          Qualificação do sócio na Receita, código de 2 dígitos: 49
+          sócio-administrador, 156.480; 22 sócio, 55.441; 10 diretor, 32.109;
+          16 presidente, 26.229; 05 administrador, 22.012.
+        data_type: text
+      - name: dsqualificacaosocio
+        description: >
+          Descrição da qualificação do sócio, uma para cada código.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vwportifolio
+    description: >
+      Uma linha por análise do portfólio de um proponente. Pelo conteúdo, é a
+      conferência da atuação cultural do proponente, que o MinC aceita ou
+      rejeita; a regra não foi confirmada no código do SalicWeb. São
+      12.841 análises para 8.448 proponentes, de junho de 2024 a 2026: 7.848
+      aceitas, 4.982 rejeitadas e 11 pendentes. Um proponente rejeitado pode
+      reapresentar, por isso há mais de uma linha por proponente. A view da
+      origem liga pelo documento, sem idagente.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vwportifolio'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero
+          à esquerda: 3.818 começam com zero. Liga com
+          silver_agentes_agentes.cnpjcpf.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtportifolio
+        description: >
+          Data da análise do portfólio, de 2024-06-05 a 2026-08-24.
+        data_type: timestamp
+        tests:
+          - not_null
+      - name: siportifolio
+        description: >
+          Resultado da análise: Aceito, 7.848; Rejeitado, 4.982; Pendente de
+          Validação, 11.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Aceito', 'Rejeitado', 'Pendente de Validação']
+              config:
+                severity: warn
+      - name: responsavel
+        description: >
+          Nome de quem analisou o portfólio, pelo que se vê no dado, um
+          servidor do MinC.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vwpropostasemavaliacao
+    description: >
+      Uma linha por proposta de projeto Rouanet que está em avaliação de
+      admissibilidade, com o técnico responsável. Pelo nome e pelo conteúdo,
+      só tem proposta ainda em avaliação: é a fila do momento da carga, não
+      histórico. Na
+      medição eram 5.868 linhas, de 5.864 propostas, 5.242 proponentes e 19
+      técnicos, das secretarias SEFIC e SAV, apresentadas de 2023 a 2026.
+      Quase todas, 5.360, são de projeto aprovado em edital.
+
+
+      Liga com o banco sac por idpreprojeto, sem órfão. 4 propostas aparecem
+      duas vezes.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vwpropostasemavaliacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpreprojeto
+        description: >
+          Proposta em avaliação. Liga com sac.preprojeto.idpreprojeto. Não é
+          única: 4 propostas têm duas linhas.
+        data_type: integer
+        tests:
+          - not_null
+      - name: nomeprojeto
+        description: >
+          Título da proposta, texto livre.
+        data_type: text
+      - name: tptipicidade
+        description: >
+          Tipicidade da proposta, código da tabela de verificação do banco sac
+          (grupo 28), com 9 valores. O mais comum é 836, editais
+          compartilhados, 5.647.
+        data_type: integer
+      - name: dstipicidade
+        description: >
+          Descrição da tipicidade, uma para cada código.
+        data_type: text
+      - name: tptipologia
+        description: >
+          Tipologia da proposta, código com 29 valores, como o edital ou
+          programa a que ela pertence.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Descrição da tipologia, uma para cada código.
+        data_type: text
+      - name: stproposta
+        description: >
+          Plano de execução imediata da proposta, código da tabela de
+          verificação do banco sac (grupo 23), de 610 a 619: 618 projeto
+          aprovado em editais, 5.360; 610 projeto normal, 466; 614 planos
+          anuais, 22. O nome da coluna sugere situação, mas não é.
+        data_type: integer
+      - name: dsplanoexecucaoimediata
+        description: >
+          Descrição do plano de execução imediata, uma para cada código de
+          stproposta.
+        data_type: text
+      - name: secretaria
+        description: >
+          Secretaria responsável pela avaliação: SEFIC, Fomento e Incentivo à
+          Cultura, 5.014; SAV, Audiovisual, 854.
+        data_type: text
+      - name: ano
+        description: >
+          Ano da proposta, de 2023 a 2026.
+        data_type: integer
+      - name: conformidade
+        description: >
+          Etapa da avaliação: Aguardando análise, 5.741; Diligenciado, 78;
+          Diligência respondida, 48. Vazia em 1.
+        data_type: text
+      - name: idtecnico
+        description: >
+          Técnico do MinC responsável pela avaliação, 19 distintos.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmtecnico
+        description: >
+          Nome abreviado do técnico responsável.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdproponente
+        description: >
+          Agente proponente. Liga com silver_agentes_agentes.idagente, sem
+          órfão.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade. Vazio em 3 linhas.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_verificacao
+    description: >
+      Uma linha por valor de código usado no banco agentes: é a tabela de
+      domínio genérica, com os valores agrupados por idtipo. São 293 valores
+      em 27 grupos. Os grupos usados pelas outras silvers: 1 tipo de nome, 2
+      tipo de endereço, 3 tipo de telefone, 4 tipo de contato na internet,
+      13 tipo de logradouro, 14 perfil, 16 visão (papel do agente). Os
+      valores com "- Receita Federal" no nome marcam o que veio da
+      integração com a Receita.
+
+
+      Armadilha: o grupo 26 tem nomes de pessoas, dirigentes que assinam
+      documentos, e por isso a tabela não é publicável. A tabela de
+      verificação do banco sac é outra, com outros códigos.
+      silver_agentes_vverificacao tem as mesmas 293 linhas.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_verificacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idverificacao
+        description: >
+          Código do valor, o que as outras tabelas gravam em colunas como
+          tipoendereco, tipotelefone, visao e perfil. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idtipo
+        description: >
+          Grupo a que o valor pertence, de 1 a 31, em 27 grupos usados. O
+          código idverificacao é único na tabela inteira, então uma coluna
+          pode receber código de outro grupo sem erro de chave, como
+          tipologradouro 1.
+        data_type: integer
+        tests:
+          - not_null
+      - name: descricao
+        description: >
+          Rótulo do valor, como Residencial, Proponente ou Rua. No grupo 26 é
+          nome de pessoa.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+        tests:
+          - not_null
+      - name: sistema
+        description: >
+          Sistema que usa o valor, código de silver_agentes_vsistema; 0 é
+          todos. O código 21, dos valores da Receita Federal e de vários
+          papéis, não existe em silver_agentes_vsistema.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vverificacao
+    description: >
+      Uma linha por valor de código do banco agentes, vinda de uma view da
+      origem. Tem as mesmas 293 linhas de silver_agentes_verificacao: a
+      comparação não achou diferença. Prefira silver_agentes_verificacao.
+      Como ela, inclui nomes de pessoas no grupo 26.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vverificacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idverificacao
+        description: >
+          Código do valor. Único. Ver silver_agentes_verificacao.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idtipo
+        description: >
+          Grupo a que o valor pertence. Ver silver_agentes_verificacao.
+        data_type: integer
+      - name: descricao
+        description: >
+          Rótulo do valor. No grupo 26 é nome de pessoa.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: sistema
+        description: >
+          Sistema que usa o valor, código de silver_agentes_vsistema.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vsistema
+    description: >
+      Uma linha por sistema do MinC que usa o cadastro de agentes. É o
+      domínio da coluna sistema de silver_agentes_verificacao. São 20, de 0,
+      todos os sistemas, a 19, como 3 PRONAC, 12 Cadastro de Proponentes, 13
+      Conselhos de Cultura e 14 Ticket Cultural. Não confundir com
+      silver_controledeacesso_sgcsistema, que é outra lista.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vsistema'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - usuario
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idsistema
+        description: >
+          Código do sistema, de 0 a 19. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: descricao
+        description: >
+          Nome do sistema, como PRONAC ou Ticket Cultural.
+        data_type: text
+      - name: usuario
+        description: >
+          Conta que registrou o sistema. Tem um único valor nas 20 linhas, o
+          da carga inicial, e não liga o sistema a uma pessoa.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vprefeiturasregiaouf
+    description: >
+      Uma linha por agente com perfil de prefeitura, com o CNPJ, o nome da
+      prefeitura, o município, a UF por extenso e a região. São 5.609 linhas,
+      5.555 CNPJs e 5.553 municípios: algumas prefeituras têm mais de um
+      cadastro. É a lista de prefeituras de silver_agentes_perfil com perfil
+      48, já com os nomes. Não tem código IBGE: o município vem só por nome.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vprefeiturasregiaouf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - cnpj
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: regiao
+        description: >
+          Região do país: Nordeste 1.800, Sudeste 1.694, Sul 1.199, Centro
+          Oeste 466, Norte 450.
+        data_type: text
+      - name: uf
+        description: >
+          Nome da UF por extenso, como Goiás. Não é sigla nem código.
+        data_type: text
+      - name: perfil
+        description: >
+          Rótulo do perfil. Vale Prefeitura em todas as linhas.
+        data_type: text
+      - name: cnpj
+        description: >
+          CNPJ da prefeitura, 14 dígitos. Dado público de órgão, não
+          identifica pessoa. Não é único: 5.555 distintos em 5.609 linhas.
+        data_type: text
+        tests:
+          - not_null
+      - name: prefeitura
+        description: >
+          Nome da prefeitura como cadastrado. Vazio em 5 linhas.
         data_type: text
       - name: municipio
         description: >
-          Nome do município. Origem char com espaços à direita — o cast já apara.
-          ~98,5% preenchida.
+          Nome do município. Para o código IBGE, junte pelo nome e pela UF com
+          silver_agentes_vufmunicipio.
         data_type: text
-      - name: ufdescricao
-        description: Nome da UF. ~98,5% preenchida.
-        data_type: text
-      - name: status
-        description: Flag de status (bit True/False).
-        data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: divulgar
-        description: Flag de autorização de divulgação do endereço (bit True/False).
-        data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: usuario
-        description: Identificador do usuário que registrou.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
-          linha (ADR 0005). Não é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_agentes_municipios
     description: >
-      Tabela de domínio geográfico: o município IBGE, sua UF, mesorregião e
-      microrregião. 5.568 linhas. Camada Silver tipada a partir de
-      salic.bronze_agentes_municipios.
+      Uma linha por município brasileiro, com o código IBGE de 6 dígitos, a
+      UF, a mesorregião e a microrregião. São 5.568 municípios, em 137
+      mesorregiões e 558 microrregiões. É o domínio de cidade em
+      silver_agentes_endereconacional e alimenta dim_municipio_ibge. Todo
+      idufibge existe em silver_agentes_uf.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_municipios'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idmunicipioibge
-        description: Código IBGE do município (6 dígitos). Chave da tabela.
+        description: >
+          Código IBGE do município, 6 dígitos, sem o dígito verificador. Único.
+          Para o código de 7 dígitos, use
+          silver_agentes_populacaomunicipio.idmunicipio7.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idufibge
-        description: Código IBGE da UF (2 dígitos).
+        description: >
+          Código IBGE da UF, 2 dígitos. Liga com silver_agentes_uf.iduf, sem
+          órfão.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_agentes_uf')
+                field: iduf
       - name: idmeso
-        description: Código da mesorregião.
+        description: >
+          Código IBGE da mesorregião, 4 dígitos.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idmicro
-        description: Código da microrregião.
+        description: >
+          Código IBGE da microrregião, 5 dígitos.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: descricao
-        description: Nome do município.
+        description: >
+          Nome do município, com acento.
         data_type: text
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
-          linha (ADR 0005). Não é campo de negócio.
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vufmunicipio
+    description: >
+      Uma linha por município, com a sigla e o código da UF. São as mesmas
+      5.568 linhas de silver_agentes_municipios, com a sigla da UF no lugar
+      da meso e microrregião: a comparação de código, UF e nome não achou
+      diferença.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vufmunicipio'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: iduf
+        description: >
+          Código IBGE da UF, 2 dígitos.
         data_type: integer
+      - name: uf
+        description: >
+          Sigla da UF, como PA.
+        data_type: text
+      - name: idmunicipio
+        description: >
+          Código IBGE do município, 6 dígitos. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: municipio
+        description: >
+          Nome do município, igual a silver_agentes_municipios.descricao.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_agentes_uf
     description: >
-      Tabela de domínio: as 27 unidades da federação, com sigla, nome e região.
-      27 linhas. Camada Silver tipada a partir de salic.bronze_agentes_uf.
+      Uma linha por unidade da federação: as 27, com código IBGE, sigla, nome
+      e região. Alimenta dim_municipio_ibge. silver_agentes_vuf tem as mesmas
+      27 linhas.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_uf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: iduf
-        description: Código da UF (2 dígitos IBGE). Chave da tabela.
+        description: >
+          Código IBGE da UF, 2 dígitos. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: sigla
-        description: Sigla da UF (ex. RO, SP).
+        description: >
+          Sigla da UF, como SP. Única.
         data_type: text
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: descricao
-        description: Nome da UF.
+        description: >
+          Nome da UF por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: regiao
-        description: Região (Norte, Nordeste, Sudeste, Sul, Centro-Oeste).
+        description: >
+          Região: Norte, Nordeste, Sudeste, Sul ou Centro Oeste, este sem
+          hífen.
         data_type: text
         tests:
-          - not_null   # inferido do perfil do banco
+          - accepted_values:
+              arguments:
+                values: ['Norte', 'Nordeste', 'Sudeste', 'Sul', 'Centro Oeste']
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
-          linha (ADR 0005). Não é campo de negócio.
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vuf
+    description: >
+      Uma linha por unidade da federação, vinda de uma view da origem. Tem as
+      mesmas 27 linhas de silver_agentes_uf: a comparação não achou
+      diferença. Prefira silver_agentes_uf.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vuf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: iduf
+        description: >
+          Código IBGE da UF, 2 dígitos. Único.
         data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: sigla
+        description: >
+          Sigla da UF, como SP. Única.
+        data_type: text
+      - name: descricao
+        description: >
+          Nome da UF por extenso.
+        data_type: text
+      - name: regiao
+        description: >
+          Região, com Centro Oeste sem hífen.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_agentes_populacaomunicipio
     description: >
-      População por município. 5.563 linhas. Camada Silver tipada a partir de
-      salic.bronze_agentes_populacaomunicipio. Dois códigos IBGE: `idmunicipio`
-      (6 dígitos, casa com agentes__municipios.idmunicipioibge) e `idmunicipio7`
-      (7 dígitos, com dígito verificador).
+      Uma linha por município com a população. São 5.563 municípios, somando
+      205,9 milhões de habitantes. O ano de referência não está na tabela, e
+      o total não bate com os Censos de 2010 nem de 2022: não use como
+      população atual. Alimenta dim_municipio_ibge. 2 municípios não existem
+      em silver_agentes_municipios, e 7 de lá não têm população.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_populacaomunicipio'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idmunicipio
-        description: Código IBGE do município (6 dígitos). Chave da tabela.
+        description: >
+          Código IBGE do município, 6 dígitos. Único. Liga com
+          silver_agentes_municipios.idmunicipioibge; 2 não existem lá.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('silver_agentes_municipios')
+                field: idmunicipioibge
+              config:
+                severity: warn
       - name: idmunicipio7
-        description: Código IBGE do município (7 dígitos, com dígito verificador).
+        description: >
+          Código IBGE do município com o dígito verificador, 7 dígitos. Os 6
+          primeiros são sempre idmunicipio. É o código que as bases do IBGE
+          usam hoje.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: populacao
-        description: População do município (contagem de habitantes).
+        description: >
+          Número de habitantes do município, de ano de referência não
+          registrado.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a
-          linha (ADR 0005). Não é campo de negócio.
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_agentes_vpais
+    description: >
+      Uma linha por país, com nome em português e continente. São 236
+      países. Nenhuma outra silver do banco usa idpais: o nome
+      endereconacional sugere uma tabela de endereço no exterior, e ela não é
+      ingerida. A coluna sigla está vazia em
+      todas as linhas.
+    config:
+      tags: [silver, salic, agentes]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_agentes_vpais'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpais
+        description: >
+          Código do país no SALIC. Único. Não é código ISO.
         data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: sigla
+        description: >
+          Sigla do país. Vazia nas 236 linhas.
+        data_type: text
+      - name: descricao
+        description: >
+          Nome do país em português.
+        data_type: text
+        tests:
+          - not_null
+      - name: continente
+        description: >
+          Continente, em 7 valores: África, América Central, América do
+          Norte, América do Sul, Ásia, Europa e Oceania.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text

@@ -4,7 +4,7 @@
 -- via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- Uma linha por agente cultural (proponente, incentivador ou fornecedor).
 -- `cnpjcpf` fica TEXT (documento com zero à esquerda, dado pessoal). `tipopessoa`
--- é bit da origem — ver a ressalva de semântica no schema.yml.
+-- é bit da origem: false é pessoa física (CPF), true é jurídica (CNPJ).
 select
     {{ bronze_inteiro("idagente") }} as idagente,
     {{ bronze_texto("cnpjcpf") }} as cnpjcpf,
