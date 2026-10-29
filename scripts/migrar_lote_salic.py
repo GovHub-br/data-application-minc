@@ -173,15 +173,31 @@ def migrar_sources(origem: str) -> None:
     texto, n_nome = re.subn(
         rf"^  - name: bronze_{re.escape(origem)}$", "  - name: salic", texto, flags=re.M
     )
+    # Depois do #110 as sources legadas já declaram schema salic.
     texto, n_schema = re.subn(
-        r"^    schema: salic_bronze$", "    schema: salic", texto, flags=re.M
+        r"^    schema: salic(_bronze)?$", "    schema: salic", texto, flags=re.M
     )
     texto, n_ds = RE_DESC_SOURCE.subn(DESC_SOURCE, texto, count=1)
     if n_ds != 1:
         print("  ATENÇÃO descrição da source não encontrada para padronizar")
+
+    # O #110 pôs, por tabela, identifier: bronze_<banco>_<tabela>. Com o nome
+    # da tabela virando esse mesmo nome, a linha sai; fica só quando difere,
+    # como nos nomes que o Postgres cortou em 63 caracteres.
+    def trocar_tabela(m: re.Match[str]) -> str:
+        nome = nome_bronze(origem, m.group(1))
+        linha = f"      - name: {nome}"
+        comentario, ident = m.group(2), m.group(3)
+        if ident is not None and ident != nome:
+            if comentario:
+                linha += f"\n{comentario}"
+            linha += f"\n        identifier: {ident}"
+        return linha
+
     texto, n_tab = re.subn(
-        rf"^      - name: {re.escape(origem)}__(\S+)$",
-        lambda m: f"      - name: {nome_bronze(origem, m.group(1))}",
+        rf"^      - name: {re.escape(origem)}__(\S+)$"
+        r"(?:\n(?:(        #[^\n]*)\n)?        identifier: (\S+)$)?",
+        trocar_tabela,
         texto,
         flags=re.M,
     )
