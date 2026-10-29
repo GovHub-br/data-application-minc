@@ -4,7 +4,7 @@
 --
 -- Grão: 1 linha por agente (`id`).
 --
--- Tipagem pelos tipos que o banco do Mapas declara. Texto vazio e só de
+-- Tipos da origem, mas id e código em bigint (R17). Texto vazio e só de
 -- espaços viram NULL; valor que não casa com o tipo vira NULL; ausente fica
 -- nulo, nunca vira falso.
 --
@@ -20,8 +20,8 @@
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
-            {{ bronze_inteiro("user_id") }} as user_id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
+            {{ bronze_inteiro("user_id", "bigint") }} as user_id,
             {{ bronze_inteiro("type", "smallint") }} as type,
             {{ bronze_texto("name") }} as name,
             {{ mapas_ponto("location", 1) }} as longitude,
@@ -32,12 +32,12 @@ with
             {{ bronze_timestamp("create_timestamp") }} as create_timestamp,
             {{ bronze_inteiro("status", "smallint") }} as status,
             {{ bronze_booleano("is_verified") }} as is_verified,
-            {{ bronze_inteiro("parent_id") }} as parent_id,
+            {{ bronze_inteiro("parent_id", "bigint") }} as parent_id,
             {{ bronze_booleano("public_location") }} as public_location,
-            {{ bronze_inteiro("id_responsavel_rac") }} as id_responsavel_rac,
-            {{ bronze_inteiro("id_usuario_rac") }} as id_usuario_rac,
+            {{ bronze_inteiro("id_responsavel_rac", "bigint") }} as id_responsavel_rac,
+            {{ bronze_inteiro("id_usuario_rac", "bigint") }} as id_usuario_rac,
             {{ bronze_timestamp("update_timestamp") }} as update_timestamp,
-            {{ bronze_inteiro("subsite_id") }} as subsite_id,
+            {{ bronze_inteiro("subsite_id", "bigint") }} as subsite_id,
             _fatia
         from {{ source("mapas", "bronze_agent") }}
     ),

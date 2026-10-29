@@ -4,19 +4,19 @@
 --
 -- Grão: 1 linha por `id`.
 --
--- Tipagem pelos tipos que o banco do Mapas declara. Texto vazio e só de espaços viram
+-- Tipos da origem, mas id e código em bigint (R17). Texto vazio e só de espaços viram
 -- NULL;
 -- valor que não casa com o tipo vira NULL; ausente fica nulo, nunca vira falso.
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
             {{ bronze_texto("request_uid") }} as request_uid,
-            {{ bronze_inteiro("requester_user_id") }} as requester_user_id,
+            {{ bronze_inteiro("requester_user_id", "bigint") }} as requester_user_id,
             {{ bronze_texto("origin_type") }} as origin_type,
-            {{ bronze_inteiro("origin_id") }} as origin_id,
+            {{ bronze_inteiro("origin_id", "bigint") }} as origin_id,
             {{ bronze_texto("destination_type") }} as destination_type,
-            {{ bronze_inteiro("destination_id") }} as destination_id,
+            {{ bronze_inteiro("destination_id", "bigint") }} as destination_id,
             {{ bronze_texto("metadata") }} as metadata,
             {{ bronze_texto("type") }} as type,
             {{ bronze_timestamp("create_timestamp") }} as create_timestamp,

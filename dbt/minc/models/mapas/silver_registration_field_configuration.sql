@@ -6,14 +6,14 @@
 --
 -- Grão: 1 linha por `id`.
 --
--- Tipagem pelos tipos que o banco do Mapas declara. Texto vazio e só de espaços viram
+-- Tipos da origem, mas id e código em bigint (R17). Texto vazio e só de espaços viram
 -- NULL;
 -- valor que não casa com o tipo vira NULL; ausente fica nulo, nunca vira falso.
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
-            {{ bronze_inteiro("opportunity_id") }} as opportunity_id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
+            {{ bronze_inteiro("opportunity_id", "bigint") }} as opportunity_id,
             {{ bronze_texto("title") }} as title,
             {{ bronze_texto("description") }} as description,
             {{ bronze_texto("categories") }} as categories,
@@ -28,7 +28,7 @@ with
             {{ bronze_texto("conditional_value") }} as conditional_value,
             {{ mapas_json("registration_ranges") }} as registration_ranges,
             {{ mapas_json("proponent_types") }} as proponent_types,
-            {{ bronze_inteiro("step_id") }} as step_id,
+            {{ bronze_inteiro("step_id", "bigint") }} as step_id,
             _fatia
         from {{ source("mapas", "bronze_registration_field_configuration") }}
     ),

@@ -16,10 +16,10 @@
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
-            {{ bronze_inteiro("agent_id") }} as agent_id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
+            {{ bronze_inteiro("agent_id", "bigint") }} as agent_id,
             {{ bronze_texto("object_type") }} as object_type,
-            {{ bronze_inteiro("object_id") }} as object_id,
+            {{ bronze_inteiro("object_id", "bigint") }} as object_id,
             {{ bronze_texto("type") }} as type,
             {{ bronze_booleano("has_control") }} as has_control,
             {{ bronze_timestamp("create_timestamp") }} as create_timestamp,
