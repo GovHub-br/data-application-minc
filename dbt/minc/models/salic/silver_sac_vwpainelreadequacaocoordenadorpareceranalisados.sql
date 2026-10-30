@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpainelreadequacaocoordenadorpareceranalisados (ex-sac__vwpainelreadequacaocoordenadorpareceranalisados).
+-- Silver SALIC — silver_sac_vwpainelreadequacaocoordenadorpareceranalisados
+-- (ex-sac__vwpainelreadequacaocoordenadorpareceranalisados).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpainelreadequacaocoordenadorpareceranalisados, onde tudo
 -- chega como texto da
@@ -9,13 +10,13 @@
 select
     {{ bronze_inteiro("iddistribuirreadequacao") }} as iddistribuirreadequacao,
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("pronac") }} as pronac,
+    {{ bronze_texto("pronac") }} as pronac,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("tpreadequacao") }} as tpreadequacao,
     {{ bronze_timestamp("dtenvio") }} as dtenvio,
     {{ bronze_timestamp("dtdistribuicao") }} as dtdistribuicao,
     {{ bronze_timestamp("dtdevolucao") }} as dtdevolucao,
-    {{ bronze_texto("qtdiasdistribuir") }} as qtdiasdistribuir,
+    {{ bronze_inteiro("qtdiasdistribuir") }} as qtdiasdistribuir,
     {{ bronze_inteiro("qtdiasavaliar") }} as qtdiasavaliar,
     {{ bronze_inteiro("qttotaldiasavaliar") }} as qttotaldiasavaliar,
     {{ bronze_inteiro("idtecnico") }} as idtecnico,

@@ -2,12 +2,12 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpainelparecerista, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 32 colunas: 17 tipadas, 14 mantidas como texto.
+-- 32 colunas: 19 tipadas, 12 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("nrprojeto") }} as nrprojeto,
+    {{ bronze_texto("nrprojeto") }} as nrprojeto,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_inteiro("idproduto") }} as idproduto,
     {{ bronze_texto("produto") }} as produto,
@@ -23,7 +23,7 @@ select
     {{ bronze_texto("sianalise") }} as sianalise,
     {{ bronze_texto("siencaminhamento") }} as siencaminhamento,
     {{ bronze_inteiro("qtdiasparadistribuir") }} as qtdiasparadistribuir,
-    {{ bronze_texto("dtdevolucao") }} as dtdevolucao,
+    {{ bronze_timestamp("dtdevolucao") }} as dtdevolucao,
     {{ bronze_inteiro("tempototalanalise") }} as tempototalanalise,
     {{ bronze_inteiro("tempoparecerista") }} as tempoparecerista,
     {{ bronze_inteiro("tempodiligencia") }} as tempodiligencia,
@@ -32,8 +32,8 @@ select
     {{ bronze_inteiro("qtdesecundarios") }} as qtdesecundarios,
     {{ bronze_timestamp("dtenviodiligencia") }} as dtenviodiligencia,
     {{ bronze_timestamp("dtrespostadiligencia") }} as dtrespostadiligencia,
-    {{ bronze_texto("qtdiligenciaproduto") }} as qtdiligenciaproduto,
-    {{ bronze_texto("valor") }} as valor,
+    {{ bronze_inteiro("qtdiligenciaproduto") }} as qtdiligenciaproduto,
+    {{ bronze_numerico_cientifico("valor") }} as valor,
     {{ bronze_texto("observacao") }} as observacao,
     {{ bronze_texto("stprincipal") }} as stprincipal,
     {{ bronze_texto("fecharanalise") }} as fecharanalise,

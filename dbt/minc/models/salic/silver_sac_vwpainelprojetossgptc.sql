@@ -2,14 +2,14 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpainelprojetossgptc, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 31 colunas: 23 tipadas, 7 mantidas como texto.
+-- 31 colunas: 21 tipadas, 9 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("nrpronac") }} as nrpronac,
-    {{ bronze_inteiro("anoprojeto") }} as anoprojeto,
-    {{ bronze_inteiro("sequencial") }} as sequencial,
+    {{ bronze_texto("nrpronac") }} as nrpronac,
+    {{ bronze_texto("anoprojeto") }} as anoprojeto,
+    {{ bronze_texto("sequencial") }} as sequencial,
     {{ bronze_texto("nmprojeto") }} as nmprojeto,
     {{ bronze_texto("proponente") }} as proponente,
     {{ bronze_inteiro("cdarea") }} as cdarea,
@@ -31,7 +31,7 @@ select
     {{ bronze_numerico("vlperccaptado") }} as vlperccaptado,
     {{ bronze_numerico("vlcomprovado") }} as vlcomprovado,
     {{ bronze_numerico("vlpercomprovado") }} as vlpercomprovado,
-    {{ bronze_texto("vlsaldocontacaptacao") }} as vlsaldocontacaptacao,
+    {{ bronze_numerico("vlsaldocontacaptacao") }} as vlsaldocontacaptacao,
     {{ bronze_numerico("vlsaldocontamovimento") }} as vlsaldocontamovimento,
     {{ bronze_numerico("vlsaldodascontas") }} as vlsaldodascontas,
     {{ bronze_numerico("vlutilizado") }} as vlutilizado,
