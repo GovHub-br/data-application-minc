@@ -1452,6 +1452,57 @@
       "linhas_sql": 77
     },
     {
+      "nome": "eixo2_meta5_proponente_ano_rouanet",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": 5,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta5_proponente_ano_rouanet.sql",
+      "descricao": "Camada Gold — Meta 5, a partir do SALIC. Acesso a fomento por proponente e ano, medido por pagamento.\nGRÃO: um proponente por ano em que houve pagamento em projeto ao qual ele está ligado. UNIVERSO: todos os agentes que a ponte `silver_sac_projeto_proponente_rouanet` associa a um PRONAC com ao menos uma comprovação de pagamento com ano preenchido.\nPARA QUE SERVE: é a base do indicador de primeiro acesso da Meta 5. A coluna `eh_primeiro_ano` marca a linha do primeiro ano de cada proponente, então a mesma tabela serve para a série anual e para a contagem de novos entrantes.\nPRIMEIRO ACESSO É O PRIMEIRO PAGAMENTO. Decidido em 2026-09-04, e não é neutro: pagamento no SALIC é o projeto pagando terceiros, então o indicador mede o ano em que o projeto do proponente começou a executar, e não o ano em que ele conseguiu recurso. Captação e pagamento são medidas distintas pela decisão 1 da ADR 0006, e trocar uma pela outra muda o indicador.\nPOR QUE NÃO HÁ VALOR: a ponte de proponente tem grão PRONAC x agente, e um projeto pode ter mais de um agente ligado. Somar valor pago por proponente contaria o mesmo dinheiro uma vez para cada agente, e o total ficaria acima do real — é a mesma questão de rateio que continua aberta para a Meta 4. Contagem de distintos e ano mínimo não sofrem disso, e é por isso que este fato carrega quando e quantas vezes, nunca quanto.\nDESCONHECIDOS: comprovação com ano não numérico na origem fica de fora. Atribuí-la a algum ano seria invenção, e mantê-la criaria uma categoria \"sem ano\" que nenhum indicador pediu. O volume dessas linhas deve ser medido no gate G1.\nLIMITAÇÃO HERDADA DA PONTE, e é a mais séria: a ponte documenta que \"que todo agente listado seja proponente, e não outro papel, é hipótese a confirmar\". Enquanto isso não for confirmado, este fato conta agentes ligados ao projeto, que podem incluir procurador ou outro vínculo. Contar \"proponentes\" a partir daqui exige fechar essa questão antes.\nZONA RESTRITA. Lê a ponte de proponente, que carrega documento e nome. A anonimização e a disponibilização são responsabilidade do Apache Ranger, no momento do acesso — decidido em 2026-09-04, e é por isso que não há pseudonimização no pipeline.\nATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.",
+      "colunas": [
+        {
+          "nome": "id_agente",
+          "descricao": "Identificador do agente no cadastro do SALIC. Chave do proponente nesta tabela. Identifica uma pessoa de forma indireta, e por isso recebe a mesma classificação que na ponte de proponente."
+        },
+        {
+          "nome": "documento_proponente",
+          "descricao": "CPF ou CNPJ do proponente, normalizado sem pontuação, como vem da ponte. Dado pessoal — o mascaramento é aplicado pelo Ranger no acesso, não aqui."
+        },
+        {
+          "nome": "tipo_pessoa_proponente",
+          "descricao": "Se o proponente é pessoa física ou jurídica, derivado do comprimento do documento."
+        },
+        {
+          "nome": "ano",
+          "descricao": "Ano da comprovação de pagamento. Comprovação sem ano numérico na origem não gera linha."
+        },
+        {
+          "nome": "projetos_com_pagamento",
+          "descricao": "Quantos projetos distintos do proponente tiveram pagamento naquele ano."
+        },
+        {
+          "nome": "comprovacoes",
+          "descricao": "Quantas comprovações de pagamento distintas houve naquele ano nos projetos do proponente. É contagem de registros, não de valor."
+        },
+        {
+          "nome": "ano_primeiro_pagamento",
+          "descricao": "Menor ano com pagamento observado para aquele proponente em toda a série. Repetido em todas as linhas dele, para dispensar subconsulta em quem consome."
+        },
+        {
+          "nome": "eh_primeiro_ano",
+          "descricao": "Verdadeiro na linha do primeiro ano do proponente. É o campo que responde à Meta 5 — contar novos entrantes é somar esta coluna por ano."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "silver_sac_projeto_proponente_rouanet",
+        "silver_sac_tbapicomprovacoes"
+      ],
+      "sources": [],
+      "linhas_sql": 74
+    },
+    {
       "nome": "eixo2_meta5_trajetoria_fomento_direto_rouanet",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -5057,12 +5108,72 @@
       "linhas_sql": 26
     },
     {
+      "nome": "silver_agentes_municipio_ibge",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_agentes_municipio_ibge.sql",
+      "descricao": "Camada Silver / núcleo SALIC. Dimensão territorial de referência: os municípios brasileiros com os dois formatos de código IBGE, unidade federativa, região, mesorregião, microrregião e população.\nGRÃO: um município. UNIVERSO: os 5.568 municípios de `agentes__municipios`, sem exclusão por porte, situação ou qualquer outro critério.\nPARA QUE SERVE: é a dimensão contra a qual `silver_sac_projeto_local_execucao` resolve o local de execução, e é pré-requisito dos três indicadores da Meta 4 — o percentual executado fora das capitais, o executado no Norte, Nordeste e Centro-Oeste, e o captado em território vulnerabilizado.\nDUAS FORMAS DE CÓDIGO IBGE, E POR QUE AS DUAS. O SALIC identifica o município por um código de 6 posições, sem o dígito verificador; o IBGE e o `transferegov` usam o de 7. Cruzar as duas formas sem tratar não casa nenhuma linha e não levanta erro — junção que não encontra devolve vazio. A dimensão expõe as duas colunas, e a correspondência NÃO é calculada: vem de `agentes__populacaomunicipio`, que carrega os dois formatos na mesma linha. Derivar o dígito verificador seria uma regra a mais para manter, e erraria em silêncio se a regra do IBGE mudasse.\nDESCONHECIDOS: município sem UF correspondente, ou sem linha na tabela de população, permanece na dimensão com esses campos nulos. São 5.568 municípios contra 5.563 com população — a diferença de cinco é esperada e precisa ficar visível, não ser descartada por um join interno.\nCAPITAL É ASSUNTO DO GOLD. O indicador P1 da Meta 4 compara execução dentro e fora das capitais, mas a marcação não mora aqui: o desenho declara a lista de capitais como base externa, casada no modelo do indicador. A dimensão entrega o município identificado; quem classifica é quem calcula o percentual.\nATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.",
+      "colunas": [
+        {
+          "nome": "codigo_ibge_6",
+          "descricao": "Código IBGE do município com seis posições, sem o dígito verificador, como o SALIC o registra. Chave da dimensão. Chega da bronze como inteiro — inócuo para código do IBGE, que nunca começa com zero, mas exige cast ao cruzar com fonte que traga o código como texto."
+        },
+        {
+          "nome": "codigo_ibge_7",
+          "descricao": "Código IBGE do município com sete posições, com o dígito verificador. É a forma oficial e a usada pelo `transferegov`. Nulo para os municípios sem linha na tabela de população. Chega como inteiro, enquanto o `transferegov` traz o mesmo código como texto — cruzar as duas fontes exige cast explícito de um dos lados."
+        },
+        {
+          "nome": "nome_municipio",
+          "descricao": "Nome do município como registrado na origem, sem normalização."
+        },
+        {
+          "nome": "id_uf_ibge",
+          "descricao": "Código IBGE da unidade federativa. Chave de junção com a dimensão de UF."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla de duas letras da unidade federativa. Nulo quando o município não encontra UF correspondente — condição que deve permanecer visível, não corrigida em silêncio."
+        },
+        {
+          "nome": "nome_uf",
+          "descricao": "Nome da unidade federativa. Nulo nas mesmas condições da sigla."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Região geográfica da unidade federativa. É o campo que sustenta o indicador P2 da Meta 4 pela cadeia territorial do IBGE. O SALIC também grava região direto em `tbApiComprovacoes.dsRegiao`; as duas fontes são independentes e podem divergir, e qual delas prevalece é decisão ainda não tomada."
+        },
+        {
+          "nome": "codigo_mesorregiao",
+          "descricao": "Código da mesorregião do IBGE, como vem da origem."
+        },
+        {
+          "nome": "codigo_microrregiao",
+          "descricao": "Código da microrregião do IBGE, como vem da origem."
+        },
+        {
+          "nome": "populacao",
+          "descricao": "População do município como registrada na origem. Nulo para os cinco municípios sem linha na tabela de população."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 3,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_agentes_municipios",
+        "silver_agentes_populacaomunicipio",
+        "silver_agentes_uf"
+      ],
+      "sources": [],
+      "linhas_sql": 65
+    },
+    {
       "nome": "silver_agentes_municipios",
       "dominio": "salic",
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_agentes_municipios.sql",
-      "descricao": "Uma linha por município brasileiro, com o código IBGE de 6 dígitos, a UF, a mesorregião e a microrregião. São 5.568 municípios, em 137 mesorregiões e 558 microrregiões. É o domínio de cidade em silver_agentes_endereconacional e alimenta dim_municipio_ibge. Todo idufibge existe em silver_agentes_uf.",
+      "descricao": "Uma linha por município brasileiro, com o código IBGE de 6 dígitos, a UF, a mesorregião e a microrregião. São 5.568 municípios, em 137 mesorregiões e 558 microrregiões. É o domínio de cidade em silver_agentes_endereconacional e alimenta silver_agentes_municipio_ibge. Todo idufibge existe em silver_agentes_uf.",
       "colunas": [
         {
           "nome": "idmunicipioibge",
@@ -5146,7 +5257,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_agentes_populacaomunicipio.sql",
-      "descricao": "Uma linha por município com a população. São 5.563 municípios, somando 205,9 milhões de habitantes. O ano de referência não está na tabela, e o total não bate com os Censos de 2010 nem de 2022: não use como população atual. Alimenta dim_municipio_ibge. 2 municípios não existem em silver_agentes_municipios, e 7 de lá não têm população.",
+      "descricao": "Uma linha por município com a população. São 5.563 municípios, somando 205,9 milhões de habitantes. O ano de referência não está na tabela, e o total não bate com os Censos de 2010 nem de 2022: não use como população atual. Alimenta silver_agentes_municipio_ibge. 2 municípios não existem em silver_agentes_municipios, e 7 de lá não têm população.",
       "colunas": [
         {
           "nome": "idmunicipio",
@@ -5238,7 +5349,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_agentes_uf.sql",
-      "descricao": "Uma linha por unidade da federação: as 27, com código IBGE, sigla, nome e região. Alimenta dim_municipio_ibge. silver_agentes_vuf tem as mesmas 27 linhas.",
+      "descricao": "Uma linha por unidade da federação: as 27, com código IBGE, sigla, nome e região. Alimenta silver_agentes_municipio_ibge. silver_agentes_vuf tem as mesmas 27 linhas.",
       "colunas": [
         {
           "nome": "iduf",
@@ -7339,6 +7450,108 @@
       "linhas_sql": 34
     },
     {
+      "nome": "silver_sac_aprovacao_rouanet",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_aprovacao_rouanet.sql",
+      "descricao": "Camada Silver / núcleo SALIC. Fato da aprovação de projeto na Lei Rouanet, com o histórico completo.\nGRÃO: uma linha por registro de aprovação. CHAVE: `id_aprovacao`. UNIVERSO: todos os registros de `silver_sac_aprovacao` com id e PRONAC resolvidos.\nPOR QUE O HISTÓRICO INTEIRO: um projeto tem mais de uma aprovação ao longo da vida — inicial, readequação, prorrogação. A `silver_sac_projeto_rouanet` guarda só a mais recente, que é o que um painel lê; aqui nenhuma linha se perde, porque a série de valor autorizado e a janela de captação dependem do histórico. `codigo_tipo_aprovacao`, `id_readequacao` e `id_prorrogacao` são o que distingue os registros entre si.\nAPROVAÇÃO NÃO É CAPTAÇÃO: o valor autorizado é teto — quanto o projeto pode captar, não quanto captou. Usá-lo como recurso realizado superestima qualquer indicador de execução.\nMEDIDA E UNIDADE: todos os valores `_reais` em reais nominais da data da aprovação, sem correção monetária; os `_ufir` na unidade fiscal histórica.\nDUAS COLUNAS DA ORIGEM FICAM DE FORA: `logon`, que identifica o servidor que registrou a aprovação, e `resumoaprovacao`, texto livre digitado por analista — texto livre é o vetor por onde nome, endereço e documento entram numa tabela que nenhuma classificação automática marca.\nLIMITAÇÕES: o domínio de `codigo_tipo_aprovacao` não foi levantado contra o banco e fica exposto como código, sem descrição inventada (gate G1). ATUALIZAÇÃO: recalculado a cada `dbt build`.",
+      "colunas": [
+        {
+          "nome": "id_aprovacao",
+          "descricao": "Identificador do registro de aprovação no SALIC. Chave do fato."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto aprovado, preservado sem padding artificial."
+        },
+        {
+          "nome": "id_pronac",
+          "descricao": "Surrogate inteiro do projeto, como gravado na própria linha de origem."
+        },
+        {
+          "nome": "id_parecer",
+          "descricao": "Identificador do parecer que embasou a aprovação."
+        },
+        {
+          "nome": "codigo_tipo_aprovacao",
+          "descricao": "Código que distingue aprovação inicial de readequação e prorrogação. Exposto como código: a tabela de domínio ainda não foi identificada."
+        },
+        {
+          "nome": "data_aprovacao",
+          "descricao": "Data em que a aprovação foi registrada."
+        },
+        {
+          "nome": "ano_aprovacao",
+          "descricao": "Ano da data de aprovação, para corte anual."
+        },
+        {
+          "nome": "numero_portaria",
+          "descricao": "Número da portaria de aprovação."
+        },
+        {
+          "nome": "data_portaria",
+          "descricao": "Data da portaria de aprovação."
+        },
+        {
+          "nome": "data_publicacao",
+          "descricao": "Data de publicação da portaria. É a data com efeito legal: a partir dela o projeto pode captar. Preferida a `data_aprovacao` quando se precisa datar o acesso."
+        },
+        {
+          "nome": "data_inicio_captacao",
+          "descricao": "Início da janela autorizada de captação."
+        },
+        {
+          "nome": "data_fim_captacao",
+          "descricao": "Fim da janela autorizada de captação."
+        },
+        {
+          "nome": "valor_aprovado_reais",
+          "descricao": "Valor aprovado, em reais nominais da data da aprovação."
+        },
+        {
+          "nome": "valor_autorizado_reais",
+          "descricao": "Valor autorizado a captar, em reais nominais. É teto, não recurso realizado."
+        },
+        {
+          "nome": "valor_concedido_custeio_reais",
+          "descricao": "Parcela de custeio do valor concedido, em reais nominais."
+        },
+        {
+          "nome": "valor_concedido_capital_reais",
+          "descricao": "Parcela de capital do valor concedido, em reais nominais."
+        },
+        {
+          "nome": "valor_contrapartida_reais",
+          "descricao": "Contrapartida registrada na aprovação, em reais nominais."
+        },
+        {
+          "nome": "valor_aprovado_ufir",
+          "descricao": "Valor aprovado na unidade fiscal histórica (UFIR)."
+        },
+        {
+          "nome": "valor_autorizado_ufir",
+          "descricao": "Valor autorizado na unidade fiscal histórica (UFIR)."
+        },
+        {
+          "nome": "id_prorrogacao",
+          "descricao": "Identificador da prorrogação, quando a aprovação é uma prorrogação."
+        },
+        {
+          "nome": "id_readequacao",
+          "descricao": "Identificador da readequação, quando a aprovação é uma readequação."
+        }
+      ],
+      "colunas_descritas": 21,
+      "testes": 4,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_sac_aprovacao"
+      ],
+      "sources": [],
+      "linhas_sql": 58
+    },
+    {
       "nome": "silver_sac_area",
       "dominio": "salic",
       "camada": "silver",
@@ -8324,7 +8537,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_captacao.sql",
-      "descricao": "Uma linha por recibo de captação: dinheiro que um incentivador depositou na conta de um projeto. São 668.765 recibos, de 1993 a 2026, para 55.043 projetos e 126.552 incentivadores. Não tem idpronac: liga ao projeto por anoprojeto e sequencial, sem órfão. É a fonte de fct_captacao_rouanet.\n\nArmadilhas: o SalicWeb lê o tipo de apoio de dois jeitos; o dado apoia 1 doação e 2 patrocínio (ver tipoapoio). 28.304 recibos têm incentivador que não existe em silver_agentes_agentes. Captação não é pagamento: o valor captado entra na conta do projeto, e o que foi gasto está nas comprovações.",
+      "descricao": "Uma linha por recibo de captação: dinheiro que um incentivador depositou na conta de um projeto. São 668.765 recibos, de 1993 a 2026, para 55.043 projetos e 126.552 incentivadores. Não tem idpronac: liga ao projeto por anoprojeto e sequencial, sem órfão. É a fonte de silver_sac_captacao_rouanet.\n\nArmadilhas: o SalicWeb lê o tipo de apoio de dois jeitos; o dado apoia 1 doação e 2 patrocínio (ver tipoapoio). 28.304 recibos têm incentivador que não existe em silver_agentes_agentes. Captação não é pagamento: o valor captado entra na conta do projeto, e o que foi gasto está nas comprovações.",
       "colunas": [
         {
           "nome": "idcaptacao",
@@ -8410,7 +8623,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_captacao_proponente.sql",
-      "descricao": "Camada Silver — um recibo de captação da Lei Rouanet por linha, com o proponente que recebeu o recurso. Junta o recibo (sac__captacao) ao cadastro do projeto pelo PRONAC e tipa; não decide quais recibos contam para um indicador. Grão: 1 linha por recibo de captação.\nO proponente de cada PRONAC vem de sac__projetos (cgccpf), o cadastro oficial do projeto. O PRONAC sai da macro pronac_de_ano_sequencial nas duas tabelas, a mesma do fct_captacao_rouanet. Recibo cujo PRONAC o cadastro não resolve fica de fora sem erro; o teste singular salic_recibo_sem_proponente (severity warn) avisa por PRONAC, separando PRONAC malformado de ausente do cadastro, e o salic_recibo_sem_proponente_em_massa (severity error) trava o build quando a perda passa de 1% dos recibos.\nLê a Bronze do SALIC (salic.bronze_sac_*). Até 21/10/2026 lia a v1 (schema `bronze`) e usava sac__tbapiprojetorouanet como reserva de proponente; a v2 não ingere essa tabela, e o cadastro sozinho já resolvia 100% dos recibos válidos.",
+      "descricao": "Camada Silver — um recibo de captação da Lei Rouanet por linha, com o proponente que recebeu o recurso. Junta o recibo (sac__captacao) ao cadastro do projeto pelo PRONAC e tipa; não decide quais recibos contam para um indicador. Grão: 1 linha por recibo de captação.\nO proponente de cada PRONAC vem de sac__projetos (cgccpf), o cadastro oficial do projeto. O PRONAC sai da macro pronac_de_ano_sequencial nas duas tabelas, a mesma do silver_sac_captacao_rouanet. Recibo cujo PRONAC o cadastro não resolve fica de fora sem erro; o teste singular salic_recibo_sem_proponente (severity warn) avisa por PRONAC, separando PRONAC malformado de ausente do cadastro, e o salic_recibo_sem_proponente_em_massa (severity error) trava o build quando a perda passa de 1% dos recibos.\nLê a Bronze do SALIC (salic.bronze_sac_*). Até 21/10/2026 lia a v1 (schema `bronze`) e usava sac__tbapiprojetorouanet como reserva de proponente; a v2 não ingere essa tabela, e o cadastro sozinho já resolvia 100% dos recibos válidos.",
       "colunas": [
         {
           "nome": "proponente_documento",
@@ -8441,7 +8654,81 @@
         "salic.bronze_sac_captacao",
         "salic.bronze_sac_projetos"
       ],
-      "linhas_sql": 77
+      "linhas_sql": 71
+    },
+    {
+      "nome": "silver_sac_captacao_rouanet",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_captacao_rouanet.sql",
+      "descricao": "Camada Silver / núcleo SALIC. Fato da captação de recurso na Lei Rouanet.\nGRÃO: uma linha por recibo de captação. CHAVE: `id_captacao`. UNIVERSO: todos os recibos de `silver_sac_captacao` com id, data e PRONAC resolvidos. Nenhum corte por ano, valor ou situação do projeto.\nO QUE MEDE: na Rouanet o MinC não repassa dinheiro ao agente — o projeto aprovado capta de um incentivador, que abate o valor do imposto devido. O recibo é o registro de que o recurso entrou, e por isso ele, e não a portaria de aprovação, é a medida de recurso captado das Metas 3 e 5.\nCAPTAÇÃO NÃO É PAGAMENTO: captado, comprovado e pago são três medidas diferentes, e um indicador nunca pode usar uma no numerador e outra no denominador. Este fato responde por captado.\nMEDIDA E UNIDADE: `valor_captado_reais` em reais nominais da data do recibo, sem correção monetária. `valor_captado_ufir` é o mesmo valor na unidade fiscal histórica e só faz sentido para série antiga.\nO MECENAS FICA DE FORA: `cgccpfmecena` identifica o incentivador e não é trazido. No lugar fica `tipo_pessoa_mecenas`, derivado só do comprimento do documento. É o que deixa este fato candidato a publicação depois da validação de segurança; análise por incentivador pede um fato restrito próprio.\nNULOS E DESCONHECIDOS: valor zero ou negativo (estorno) é preservado — filtrar aqui esconderia estorno de quem soma, e a decisão do que entra em cada indicador é do gold, com a regra declarada. Sai apenas o que não identifica evento: recibo sem id, sem data ou sem PRONAC resolvido.\nLIMITAÇÕES: a reconciliação por ano e PRONAC com `salic/silver_sac_captacao_proponente` é o gate G3 e ainda não foi feita. As duas leem a v2 e montam o PRONAC pela mesma macro; até a reconciliação os dois convivem e nenhum substitui o outro. ATUALIZAÇÃO: recalculado a cada `dbt build`.",
+      "colunas": [
+        {
+          "nome": "id_captacao",
+          "descricao": "Identificador do recibo de captação no SALIC. Chave do fato."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto que captou, preservado sem padding artificial."
+        },
+        {
+          "nome": "numero_recibo",
+          "descricao": "Número do recibo de captação, como texto na origem."
+        },
+        {
+          "nome": "data_recibo",
+          "descricao": "Data do recibo — é o evento que data a captação e o que define o ano de referência de qualquer indicador de recurso captado."
+        },
+        {
+          "nome": "ano_recibo",
+          "descricao": "Ano da data do recibo, para corte anual sem derivar data no gold."
+        },
+        {
+          "nome": "data_chegada_recibo",
+          "descricao": "Data em que o recibo chegou ao SALIC. Diferente da data do recibo, e é a diferença entre as duas que explica atraso de série."
+        },
+        {
+          "nome": "valor_captado_reais",
+          "descricao": "Valor captado em reais nominais da data do recibo, sem correção monetária. Valores zero e negativos (estorno) são preservados."
+        },
+        {
+          "nome": "valor_captado_ufir",
+          "descricao": "Mesmo valor na unidade fiscal histórica (UFIR). Só faz sentido para a série anterior à extinção da unidade; não misture com reais."
+        },
+        {
+          "nome": "codigo_tipo_apoio",
+          "descricao": "Código do tipo de apoio do recibo, como na origem. A tabela de domínio ainda não foi identificada na bronze v2."
+        },
+        {
+          "nome": "medida_provisoria",
+          "descricao": "Medida provisória sob a qual a captação foi registrada, quando a origem preenche."
+        },
+        {
+          "nome": "tipo_pessoa_mecenas",
+          "descricao": "'PF' ou 'PJ' do incentivador, derivado apenas do comprimento do documento. Deliberadamente não identificante: o CPF/CNPJ do mecenas não é trazido para esta camada."
+        },
+        {
+          "nome": "situacao_transferencia_recurso",
+          "descricao": "Situação da transferência do recurso, como código de texto na origem."
+        },
+        {
+          "nome": "data_transferencia_recurso",
+          "descricao": "Data da transferência do recurso, quando registrada."
+        },
+        {
+          "nome": "indicador_bem_servico",
+          "descricao": "Marcador da origem para captação em bem ou serviço, em vez de dinheiro. Mantido como texto: o domínio de valores não foi levantado e convertê-lo para booleano aqui inventaria uma leitura."
+        }
+      ],
+      "colunas_descritas": 14,
+      "testes": 7,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_sac_captacao"
+      ],
+      "sources": [],
+      "linhas_sql": 58
     },
     {
       "nome": "silver_sac_captacaoconversao",
@@ -9176,6 +9463,66 @@
         "salic.bronze_sac_certidoesnegativas"
       ],
       "linhas_sql": 21
+    },
+    {
+      "nome": "silver_sac_chave_projeto_rouanet",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_chave_projeto_rouanet.sql",
+      "descricao": "Camada Silver / núcleo SALIC. Mapa das três chaves com que o SALIC identifica o mesmo projeto da Lei Rouanet: `pronac` (chave de negócio, 7 posições), `id_pronac` (surrogate das tabelas de análise) e `id_projeto` (surrogate antigo, chave de `silver_sac_abrangencia`).\nGRÃO: uma linha por PRONAC. UNIVERSO: todo PRONAC observado em qualquer silver do sac que carregue a chave — `silver_sac_aprovacao`, `silver_sac_enquadramento`, `silver_sac_documentosprojeto`, `silver_sac_vwprojetositinerantes`, `silver_sac_vwalterarprojeto`, `silver_sac_vwagentesseusprojetos` e `silver_sac_captacao`. Nada é excluído por situação, ano ou valor.\nPARA QUE SERVE: sem ele a Meta 4 não liga abrangência territorial a PRONAC, porque `silver_sac_abrangencia` só tem `idprojeto`. Também é ele que define o universo de projetos da `silver_sac_projeto_rouanet`.\nDESCONHECIDOS E CONFLITO: quando o mesmo PRONAC aparece com mais de um `id_pronac` (ou mais de um `id_projeto`), a coluna do id sai NULL e a flag correspondente sai `true` — fail-closed. Um join que não acontece é visível; um join com o id errado não é. `idprojeto = 0`, que é o valor preenchido na maior parte de `silver_sac_captacao`, é tratado como ausência.\nLIMITAÇÕES: cobertura e taxa de ambiguidade dependem do que está carregado e ainda não foram medidas contra o banco (gate G1 do plano). ATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "Chave de negócio do projeto na Rouanet: dois dígitos de ano seguidos do sequencial como registrado, com 5 a 7 posições na série observada. Não há padding do sequencial: fazê-lo mudaria a chave. Normalizado pela macro `pronac_normalizado` ou montado por `pronac_de_ano_sequencial`, conforme a forma da origem."
+        },
+        {
+          "nome": "ano_pronac",
+          "descricao": "Ano de quatro dígitos derivado das duas primeiras posições do PRONAC. A regra é 91–99 para o século XX e 00–90 para o XXI, válida até 2091. É o ano de abertura do projeto, não o ano de nenhum evento financeiro — não use como ano de referência de indicador."
+        },
+        {
+          "nome": "id_pronac",
+          "descricao": "Surrogate inteiro do projeto usado pelas tabelas de análise do SALIC. NULL quando a origem apresenta mais de um valor para o mesmo PRONAC."
+        },
+        {
+          "nome": "id_projeto",
+          "descricao": "Surrogate antigo do projeto, chave de `silver_sac_abrangencia`. NULL quando ambíguo e quando a origem grava 0, que não identifica projeto."
+        },
+        {
+          "nome": "id_pronac_ambiguo",
+          "descricao": "`true` quando a origem associa mais de um `id_pronac` ao mesmo PRONAC. Nesses casos `id_pronac` é NULL de propósito."
+        },
+        {
+          "nome": "id_projeto_ambiguo",
+          "descricao": "`true` quando a origem associa mais de um `id_projeto` ao mesmo PRONAC. Nesses casos `id_projeto` é NULL de propósito."
+        },
+        {
+          "nome": "qt_pronac_por_id_pronac",
+          "descricao": "Quantos PRONAC distintos foram observados para o `id_pronac` candidato. Valor maior que um invalida o id e ativa `id_pronac_ambiguo`, cobrindo a ambiguidade no sentido inverso."
+        },
+        {
+          "nome": "qt_pronac_por_id_projeto",
+          "descricao": "Quantos PRONAC distintos foram observados para o `id_projeto` candidato. Valor maior que um invalida o id e ativa `id_projeto_ambiguo`, cobrindo a ambiguidade no sentido inverso."
+        },
+        {
+          "nome": "qt_tabelas_origem",
+          "descricao": "Quantas das sete tabelas de origem observaram este PRONAC. É a medida de confiança da chave: PRONAC visto em uma tabela só pode ser resíduo de carga, e o valor permite medir isso sem abrir o modelo."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 7,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_sac_aprovacao",
+        "silver_sac_captacao",
+        "silver_sac_documentosprojeto",
+        "silver_sac_enquadramento",
+        "silver_sac_vwagentesseusprojetos",
+        "silver_sac_vwalterarprojeto",
+        "silver_sac_vwprojetositinerantes"
+      ],
+      "sources": [],
+      "linhas_sql": 156
     },
     {
       "nome": "silver_sac_cnic",
@@ -13024,6 +13371,57 @@
       "linhas_sql": 14
     },
     {
+      "nome": "silver_sac_evento_acesso_rouanet",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_evento_acesso_rouanet.sql",
+      "descricao": "Camada Silver / núcleo SALIC. Espinha de eventos datados de acesso à Lei Rouanet, no grão do projeto.\nGRÃO: uma linha por evento qualificável. CHAVE: `id_evento`. UNIVERSO: união de `silver_sac_captacao_rouanet` e `silver_sac_aprovacao_rouanet`, restrita aos eventos com data resolvida.\nPARA QUE SERVE: a Meta 5 pergunta quantos proponentes acessaram a Rouanet pela primeira vez em um ano. Responder exige uma série de eventos datados e comparáveis, e exige que \"primeira aprovação\" e \"primeira captação\" continuem distinguíveis — são conceitos diferentes e o plano proíbe colapsá-los. Por isso o tipo do evento é coluna, e não filtro embutido.\nÉ MODELO DE PROJETO, NÃO DE PESSOA: não carrega proponente, documento nem id de agente. A ligação com identidade acontece uma camada acima, na zona restrita, cruzando com `silver_sac_projeto_proponente_rouanet`. Manter a espinha no grão do projeto é o que permite publicá-la.\nFALTA O EVENTO DE REGISTRO, e a ausência é conhecida: a data de registro da proposta está em `PreProjeto`/`Projetos` da v2, que não foram ingeridas. Derivá-la de `data_situacao` seria errado — aquilo é a última mudança de situação, não a entrada. Enquanto a fonte não chega, `tipo_evento` tem dois valores, e qualquer KPI de primeiro acesso construído sobre isto mede primeiro acesso A RECURSO, não primeiro contato com o sistema.\nMEDIDA E UNIDADE: `valor_reais` é captado quando o evento é captação e autorizado quando é aprovação. São medidas diferentes na mesma coluna, de propósito, porque a coluna é o valor associado ao evento — somar as duas juntas é erro, e é por isso que `tipo_evento` nunca deve ser agregado fora.\nREGRA DA DATA: publicação vem antes de data de aprovação no `coalesce` porque é a data com efeito legal. Quando a publicação não está preenchida, a data de aprovação entra como substituta e `data_evento_substituta` marca isso, para que o gold possa medir o quanto da série depende do substituto.\nLIMITAÇÕES: herda os limites dos dois fatos de origem, incluindo a reconciliação pendente com a bronze v1 (gate G3). ATUALIZAÇÃO: recalculado a cada `dbt build`.",
+      "colunas": [
+        {
+          "nome": "id_evento",
+          "descricao": "Chave do evento: tipo e id de origem concatenados. Garante unicidade entre os dois fatos, cujos ids são independentes entre si."
+        },
+        {
+          "nome": "tipo_evento",
+          "descricao": "'APROVACAO' ou 'CAPTACAO'. Nunca agregue valores de tipos diferentes na mesma soma: são medidas distintas. 'REGISTRO' está previsto e ausente porque a fonte não foi ingerida."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto a que o evento pertence."
+        },
+        {
+          "nome": "id_origem",
+          "descricao": "Id do registro no fato de origem — `id_captacao` ou `id_aprovacao`. Único apenas dentro do mesmo `tipo_evento`."
+        },
+        {
+          "nome": "data_evento",
+          "descricao": "Data do evento: data do recibo, na captação; data de publicação da portaria (ou de aprovação, como substituta) na aprovação."
+        },
+        {
+          "nome": "ano_evento",
+          "descricao": "Ano da data do evento, para corte anual."
+        },
+        {
+          "nome": "data_evento_substituta",
+          "descricao": "`true` quando a data do evento veio de campo substituto — hoje, só aprovação sem data de publicação. Expõe a fragilidade da série em vez de escondê-la."
+        },
+        {
+          "nome": "valor_reais",
+          "descricao": "Valor em reais nominais associado ao evento: captado, quando captação; autorizado, quando aprovação. Só é somável dentro de um mesmo `tipo_evento`."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 10,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_sac_aprovacao_rouanet",
+        "silver_sac_captacao_rouanet"
+      ],
+      "sources": [],
+      "linhas_sql": 85
+    },
+    {
       "nome": "silver_sac_evolucao",
       "dominio": "salic",
       "camada": "silver",
@@ -14496,6 +14894,97 @@
       "linhas_sql": 18
     },
     {
+      "nome": "silver_sac_pagamento_profissional_rouanet",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_pagamento_profissional_rouanet.sql",
+      "descricao": "Camada Silver restrita da Meta 3. Preserva os registros de pagamentos a fornecedores e profissionais devolvidos pela view detalhada do SALIC. GRÃO PROVISÓRIO: uma linha por registro da origem; a combinação projeto, item, comprovante, prestador, data e valor é uma chave candidata, e `ocorrencia_chave_candidata` evidencia repetições sem descartá-las. MEDIDA: valor efetivamente pago em reais nominais; não é valor captado, aprovado ou apenas comprovado. O ano é o da data de pagamento, em linha com o recorte de execução do estudo FGV para 2024. Valores nulos, zero, negativos e estornos não são filtrados na silver. IDENTIDADE: documento e nome do prestador tornam o modelo inteiro restrito e proibido para RAG. O texto livre de justificativa da origem é deliberadamente excluído. LIMITAÇÕES: o grão e a reconciliação financeira aguardam a execução pela DAG com permissão de escrita; a ligação com perfil demográfico e o filtro temporal de prestação de contas ainda não têm fonte homologada.",
+      "colunas": [
+        {
+          "nome": "chave_candidata_pagamento",
+          "descricao": "Hash técnico da combinação candidata a identificar o pagamento. É linkável e derivado também do documento do prestador, portanto PII."
+        },
+        {
+          "nome": "ocorrencia_chave_candidata",
+          "descricao": "Ordem da linha dentro de uma chave candidata repetida. Valor maior que um sinaliza duplicidade a investigar, sem apagar o registro."
+        },
+        {
+          "nome": "id_pronac",
+          "descricao": "Identificador técnico do projeto informado pela view de pagamentos."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "Chave de negócio do projeto, recuperada preferencialmente pelo mapa conformado e, quando possível, pelo número informado na própria view."
+        },
+        {
+          "nome": "pronac_resolvido_por_mapa",
+          "descricao": "Verdadeiro quando o PRONAC veio de uma associação unívoca com `id_pronac`; falso indica uso do fallback numérico ou ausência."
+        },
+        {
+          "nome": "documento_prestador",
+          "descricao": "CPF ou CNPJ do prestador, normalizado para somente dígitos."
+        },
+        {
+          "nome": "tipo_pessoa_prestador",
+          "descricao": "Tipo PF ou PJ derivado apenas do comprimento do documento; nulo para documento ausente ou com quantidade de dígitos inválida."
+        },
+        {
+          "nome": "nome_prestador",
+          "descricao": "Nome do fornecedor ou profissional registrado no comprovante."
+        },
+        {
+          "nome": "id_item_planilha",
+          "descricao": "Identificador técnico do item orçamentário pago no projeto."
+        },
+        {
+          "nome": "nome_item",
+          "descricao": "Descrição do item orçamentário ao qual o pagamento foi associado."
+        },
+        {
+          "nome": "numero_comprovante",
+          "descricao": "Número do comprovante dentro dos registros de execução do projeto."
+        },
+        {
+          "nome": "data_emissao",
+          "descricao": "Data de emissão do documento fiscal ou comprovante apresentado."
+        },
+        {
+          "nome": "tipo_documento_comprovante",
+          "descricao": "Código textual do tipo de documento fiscal ou comprovante."
+        },
+        {
+          "nome": "data_pagamento",
+          "descricao": "Data em que o pagamento ao fornecedor ou profissional foi realizado."
+        },
+        {
+          "nome": "ano_pagamento",
+          "descricao": "Ano civil derivado de `data_pagamento`, referência temporal do fato."
+        },
+        {
+          "nome": "tipo_forma_pagamento",
+          "descricao": "Código textual da forma de pagamento registrada na origem."
+        },
+        {
+          "nome": "numero_documento_pagamento",
+          "descricao": "Número do documento da transação de pagamento. É mantido apenas para auditoria no ambiente restrito e não pode ser publicado."
+        },
+        {
+          "nome": "valor_pago_reais",
+          "descricao": "Valor efetivamente pago, em reais nominais. Nulos, zeros e valores negativos são preservados para reconciliação e tratamento no gold."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 2,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_sac_chave_projeto_rouanet",
+        "silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado"
+      ],
+      "sources": [],
+      "linhas_sql": 105
+    },
+    {
       "nome": "silver_sac_preprojeto",
       "dominio": "salic",
       "camada": "silver",
@@ -14660,6 +15149,255 @@
         "salic.bronze_sac_preprojeto"
       ],
       "linhas_sql": 47
+    },
+    {
+      "nome": "silver_sac_projeto_local_execucao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_projeto_local_execucao.sql",
+      "descricao": "Camada Silver territorial da Meta 4. Relaciona o registro de abrangência do SALIC ao PRONAC sem carregar valores financeiros. GRÃO: uma linha por `id_abrangencia`. PAPEL GEOGRÁFICO: local declarado de realização, nunca residência do proponente ou do prestador. O art. 15, § 2º, da IN MinC 10/2023 fundamenta essa distinção para a aferição territorial da PNAB, mas não é tratado como obrigação jurídica da Rouanet. MULTICIDADE: não há rateio nem replicação nesta bridge; essa regra permanece bloqueada para o fato/gold. DESCONHECIDOS: projeto ou município não resolvido permanece nulo e recebe flag de cobertura; nunca é classificado como não vulnerável. LIMITAÇÕES: os códigos territoriais da origem ainda precisam casar com a dimensão oficial do IBGE, e as 13 categorias do art. 15 precisam de fontes e limiares operacionais antes da classificação de vulnerabilidade.",
+      "colunas": [
+        {
+          "nome": "id_abrangencia",
+          "descricao": "Identificador do registro territorial na tabela de abrangência do SALIC."
+        },
+        {
+          "nome": "id_projeto",
+          "descricao": "Identificador antigo do projeto usado pela tabela de abrangência."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "Chave de negócio do projeto quando `id_projeto` possui associação unívoca no mapa conformado; nula em caso de ausência ou ambiguidade."
+        },
+        {
+          "nome": "pronac_resolvido",
+          "descricao": "Verdadeiro quando o local pôde ser ligado sem ambiguidade a um PRONAC."
+        },
+        {
+          "nome": "id_pais_origem",
+          "descricao": "Identificador de país conforme o domínio interno do SALIC."
+        },
+        {
+          "nome": "id_uf_origem",
+          "descricao": "Identificador de unidade federativa conforme o domínio interno do SALIC."
+        },
+        {
+          "nome": "codigo_municipio_ibge_origem",
+          "descricao": "Código municipal informado pela origem. É preservado como recebido e não recebe zeros artificiais antes do casamento com base oficial."
+        },
+        {
+          "nome": "registro_ativo",
+          "descricao": "Indicador do SALIC de que o registro de abrangência está ativo."
+        },
+        {
+          "nome": "codigo_realizacao",
+          "descricao": "Código original de realização: 0 sem informação, 1 não e 2 sim."
+        },
+        {
+          "nome": "local_realizado",
+          "descricao": "Indicador triestado derivado: verdadeiro para código 2, falso para 1 e nulo para ausência, sem informação ou código desconhecido."
+        },
+        {
+          "nome": "situacao_realizacao",
+          "descricao": "Rótulo controlado derivado do código: SEM_INFORMACAO, NAO_REALIZADO, REALIZADO ou CODIGO_DESCONHECIDO."
+        },
+        {
+          "nome": "data_inicio_realizacao",
+          "descricao": "Data inicial declarada para a realização na localidade."
+        },
+        {
+          "nome": "data_fim_realizacao",
+          "descricao": "Data final declarada para a realização na localidade."
+        }
+      ],
+      "colunas_descritas": 13,
+      "testes": 4,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_sac_abrangencia",
+        "silver_sac_chave_projeto_rouanet"
+      ],
+      "sources": [],
+      "linhas_sql": 57
+    },
+    {
+      "nome": "silver_sac_projeto_proponente_rouanet",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_projeto_proponente_rouanet.sql",
+      "descricao": "Camada Silver / núcleo SALIC. Ponte entre projeto e agente proponente na Lei Rouanet.\nZONA RESTRITA — não publicável e proibida em corpus de RAG, no modelo inteiro e não por coluna. É o único modelo do núcleo que carrega identidade (CPF/CNPJ e nome), e existe separado da `silver_sac_projeto_rouanet` exatamente para que o projeto possa ser publicado sem arrastar a pessoa junto.\nGRÃO: uma linha por PRONAC × agente. CHAVE: `id_projeto_proponente`. UNIVERSO: os vínculos que `silver_sac_vwagentesseusprojetos` registra, com PRONAC e agente resolvidos.\nPOR QUE UMA PONTE E NÃO UMA COLUNA NA DIMENSÃO: um projeto pode ter mais de um agente ligado a ele. Guardar o proponente como atributo do projeto obrigaria a escolher um em silêncio, e é essa escolha que muda a contagem de proponentes distintos das Metas 3 e 5.\nIDENTIDADE ENTRE BASES: a chave de cruzamento com LPG, PNAB e BB Ágil ainda não está aqui. O plano decidiu HMAC-SHA256 com segredo gerenciado, porque hash simples de CPF/CNPJ é enumerável; enquanto o segredo não existir, esta ponte guarda apenas o documento normalizado, na zona restrita, e nenhum modelo publicável o consome.\nLIMITAÇÕES: `silver_sac_vwagentesseusprojetos` não está no dicionário original do SALIC; o grão PRONAC × agente é leitura das colunas, não medição, e o `distinct on` garante o grão declarado independentemente do que a origem entregue. Que todo agente listado seja proponente, e não outro papel, é hipótese a confirmar antes de qualquer KPI contar proponentes a partir daqui (gate G1). ATUALIZAÇÃO: recalculada a cada `dbt build`.",
+      "colunas": [
+        {
+          "nome": "id_projeto_proponente",
+          "descricao": "Chave da ponte: PRONAC e id do agente concatenados. Existe para que a unicidade do grão composto seja testável sem depender de pacote externo. É chave técnica derivada de identificador de pessoa, por isso classificada como PII."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, preservado sem padding artificial. Casa com `silver_sac_projeto_rouanet`."
+        },
+        {
+          "nome": "id_agente",
+          "descricao": "Identificador do agente no cadastro do SALIC. Chave técnica que identifica pessoa indiretamente — classificada como PII por isso, e não pelo formato."
+        },
+        {
+          "nome": "documento_proponente",
+          "descricao": "CPF ou CNPJ do proponente, normalizado para dígitos (macro `normaliza_documento`), com zeros à esquerda preservados. Vazio vira NULL. Nunca sai da zona restrita."
+        },
+        {
+          "nome": "documento_valido",
+          "descricao": "`true` quando o documento normalizado tem 11 ou 14 dígitos. Valida formato, não existência: não confere dígito verificador nem consulta base oficial."
+        },
+        {
+          "nome": "tipo_pessoa_proponente",
+          "descricao": "'PF' ou 'PJ', derivado apenas do comprimento do documento. NULL quando o comprimento não é 11 nem 14 — documento inválido não vira uma terceira categoria."
+        },
+        {
+          "nome": "nome_proponente",
+          "descricao": "Nome ou razão social do proponente, como cadastrado. Dado pessoal: nunca sai da zona restrita, mesmo sendo público em listagens oficiais — aqui ele aparece ligado a documento e a projeto."
+        },
+        {
+          "nome": "id_solicitante",
+          "descricao": "Identificador do solicitante do vínculo no SALIC, como texto na origem. Chave técnica ligada a pessoa."
+        },
+        {
+          "nome": "descricao_vinculo",
+          "descricao": "Texto da origem que descreve o vínculo entre agente e projeto. É o único campo que distingue o papel do agente, por isso fica; o domínio de valores não foi levantado e nenhum filtro do repositório depende dele. Por ser texto livre da origem, é tratado como campo que pode conter dado pessoal."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 7,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_sac_vwagentesseusprojetos"
+      ],
+      "sources": [],
+      "linhas_sql": 86
+    },
+    {
+      "nome": "silver_sac_projeto_rouanet",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_projeto_rouanet.sql",
+      "descricao": "Camada Silver / núcleo SALIC. Dimensão do projeto cultural na Lei Rouanet: nome, área, segmento, mecanismo, enquadramento, situação, janela de execução, janela de captação e valores autorizados.\nGRÃO: uma linha por PRONAC. CHAVE: `pronac`. UNIVERSO: todo PRONAC de `silver_sac_chave_projeto_rouanet`, e não apenas os projetos que o cadastro resolve — um projeto que só aparece em captação existe para efeito de indicador, e incluí-lo só quando o cadastro o descreve produziria um denominador que muda sozinho conforme a carga avança. Projeto sem cadastro sai com atributos descritivos nulos e `cadastro_resolvido` `false`, nunca fora da tabela.\nIDENTIDADE FICA DE FORA: nem CPF/CNPJ, nem nome de proponente, nem `logon` de analista. A ligação projeto → proponente é `silver_sac_projeto_proponente_rouanet`, que é zona restrita. Esta dimensão existe para ser a parte publicável do projeto.\n\"ÚLTIMO\" É UMA ESCOLHA DECLARADA: aprovação e enquadramento têm histórico (readequação, prorrogação, reenquadramento). A dimensão guarda o registro mais recente de cada um, que é a leitura de painel; o histórico completo está em `silver_sac_aprovacao_rouanet` e nenhuma linha se perde lá.\nMEDIDA E UNIDADE: `valor_aprovado_reais` e `valor_autorizado_reais` estão em reais nominais da data da aprovação, sem correção monetária, e são teto de captação — não recurso realizado. Para recurso realizado use `silver_sac_captacao_rouanet`.\nJOINS: `silver_sac_vwalterarprojeto` (cadastro), `silver_sac_vwagentesseusprojetos` (mecanismo), `silver_sac_enquadramento`, `silver_sac_aprovacao`, `silver_sac_area` e `silver_sac_vsegmento` (dimensões descritivas, esta última casada por área + código, porque o código de segmento se repete entre áreas).\nLIMITAÇÕES: `Projetos` da ingestão v2 ainda não foi carregada, então o cadastro vem da view `silver_sac_vwalterarprojeto`, cujo grão não foi medido contra o banco — o `distinct on` do modelo garante o grão declarado independentemente disso. A cobertura de cadastro e a de nome de área e segmento também não foram medidas (gate G1). ATUALIZAÇÃO: recalculada a cada `dbt build`.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "Chave de negócio do projeto, com 5 a 7 posições na série observada: ano de dois dígitos seguido do sequencial sem padding artificial. Chave primária desta dimensão."
+        },
+        {
+          "nome": "ano_pronac",
+          "descricao": "Ano de abertura do projeto, de quatro dígitos, derivado do PRONAC. Não é ano de aprovação nem de captação."
+        },
+        {
+          "nome": "id_pronac",
+          "descricao": "Surrogate inteiro do projeto no SALIC. NULL quando a origem é ambígua — ver `silver_sac_chave_projeto_rouanet.id_pronac_ambiguo`."
+        },
+        {
+          "nome": "nome_projeto",
+          "descricao": "Nome do projeto cultural como cadastrado no SALIC. Campo público: consta das listagens oficiais da Lei Rouanet."
+        },
+        {
+          "nome": "codigo_area",
+          "descricao": "Código da área cultural do projeto (dança, música, patrimônio e assemelhados), como inteiro. NULL quando o cadastro não resolve."
+        },
+        {
+          "nome": "nome_area",
+          "descricao": "Descrição da área cultural, de `silver_sac_area`. NULL quando o código não casa com a tabela de domínio — a ponte normaliza o código para dígitos, e área alfanumérica, se existir, resolve para nulo em vez de casar errado."
+        },
+        {
+          "nome": "codigo_segmento",
+          "descricao": "Código do segmento cultural dentro da área, em texto: a maioria dos códigos tem letra. O código se repete entre áreas; a chave real do segmento é o par (área, código)."
+        },
+        {
+          "nome": "nome_segmento",
+          "descricao": "Descrição do segmento cultural, de `silver_sac_vsegmento`, casada por área e código."
+        },
+        {
+          "nome": "codigo_mecanismo",
+          "descricao": "Código do mecanismo de incentivo do projeto, vindo de `silver_sac_vwagentesseusprojetos`. Exposto como código: a tabela de domínio ainda não foi identificada na bronze v2, e inventar a descrição seria pior que não tê-la."
+        },
+        {
+          "nome": "codigo_enquadramento",
+          "descricao": "Código do enquadramento mais recente do projeto — é ele que separa os artigos da lei com percentual de abatimento diferente. Exposto como código pelo mesmo motivo do mecanismo."
+        },
+        {
+          "nome": "data_enquadramento",
+          "descricao": "Data do enquadramento mais recente registrado para o projeto."
+        },
+        {
+          "nome": "codigo_situacao",
+          "descricao": "Código da situação atual do projeto no SALIC. É um código de texto (não um rótulo legível); a tabela de domínio ainda não foi identificada na bronze v2. Nenhum indicador deve derivar \"em execução\" daqui antes da taxonomia temporal do gate A0."
+        },
+        {
+          "nome": "data_situacao",
+          "descricao": "Data da última mudança de situação. NÃO é a data de registro do projeto — usá-la como entrada do proponente no sistema data errado todo indicador de primeiro acesso."
+        },
+        {
+          "nome": "data_inicio_execucao",
+          "descricao": "Início da janela de execução do projeto, como cadastrado."
+        },
+        {
+          "nome": "data_fim_execucao",
+          "descricao": "Fim da janela de execução do projeto, como cadastrado."
+        },
+        {
+          "nome": "data_primeira_aprovacao",
+          "descricao": "Data da primeira aprovação registrada para o projeto. Distinta de `data_ultima_aprovacao` sempre que houve readequação ou prorrogação."
+        },
+        {
+          "nome": "data_ultima_aprovacao",
+          "descricao": "Data da aprovação mais recente registrada para o projeto."
+        },
+        {
+          "nome": "data_publicacao_ultima_aprovacao",
+          "descricao": "Data de publicação da portaria da aprovação mais recente. É a data com efeito legal: é a partir dela que o projeto pode captar."
+        },
+        {
+          "nome": "data_inicio_captacao",
+          "descricao": "Início da janela em que o projeto está autorizado a captar."
+        },
+        {
+          "nome": "data_fim_captacao",
+          "descricao": "Fim da janela em que o projeto está autorizado a captar."
+        },
+        {
+          "nome": "valor_aprovado_reais",
+          "descricao": "Valor aprovado na aprovação mais recente, em reais nominais da data da aprovação, sem correção monetária. É teto, não recurso realizado."
+        },
+        {
+          "nome": "valor_autorizado_reais",
+          "descricao": "Valor autorizado a captar na aprovação mais recente, em reais nominais, sem correção monetária. Comparar com o captado exige `silver_sac_captacao_rouanet`; usar este valor como execução superestima qualquer indicador."
+        },
+        {
+          "nome": "qt_aprovacoes",
+          "descricao": "Quantas aprovações o projeto acumulou. Zero para projeto nunca aprovado — não NULL, porque a ausência de aprovação é informação."
+        },
+        {
+          "nome": "projeto_aprovado",
+          "descricao": "`true` quando o projeto tem ao menos uma aprovação registrada. Aprovado não implica ter captado."
+        },
+        {
+          "nome": "cadastro_resolvido",
+          "descricao": "`false` quando o PRONAC existe em alguma tabela transacional mas o cadastro não o descreve. Expõe a cobertura do cadastro em vez de escondê-la reduzindo o universo."
+        }
+      ],
+      "colunas_descritas": 25,
+      "testes": 6,
+      "materializacao": "table",
+      "depende_de": [
+        "silver_sac_aprovacao",
+        "silver_sac_area",
+        "silver_sac_chave_projeto_rouanet",
+        "silver_sac_enquadramento",
+        "silver_sac_vsegmento",
+        "silver_sac_vwagentesseusprojetos",
+        "silver_sac_vwalterarprojeto"
+      ],
+      "sources": [],
+      "linhas_sql": 198
     },
     {
       "nome": "silver_sac_projetos",
@@ -14953,7 +15691,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_tbapicomprovacoes.sql",
-      "descricao": "Uma linha por comprovante de despesa de um projeto, como publicado pela API pública do SALIC. São 2.621.182 comprovantes de 21.134 projetos. Vem de uma carga própria da API, atualizada em 386 momentos diferentes. É a fonte de fct_proponente_ano_rouanet, da Meta 5.\n\nArmadilhas: sguf não é sigla de UF, são as duas primeiras letras do nome do estado, e é ambíguo: Ri é Rio de Janeiro, Rio Grande do Sul ou Rio Grande do Norte, e Ma no Centro-Oeste é Mato Grosso ou Mato Grosso do Sul. As datas vão de 1767 a 9201. Os comprovantes são os mesmos de silver_bdcorporativo_tbcomprovantepagamento, vistos pela API.",
+      "descricao": "Uma linha por comprovante de despesa de um projeto, como publicado pela API pública do SALIC. São 2.621.182 comprovantes de 21.134 projetos. Vem de uma carga própria da API, atualizada em 386 momentos diferentes. É a fonte de eixo2_meta5_proponente_ano_rouanet, da Meta 5.\n\nArmadilhas: sguf não é sigla de UF, são as duas primeiras letras do nome do estado, e é ambíguo: Ri é Rio de Janeiro, Rio Grande do Sul ou Rio Grande do Norte, e Ma no Centro-Oeste é Mato Grosso ou Mato Grosso do Sul. As datas vão de 1767 a 9201. Os comprovantes são os mesmos de silver_bdcorporativo_tbcomprovantepagamento, vistos pela API.",
       "colunas": [
         {
           "nome": "idapicomprovacoes",
@@ -27633,7 +28371,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_vwagentesseusprojetos.sql",
-      "descricao": "Uma linha por projeto ligado a uma conta do SalicWeb: é a lista de \"meus projetos\" que o proponente vê ao entrar. São 264.510 linhas, 205.728 projetos, 69.702 agentes e 65.505 contas. Lida por dim_projeto_rouanet e pela ponte de proponentes.",
+      "descricao": "Uma linha por projeto ligado a uma conta do SalicWeb: é a lista de \"meus projetos\" que o proponente vê ao entrar. São 264.510 linhas, 205.728 projetos, 69.702 agentes e 65.505 contas. Lida por silver_sac_projeto_rouanet e pela ponte de proponentes.",
       "colunas": [
         {
           "nome": "ordem",
@@ -27791,7 +28529,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_vwalterarprojeto.sql",
-      "descricao": "Uma linha por projeto, com proponente, área, segmento e situação, vinda da view que a tela de alteração de projeto do SalicWeb usa. São 276.866 projetos, quase todos os de silver_sac_projetos. Lida por dim_projeto_rouanet para o cadastro do projeto.",
+      "descricao": "Uma linha por projeto, com proponente, área, segmento e situação, vinda da view que a tela de alteração de projeto do SalicWeb usa. São 276.866 projetos, quase todos os de silver_sac_projetos. Lida por silver_sac_projeto_rouanet para o cadastro do projeto.",
       "colunas": [
         {
           "nome": "idpronac",
@@ -29609,7 +30347,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado.sql",
-      "descricao": "Uma linha por pagamento a fornecedor, item a item, vinda de uma view da origem sobre os comprovantes. São 4.182.025 linhas de 21.064 projetos, de 1767 a 9201 pelas datas, que têm erros. É a fonte de fct_pagamento_profissional_rouanet, da Meta 3. Traz o CPF ou CNPJ do fornecedor, que silver_sac_tbapicomprovacoes não traz.",
+      "descricao": "Uma linha por pagamento a fornecedor, item a item, vinda de uma view da origem sobre os comprovantes. São 4.182.025 linhas de 21.064 projetos, de 1767 a 9201 pelas datas, que têm erros. É a fonte de silver_sac_pagamento_profissional_rouanet, da Meta 3. Traz o CPF ou CNPJ do fornecedor, que silver_sac_tbapicomprovacoes não traz.",
       "colunas": [
         {
           "nome": "idpronac",
@@ -38229,7 +38967,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_vwprojetositinerantes.sql",
-      "descricao": "Uma linha por local de um projeto itinerante, com UF e município. São 44.706 locais de 4.269 projetos. Lida por brg_projeto_local_execucao, da Meta 4. Os códigos tptipicidade, tptipologia e idfase são da tabela de verificação do banco sac: 713 singulares até 1 milhão de reais, 712 projetos normais, 651 avaliação dos resultados da ação cultural.",
+      "descricao": "Uma linha por local de um projeto itinerante, com UF e município. São 44.706 locais de 4.269 projetos. Lida por silver_sac_projeto_local_execucao, da Meta 4. Os códigos tptipicidade, tptipologia e idfase são da tabela de verificação do banco sac: 713 singulares até 1 milhão de reais, 712 projetos normais, 651 avaliação dos resultados da ação cultural.",
       "colunas": [
         {
           "nome": "idprojeto",
@@ -42128,744 +42866,6 @@
       "linhas_sql": 29
     },
     {
-      "nome": "brg_projeto_proponente_rouanet",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/core/brg_projeto_proponente_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Ponte entre projeto e agente proponente na Lei Rouanet.\nZONA RESTRITA — não publicável e proibida em corpus de RAG, no modelo inteiro e não por coluna. É o único modelo do núcleo que carrega identidade (CPF/CNPJ e nome), e existe separado da `dim_projeto_rouanet` exatamente para que o projeto possa ser publicado sem arrastar a pessoa junto.\nGRÃO: uma linha por PRONAC × agente. CHAVE: `id_projeto_proponente`. UNIVERSO: os vínculos que `silver_sac_vwagentesseusprojetos` registra, com PRONAC e agente resolvidos.\nPOR QUE UMA PONTE E NÃO UMA COLUNA NA DIMENSÃO: um projeto pode ter mais de um agente ligado a ele. Guardar o proponente como atributo do projeto obrigaria a escolher um em silêncio, e é essa escolha que muda a contagem de proponentes distintos das Metas 3 e 5.\nIDENTIDADE ENTRE BASES: a chave de cruzamento com LPG, PNAB e BB Ágil ainda não está aqui. O plano decidiu HMAC-SHA256 com segredo gerenciado, porque hash simples de CPF/CNPJ é enumerável; enquanto o segredo não existir, esta ponte guarda apenas o documento normalizado, na zona restrita, e nenhum modelo publicável o consome.\nLIMITAÇÕES: `silver_sac_vwagentesseusprojetos` não está no dicionário original do SALIC; o grão PRONAC × agente é leitura das colunas, não medição, e o `distinct on` garante o grão declarado independentemente do que a origem entregue. Que todo agente listado seja proponente, e não outro papel, é hipótese a confirmar antes de qualquer KPI contar proponentes a partir daqui (gate G1). ATUALIZAÇÃO: recalculada a cada `dbt build`.",
-      "colunas": [
-        {
-          "nome": "id_projeto_proponente",
-          "descricao": "Chave da ponte: PRONAC e id do agente concatenados. Existe para que a unicidade do grão composto seja testável sem depender de pacote externo. É chave técnica derivada de identificador de pessoa, por isso classificada como PII."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "PRONAC do projeto, preservado sem padding artificial. Casa com `dim_projeto_rouanet`."
-        },
-        {
-          "nome": "id_agente",
-          "descricao": "Identificador do agente no cadastro do SALIC. Chave técnica que identifica pessoa indiretamente — classificada como PII por isso, e não pelo formato."
-        },
-        {
-          "nome": "documento_proponente",
-          "descricao": "CPF ou CNPJ do proponente, normalizado para dígitos (macro `normaliza_documento`), com zeros à esquerda preservados. Vazio vira NULL. Nunca sai da zona restrita."
-        },
-        {
-          "nome": "documento_valido",
-          "descricao": "`true` quando o documento normalizado tem 11 ou 14 dígitos. Valida formato, não existência: não confere dígito verificador nem consulta base oficial."
-        },
-        {
-          "nome": "tipo_pessoa_proponente",
-          "descricao": "'PF' ou 'PJ', derivado apenas do comprimento do documento. NULL quando o comprimento não é 11 nem 14 — documento inválido não vira uma terceira categoria."
-        },
-        {
-          "nome": "nome_proponente",
-          "descricao": "Nome ou razão social do proponente, como cadastrado. Dado pessoal: nunca sai da zona restrita, mesmo sendo público em listagens oficiais — aqui ele aparece ligado a documento e a projeto."
-        },
-        {
-          "nome": "id_solicitante",
-          "descricao": "Identificador do solicitante do vínculo no SALIC, como texto na origem. Chave técnica ligada a pessoa."
-        },
-        {
-          "nome": "descricao_vinculo",
-          "descricao": "Texto da origem que descreve o vínculo entre agente e projeto. É o único campo que distingue o papel do agente, por isso fica; o domínio de valores não foi levantado e nenhum filtro do repositório depende dele. Por ser texto livre da origem, é tratado como campo que pode conter dado pessoal."
-        }
-      ],
-      "colunas_descritas": 9,
-      "testes": 7,
-      "materializacao": "",
-      "depende_de": [
-        "silver_sac_vwagentesseusprojetos"
-      ],
-      "sources": [],
-      "linhas_sql": 83
-    },
-    {
-      "nome": "dim_municipio_ibge",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/core/dim_municipio_ibge.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Dimensão territorial de referência: os municípios brasileiros com os dois formatos de código IBGE, unidade federativa, região, mesorregião, microrregião e população.\nGRÃO: um município. UNIVERSO: os 5.568 municípios de `agentes__municipios`, sem exclusão por porte, situação ou qualquer outro critério.\nPARA QUE SERVE: é a dimensão contra a qual `brg_projeto_local_execucao` resolve o local de execução, e é pré-requisito dos três indicadores da Meta 4 — o percentual executado fora das capitais, o executado no Norte, Nordeste e Centro-Oeste, e o captado em território vulnerabilizado.\nDUAS FORMAS DE CÓDIGO IBGE, E POR QUE AS DUAS. O SALIC identifica o município por um código de 6 posições, sem o dígito verificador; o IBGE e o `transferegov` usam o de 7. Cruzar as duas formas sem tratar não casa nenhuma linha e não levanta erro — junção que não encontra devolve vazio. A dimensão expõe as duas colunas, e a correspondência NÃO é calculada: vem de `agentes__populacaomunicipio`, que carrega os dois formatos na mesma linha. Derivar o dígito verificador seria uma regra a mais para manter, e erraria em silêncio se a regra do IBGE mudasse.\nDESCONHECIDOS: município sem UF correspondente, ou sem linha na tabela de população, permanece na dimensão com esses campos nulos. São 5.568 municípios contra 5.563 com população — a diferença de cinco é esperada e precisa ficar visível, não ser descartada por um join interno.\nCAPITAL É ASSUNTO DO GOLD. O indicador P1 da Meta 4 compara execução dentro e fora das capitais, mas a marcação não mora aqui: o desenho declara a lista de capitais como base externa, casada no modelo do indicador. A dimensão entrega o município identificado; quem classifica é quem calcula o percentual.\nATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.",
-      "colunas": [
-        {
-          "nome": "codigo_ibge_6",
-          "descricao": "Código IBGE do município com seis posições, sem o dígito verificador, como o SALIC o registra. Chave da dimensão. Chega da bronze como inteiro — inócuo para código do IBGE, que nunca começa com zero, mas exige cast ao cruzar com fonte que traga o código como texto."
-        },
-        {
-          "nome": "codigo_ibge_7",
-          "descricao": "Código IBGE do município com sete posições, com o dígito verificador. É a forma oficial e a usada pelo `transferegov`. Nulo para os municípios sem linha na tabela de população. Chega como inteiro, enquanto o `transferegov` traz o mesmo código como texto — cruzar as duas fontes exige cast explícito de um dos lados."
-        },
-        {
-          "nome": "nome_municipio",
-          "descricao": "Nome do município como registrado na origem, sem normalização."
-        },
-        {
-          "nome": "id_uf_ibge",
-          "descricao": "Código IBGE da unidade federativa. Chave de junção com a dimensão de UF."
-        },
-        {
-          "nome": "sigla_uf",
-          "descricao": "Sigla de duas letras da unidade federativa. Nulo quando o município não encontra UF correspondente — condição que deve permanecer visível, não corrigida em silêncio."
-        },
-        {
-          "nome": "nome_uf",
-          "descricao": "Nome da unidade federativa. Nulo nas mesmas condições da sigla."
-        },
-        {
-          "nome": "regiao",
-          "descricao": "Região geográfica da unidade federativa. É o campo que sustenta o indicador P2 da Meta 4 pela cadeia territorial do IBGE. O SALIC também grava região direto em `tbApiComprovacoes.dsRegiao`; as duas fontes são independentes e podem divergir, e qual delas prevalece é decisão ainda não tomada."
-        },
-        {
-          "nome": "codigo_mesorregiao",
-          "descricao": "Código da mesorregião do IBGE, como vem da origem."
-        },
-        {
-          "nome": "codigo_microrregiao",
-          "descricao": "Código da microrregião do IBGE, como vem da origem."
-        },
-        {
-          "nome": "populacao",
-          "descricao": "População do município como registrada na origem. Nulo para os cinco municípios sem linha na tabela de população."
-        }
-      ],
-      "colunas_descritas": 10,
-      "testes": 3,
-      "materializacao": "",
-      "depende_de": [
-        "silver_agentes_municipios",
-        "silver_agentes_populacaomunicipio",
-        "silver_agentes_uf"
-      ],
-      "sources": [],
-      "linhas_sql": 62
-    },
-    {
-      "nome": "dim_projeto_rouanet",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/core/dim_projeto_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Dimensão do projeto cultural na Lei Rouanet: nome, área, segmento, mecanismo, enquadramento, situação, janela de execução, janela de captação e valores autorizados.\nGRÃO: uma linha por PRONAC. CHAVE: `pronac`. UNIVERSO: todo PRONAC de `map_chave_projeto_rouanet`, e não apenas os projetos que o cadastro resolve — um projeto que só aparece em captação existe para efeito de indicador, e incluí-lo só quando o cadastro o descreve produziria um denominador que muda sozinho conforme a carga avança. Projeto sem cadastro sai com atributos descritivos nulos e `cadastro_resolvido` `false`, nunca fora da tabela.\nIDENTIDADE FICA DE FORA: nem CPF/CNPJ, nem nome de proponente, nem `logon` de analista. A ligação projeto → proponente é `brg_projeto_proponente_rouanet`, que é zona restrita. Esta dimensão existe para ser a parte publicável do projeto.\n\"ÚLTIMO\" É UMA ESCOLHA DECLARADA: aprovação e enquadramento têm histórico (readequação, prorrogação, reenquadramento). A dimensão guarda o registro mais recente de cada um, que é a leitura de painel; o histórico completo está em `fct_aprovacao_rouanet` e nenhuma linha se perde lá.\nMEDIDA E UNIDADE: `valor_aprovado_reais` e `valor_autorizado_reais` estão em reais nominais da data da aprovação, sem correção monetária, e são teto de captação — não recurso realizado. Para recurso realizado use `fct_captacao_rouanet`.\nJOINS: `silver_sac_vwalterarprojeto` (cadastro), `silver_sac_vwagentesseusprojetos` (mecanismo), `silver_sac_enquadramento`, `silver_sac_aprovacao`, `silver_sac_area` e `silver_sac_vsegmento` (dimensões descritivas, esta última casada por área + código, porque o código de segmento se repete entre áreas).\nLIMITAÇÕES: `Projetos` da ingestão v2 ainda não foi carregada, então o cadastro vem da view `silver_sac_vwalterarprojeto`, cujo grão não foi medido contra o banco — o `distinct on` do modelo garante o grão declarado independentemente disso. A cobertura de cadastro e a de nome de área e segmento também não foram medidas (gate G1). ATUALIZAÇÃO: recalculada a cada `dbt build`.",
-      "colunas": [
-        {
-          "nome": "pronac",
-          "descricao": "Chave de negócio do projeto, com 5 a 7 posições na série observada: ano de dois dígitos seguido do sequencial sem padding artificial. Chave primária desta dimensão."
-        },
-        {
-          "nome": "ano_pronac",
-          "descricao": "Ano de abertura do projeto, de quatro dígitos, derivado do PRONAC. Não é ano de aprovação nem de captação."
-        },
-        {
-          "nome": "id_pronac",
-          "descricao": "Surrogate inteiro do projeto no SALIC. NULL quando a origem é ambígua — ver `map_chave_projeto_rouanet.id_pronac_ambiguo`."
-        },
-        {
-          "nome": "nome_projeto",
-          "descricao": "Nome do projeto cultural como cadastrado no SALIC. Campo público: consta das listagens oficiais da Lei Rouanet."
-        },
-        {
-          "nome": "codigo_area",
-          "descricao": "Código da área cultural do projeto (dança, música, patrimônio e assemelhados), como inteiro. NULL quando o cadastro não resolve."
-        },
-        {
-          "nome": "nome_area",
-          "descricao": "Descrição da área cultural, de `silver_sac_area`. NULL quando o código não casa com a tabela de domínio — a ponte normaliza o código para dígitos, e área alfanumérica, se existir, resolve para nulo em vez de casar errado."
-        },
-        {
-          "nome": "codigo_segmento",
-          "descricao": "Código do segmento cultural dentro da área, em texto: a maioria dos códigos tem letra. O código se repete entre áreas; a chave real do segmento é o par (área, código)."
-        },
-        {
-          "nome": "nome_segmento",
-          "descricao": "Descrição do segmento cultural, de `silver_sac_vsegmento`, casada por área e código."
-        },
-        {
-          "nome": "codigo_mecanismo",
-          "descricao": "Código do mecanismo de incentivo do projeto, vindo de `silver_sac_vwagentesseusprojetos`. Exposto como código: a tabela de domínio ainda não foi identificada na bronze v2, e inventar a descrição seria pior que não tê-la."
-        },
-        {
-          "nome": "codigo_enquadramento",
-          "descricao": "Código do enquadramento mais recente do projeto — é ele que separa os artigos da lei com percentual de abatimento diferente. Exposto como código pelo mesmo motivo do mecanismo."
-        },
-        {
-          "nome": "data_enquadramento",
-          "descricao": "Data do enquadramento mais recente registrado para o projeto."
-        },
-        {
-          "nome": "codigo_situacao",
-          "descricao": "Código da situação atual do projeto no SALIC. É um código de texto (não um rótulo legível); a tabela de domínio ainda não foi identificada na bronze v2. Nenhum indicador deve derivar \"em execução\" daqui antes da taxonomia temporal do gate A0."
-        },
-        {
-          "nome": "data_situacao",
-          "descricao": "Data da última mudança de situação. NÃO é a data de registro do projeto — usá-la como entrada do proponente no sistema data errado todo indicador de primeiro acesso."
-        },
-        {
-          "nome": "data_inicio_execucao",
-          "descricao": "Início da janela de execução do projeto, como cadastrado."
-        },
-        {
-          "nome": "data_fim_execucao",
-          "descricao": "Fim da janela de execução do projeto, como cadastrado."
-        },
-        {
-          "nome": "data_primeira_aprovacao",
-          "descricao": "Data da primeira aprovação registrada para o projeto. Distinta de `data_ultima_aprovacao` sempre que houve readequação ou prorrogação."
-        },
-        {
-          "nome": "data_ultima_aprovacao",
-          "descricao": "Data da aprovação mais recente registrada para o projeto."
-        },
-        {
-          "nome": "data_publicacao_ultima_aprovacao",
-          "descricao": "Data de publicação da portaria da aprovação mais recente. É a data com efeito legal: é a partir dela que o projeto pode captar."
-        },
-        {
-          "nome": "data_inicio_captacao",
-          "descricao": "Início da janela em que o projeto está autorizado a captar."
-        },
-        {
-          "nome": "data_fim_captacao",
-          "descricao": "Fim da janela em que o projeto está autorizado a captar."
-        },
-        {
-          "nome": "valor_aprovado_reais",
-          "descricao": "Valor aprovado na aprovação mais recente, em reais nominais da data da aprovação, sem correção monetária. É teto, não recurso realizado."
-        },
-        {
-          "nome": "valor_autorizado_reais",
-          "descricao": "Valor autorizado a captar na aprovação mais recente, em reais nominais, sem correção monetária. Comparar com o captado exige `fct_captacao_rouanet`; usar este valor como execução superestima qualquer indicador."
-        },
-        {
-          "nome": "qt_aprovacoes",
-          "descricao": "Quantas aprovações o projeto acumulou. Zero para projeto nunca aprovado — não NULL, porque a ausência de aprovação é informação."
-        },
-        {
-          "nome": "projeto_aprovado",
-          "descricao": "`true` quando o projeto tem ao menos uma aprovação registrada. Aprovado não implica ter captado."
-        },
-        {
-          "nome": "cadastro_resolvido",
-          "descricao": "`false` quando o PRONAC existe em alguma tabela transacional mas o cadastro não o descreve. Expõe a cobertura do cadastro em vez de escondê-la reduzindo o universo."
-        }
-      ],
-      "colunas_descritas": 25,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [
-        "map_chave_projeto_rouanet",
-        "silver_sac_aprovacao",
-        "silver_sac_area",
-        "silver_sac_enquadramento",
-        "silver_sac_vsegmento",
-        "silver_sac_vwagentesseusprojetos",
-        "silver_sac_vwalterarprojeto"
-      ],
-      "sources": [],
-      "linhas_sql": 194
-    },
-    {
-      "nome": "fct_aprovacao_rouanet",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/core/fct_aprovacao_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Fato da aprovação de projeto na Lei Rouanet, com o histórico completo.\nGRÃO: uma linha por registro de aprovação. CHAVE: `id_aprovacao`. UNIVERSO: todos os registros de `silver_sac_aprovacao` com id e PRONAC resolvidos.\nPOR QUE O HISTÓRICO INTEIRO: um projeto tem mais de uma aprovação ao longo da vida — inicial, readequação, prorrogação. A `dim_projeto_rouanet` guarda só a mais recente, que é o que um painel lê; aqui nenhuma linha se perde, porque a série de valor autorizado e a janela de captação dependem do histórico. `codigo_tipo_aprovacao`, `id_readequacao` e `id_prorrogacao` são o que distingue os registros entre si.\nAPROVAÇÃO NÃO É CAPTAÇÃO: o valor autorizado é teto — quanto o projeto pode captar, não quanto captou. Usá-lo como recurso realizado superestima qualquer indicador de execução.\nMEDIDA E UNIDADE: todos os valores `_reais` em reais nominais da data da aprovação, sem correção monetária; os `_ufir` na unidade fiscal histórica.\nDUAS COLUNAS DA ORIGEM FICAM DE FORA: `logon`, que identifica o servidor que registrou a aprovação, e `resumoaprovacao`, texto livre digitado por analista — texto livre é o vetor por onde nome, endereço e documento entram numa tabela que nenhuma classificação automática marca.\nLIMITAÇÕES: o domínio de `codigo_tipo_aprovacao` não foi levantado contra o banco e fica exposto como código, sem descrição inventada (gate G1). ATUALIZAÇÃO: recalculado a cada `dbt build`.",
-      "colunas": [
-        {
-          "nome": "id_aprovacao",
-          "descricao": "Identificador do registro de aprovação no SALIC. Chave do fato."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "PRONAC do projeto aprovado, preservado sem padding artificial."
-        },
-        {
-          "nome": "id_pronac",
-          "descricao": "Surrogate inteiro do projeto, como gravado na própria linha de origem."
-        },
-        {
-          "nome": "id_parecer",
-          "descricao": "Identificador do parecer que embasou a aprovação."
-        },
-        {
-          "nome": "codigo_tipo_aprovacao",
-          "descricao": "Código que distingue aprovação inicial de readequação e prorrogação. Exposto como código: a tabela de domínio ainda não foi identificada."
-        },
-        {
-          "nome": "data_aprovacao",
-          "descricao": "Data em que a aprovação foi registrada."
-        },
-        {
-          "nome": "ano_aprovacao",
-          "descricao": "Ano da data de aprovação, para corte anual."
-        },
-        {
-          "nome": "numero_portaria",
-          "descricao": "Número da portaria de aprovação."
-        },
-        {
-          "nome": "data_portaria",
-          "descricao": "Data da portaria de aprovação."
-        },
-        {
-          "nome": "data_publicacao",
-          "descricao": "Data de publicação da portaria. É a data com efeito legal: a partir dela o projeto pode captar. Preferida a `data_aprovacao` quando se precisa datar o acesso."
-        },
-        {
-          "nome": "data_inicio_captacao",
-          "descricao": "Início da janela autorizada de captação."
-        },
-        {
-          "nome": "data_fim_captacao",
-          "descricao": "Fim da janela autorizada de captação."
-        },
-        {
-          "nome": "valor_aprovado_reais",
-          "descricao": "Valor aprovado, em reais nominais da data da aprovação."
-        },
-        {
-          "nome": "valor_autorizado_reais",
-          "descricao": "Valor autorizado a captar, em reais nominais. É teto, não recurso realizado."
-        },
-        {
-          "nome": "valor_concedido_custeio_reais",
-          "descricao": "Parcela de custeio do valor concedido, em reais nominais."
-        },
-        {
-          "nome": "valor_concedido_capital_reais",
-          "descricao": "Parcela de capital do valor concedido, em reais nominais."
-        },
-        {
-          "nome": "valor_contrapartida_reais",
-          "descricao": "Contrapartida registrada na aprovação, em reais nominais."
-        },
-        {
-          "nome": "valor_aprovado_ufir",
-          "descricao": "Valor aprovado na unidade fiscal histórica (UFIR)."
-        },
-        {
-          "nome": "valor_autorizado_ufir",
-          "descricao": "Valor autorizado na unidade fiscal histórica (UFIR)."
-        },
-        {
-          "nome": "id_prorrogacao",
-          "descricao": "Identificador da prorrogação, quando a aprovação é uma prorrogação."
-        },
-        {
-          "nome": "id_readequacao",
-          "descricao": "Identificador da readequação, quando a aprovação é uma readequação."
-        }
-      ],
-      "colunas_descritas": 21,
-      "testes": 4,
-      "materializacao": "",
-      "depende_de": [
-        "silver_sac_aprovacao"
-      ],
-      "sources": [],
-      "linhas_sql": 55
-    },
-    {
-      "nome": "fct_captacao_rouanet",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/core/fct_captacao_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Fato da captação de recurso na Lei Rouanet.\nGRÃO: uma linha por recibo de captação. CHAVE: `id_captacao`. UNIVERSO: todos os recibos de `silver_sac_captacao` com id, data e PRONAC resolvidos. Nenhum corte por ano, valor ou situação do projeto.\nO QUE MEDE: na Rouanet o MinC não repassa dinheiro ao agente — o projeto aprovado capta de um incentivador, que abate o valor do imposto devido. O recibo é o registro de que o recurso entrou, e por isso ele, e não a portaria de aprovação, é a medida de recurso captado das Metas 3 e 5.\nCAPTAÇÃO NÃO É PAGAMENTO: captado, comprovado e pago são três medidas diferentes, e um indicador nunca pode usar uma no numerador e outra no denominador. Este fato responde por captado.\nMEDIDA E UNIDADE: `valor_captado_reais` em reais nominais da data do recibo, sem correção monetária. `valor_captado_ufir` é o mesmo valor na unidade fiscal histórica e só faz sentido para série antiga.\nO MECENAS FICA DE FORA: `cgccpfmecena` identifica o incentivador e não é trazido. No lugar fica `tipo_pessoa_mecenas`, derivado só do comprimento do documento. É o que deixa este fato candidato a publicação depois da validação de segurança; análise por incentivador pede um fato restrito próprio.\nNULOS E DESCONHECIDOS: valor zero ou negativo (estorno) é preservado — filtrar aqui esconderia estorno de quem soma, e a decisão do que entra em cada indicador é do gold, com a regra declarada. Sai apenas o que não identifica evento: recibo sem id, sem data ou sem PRONAC resolvido.\nLIMITAÇÕES: a reconciliação por ano e PRONAC com `salic/silver_sac_captacao_proponente` é o gate G3 e ainda não foi feita. As duas leem a v2 e montam o PRONAC pela mesma macro; até a reconciliação os dois convivem e nenhum substitui o outro. ATUALIZAÇÃO: recalculado a cada `dbt build`.",
-      "colunas": [
-        {
-          "nome": "id_captacao",
-          "descricao": "Identificador do recibo de captação no SALIC. Chave do fato."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "PRONAC do projeto que captou, preservado sem padding artificial."
-        },
-        {
-          "nome": "numero_recibo",
-          "descricao": "Número do recibo de captação, como texto na origem."
-        },
-        {
-          "nome": "data_recibo",
-          "descricao": "Data do recibo — é o evento que data a captação e o que define o ano de referência de qualquer indicador de recurso captado."
-        },
-        {
-          "nome": "ano_recibo",
-          "descricao": "Ano da data do recibo, para corte anual sem derivar data no gold."
-        },
-        {
-          "nome": "data_chegada_recibo",
-          "descricao": "Data em que o recibo chegou ao SALIC. Diferente da data do recibo, e é a diferença entre as duas que explica atraso de série."
-        },
-        {
-          "nome": "valor_captado_reais",
-          "descricao": "Valor captado em reais nominais da data do recibo, sem correção monetária. Valores zero e negativos (estorno) são preservados."
-        },
-        {
-          "nome": "valor_captado_ufir",
-          "descricao": "Mesmo valor na unidade fiscal histórica (UFIR). Só faz sentido para a série anterior à extinção da unidade; não misture com reais."
-        },
-        {
-          "nome": "codigo_tipo_apoio",
-          "descricao": "Código do tipo de apoio do recibo, como na origem. A tabela de domínio ainda não foi identificada na bronze v2."
-        },
-        {
-          "nome": "medida_provisoria",
-          "descricao": "Medida provisória sob a qual a captação foi registrada, quando a origem preenche."
-        },
-        {
-          "nome": "tipo_pessoa_mecenas",
-          "descricao": "'PF' ou 'PJ' do incentivador, derivado apenas do comprimento do documento. Deliberadamente não identificante: o CPF/CNPJ do mecenas não é trazido para esta camada."
-        },
-        {
-          "nome": "situacao_transferencia_recurso",
-          "descricao": "Situação da transferência do recurso, como código de texto na origem."
-        },
-        {
-          "nome": "data_transferencia_recurso",
-          "descricao": "Data da transferência do recurso, quando registrada."
-        },
-        {
-          "nome": "indicador_bem_servico",
-          "descricao": "Marcador da origem para captação em bem ou serviço, em vez de dinheiro. Mantido como texto: o domínio de valores não foi levantado e convertê-lo para booleano aqui inventaria uma leitura."
-        }
-      ],
-      "colunas_descritas": 14,
-      "testes": 7,
-      "materializacao": "",
-      "depende_de": [
-        "silver_sac_captacao"
-      ],
-      "sources": [],
-      "linhas_sql": 55
-    },
-    {
-      "nome": "fct_evento_acesso_rouanet",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/core/fct_evento_acesso_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Espinha de eventos datados de acesso à Lei Rouanet, no grão do projeto.\nGRÃO: uma linha por evento qualificável. CHAVE: `id_evento`. UNIVERSO: união de `fct_captacao_rouanet` e `fct_aprovacao_rouanet`, restrita aos eventos com data resolvida.\nPARA QUE SERVE: a Meta 5 pergunta quantos proponentes acessaram a Rouanet pela primeira vez em um ano. Responder exige uma série de eventos datados e comparáveis, e exige que \"primeira aprovação\" e \"primeira captação\" continuem distinguíveis — são conceitos diferentes e o plano proíbe colapsá-los. Por isso o tipo do evento é coluna, e não filtro embutido.\nÉ MODELO DE PROJETO, NÃO DE PESSOA: não carrega proponente, documento nem id de agente. A ligação com identidade acontece uma camada acima, na zona restrita, cruzando com `brg_projeto_proponente_rouanet`. Manter a espinha no grão do projeto é o que permite publicá-la.\nFALTA O EVENTO DE REGISTRO, e a ausência é conhecida: a data de registro da proposta está em `PreProjeto`/`Projetos` da v2, que não foram ingeridas. Derivá-la de `data_situacao` seria errado — aquilo é a última mudança de situação, não a entrada. Enquanto a fonte não chega, `tipo_evento` tem dois valores, e qualquer KPI de primeiro acesso construído sobre isto mede primeiro acesso A RECURSO, não primeiro contato com o sistema.\nMEDIDA E UNIDADE: `valor_reais` é captado quando o evento é captação e autorizado quando é aprovação. São medidas diferentes na mesma coluna, de propósito, porque a coluna é o valor associado ao evento — somar as duas juntas é erro, e é por isso que `tipo_evento` nunca deve ser agregado fora.\nREGRA DA DATA: publicação vem antes de data de aprovação no `coalesce` porque é a data com efeito legal. Quando a publicação não está preenchida, a data de aprovação entra como substituta e `data_evento_substituta` marca isso, para que o gold possa medir o quanto da série depende do substituto.\nLIMITAÇÕES: herda os limites dos dois fatos de origem, incluindo a reconciliação pendente com a bronze v1 (gate G3). ATUALIZAÇÃO: recalculado a cada `dbt build`.",
-      "colunas": [
-        {
-          "nome": "id_evento",
-          "descricao": "Chave do evento: tipo e id de origem concatenados. Garante unicidade entre os dois fatos, cujos ids são independentes entre si."
-        },
-        {
-          "nome": "tipo_evento",
-          "descricao": "'APROVACAO' ou 'CAPTACAO'. Nunca agregue valores de tipos diferentes na mesma soma: são medidas distintas. 'REGISTRO' está previsto e ausente porque a fonte não foi ingerida."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "PRONAC do projeto a que o evento pertence."
-        },
-        {
-          "nome": "id_origem",
-          "descricao": "Id do registro no fato de origem — `id_captacao` ou `id_aprovacao`. Único apenas dentro do mesmo `tipo_evento`."
-        },
-        {
-          "nome": "data_evento",
-          "descricao": "Data do evento: data do recibo, na captação; data de publicação da portaria (ou de aprovação, como substituta) na aprovação."
-        },
-        {
-          "nome": "ano_evento",
-          "descricao": "Ano da data do evento, para corte anual."
-        },
-        {
-          "nome": "data_evento_substituta",
-          "descricao": "`true` quando a data do evento veio de campo substituto — hoje, só aprovação sem data de publicação. Expõe a fragilidade da série em vez de escondê-la."
-        },
-        {
-          "nome": "valor_reais",
-          "descricao": "Valor em reais nominais associado ao evento: captado, quando captação; autorizado, quando aprovação. Só é somável dentro de um mesmo `tipo_evento`."
-        }
-      ],
-      "colunas_descritas": 8,
-      "testes": 10,
-      "materializacao": "",
-      "depende_de": [
-        "fct_aprovacao_rouanet",
-        "fct_captacao_rouanet"
-      ],
-      "sources": [],
-      "linhas_sql": 82
-    },
-    {
-      "nome": "map_chave_projeto_rouanet",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/core/map_chave_projeto_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Mapa das três chaves com que o SALIC identifica o mesmo projeto da Lei Rouanet: `pronac` (chave de negócio, 7 posições), `id_pronac` (surrogate das tabelas de análise) e `id_projeto` (surrogate antigo, chave de `silver_sac_abrangencia`).\nGRÃO: uma linha por PRONAC. UNIVERSO: todo PRONAC observado em qualquer silver do sac que carregue a chave — `silver_sac_aprovacao`, `silver_sac_enquadramento`, `silver_sac_documentosprojeto`, `silver_sac_vwprojetositinerantes`, `silver_sac_vwalterarprojeto`, `silver_sac_vwagentesseusprojetos` e `silver_sac_captacao`. Nada é excluído por situação, ano ou valor.\nPARA QUE SERVE: sem ele a Meta 4 não liga abrangência territorial a PRONAC, porque `silver_sac_abrangencia` só tem `idprojeto`. Também é ele que define o universo de projetos da `dim_projeto_rouanet`.\nDESCONHECIDOS E CONFLITO: quando o mesmo PRONAC aparece com mais de um `id_pronac` (ou mais de um `id_projeto`), a coluna do id sai NULL e a flag correspondente sai `true` — fail-closed. Um join que não acontece é visível; um join com o id errado não é. `idprojeto = 0`, que é o valor preenchido na maior parte de `silver_sac_captacao`, é tratado como ausência.\nLIMITAÇÕES: cobertura e taxa de ambiguidade dependem do que está carregado e ainda não foram medidas contra o banco (gate G1 do plano). ATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.",
-      "colunas": [
-        {
-          "nome": "pronac",
-          "descricao": "Chave de negócio do projeto na Rouanet: dois dígitos de ano seguidos do sequencial como registrado, com 5 a 7 posições na série observada. Não há padding do sequencial: fazê-lo mudaria a chave. Normalizado pela macro `pronac_normalizado` ou montado por `pronac_de_ano_sequencial`, conforme a forma da origem."
-        },
-        {
-          "nome": "ano_pronac",
-          "descricao": "Ano de quatro dígitos derivado das duas primeiras posições do PRONAC. A regra é 91–99 para o século XX e 00–90 para o XXI, válida até 2091. É o ano de abertura do projeto, não o ano de nenhum evento financeiro — não use como ano de referência de indicador."
-        },
-        {
-          "nome": "id_pronac",
-          "descricao": "Surrogate inteiro do projeto usado pelas tabelas de análise do SALIC. NULL quando a origem apresenta mais de um valor para o mesmo PRONAC."
-        },
-        {
-          "nome": "id_projeto",
-          "descricao": "Surrogate antigo do projeto, chave de `silver_sac_abrangencia`. NULL quando ambíguo e quando a origem grava 0, que não identifica projeto."
-        },
-        {
-          "nome": "id_pronac_ambiguo",
-          "descricao": "`true` quando a origem associa mais de um `id_pronac` ao mesmo PRONAC. Nesses casos `id_pronac` é NULL de propósito."
-        },
-        {
-          "nome": "id_projeto_ambiguo",
-          "descricao": "`true` quando a origem associa mais de um `id_projeto` ao mesmo PRONAC. Nesses casos `id_projeto` é NULL de propósito."
-        },
-        {
-          "nome": "qt_pronac_por_id_pronac",
-          "descricao": "Quantos PRONAC distintos foram observados para o `id_pronac` candidato. Valor maior que um invalida o id e ativa `id_pronac_ambiguo`, cobrindo a ambiguidade no sentido inverso."
-        },
-        {
-          "nome": "qt_pronac_por_id_projeto",
-          "descricao": "Quantos PRONAC distintos foram observados para o `id_projeto` candidato. Valor maior que um invalida o id e ativa `id_projeto_ambiguo`, cobrindo a ambiguidade no sentido inverso."
-        },
-        {
-          "nome": "qt_tabelas_origem",
-          "descricao": "Quantas das sete tabelas de origem observaram este PRONAC. É a medida de confiança da chave: PRONAC visto em uma tabela só pode ser resíduo de carga, e o valor permite medir isso sem abrir o modelo."
-        }
-      ],
-      "colunas_descritas": 9,
-      "testes": 7,
-      "materializacao": "",
-      "depende_de": [
-        "silver_sac_aprovacao",
-        "silver_sac_captacao",
-        "silver_sac_documentosprojeto",
-        "silver_sac_enquadramento",
-        "silver_sac_vwagentesseusprojetos",
-        "silver_sac_vwalterarprojeto",
-        "silver_sac_vwprojetositinerantes"
-      ],
-      "sources": [],
-      "linhas_sql": 150
-    },
-    {
-      "nome": "fct_pagamento_profissional_rouanet",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/meta3/fct_pagamento_profissional_rouanet.sql",
-      "descricao": "Camada Silver restrita da Meta 3. Preserva os registros de pagamentos a fornecedores e profissionais devolvidos pela view detalhada do SALIC. GRÃO PROVISÓRIO: uma linha por registro da origem; a combinação projeto, item, comprovante, prestador, data e valor é uma chave candidata, e `ocorrencia_chave_candidata` evidencia repetições sem descartá-las. MEDIDA: valor efetivamente pago em reais nominais; não é valor captado, aprovado ou apenas comprovado. O ano é o da data de pagamento, em linha com o recorte de execução do estudo FGV para 2024. Valores nulos, zero, negativos e estornos não são filtrados na silver. IDENTIDADE: documento e nome do prestador tornam o modelo inteiro restrito e proibido para RAG. O texto livre de justificativa da origem é deliberadamente excluído. LIMITAÇÕES: o grão e a reconciliação financeira aguardam a execução pela DAG com permissão de escrita; a ligação com perfil demográfico e o filtro temporal de prestação de contas ainda não têm fonte homologada.",
-      "colunas": [
-        {
-          "nome": "chave_candidata_pagamento",
-          "descricao": "Hash técnico da combinação candidata a identificar o pagamento. É linkável e derivado também do documento do prestador, portanto PII."
-        },
-        {
-          "nome": "ocorrencia_chave_candidata",
-          "descricao": "Ordem da linha dentro de uma chave candidata repetida. Valor maior que um sinaliza duplicidade a investigar, sem apagar o registro."
-        },
-        {
-          "nome": "id_pronac",
-          "descricao": "Identificador técnico do projeto informado pela view de pagamentos."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "Chave de negócio do projeto, recuperada preferencialmente pelo mapa conformado e, quando possível, pelo número informado na própria view."
-        },
-        {
-          "nome": "pronac_resolvido_por_mapa",
-          "descricao": "Verdadeiro quando o PRONAC veio de uma associação unívoca com `id_pronac`; falso indica uso do fallback numérico ou ausência."
-        },
-        {
-          "nome": "documento_prestador",
-          "descricao": "CPF ou CNPJ do prestador, normalizado para somente dígitos."
-        },
-        {
-          "nome": "tipo_pessoa_prestador",
-          "descricao": "Tipo PF ou PJ derivado apenas do comprimento do documento; nulo para documento ausente ou com quantidade de dígitos inválida."
-        },
-        {
-          "nome": "nome_prestador",
-          "descricao": "Nome do fornecedor ou profissional registrado no comprovante."
-        },
-        {
-          "nome": "id_item_planilha",
-          "descricao": "Identificador técnico do item orçamentário pago no projeto."
-        },
-        {
-          "nome": "nome_item",
-          "descricao": "Descrição do item orçamentário ao qual o pagamento foi associado."
-        },
-        {
-          "nome": "numero_comprovante",
-          "descricao": "Número do comprovante dentro dos registros de execução do projeto."
-        },
-        {
-          "nome": "data_emissao",
-          "descricao": "Data de emissão do documento fiscal ou comprovante apresentado."
-        },
-        {
-          "nome": "tipo_documento_comprovante",
-          "descricao": "Código textual do tipo de documento fiscal ou comprovante."
-        },
-        {
-          "nome": "data_pagamento",
-          "descricao": "Data em que o pagamento ao fornecedor ou profissional foi realizado."
-        },
-        {
-          "nome": "ano_pagamento",
-          "descricao": "Ano civil derivado de `data_pagamento`, referência temporal do fato."
-        },
-        {
-          "nome": "tipo_forma_pagamento",
-          "descricao": "Código textual da forma de pagamento registrada na origem."
-        },
-        {
-          "nome": "numero_documento_pagamento",
-          "descricao": "Número do documento da transação de pagamento. É mantido apenas para auditoria no ambiente restrito e não pode ser publicado."
-        },
-        {
-          "nome": "valor_pago_reais",
-          "descricao": "Valor efetivamente pago, em reais nominais. Nulos, zeros e valores negativos são preservados para reconciliação e tratamento no gold."
-        }
-      ],
-      "colunas_descritas": 18,
-      "testes": 2,
-      "materializacao": "",
-      "depende_de": [
-        "map_chave_projeto_rouanet",
-        "silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado"
-      ],
-      "sources": [],
-      "linhas_sql": 102
-    },
-    {
-      "nome": "brg_projeto_local_execucao",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/meta4/brg_projeto_local_execucao.sql",
-      "descricao": "Camada Silver territorial da Meta 4. Relaciona o registro de abrangência do SALIC ao PRONAC sem carregar valores financeiros. GRÃO: uma linha por `id_abrangencia`. PAPEL GEOGRÁFICO: local declarado de realização, nunca residência do proponente ou do prestador. O art. 15, § 2º, da IN MinC 10/2023 fundamenta essa distinção para a aferição territorial da PNAB, mas não é tratado como obrigação jurídica da Rouanet. MULTICIDADE: não há rateio nem replicação nesta bridge; essa regra permanece bloqueada para o fato/gold. DESCONHECIDOS: projeto ou município não resolvido permanece nulo e recebe flag de cobertura; nunca é classificado como não vulnerável. LIMITAÇÕES: os códigos territoriais da origem ainda precisam casar com a dimensão oficial do IBGE, e as 13 categorias do art. 15 precisam de fontes e limiares operacionais antes da classificação de vulnerabilidade.",
-      "colunas": [
-        {
-          "nome": "id_abrangencia",
-          "descricao": "Identificador do registro territorial na tabela de abrangência do SALIC."
-        },
-        {
-          "nome": "id_projeto",
-          "descricao": "Identificador antigo do projeto usado pela tabela de abrangência."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "Chave de negócio do projeto quando `id_projeto` possui associação unívoca no mapa conformado; nula em caso de ausência ou ambiguidade."
-        },
-        {
-          "nome": "pronac_resolvido",
-          "descricao": "Verdadeiro quando o local pôde ser ligado sem ambiguidade a um PRONAC."
-        },
-        {
-          "nome": "id_pais_origem",
-          "descricao": "Identificador de país conforme o domínio interno do SALIC."
-        },
-        {
-          "nome": "id_uf_origem",
-          "descricao": "Identificador de unidade federativa conforme o domínio interno do SALIC."
-        },
-        {
-          "nome": "codigo_municipio_ibge_origem",
-          "descricao": "Código municipal informado pela origem. É preservado como recebido e não recebe zeros artificiais antes do casamento com base oficial."
-        },
-        {
-          "nome": "registro_ativo",
-          "descricao": "Indicador do SALIC de que o registro de abrangência está ativo."
-        },
-        {
-          "nome": "codigo_realizacao",
-          "descricao": "Código original de realização: 0 sem informação, 1 não e 2 sim."
-        },
-        {
-          "nome": "local_realizado",
-          "descricao": "Indicador triestado derivado: verdadeiro para código 2, falso para 1 e nulo para ausência, sem informação ou código desconhecido."
-        },
-        {
-          "nome": "situacao_realizacao",
-          "descricao": "Rótulo controlado derivado do código: SEM_INFORMACAO, NAO_REALIZADO, REALIZADO ou CODIGO_DESCONHECIDO."
-        },
-        {
-          "nome": "data_inicio_realizacao",
-          "descricao": "Data inicial declarada para a realização na localidade."
-        },
-        {
-          "nome": "data_fim_realizacao",
-          "descricao": "Data final declarada para a realização na localidade."
-        }
-      ],
-      "colunas_descritas": 13,
-      "testes": 4,
-      "materializacao": "",
-      "depende_de": [
-        "map_chave_projeto_rouanet",
-        "silver_sac_abrangencia"
-      ],
-      "sources": [],
-      "linhas_sql": 54
-    },
-    {
-      "nome": "fct_proponente_ano_rouanet",
-      "dominio": "salic",
-      "camada": "outros",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/meta5/fct_proponente_ano_rouanet.sql",
-      "descricao": "Camada Silver / Meta 5 do SALIC. Acesso a fomento por proponente e ano, medido por pagamento.\nGRÃO: um proponente por ano em que houve pagamento em projeto ao qual ele está ligado. UNIVERSO: todos os agentes que a ponte `brg_projeto_proponente_rouanet` associa a um PRONAC com ao menos uma comprovação de pagamento com ano preenchido.\nPARA QUE SERVE: é a base do indicador de primeiro acesso da Meta 5. A coluna `eh_primeiro_ano` marca a linha do primeiro ano de cada proponente, então a mesma tabela serve para a série anual e para a contagem de novos entrantes.\nPRIMEIRO ACESSO É O PRIMEIRO PAGAMENTO. Decidido em 2026-09-04, e não é neutro: pagamento no SALIC é o projeto pagando terceiros, então o indicador mede o ano em que o projeto do proponente começou a executar, e não o ano em que ele conseguiu recurso. Captação e pagamento são medidas distintas pela decisão 1 da ADR 0006, e trocar uma pela outra muda o indicador.\nPOR QUE NÃO HÁ VALOR: a ponte de proponente tem grão PRONAC x agente, e um projeto pode ter mais de um agente ligado. Somar valor pago por proponente contaria o mesmo dinheiro uma vez para cada agente, e o total ficaria acima do real — é a mesma questão de rateio que continua aberta para a Meta 4. Contagem de distintos e ano mínimo não sofrem disso, e é por isso que este fato carrega quando e quantas vezes, nunca quanto.\nDESCONHECIDOS: comprovação com ano não numérico na origem fica de fora. Atribuí-la a algum ano seria invenção, e mantê-la criaria uma categoria \"sem ano\" que nenhum indicador pediu. O volume dessas linhas deve ser medido no gate G1.\nLIMITAÇÃO HERDADA DA PONTE, e é a mais séria: a ponte documenta que \"que todo agente listado seja proponente, e não outro papel, é hipótese a confirmar\". Enquanto isso não for confirmado, este fato conta agentes ligados ao projeto, que podem incluir procurador ou outro vínculo. Contar \"proponentes\" a partir daqui exige fechar essa questão antes.\nZONA RESTRITA. Lê a ponte de proponente, que carrega documento e nome. A anonimização e a disponibilização são responsabilidade do Apache Ranger, no momento do acesso — decidido em 2026-09-04, e é por isso que não há pseudonimização no pipeline.\nATUALIZAÇÃO: recalculado a cada `dbt build`; não há carga incremental.",
-      "colunas": [
-        {
-          "nome": "id_agente",
-          "descricao": "Identificador do agente no cadastro do SALIC. Chave do proponente nesta tabela. Identifica uma pessoa de forma indireta, e por isso recebe a mesma classificação que na ponte de proponente."
-        },
-        {
-          "nome": "documento_proponente",
-          "descricao": "CPF ou CNPJ do proponente, normalizado sem pontuação, como vem da ponte. Dado pessoal — o mascaramento é aplicado pelo Ranger no acesso, não aqui."
-        },
-        {
-          "nome": "tipo_pessoa_proponente",
-          "descricao": "Se o proponente é pessoa física ou jurídica, derivado do comprimento do documento."
-        },
-        {
-          "nome": "ano",
-          "descricao": "Ano da comprovação de pagamento. Comprovação sem ano numérico na origem não gera linha."
-        },
-        {
-          "nome": "projetos_com_pagamento",
-          "descricao": "Quantos projetos distintos do proponente tiveram pagamento naquele ano."
-        },
-        {
-          "nome": "comprovacoes",
-          "descricao": "Quantas comprovações de pagamento distintas houve naquele ano nos projetos do proponente. É contagem de registros, não de valor."
-        },
-        {
-          "nome": "ano_primeiro_pagamento",
-          "descricao": "Menor ano com pagamento observado para aquele proponente em toda a série. Repetido em todas as linhas dele, para dispensar subconsulta em quem consome."
-        },
-        {
-          "nome": "eh_primeiro_ano",
-          "descricao": "Verdadeiro na linha do primeiro ano do proponente. É o campo que responde à Meta 5 — contar novos entrantes é somar esta coluna por ano."
-        }
-      ],
-      "colunas_descritas": 8,
-      "testes": 4,
-      "materializacao": "",
-      "depende_de": [
-        "brg_projeto_proponente_rouanet",
-        "silver_sac_tbapicomprovacoes"
-      ],
-      "sources": [],
-      "linhas_sql": 74
-    },
-    {
       "nome": "bronze_anexos_relatorios",
       "dominio": "transferegov",
       "camada": "bronze",
@@ -44575,10 +44575,10 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 13,
-      "testes": 69,
+      "modelos": 14,
+      "testes": 73,
       "camadas": {
-        "gold": 13
+        "gold": 14
       }
     },
     "ibge_sidra": {
@@ -44618,11 +44618,10 @@
       }
     },
     "salic": {
-      "modelos": 596,
-      "testes": 671,
+      "modelos": 595,
+      "testes": 667,
       "camadas": {
-        "silver": 586,
-        "outros": 10
+        "silver": 595
       }
     },
     "transferegov": {
@@ -44893,7 +44892,7 @@
         },
         {
           "nome": "bronze_agentes_uf",
-          "descricao": "Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04. Complementa `agentes__municipios` em `dim_municipio_ibge` — é onde estão a sigla e a região, que a tabela de municípios não carrega."
+          "descricao": "Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04. Complementa `agentes__municipios` em `silver_agentes_municipio_ibge` — é onde estão a sigla e a região, que a tabela de municípios não carrega."
         },
         {
           "nome": "bronze_agentes_vpais",

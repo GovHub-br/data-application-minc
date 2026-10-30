@@ -1,3 +1,6 @@
+{{ config(materialized="table") }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / core -- espinha de eventos datados de acesso a Rouanet.
 --
 -- GRAO: 1 linha por evento qualificavel. A chave e `id_evento`.
@@ -11,7 +14,7 @@
 --
 -- ESTE MODELO E DE PROJETO, NAO DE PESSOA. Ele nao carrega proponente,
 -- documento nem id de agente. A ligacao com identidade acontece uma camada
--- acima, na zona restrita, cruzando com `brg_projeto_proponente_rouanet`.
+-- acima, na zona restrita, cruzando com `silver_sac_projeto_proponente_rouanet`.
 -- Manter a espinha no grao do projeto e o que permite publica-la.
 --
 -- FALTA O EVENTO DE REGISTRO, e a ausencia e conhecida. O plano previa tres
@@ -38,7 +41,7 @@ with
             data_recibo as data_evento,
             false as data_evento_substituta,
             valor_captado_reais as valor_reais
-        from {{ ref("fct_captacao_rouanet") }}
+        from {{ ref("silver_sac_captacao_rouanet") }}
     ),
 
     aprovacao as (
@@ -49,7 +52,7 @@ with
             coalesce(data_publicacao, data_aprovacao) as data_evento,
             data_publicacao is null as data_evento_substituta,
             valor_autorizado_reais as valor_reais
-        from {{ ref("fct_aprovacao_rouanet") }}
+        from {{ ref("silver_sac_aprovacao_rouanet") }}
     ),
 
     evento as (

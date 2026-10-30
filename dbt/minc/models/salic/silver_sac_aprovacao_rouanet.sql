@@ -1,17 +1,20 @@
+{{ config(materialized="table") }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / core -- fato da aprovacao de projeto na Lei Rouanet.
 --
 -- GRAO: 1 linha por registro de aprovacao. A chave e `id_aprovacao`.
 --
 -- POR QUE O HISTORICO INTEIRO. Um projeto tem mais de uma aprovacao ao longo
 -- da vida: aprovacao inicial, readequacao, prorrogacao. A
--- `dim_projeto_rouanet` guarda so a mais recente, que e o que um painel le;
+-- `silver_sac_projeto_rouanet` guarda so a mais recente, que e o que um painel le;
 -- aqui nenhuma linha se perde, porque a serie temporal de valor autorizado e a
 -- janela de captacao dependem do historico. `tipoaprovacao`, `idreadequacao` e
 -- `idprorrogacao` sao o que distingue os registros entre si.
 --
 -- APROVACAO NAO E CAPTACAO. O valor autorizado e um teto: e quanto o projeto
 -- pode captar, nao quanto captou. Usa-lo como se fosse recurso realizado
--- superestima qualquer indicador de execucao. Ver `fct_captacao_rouanet`.
+-- superestima qualquer indicador de execucao. Ver `silver_sac_captacao_rouanet`.
 --
 -- DUAS COLUNAS DA ORIGEM FICAM DE FORA, e o motivo importa:
 -- * `logon` identifica o servidor que registrou a aprovacao. E dado de

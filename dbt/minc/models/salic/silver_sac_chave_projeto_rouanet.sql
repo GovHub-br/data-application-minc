@@ -1,3 +1,9 @@
+{{ config(materialized="table", pre_hook="set local enable_nestloop = off") }}
+-- enable_nestloop off: sem estatistica da CTE `observado`, o Postgres estima 200 linhas
+-- por agregado e escolhe nested loop nos dois left join finais (~276 mil x ~276 mil);
+-- passava de 30 min sem terminar. Com hash join leva segundos. So muda o plano.
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / core -- mapa das tres chaves do projeto na Rouanet.
 --
 -- GRAO: 1 linha por PRONAC.

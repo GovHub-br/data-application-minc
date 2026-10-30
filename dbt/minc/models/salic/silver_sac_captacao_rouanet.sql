@@ -1,3 +1,6 @@
+{{ config(materialized="table") }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / core -- fato da captacao de recurso na Lei Rouanet.
 --
 -- GRAO: 1 linha por recibo de captacao. A chave e `id_captacao`.

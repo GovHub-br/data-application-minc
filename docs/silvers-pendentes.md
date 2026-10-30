@@ -1,5 +1,17 @@
 # Silvers pendentes do SALIC — especificação
 
+> **Nomes de hoje (2026-10-30).** Os modelos citados aqui saíram de `salic_dbt/` para
+> `models/salic/` com outro nome: `map_chave_projeto_rouanet` → `silver_sac_chave_projeto_rouanet`,
+> `dim_projeto_rouanet` → `silver_sac_projeto_rouanet`, `brg_projeto_proponente_rouanet` →
+> `silver_sac_projeto_proponente_rouanet`, `fct_aprovacao_rouanet` → `silver_sac_aprovacao_rouanet`,
+> `fct_captacao_rouanet` → `silver_sac_captacao_rouanet`, `fct_evento_acesso_rouanet` →
+> `silver_sac_evento_acesso_rouanet`, `dim_municipio_ibge` → `silver_agentes_municipio_ibge`,
+> `fct_pagamento_profissional_rouanet` → `silver_sac_pagamento_profissional_rouanet`,
+> `brg_projeto_local_execucao` → `silver_sac_projeto_local_execucao`. O
+> `fct_proponente_ano_rouanet` virou a gold
+> `data_products/cultura_em_numeros/eixo2_meta5_proponente_ano_rouanet`. O texto abaixo
+> conserva os nomes da época em que foi escrito.
+
 Os seis modelos que faltam para completar as 14 silvers previstas para as Metas
 3, 4 e 5 da Lei Rouanet. Oito já existem em
 [`dbt/minc/models/salic_dbt/`](../dbt/minc/models/salic_dbt/).

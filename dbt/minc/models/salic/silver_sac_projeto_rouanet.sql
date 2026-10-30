@@ -1,10 +1,13 @@
+{{ config(materialized="table") }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / core -- dimensao do projeto cultural na Lei Rouanet.
 --
 -- GRAO: 1 linha por PRONAC. A chave e `pronac`, texto de 5 a 7 posicoes na
 -- serie observada (ano com 2 posicoes + sequencial sem padding artificial).
 --
 -- UNIVERSO: todo PRONAC observado em qualquer tabela da bronze v2 que carregue
--- a chave (via `map_chave_projeto_rouanet`), e nao apenas os projetos que o
+-- a chave (via `silver_sac_chave_projeto_rouanet`), e nao apenas os projetos que o
 -- cadastro resolve. E deliberado: um projeto que so aparece em captacao existe
 -- para efeito de indicador, e some-lo apenas quando o cadastro o descreve
 -- produziria um denominador que muda sozinho conforme a carga avanca. Projeto
@@ -12,13 +15,13 @@
 --
 -- IDENTIDADE FICA DE FORA. Nem CPF/CNPJ, nem nome de proponente, nem `logon`
 -- de analista. A ligacao projeto -> proponente e a
--- `brg_projeto_proponente_rouanet`, que e zona restrita. Esta dimensao existe
+-- `silver_sac_projeto_proponente_rouanet`, que e zona restrita. Esta dimensao existe
 -- justamente para ser a parte publicavel do projeto.
 --
 -- O QUE ESTA MODELADO COMO "ULTIMO". Aprovacao e enquadramento tem historico
 -- no SALIC (readequacao, prorrogacao, reenquadramento). A dimensao guarda o
 -- registro mais recente de cada um -- e a leitura que um painel de meta usa --
--- e o historico completo fica em `fct_aprovacao_rouanet`, que nao perde linha.
+-- e o historico completo fica em `silver_sac_aprovacao_rouanet`, que nao perde linha.
 --
 -- LIMITES CONHECIDOS, a fechar no gate G1 do plano (§13 da memoria de
 -- OpenMetadata):
@@ -33,7 +36,8 @@
 with
 
     chave as (
-        select pronac, ano_pronac, id_pronac from {{ ref("map_chave_projeto_rouanet") }}
+        select pronac, ano_pronac, id_pronac
+        from {{ ref("silver_sac_chave_projeto_rouanet") }}
     ),
 
     cadastro_bruto as (
