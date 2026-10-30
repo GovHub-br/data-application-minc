@@ -1,0 +1,2413 @@
+version: 2
+
+models:
+  - name: silver_sac_editalrelatorio
+    description: >
+      Tabela responsável por armazenar relatórios exigidos pelos editais, com datas,
+      aprovação e comprovações. Camada Silver tipada a partir de
+      salic.bronze_sac_editalrelatorio.
+    columns:
+      - name: idrelatorio
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: anoprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: sequencial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: idedital
+        description: >
+          Sequêncial identificador do edital.
+        data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('sac__editalparcelas')
+                field: idedital
+      - name: nrparcela
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('sac__editalparcelas')
+                field: nrparcela
+      - name: dtrelatorio
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: relatorio
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: comprovado
+        description: >
+          0.Não;1.Sim
+        data_type: boolean
+      - name: aprovado
+        description: >
+          0.Não;1.Sim
+        data_type: boolean
+      - name: logon
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_efeitosresultado
+    description: >
+      Tabela responsável por armazenar códigos, opções e descrições de efeitos de resultado
+      dos projetos. Camada Silver tipada a partir de salic.bronze_sac_efeitosresultado.
+    columns:
+      - name: codigo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: opcao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: descricao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbcomplianceitemcomprovado
+    description: >
+      Tabela responsável por registrar itens auditados, valores comprovados e diferenças.
+      Camada Silver tipada a partir de salic.bronze_sac_tbcomplianceitemcomprovado.
+    columns:
+      - name: idcompliancefinanceiro
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idcompliancecomprovacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idtipo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrfonterecurso
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idproduto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: iduf
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idmunicipio
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idetapa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: iditem
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idfornecedor
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrcomprovante
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrlancamento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlcomprovado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vllancamento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vldiferenca
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsobservacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idcomprovantepagamento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbcomprovacaopassivo
+    description: >
+      Tabela responsável por registrar comprovantes de passivos financeiros ou orçamentários.
+      Camada Silver tipada a partir de salic.bronze_sac_tbcomprovacaopassivo.
+    columns:
+      - name: idcomprovacaopassivo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idplanilhaaprovacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbplanilhaaprovacao')
+                field: idplanilhaaprovacao
+      - name: idlancamentobancario
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tblancamentobancario')
+                field: idlancamentobancario
+      - name: idfornecedor
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tpcomprovante
+        description: >
+          1. Cupom Fiscal 2. Guia de Recolhimento 3. Nota Fiscal / Fatura 4. Recibo de
+          Pagamento 5. RPA 6. Invoice
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrcomprovante
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtemissaocomprovante
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlcomprovante
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsjustificativa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idarquivo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: idusuario
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbcomprovantetrimestral
+    description: >
+      Tabela responsável por registrar comprovantes trimestrais de execução física e
+      financeira. Camada Silver tipada a partir de salic.bronze_sac_tbcomprovantetrimestral.
+    columns:
+      - name: idcomprovantetrimestral
+        description: >
+          Identifica o relatório trimestral entregue pelo proponente.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpronac
+        description: >
+          Identiticador único de uma proposta de um projeto cultural no Ministério da Cultura
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtcomprovante
+        description: >
+          Data em que foi cadastrado o relatório trimestral (comprovante).
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: dtinicioperiodo
+        description: >
+          Data inicial do período de cadastro do relatório trimestral. (Comprovante).
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtfimperiodo
+        description: >
+          Data do fim do período do relatório trimestral.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsetapasexecutadas
+        description: >
+          Descrição das etapas do projeto executado.
+        data_type: text
+      - name: dsacessibilidade
+        description: >
+          descrição das medidas de acessibilidade implantadas até o momento do relatório.
+        data_type: text
+      - name: dsdemocratizacaoacesso
+        description: >
+          descrição das medidas de democratização de acesso.
+        data_type: text
+      - name: dsimpactoambiental
+        description: >
+          Descrição das medidas efetivadas para não haver impacto ambiental na execução
+          doprojeto.
+        data_type: text
+      - name: sicomprovantetrimestral
+        description: >
+          Situação dos comprovantes trimestrais: 1 - Salvo pelo proponente, 2 - Enviado pelo
+          Proponente, 3 - Encaminhado pelo técnico de Acompanhamento, 4 - Em análise pelo
+          técnico, 5 - Finalizado pelo técnico, 6 - Finalizado pelo coordenador.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrcomprovantetrimestral
+        description: >
+          Número de ordem, a sequência do relatório trimestral.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idcadastrador
+        description: >
+          É o usuário logado no sistema do lado do proponente (Usuário externo). O controle
+          de acesso será feito através do banco controle de acesso na tabela SGCAcesso.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsparecertecnico
+        description: >
+          Descrição do parecer emitido pelo técnico de acompanhamento do Minc.
+        data_type: text
+      - name: dsrecomendacao
+        description: >
+          São as recomendações do técnico de acompanhamento ao proponente.
+        data_type: text
+      - name: idtecnicoavaliador
+        description: >
+          É o usuário logado no sistema do lado do Minc (Usuário interno). O controle de
+          acesso será feito através do banco Tabelas tabela Usuarios.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbcumprimentoobjeto
+    description: >
+      Tabela responsável por registrar o cumprimento do objeto pelos projetos, incluindo
+      etapas concluídas, acessibilidade, fruição, geração de empregos e conclusão técnica.
+      Camada Silver tipada a partir de salic.bronze_sac_tbcumprimentoobjeto.
+    columns:
+      - name: idcumprimentoobjeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtcadastro
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsetapasconcluidas
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dsmedidasacessibilidade
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dsmedidasfruicao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dsmedidaspreventivas
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dsinformacaoadicional
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dsorientacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dsconclusao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: stresultadoavaliacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: idusuariocadastrador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: idtecnicoavaliador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: sicumprimentoobjeto
+        description: >
+          1 - Salvo pelo proponente; 2 - Enviado pelo proponente; 3 - Encaminhado pelo
+          Técnico de Acompanhamento; 4 - Em análise pelo Técnico; 5 - Finalizado pelo
+          Técnico; 6 - Finalizado pelo Coordenador.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idchefiaimediata
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: qtempregosdiretos
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: qtempregosindiretos
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: dsgeracaoempregos
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dtenviodaprestacaocontas
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: dsmetadadosavaliacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbcumprimentoobjetoxarquivo
+    description: >
+      Tabela responsável por vincular arquivos/documentos às informações de cumprimento de
+      objeto. Camada Silver tipada a partir de salic.bronze_sac_tbcumprimentoobjetoxarquivo.
+    columns:
+      - name: idcumprimentoobjetoxarquivo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idcumprimentoobjeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbcumprimentoobjeto')
+                field: idcumprimentoobjeto
+      - name: idarquivo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idposicao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbdetalhaplanodistribuicaoreadequacao
+    description: >
+      Tabela responsável por armazenar detalhamentos do plano de distribuição após
+      readequações, vinculando UF, município, produtos e receitas. Camada Silver tipada a
+      partir de salic.bronze_sac_tbdetalhaplanodistribuicaoreadequacao.
+    columns:
+      - name: iddetalhaplanodistribuicao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idplanodistribuicao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbreadequacao')
+                field: idreadequacao
+      - name: iduf
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idmunicipio
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stdistribuicao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsproduto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtexemplares
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtgratuitadivulgacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtgratuitapatrocinador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtgratuitapopulacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtpopularintegral
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtpopularparcial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlunitariopopularintegral
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlreceitapopularintegral
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlreceitapopularparcial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtproponenteintegral
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtproponenteparcial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlunitarioproponenteintegral
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlreceitaproponenteintegral
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlreceitaproponenteparcial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlreceitaprevista
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tplocal
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: tpespaco
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: tpvenda
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: tpsolicitacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stativo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: iddetalhaoriginal
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbdistribuirreadequacao
+    description: >
+      Tabela responsável por distribuir readequações para avaliadores e coordenadores, com
+      datas, status e orientações. Camada Silver tipada a partir de
+      salic.bronze_sac_tbdistribuirreadequacao.
+    columns:
+      - name: iddistribuirreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbreadequacao')
+                field: idreadequacao
+      - name: idunidade
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtencaminhamento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idavaliador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: dtenvioavaliador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: dsorientacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dtretornoavaliador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: stvalidacaocoordenador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtvalidacaocoordenador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: idcoordenador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbhistoricoalteracaodocumento
+    description: >
+      Tabela responsável por registrar o histórico de alterações realizadas em documentos
+      vinculados a projetos. Camada Silver tipada a partir de
+      salic.bronze_sac_tbhistoricoalteracaodocumento.
+    columns:
+      - name: idhistoricoalteracaodocumento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: iddocumento
+        description: >
+          Identificador do documento anexado.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idhistoricoalteracaoprojeto
+        description: >
+          Identificador do historico de alteração do projeto.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbhistoricoalteracaoprojeto')
+                field: idhistoricoalteracaoprojeto
+      - name: iddocumentosexigidos
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('sac__documentosexigidos')
+                field: codigo
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbhistoricoalteracaoprojeto
+    description: >
+      Tabela responsável por registrar o histórico de alterações de dados dos projetos (área,
+      segmento, situação, órgão, execução, enquadramento e providências). Camada Silver tipada a partir de salic.bronze_sac_tbhistoricoalteracaoprojeto.
+    columns:
+      - name: idhistoricoalteracaoprojeto
+        description: >
+          Identificador do historico de alterações do projeto.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: cdarea
+        description: >
+          Áreas de seguimento do projeto: 1 Artes Cênicas 2 Audiovisual 3 Música 4 Artes
+          Visuais 5 Patrimônio Cultural 6 Humanidades 7 Artes Integradas
+        data_type: text
+      - name: cdsegmento
+        description: >
+          Código do seguimento do projeto: 11 Teatro 12 Dança 13 Circo 14 Ópera 15 Mímica 16
+          Ópera Rock 22 Videofonográfica 24 Rádio/Tvs Educativa 25 Multimídia, etc.
+        data_type: text
+      - name: nmprojeto
+        description: >
+          Armazena o nome do projeto.
+        data_type: text
+      - name: cdsituacao
+        description: >
+          Código da situação do projeto, registrado na tabela Situação.
+        data_type: text
+      - name: cdorgao
+        description: >
+          Unidade por onde o projeto é tramitado.
+        data_type: integer
+      - name: dtinicioexecucao
+        description: >
+          Data de inicio de execução de projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data fim da execução do projeto.
+        data_type: timestamp
+      - name: idlogon
+        description: >
+          Usuário logado responsável pela alteração do registro.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: iddocumento
+        description: >
+          Identifica o documento anexado para alteração do registro.
+        data_type: integer
+      - name: idpronac
+        description: >
+          Identificador do projeto.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idenquadramento
+        description: >
+          Identificador do enquadramento utilizado para o projeto.
+        data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('silver_sac_enquadramento')
+                field: idenquadramento
+      - name: dthistoricoalteracaoprojeto
+        description: >
+          Armazena a data que foi realizada a alteração no projeto
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dshistoricoalteracaoprojeto
+        description: >
+          Descreve o motivo de alteração do projeto.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: cgccpf
+        description: >
+          numero do cgc ou cpf alterado
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dsprovidenciatomada
+        description: >
+          Descrição da Providência tomada para alteração do registro
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tblaudofinal
+    description: >
+      Tabela responsável por armazenar laudos finais do projeto, contendo manifestação, data,
+      descrição e usuário responsável. Camada Silver tipada a partir de
+      salic.bronze_sac_tblaudofinal.
+    columns:
+      - name: idlaudofinal
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: dtlaudofinal
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: simanifestacao
+        description: >
+          Manisfetação: A - Aprovado; P - Aprovado com ressalvas; R - Reprovado
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dslaudofinal
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idusuario
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbpagarpareceristareadequacao
+    description: >
+      Tabela responsável por registrar pagamentos a pareceristas referentes a análises de
+      readequação. Camada Silver tipada a partir de
+      salic.bronze_sac_tbpagarpareceristareadequacao.
+    columns:
+      - name: idpagarreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idparecerista
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dthomologacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idunidade
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idgerarpagamentoparecerista
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbgerarpagamentoparecerista')
+                field: idgerarpagamentoparecerista
+      - name: vlpagamento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idusuario
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtdistribuicao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: idpareceristaempenho
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbpareceristaempenho')
+                field: idpareceristaempenho
+      - name: nrempenho
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbpareceristaprorrogarprazo
+    description: >
+      Tabela responsável por registrar prorrogações de prazo solicitadas por pareceristas
+      durante análises. Camada Silver tipada a partir de
+      salic.bronze_sac_tbpareceristaprorrogarprazo.
+    columns:
+      - name: idpareceristaprorrogarprazo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: iddistribuir
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tpanalise
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtsolicitacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtconcessao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsjustificativa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stestado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbpareceristaprorrogarprazoxdistribuicao
+    description: >
+      Tabela responsável por vincular prorrogações de prazo às distribuições de análises.
+      Camada Silver tipada a partir de
+      salic.bronze_sac_tbpareceristaprorrogarprazoxdistribuicao.
+    columns:
+      - name: idpareceristaprorrogarprazoxdistribuicao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpareceristaprorrogarprazo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbpareceristaprorrogarprazo')
+                field: idpareceristaprorrogarprazo
+      - name: iddistribuirparecer
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('sac__tbdistribuirparecer')
+                field: iddistribuirparecer
+      - name: iddsitribuirreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbdistribuirreadequacao')
+                field: iddistribuirreadequacao
+      - name: iddistribuirrecurso
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbdistribuirprojeto')
+                field: iddistribuirprojeto
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbpreprojetometa
+    description: >
+      Tabela responsável por registrar metas adicionais, atributos e histórico de alterações
+      vinculados ao pré-projeto. Camada Silver tipada a partir de
+      salic.bronze_sac_tbpreprojetometa.
+    columns:
+      - name: idpreprojetometa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpreprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: metakey
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: metavalue
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtalteracao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbprojetoreadequacao
+    description: >
+      Tabela responsável por armazenar as informações textuais do projeto em contexto de
+      readequação (resumo, objetivos, justificativas, etapas etc.). Camada Silver tipada a
+      partir de salic.bronze_sac_tbprojetoreadequacao.
+    columns:
+      - name: idprojetoreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbreadequacao')
+                field: idreadequacao
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idagente
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nmprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsresumodoprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsobjetivos
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsjustificativa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsacessibilidade
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsdemocratizacaodeacesso
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsetapadetrabalho
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsfichatecnica
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dssinopse
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsimpactoambiental
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsespecificacaotecnica
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsestrategiadeexecucao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsdescricaoatividade
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbreadequacao
+    description: >
+      Tabela responsável por registrar solicitações de readequação de projetos, com
+      justificativa, avaliação, reunião e situação. Camada Silver tipada a partir de
+      salic.bronze_sac_tbreadequacao.
+    columns:
+      - name: idreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idtiporeadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtsolicitacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idsolicitante
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsjustificativa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dssolicitacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: iddocumento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: idavaliador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: dtavaliador
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: dsavaliacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: statendimento
+        description: >
+          Status de atendimento referente a solicitação do recurso: D : Deferido I :
+          Indeferido N : Não avaliado; A : Em análise; E : Descartado
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: siencaminhamento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stanalise
+        description: >
+          AC : Aprovado pelo Componente; IC : Indeferido pelo Componente; AS : Aprovado pelo
+          Plenário da CNIC; IS : Indeferido pelo Plenário da CNIC
+        data_type: text
+      - name: idnrreuniao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+      - name: stestado
+        description: >
+          0.Atual;1.Histórico
+        data_type: boolean
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtenvio
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbreadequacaoxparecer
+    description: >
+      Tabela responsável por relacionar readequações aos pareceres emitidos. Camada Silver tipada a partir de salic.bronze_sac_tbreadequacaoxparecer.
+    columns:
+      - name: idreadequacaoxparecer
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: idreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbreadequacao')
+                field: idreadequacao
+      - name: idparecer
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_tbreadequacaoxtbdiligencia
+    description: >
+      Tabela responsável por relacionar readequações às diligências associadas. Camada Silver tipada a partir de salic.bronze_sac_tbreadequacaoxtbdiligencia.
+    columns:
+      - name: idreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbreadequacao')
+                field: idreadequacao
+      - name: iddiligencia
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('sac__tbdiligencia')
+                field: iddiligencia
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vportariaprorrogacao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vportariaprorrogacao.
+    columns:
+      - name: anoprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sequencial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tipoaprovacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtaprovacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vprestacao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vprestacao.
+    columns:
+      - name: area
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: segmento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: anoprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sequencial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtiniciorealizacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: dtfinalrealizacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: valorexecutado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: aplicacaofinanceira
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: outrasfontes
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: saldorecolhido
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vprojetosemexecucao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vprojetosemexecucao.
+    columns:
+      - name: regiao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: uf
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: area
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: segmento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: aprovado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: captado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: saldoacaptar
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: codigoarea
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: municipio
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: enquadramento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vprorrogacao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vprorrogacao.
+    columns:
+      - name: anoprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sequencial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtaprovacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtiniciocaptacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: dtfimcaptacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: portariaaprovacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: dtportariaaprovacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: dtpublicacaoaprovacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: saldoacaptar
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vversepodeprorrogar
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vversepodeprorrogar.
+    columns:
+      - name: anoprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sequencial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: temposemcaptar
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vwalteraranalistaproposta
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vwalteraranalistaproposta.
+    columns:
+      - name: idproposta
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: orgao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idtecnico
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tecnico
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vwalterarorgao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vwalterarorgao.
+    columns:
+      - name: pronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: orgao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: logon
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vwalterarsituacao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vwalterarsituacao.
+    columns:
+      - name: pronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtsituacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: situacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: providenciatomada
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: logon
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vwpareceresdereadequacao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vwpareceresdereadequacao.
+    columns:
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: pronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - relationships:
+              arguments:
+                to: ref('silver_sac_tbreadequacao')
+                field: idreadequacao
+      - name: idtiporeadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsreadequacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtenviominc
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: dsjustificativa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: siencaminhamento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsencaminhamento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtparecer
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: tpmanifestacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsmanifestacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsparecer
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vwpedidodeprorrogacao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vwpedidodeprorrogacao.
+    columns:
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: anoprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: sequencial
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: pronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: codsituacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: situacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtinicioexecucao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+      - name: mecanismo
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idprorrogacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: dtpedido
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtinicio
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtfinal
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: justificativa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idusuario
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: atendimento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vwprojetosadequadosrealidadeexecucao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vwprojetosadequadosrealidadeexecucao.
+    columns:
+      - name: idpronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: pronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: cnpjcpf
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: proponente
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: ufprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: area
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: segmento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtinicioexecucao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtfimexecucao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: orgao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtsituacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtdias
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: idtecnico
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tecnico
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: enquadramento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlsolicitado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vloutrasfontes
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlaprovado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
+
+  - name: silver_sac_vwprojetosliberadosparaadequacaorealidadeexecucao
+    description: >
+      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
+      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
+      salic.bronze_sac_vwprojetosliberadosparaadequacaorealidadeexecucao.
+    columns:
+      - name: pronac
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: nomeprojeto
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+          - unique   # inferido do perfil do banco
+      - name: dtsituacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: area
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dsarea
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: segmento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dssegmento
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: qtdias
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: nrportaria
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: dtpublicacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: timestamp
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: agencia
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: contabloqueada
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stproposta
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: integer
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: excecao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: stdatafixa
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: datamarcada
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: tpprorrogacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: solicitacaoprorrogacao
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: text
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlsolicitado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlaprovado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: vlcaptado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: perccaptado
+        description: >
+          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+        data_type: numeric
+        tests:
+          - not_null   # inferido do perfil do banco
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
+          é campo de negócio.
+        data_type: integer
