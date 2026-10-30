@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized="table") }}
 
 -- Silver — um recibo de captação da Lei Rouanet por linha, com o proponente
 -- que recebeu o recurso. Junta duas tabelas do próprio SALIC (o recibo e o
@@ -30,47 +30,41 @@
 --
 -- JANELA: recibos de 1993 em diante — praticamente toda a vigência da lei
 -- (1991).
+with
+    proponente_bruto as (
+        select
+            {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} as pronac,
+            case
+                when length(regexp_replace(trim(cgccpf), '[^0-9]', '', 'g')) <= 11
+                then lpad(regexp_replace(trim(cgccpf), '[^0-9]', '', 'g'), 11, '0')
+                else lpad(regexp_replace(trim(cgccpf), '[^0-9]', '', 'g'), 14, '0')
+            end as proponente_documento,
+            -- o cadastro não traz o nome do proponente; a coluna fica pelo
+            -- contrato do modelo
+            null::text as proponente_nome
+        from {{ source("salic", "bronze_sac_projetos") }}
+        where
+            cgccpf is not null
+            and length(regexp_replace(trim(cgccpf), '[^0-9]', '', 'g')) between 8 and 14
+    ),
 
-WITH proponente_bruto AS (
-    SELECT
-        {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} AS pronac,
-        CASE
-            WHEN LENGTH(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g')) <= 11
-                THEN LPAD(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g'), 11, '0')
-            ELSE LPAD(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g'), 14, '0')
-        END AS proponente_documento,
-        -- o cadastro não traz o nome do proponente; a coluna fica pelo
-        -- contrato do modelo
-        NULL::TEXT AS proponente_nome
-    FROM {{ source('salic', 'bronze_sac_projetos') }}
-    WHERE cgccpf IS NOT NULL
-      AND LENGTH(REGEXP_REPLACE(TRIM(cgccpf), '[^0-9]', '', 'g')) BETWEEN 8 AND 14
-),
+    projeto_proponente as (
+        -- uma linha por PRONAC
+        select distinct on (pronac) pronac, proponente_documento, proponente_nome
+        from proponente_bruto
+        where pronac is not null and proponente_documento !~ '^0+$'
+        order by pronac, proponente_documento
+    ),
 
-projeto_proponente AS (
-    -- uma linha por PRONAC
-    SELECT DISTINCT ON (pronac) pronac, proponente_documento, proponente_nome
-    FROM proponente_bruto
-    WHERE pronac IS NOT NULL
-      AND proponente_documento !~ '^0+$'
-    ORDER BY pronac, proponente_documento
-),
+    recibos as (
+        select
+            {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} as pronac,
+            {{ bronze_timestamp("dtrecibo") }}::date as data_recibo,
+            {{ bronze_numerico("captacaoreal") }} as valor_captado
+        from {{ source("salic", "bronze_sac_captacao") }}
+    )
 
-recibos AS (
-    SELECT
-        {{ pronac_de_ano_sequencial("anoprojeto", "sequencial") }} AS pronac,
-        {{ bronze_timestamp("dtrecibo") }}::DATE AS data_recibo,
-        {{ bronze_numerico("captacaoreal") }} AS valor_captado
-    FROM {{ source('salic', 'bronze_sac_captacao') }}
-)
-
-SELECT
-    p.proponente_documento,
-    p.proponente_nome,
-    r.data_recibo,
-    r.valor_captado,
-    r.pronac
-FROM recibos r
-INNER JOIN projeto_proponente p ON r.pronac = p.pronac
-WHERE r.data_recibo IS NOT NULL
-  AND r.valor_captado IS NOT NULL
+select p.proponente_documento, p.proponente_nome, r.data_recibo, r.valor_captado, r.pronac
+from recibos r
+inner join projeto_proponente p on r.pronac = p.pronac
+where r.data_recibo is not null and r.valor_captado is not null

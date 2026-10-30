@@ -1,6 +1,6 @@
-{{ config(materialized='table') }}
--- table, e não a view da pasta: join pesado sobre silvers que são views do texto da Bronze; era table por pasta em salic_dbt.
-
+{{ config(materialized="table") }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / Meta 3 -- pagamentos a fornecedores e profissionais.
 --
 -- GRAO PROVISORIO: 1 linha por registro devolvido pela view detalhada de

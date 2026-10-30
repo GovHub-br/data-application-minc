@@ -1,6 +1,6 @@
-{{ config(materialized='table') }}
--- table, e não a view da pasta: join pesado sobre silvers que são views do texto da Bronze; era table por pasta em salic_dbt.
-
+{{ config(materialized="table") }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / core -- dimensao do projeto cultural na Lei Rouanet.
 --
 -- GRAO: 1 linha por PRONAC. A chave e `pronac`, texto de 5 a 7 posicoes na
@@ -36,7 +36,8 @@
 with
 
     chave as (
-        select pronac, ano_pronac, id_pronac from {{ ref("silver_sac_chave_projeto_rouanet") }}
+        select pronac, ano_pronac, id_pronac
+        from {{ ref("silver_sac_chave_projeto_rouanet") }}
     ),
 
     cadastro_bruto as (

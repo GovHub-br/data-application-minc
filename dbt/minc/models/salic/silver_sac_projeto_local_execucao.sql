@@ -1,6 +1,6 @@
-{{ config(materialized='table') }}
--- table, e não a view da pasta: join pesado sobre silvers que são views do texto da Bronze; era table por pasta em salic_dbt.
-
+{{ config(materialized="table") }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / Meta 4 -- locais declarados de realizacao do projeto.
 --
 -- GRAO: 1 linha por `id_abrangencia`, o registro territorial do SALIC.

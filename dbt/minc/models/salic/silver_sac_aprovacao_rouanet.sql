@@ -1,6 +1,6 @@
-{{ config(materialized='table') }}
--- table, e não a view da pasta: join pesado sobre silvers que são views do texto da Bronze; era table por pasta em salic_dbt.
-
+{{ config(materialized="table") }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
+-- Bronze; era table por pasta em salic_dbt.
 -- Silver SALIC / core -- fato da aprovacao de projeto na Lei Rouanet.
 --
 -- GRAO: 1 linha por registro de aprovacao. A chave e `id_aprovacao`.
