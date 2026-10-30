@@ -1,8 +1,9 @@
--- Silver SALIC — silver_sac_vwitemorcamentarioimpugnado (ex-sac__vwitemorcamentarioimpugnado).
+-- Silver SALIC — silver_sac_vwitemorcamentarioimpugnado
+-- (ex-sac__vwitemorcamentarioimpugnado).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwitemorcamentarioimpugnado, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 14 colunas: 2 tipadas, 11 mantidas como texto.
+-- 14 colunas: 1 tipadas, 12 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -16,7 +17,7 @@ select
     {{ bronze_texto("documento") }} as documento,
     {{ bronze_texto("nrcomprovante") }} as nrcomprovante,
     {{ bronze_texto("tpformadepagamento") }} as tpformadepagamento,
-    {{ bronze_inteiro("nrdocumentodepagamento") }} as nrdocumentodepagamento,
+    {{ bronze_texto("nrdocumentodepagamento") }} as nrdocumentodepagamento,
     {{ bronze_texto("dsjustificativa") }} as dsjustificativa,
     {{ bronze_numerico("vlcomprovado") }} as vlcomprovado,
     _fatia

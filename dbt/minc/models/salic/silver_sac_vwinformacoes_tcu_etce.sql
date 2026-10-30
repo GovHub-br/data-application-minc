@@ -2,11 +2,11 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwinformacoes_tcu_etce, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 26 colunas: 8 tipadas, 17 mantidas como texto.
+-- 26 colunas: 7 tipadas, 18 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
-    {{ bronze_inteiro("nun_instrumento") }} as nun_instrumento,
+    {{ bronze_texto("nun_instrumento") }} as nun_instrumento,
     {{ bronze_inteiro("ano_instrumento") }} as ano_instrumento,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("num_siafi_instrumento") }} as num_siafi_instrumento,

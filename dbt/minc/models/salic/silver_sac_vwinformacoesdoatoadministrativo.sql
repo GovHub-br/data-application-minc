@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwinformacoesdoatoadministrativo (ex-sac__vwinformacoesdoatoadministrativo).
+-- Silver SALIC — silver_sac_vwinformacoesdoatoadministrativo
+-- (ex-sac__vwinformacoesdoatoadministrativo).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwinformacoesdoatoadministrativo, onde tudo chega como
 -- texto da

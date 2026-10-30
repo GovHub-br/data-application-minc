@@ -1,8 +1,9 @@
--- Silver SALIC — silver_sac_vdadoscomplementaresdecartas (ex-sac__vdadoscomplementaresdecartas).
+-- Silver SALIC — silver_sac_vdadoscomplementaresdecartas
+-- (ex-sac__vdadoscomplementaresdecartas).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vdadoscomplementaresdecartas, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 24 colunas: 6 tipadas, 17 mantidas como texto.
+-- 24 colunas: 4 tipadas, 19 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -11,12 +12,12 @@ select
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("processo") }} as processo,
     {{ bronze_inteiro("area") }} as area,
-    {{ bronze_inteiro("segmento") }} as segmento,
+    {{ bronze_texto("segmento") }} as segmento,
     {{ bronze_texto("cgccpf") }} as cgccpf,
     {{ bronze_texto("proponente") }} as proponente,
     {{ bronze_texto("responsavel") }} as responsavel,
     {{ bronze_texto("endereco") }} as endereco,
-    {{ bronze_inteiro("cep") }} as cep,
+    {{ bronze_texto("cep") }} as cep,
     {{ bronze_texto("uf") }} as uf,
     {{ bronze_texto("cidade") }} as cidade,
     {{ bronze_texto("nrcarta") }} as nrcarta,
