@@ -1,13 +1,15 @@
--- Silver SALIC — silver_sac_vwpaineldocsreadequacaoaguardandoassinatura (ex-sac__vwpaineldedocumentosdereadequacaoaguardandoassinatura).
+-- Silver SALIC — silver_sac_vwpaineldocsreadequacaoaguardandoassinatura
+-- (ex-sac__vwpaineldedocumentosdereadequacaoaguardandoassinatura).
 -- O nome encurta o da origem para caber nos 63 caracteres do Postgres.
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
--- Origem: salic.bronze_sac_vwpaineldedocumentosdereadequacaoaguardandoassinatur (nome cortado pelo Postgres), onde tudo chega
+-- Origem: salic.bronze_sac_vwpaineldedocumentosdereadequacaoaguardandoassinatur (nome
+-- cortado pelo Postgres), onde tudo chega
 -- como texto da ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 18 colunas: 14 tipadas, 3 mantidas como texto.
+-- 18 colunas: 13 tipadas, 4 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
-    {{ bronze_inteiro("pronac") }} as pronac,
+    {{ bronze_texto("pronac") }} as pronac,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("dstipodoatoadministrativo") }} as dstipodoatoadministrativo,
     {{ bronze_texto("dsreadequacao") }} as dsreadequacao,
@@ -28,4 +30,9 @@ select
     {{ bronze_inteiro("idorgaosuperiordoassinante") }} as idorgaosuperiordoassinante,
     {{ bronze_inteiro("ordemdaproximaassinatura") }} as ordemdaproximaassinatura,
     _fatia
-from {{ source("salic", "bronze_sac_vwpaineldedocumentosdereadequacaoaguardandoassinatura") }}
+from
+    {{
+        source(
+            "salic", "bronze_sac_vwpaineldedocumentosdereadequacaoaguardandoassinatura"
+        )
+    }}

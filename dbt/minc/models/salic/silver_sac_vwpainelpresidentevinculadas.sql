@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpainelpresidentevinculadas (ex-sac__vwpainelpresidentevinculadas).
+-- Silver SALIC — silver_sac_vwpainelpresidentevinculadas
+-- (ex-sac__vwpainelpresidentevinculadas).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpainelpresidentevinculadas, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
@@ -7,7 +8,7 @@
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("nrprojeto") }} as nrprojeto,
+    {{ bronze_texto("nrprojeto") }} as nrprojeto,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_inteiro("idarea") }} as idarea,
     {{ bronze_texto("area") }} as area,
@@ -22,6 +23,6 @@ select
     {{ bronze_texto("fecharanalise") }} as fecharanalise,
     {{ bronze_texto("tecnicovalidador") }} as tecnicovalidador,
     {{ bronze_timestamp("dtvalidacao") }} as dtvalidacao,
-    {{ bronze_texto("valor") }} as valor,
+    {{ bronze_numerico_cientifico("valor") }} as valor,
     _fatia
 from {{ source("salic", "bronze_sac_vwpainelpresidentevinculadas") }}

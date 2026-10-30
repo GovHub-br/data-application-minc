@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpaineldehomologacaodeprojetos (ex-sac__vwpaineldehomologacaodeprojetos).
+-- Silver SALIC — silver_sac_vwpaineldehomologacaodeprojetos
+-- (ex-sac__vwpaineldehomologacaodeprojetos).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpaineldehomologacaodeprojetos, onde tudo chega como texto
 -- da

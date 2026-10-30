@@ -1,14 +1,15 @@
--- Silver SALIC — silver_sac_vwpainelpareceristaunificado (ex-sac__vwpainelpareceristaunificado).
+-- Silver SALIC — silver_sac_vwpainelpareceristaunificado
+-- (ex-sac__vwpainelpareceristaunificado).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpainelpareceristaunificado, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 60 colunas: 23 tipadas, 36 mantidas como texto.
+-- 60 colunas: 24 tipadas, 35 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_texto("tipopainel") }} as tipopainel,
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("pronac") }} as pronac,
+    {{ bronze_texto("pronac") }} as pronac,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("dtanalise") }} as dtanalise,
     {{ bronze_texto("situacao") }} as situacao,
@@ -25,7 +26,7 @@ select
     {{ bronze_texto("tipoanalise") }} as tipoanalise,
     {{ bronze_timestamp("dtdistribuicao") }} as dtdistribuicao,
     {{ bronze_texto("stdiligenciado") }} as stdiligenciado,
-    {{ bronze_texto("dtdevolucao") }} as dtdevolucao,
+    {{ bronze_timestamp("dtdevolucao") }} as dtdevolucao,
     {{ bronze_timestamp("dtenvio") }} as dtenvio,
     {{ bronze_texto("fecharanalise") }} as fecharanalise,
     {{ bronze_inteiro("sianalise") }} as sianalise,
@@ -55,7 +56,7 @@ select
     {{ bronze_texto("idtipodoatoadministrativo") }} as idtipodoatoadministrativo,
     {{ bronze_texto("dsproduto") }} as dsproduto,
     {{ bronze_texto("nomeproduto") }} as nomeproduto,
-    {{ bronze_texto("tempofimdiligencia") }} as tempofimdiligencia,
+    {{ bronze_inteiro("tempofimdiligencia") }} as tempofimdiligencia,
     {{ bronze_inteiro("idavaliadordistribuicao") }} as idavaliadordistribuicao,
     {{ bronze_inteiro("idagenteparecerista") }} as idagenteparecerista,
     {{ bronze_texto("iddistribuirprojeto") }} as iddistribuirprojeto,

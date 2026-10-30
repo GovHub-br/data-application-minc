@@ -1,9 +1,10 @@
--- Silver SALIC — silver_sac_vwpainelcoordenadorvinculadasreanalisar (ex-sac__vwpainelcoordenadorvinculadasreanalisar).
+-- Silver SALIC — silver_sac_vwpainelcoordenadorvinculadasreanalisar
+-- (ex-sac__vwpainelcoordenadorvinculadasreanalisar).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpainelcoordenadorvinculadasreanalisar, onde tudo chega
 -- como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 23 colunas: 0 tipadas, 22 mantidas como texto.
+-- 23 colunas: 3 tipadas, 19 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -21,12 +22,12 @@ select
     {{ bronze_texto("idagenteparecerista") }} as idagenteparecerista,
     {{ bronze_texto("parecerista") }} as parecerista,
     {{ bronze_texto("tipoanalise") }} as tipoanalise,
-    {{ bronze_texto("dtenviomincvinculada") }} as dtenviomincvinculada,
-    {{ bronze_texto("qtdiasdistribuir") }} as qtdiasdistribuir,
+    {{ bronze_timestamp("dtenviomincvinculada") }} as dtenviomincvinculada,
+    {{ bronze_inteiro("qtdiasdistribuir") }} as qtdiasdistribuir,
     {{ bronze_texto("justcomponente") }} as justcomponente,
     {{ bronze_texto("justdevolucaopedido") }} as justdevolucaopedido,
     {{ bronze_texto("justsecretaria") }} as justsecretaria,
-    {{ bronze_texto("valor") }} as valor,
+    {{ bronze_numerico_cientifico("valor") }} as valor,
     {{ bronze_texto("stprincipal") }} as stprincipal,
     {{ bronze_texto("fecharanalise") }} as fecharanalise,
     _fatia

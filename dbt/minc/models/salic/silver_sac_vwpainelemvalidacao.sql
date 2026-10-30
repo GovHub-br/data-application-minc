@@ -2,12 +2,12 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpainelemvalidacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 31 colunas: 15 tipadas, 15 mantidas como texto.
+-- 31 colunas: 16 tipadas, 14 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("nrprojeto") }} as nrprojeto,
+    {{ bronze_texto("nrprojeto") }} as nrprojeto,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_inteiro("idproduto") }} as idproduto,
     {{ bronze_texto("produto") }} as produto,
@@ -29,8 +29,8 @@ select
     {{ bronze_inteiro("tempototalanalise") }} as tempototalanalise,
     {{ bronze_inteiro("tempoparecerista") }} as tempoparecerista,
     {{ bronze_inteiro("tempodiligencia") }} as tempodiligencia,
-    {{ bronze_texto("qtdiligenciaproduto") }} as qtdiligenciaproduto,
-    {{ bronze_texto("valor") }} as valor,
+    {{ bronze_inteiro("qtdiligenciaproduto") }} as qtdiligenciaproduto,
+    {{ bronze_numerico_cientifico("valor") }} as valor,
     {{ bronze_texto("obs") }} as obs,
     {{ bronze_texto("tecnicovalidador") }} as tecnicovalidador,
     {{ bronze_timestamp("dtvalidacao") }} as dtvalidacao,

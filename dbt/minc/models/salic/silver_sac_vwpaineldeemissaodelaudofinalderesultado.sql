@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpaineldeemissaodelaudofinalderesultado (ex-sac__vwpaineldeemissaodelaudofinalderesultado).
+-- Silver SALIC — silver_sac_vwpaineldeemissaodelaudofinalderesultado
+-- (ex-sac__vwpaineldeemissaodelaudofinalderesultado).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpaineldeemissaodelaudofinalderesultado, onde tudo chega
 -- como texto da
