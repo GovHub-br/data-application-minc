@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42. Faltam 123 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57. Faltam 65 do `sac`, todas views, e `dtproperties` fica só na Bronze, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -1140,6 +1140,36 @@ booleano: nenhuma perde valor. Coluna S/N fica texto.
 
 **Validação.** 42 de 42 em `dev_salic`, contagens iguais, nenhuma coluna
 com nome de credencial. O lote não tem teste.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote domínios e outros (parte 1)
+
+**O que entrou.** 57 silvers: os domínios `situacao` (296 códigos),
+`verificacao` (850 códigos em 43 grupos, a fonte da maior parte das
+decodificações dos outros lotes), `fase`, `fonte`, `genero`, `veiculacao`,
+`kitbanda` e `tbnormativos`; cadastros antigos (projeto Bandas, bolsas,
+convênios, consultores, conselheiros); `tbrecurso`, `tbinadimplente`,
+`tbdeclaracaobeneficiosfiscais` (753.524 doações declaradas à Receita,
+anos-calendário de 2023 a 2026) e os arquivos DBF; e os caches de tela
+`intranet` (5,3 milhões de linhas, mais de 50 tipos) e `internet`, cujas
+colunas genéricas mudam de sentido com o tipo.
+
+**Credencial.** `tbdispositivomovel.idregistration`, o token de envio de
+notificação push, saiu da silver. `tbapiaprovacoes.hashregistro` é o hash
+da linha para a API detectar mudança: fica, e a checagem de credencial por
+nome o aponta como falso positivo.
+
+**Fora da regra.** `dtproperties`, artefato do SQL Server, fica só na
+Bronze, como no lote `tabelas`. `bcoagmar2011$` tem cifrão na origem: a
+silver é `silver_sac_bcoagmar2011_` e a source foi movida à mão.
+
+**Amostra, de novo.** Quatro afirmações saíram erradas da amostra e foram
+refeitas por `group by` antes do commit: anos-calendário da DBF, grupos da
+`verificacao`, tipos do covid e situação do recurso.
+
+**Validação.** 57 de 57 em `dev_salic`, 48 testes passaram, contagens
+iguais; a checagem de credencial só apontou `hashregistro`.
 
 ---
 
