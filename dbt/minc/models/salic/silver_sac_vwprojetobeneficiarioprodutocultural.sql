@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprojetobeneficiarioprodutocultural (ex-sac__vwprojetobeneficiarioprodutocultural).
+-- Silver SALIC — silver_sac_vwprojetobeneficiarioprodutocultural
+-- (ex-sac__vwprojetobeneficiarioprodutocultural).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprojetobeneficiarioprodutocultural, onde tudo chega como
 -- texto da

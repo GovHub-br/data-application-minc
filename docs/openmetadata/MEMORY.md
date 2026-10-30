@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37 e bancário 51. Faltam 380 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51 e planilha 23. Faltam 357 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -960,6 +960,24 @@ marca o estado atual.
 **Erros pegos na validação.** `accepted_values` sem aspas em coluna texto
 dá ERROR no build; a guarda agora barra isso. Uma varredura de estouro de
 `integer` nas 182 silvers migradas não achou nenhum caso.
+
+---
+
+### 2026-10-29 · Claude · F17 — `sac`, lote planilha
+
+**O que entrou.** 23 silvers de orçamento. Três camadas: `tbplanilhaproposta`
+(orçamento da proposta, 10,9 M itens), `tbplanilhaprojeto` (o que entrou na
+análise técnica) e `tbplanilhaaprovacao` (uma linha por versão depois da
+aprovação). `tpplanilha`, pelo SalicWeb: CO aprovada, RP remanejamento de até
+20%, SR solicitação de readequação; SE sem uso no código. Valor do item =
+quantidade × ocorrência × valor unitário; a CO vigente soma 50,4 bilhões.
+
+**Notação científica.** Coluna `float` da origem chega pelo Trino como texto
+`1.0E0`. Macro nova `bronze_numerico_cientifico` converte para numeric, sem
+mudar `bronze_numerico`. Aplicada em 22 colunas deste lote e no
+`sugeridoreal` da pauta da CNIC (lote proposta, que estava como texto).
+Conferido no banco que todos os valores passam na regex. Lotes futuros:
+procurar o formato `9.9a9` no perfil.
 
 ---
 

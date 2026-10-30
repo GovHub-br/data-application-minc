@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio (ex-sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio).
+-- Silver SALIC — silver_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio
+-- (ex-sac__vwitenscomprovados_fonte_produto_etapa_uf_municipio).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio, onde
 -- tudo chega como texto da
@@ -27,4 +28,8 @@ select
     {{ bronze_texto("stitemavaliado") }} as stitemavaliado,
     _fatia
 from
-    {{ source("salic", "bronze_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio") }}
+    {{
+        source(
+            "salic", "bronze_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio"
+        )
+    }}

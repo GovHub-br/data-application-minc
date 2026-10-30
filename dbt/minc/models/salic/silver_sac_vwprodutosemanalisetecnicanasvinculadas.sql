@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprodutosemanalisetecnicanasvinculadas (ex-sac__vwprodutosemanalisetecnicanasvinculadas).
+-- Silver SALIC — silver_sac_vwprodutosemanalisetecnicanasvinculadas
+-- (ex-sac__vwprodutosemanalisetecnicanasvinculadas).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprodutosemanalisetecnicanasvinculadas, onde tudo chega
 -- como texto da

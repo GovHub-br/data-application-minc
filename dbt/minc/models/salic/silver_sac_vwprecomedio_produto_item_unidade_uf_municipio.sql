@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprecomedio_produto_item_unidade_uf_municipio (ex-sac__vwprecomedio_produto_item_unidade_uf_municipio).
+-- Silver SALIC — silver_sac_vwprecomedio_produto_item_unidade_uf_municipio
+-- (ex-sac__vwprecomedio_produto_item_unidade_uf_municipio).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprecomedio_produto_item_unidade_uf_municipio, onde tudo
 -- chega como texto da

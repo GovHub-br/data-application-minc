@@ -15,7 +15,6 @@
   Todas aplicam `trim` antes: a origem grava padding, e ' 2025-04-30 23:27:44 '
   aparece de verdade no dado.
 -#}
-
 {% macro bronze_texto(col) -%}
     {#- String vazia e string só de espaço viram NULL: no SQL Server elas são
         ausência de valor, e mantê-las como '' obrigaria todo consumidor a
@@ -24,7 +23,7 @@
 {%- endmacro %}
 
 
-{% macro bronze_inteiro(col, tipo='integer') -%}
+{% macro bronze_inteiro(col, tipo="integer") -%}
     case when trim({{ col }}) ~ '^-?[0-9]+$' then trim({{ col }})::{{ tipo }} end
 {%- endmacro %}
 
@@ -33,9 +32,7 @@
     {#- Só ponto decimal: o levantamento das 571 tabelas não achou uma única
         coluna com vírgula decimal no salic_bronze. Se aparecer, use a macro
         parse_valor, que normaliza o padrão brasileiro. -#}
-    case
-        when trim({{ col }}) ~ '^-?[0-9]+(\.[0-9]+)?$' then trim({{ col }})::numeric
-    end
+    case when trim({{ col }}) ~ '^-?[0-9]+(\.[0-9]+)?$' then trim({{ col }})::numeric end
 {%- endmacro %}
 
 {% macro bronze_numerico_cientifico(col) -%}
@@ -45,7 +42,7 @@
         bronze_numerico para não mudar o valor de coluna que já usa a outra. -#}
     case
         when trim({{ col }}) ~* '^-?[0-9]+(\.[0-9]+)?(e[-+]?[0-9]+)?$'
-            then trim({{ col }})::numeric
+        then trim({{ col }})::numeric
     end
 {%- endmacro %}
 
@@ -56,7 +53,7 @@
         aceita todos. Exigir o formato completo descartaria dado bom. -#}
     case
         when trim({{ col }}) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
-            then trim({{ col }})::timestamp
+        then trim({{ col }})::timestamp
     end
 {%- endmacro %}
 
@@ -73,12 +70,19 @@
         produz 'true'/'false' e 't'/'f' dependendo da tabela. Qualquer outro
         valor vira NULL — inclusive '2', que aparece em coluna declarada bit e
         não tem leitura booleana honesta. -#}
-    case lower(trim({{ col }}))
-        when '1' then true
-        when 'true' then true
-        when 't' then true
-        when '0' then false
-        when 'false' then false
-        when 'f' then false
+    case
+        lower(trim({{ col }}))
+        when '1'
+        then true
+        when 'true'
+        then true
+        when 't'
+        then true
+        when '0'
+        then false
+        when 'false'
+        then false
+        when 'f'
+        then false
     end
 {%- endmacro %}
