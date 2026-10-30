@@ -2,7 +2,7 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprogramarouaneteditais, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 39 colunas: 14 tipadas, 24 mantidas como texto.
+-- 39 colunas: 15 tipadas, 23 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -16,7 +16,7 @@ select
     {{ bronze_inteiro("idpronac") }} as idpronac,
     {{ bronze_texto("cdarea") }} as cdarea,
     {{ bronze_texto("dsarea") }} as dsarea,
-    {{ bronze_inteiro("cdsegmento") }} as cdsegmento,
+    {{ bronze_texto("cdsegmento") }} as cdsegmento,
     {{ bronze_texto("dssegmento") }} as dssegmento,
     {{ bronze_texto("cdsituacao") }} as cdsituacao,
     {{ bronze_texto("dssituacao") }} as dssituacao,
@@ -35,14 +35,14 @@ select
     {{ bronze_timestamp("dtresultado") }} as dtresultado,
     {{ bronze_texto("stestadoprograma") }} as stestadoprograma,
     {{ bronze_numerico("vltotalprograma") }} as vltotalprograma,
-    {{ bronze_inteiro("nrpronac") }} as nrpronac,
+    {{ bronze_texto("nrpronac") }} as nrpronac,
     {{ bronze_texto("dslocalizacao") }} as dslocalizacao,
-    {{ bronze_texto("vlproposta") }} as vlproposta,
+    {{ bronze_numerico_cientifico("vlproposta") }} as vlproposta,
     {{ bronze_numerico("vlaprovado") }} as vlaprovado,
-    {{ bronze_texto("vlcaptado") }} as vlcaptado,
+    {{ bronze_numerico("vlcaptado") }} as vlcaptado,
     {{ bronze_texto("dscontrato") }} as dscontrato,
     {{ bronze_texto("nrcnpjcpfincentivador") }} as nrcnpjcpfincentivador,
     {{ bronze_texto("nmincentivador") }} as nmincentivador,
-    {{ bronze_texto("vlincentivo") }} as vlincentivo,
+    {{ bronze_numerico("vlincentivo") }} as vlincentivo,
     _fatia
 from {{ source("salic", "bronze_sac_vwprogramarouaneteditais") }}

@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbprogramarouanetdistribuirproposta (ex-sac__tbprogramarouanetdistribuirproposta).
+-- Silver SALIC — silver_sac_tbprogramarouanetdistribuirproposta
+-- (ex-sac__tbprogramarouanetdistribuirproposta).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbprogramarouanetdistribuirproposta, onde tudo chega como
 -- texto da

@@ -1,14 +1,15 @@
--- Silver SALIC — silver_sac_vwprogramarouanetincentivadorprojetosapoiados (ex-sac__vwprogramarouanetincentivadorprojetosapoiados).
+-- Silver SALIC — silver_sac_vwprogramarouanetincentivadorprojetosapoiados
+-- (ex-sac__vwprogramarouanetincentivadorprojetosapoiados).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprogramarouanetincentivadorprojetosapoiados, onde tudo
 -- chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 40 colunas: 22 tipadas, 17 mantidas como texto.
+-- 40 colunas: 21 tipadas, 18 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("nrpronac") }} as nrpronac,
+    {{ bronze_texto("nrpronac") }} as nrpronac,
     {{ bronze_texto("sguf") }} as sguf,
     {{ bronze_inteiro("cdarea") }} as cdarea,
     {{ bronze_texto("dsarea") }} as dsarea,

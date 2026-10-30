@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta (ex-sac__vwprogramarouanetavaliacaoinicialmediasnotasproposta).
+-- Silver SALIC — silver_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta
+-- (ex-sac__vwprogramarouanetavaliacaoinicialmediasnotasproposta).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta, onde
 -- tudo chega como texto da
@@ -14,5 +15,7 @@ select
     _fatia
 from
     {{
-        source("salic", "bronze_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta")
+        source(
+            "salic", "bronze_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta"
+        )
     }}

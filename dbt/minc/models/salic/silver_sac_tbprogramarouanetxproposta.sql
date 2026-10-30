@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbprogramarouanetxproposta (ex-sac__tbprogramarouanetxproposta).
+-- Silver SALIC — silver_sac_tbprogramarouanetxproposta
+-- (ex-sac__tbprogramarouanetxproposta).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbprogramarouanetxproposta, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.

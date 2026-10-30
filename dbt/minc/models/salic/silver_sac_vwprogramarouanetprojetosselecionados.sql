@@ -1,14 +1,15 @@
--- Silver SALIC — silver_sac_vwprogramarouanetprojetosselecionados (ex-sac__vwprogramarouanetprojetosselecionados).
+-- Silver SALIC — silver_sac_vwprogramarouanetprojetosselecionados
+-- (ex-sac__vwprogramarouanetprojetosselecionados).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprogramarouanetprojetosselecionados, onde tudo chega como
 -- texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 47 colunas: 22 tipadas, 24 mantidas como texto.
+-- 47 colunas: 21 tipadas, 25 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("nrpronac") }} as nrpronac,
+    {{ bronze_texto("nrpronac") }} as nrpronac,
     {{ bronze_texto("sguf") }} as sguf,
     {{ bronze_inteiro("cdarea") }} as cdarea,
     {{ bronze_texto("dsarea") }} as dsarea,
