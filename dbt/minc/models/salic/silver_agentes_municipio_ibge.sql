@@ -1,3 +1,6 @@
+{{ config(materialized='table') }}
+-- table, e não a view da pasta: era table por pasta em salic_dbt, e é dimensão lida por join.
+
 -- Silver / núcleo SALIC — dimensão territorial de referência.
 --
 -- Lê a bronze por `ref`, e nunca a origem diretamente: a bronze é quem aplica

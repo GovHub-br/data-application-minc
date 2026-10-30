@@ -1,3 +1,6 @@
+{{ config(materialized='table') }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da Bronze; era table por pasta em salic_dbt.
+
 -- Silver SALIC / Meta 4 -- locais declarados de realizacao do projeto.
 --
 -- GRAO: 1 linha por `id_abrangencia`, o registro territorial do SALIC.
@@ -20,7 +23,7 @@ with
 
     chave_por_id_projeto as (
         select id_projeto, min(pronac) as pronac
-        from {{ ref("map_chave_projeto_rouanet") }}
+        from {{ ref("silver_sac_chave_projeto_rouanet") }}
         where id_projeto is not null
         group by id_projeto
         having count(*) = 1

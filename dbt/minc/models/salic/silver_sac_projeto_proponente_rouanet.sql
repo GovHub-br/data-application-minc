@@ -1,9 +1,12 @@
+{{ config(materialized='table') }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da Bronze; era table por pasta em salic_dbt.
+
 -- Silver SALIC / core -- ponte entre projeto e agente proponente na Rouanet.
 --
 -- GRAO: 1 linha por PRONAC x agente. A chave e `id_projeto_proponente`.
 --
 -- ZONA RESTRITA. Este e o unico modelo do nucleo que carrega identidade:
--- CPF/CNPJ e nome do proponente. Ele existe separado da `dim_projeto_rouanet`
+-- CPF/CNPJ e nome do proponente. Ele existe separado da `silver_sac_projeto_rouanet`
 -- exatamente para que o projeto possa ser publicado sem arrastar a pessoa
 -- junto. Nao entra em corpus de RAG, em nenhuma projecao, e nem por allowlist
 -- de coluna -- a politica do plano e fail-closed no modelo inteiro.

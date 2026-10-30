@@ -38,7 +38,7 @@ with
 
     proponentes as (
         select pronac, id_agente, documento_proponente, tipo_pessoa_proponente
-        from {{ ref("brg_projeto_proponente_rouanet") }}
+        from {{ ref("silver_sac_projeto_proponente_rouanet") }}
     ),
 
     proponente_ano as (

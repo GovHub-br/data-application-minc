@@ -1,3 +1,6 @@
+{{ config(materialized='table') }}
+-- table, e não a view da pasta: join pesado sobre silvers que são views do texto da Bronze; era table por pasta em salic_dbt.
+
 -- Silver SALIC / Meta 3 -- pagamentos a fornecedores e profissionais.
 --
 -- GRAO PROVISORIO: 1 linha por registro devolvido pela view detalhada de
@@ -22,7 +25,7 @@ with
 
     chave_por_id_pronac as (
         select id_pronac, min(pronac) as pronac
-        from {{ ref("map_chave_projeto_rouanet") }}
+        from {{ ref("silver_sac_chave_projeto_rouanet") }}
         where id_pronac is not null
         group by id_pronac
         having count(*) = 1

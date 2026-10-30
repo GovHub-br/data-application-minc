@@ -18,31 +18,16 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SALIC_DIR = REPO_ROOT / "dbt/minc/models/salic_dbt"
 # A estrutura do ADR 0010: as silvers migradas moram em models/salic/, pasta
 # plana, documentadas em schema.yml e schema_<banco>.yml. As sources_*.yml da
 # mesma pasta declaram a Bronze e nao tem bloco `models:`.
 SALIC_NOVO_DIR = REPO_ROOT / "dbt/minc/models/salic"
 GLOSSARIO_CSV = REPO_ROOT / "helpers/openmetadata/glossaries/minc.csv"
 
-# A bronze mora no mesmo grupo de modelos desde a unificacao, e ela tem outro
-# contrato: 571 modelos gerados, documentados a partir do dicionario do SALIC,
-# com o marcador `[NAO VERIFICADO]` onde o dicionario cala. Estas guardas sao
-# do que e escrito a mao aqui -- por isso a exclusao e por camada, e nao uma
-# lista de pastas: `meta3`, `meta4` e `gold` entram sozinhas quando existirem.
-CAMADAS_NAO_SILVER = {"bronze"}
-
-
-def _e_silver(caminho: Path) -> bool:
-    if caminho.is_relative_to(SALIC_NOVO_DIR):
-        return True
-    return caminho.relative_to(SALIC_DIR).parts[0] not in CAMADAS_NAO_SILVER
-
 
 def _arquivos(padrao: str) -> list[Path]:
-    """Os arquivos das duas pastas do SALIC, sem a bronze legada."""
-    candidatos = [*SALIC_DIR.rglob(padrao), *SALIC_NOVO_DIR.glob(padrao)]
-    return sorted(c for c in candidatos if _e_silver(c))
+    """Os arquivos da silver do SALIC: a pasta plana models/salic/."""
+    return sorted(SALIC_NOVO_DIR.glob(padrao))
 
 
 def _sem_acento(texto: str) -> str:
@@ -71,28 +56,12 @@ PADROES_PII = re.compile(
 
 TAGS_PII = {"PII.Sensitive", "PII.NonSensitive"}
 
-# Modelos de salic_dbt/ marcados como publicaveis que leem silver restrita do
-# sac, cada um com as leituras restritas revisadas no #121: nenhum projeta CPF,
-# CNPJ ou logon. Leitura restrita nova nao entra sem revisao. Saem quando
-# migrarem (PR dos modelos manuais).
-LEGADOS_LEEM_RESTRITO: dict[str, set[str]] = {
-    "brg_projeto_local_execucao": {"silver_sac_abrangencia"},
-    "dim_projeto_rouanet": {
-        "silver_sac_aprovacao",
-        "silver_sac_enquadramento",
-        "silver_sac_vwagentesseusprojetos",
-        "silver_sac_vwalterarprojeto",
-    },
-    "fct_aprovacao_rouanet": {"silver_sac_aprovacao"},
-    "fct_captacao_rouanet": {"silver_sac_captacao"},
-    "map_chave_projeto_rouanet": {
-        "silver_sac_aprovacao",
-        "silver_sac_captacao",
-        "silver_sac_enquadramento",
-        "silver_sac_vwagentesseusprojetos",
-        "silver_sac_vwalterarprojeto",
-    },
-}
+# Um modelo publicavel pode ler uma silver restrita, mas cada coluna pessoal
+# dela que o SQL usa tem de estar declarada em
+# `governance.pii_lido_sem_expor` ("silver.coluna") -- e nenhuma coluna de
+# saida do modelo pode ter tag de PII (test_modelo_publicavel_nao_carrega_pii).
+# Usar CPF para derivar o tipo de pessoa e legitimo; copia-lo para a saida nao.
+CHAVE_PII_LIDO = "pii_lido_sem_expor"
 
 
 def _modelos_documentados() -> dict[str, dict]:
@@ -130,9 +99,7 @@ NOMES_SQL = [caminho.stem for caminho in SQLS]
 
 def test_ha_modelos_para_verificar() -> None:
     """Guarda do proprio arquivo: teste que nao coleta nada passa por engano."""
-    assert (
-        SQLS
-    ), "nenhum .sql de silver encontrado em models/salic_dbt nem em models/salic"
+    assert SQLS, "nenhum .sql de silver encontrado em models/salic"
     assert not any(
         "bronze" in c.parts for c in SQLS
     ), "a bronze entrou no escopo destas guardas; ela tem contrato proprio"
@@ -325,36 +292,43 @@ def _restritos_lidos(caminho: Path) -> list[str]:
     )
 
 
-@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
-def test_modelo_restrito_nao_e_consumido_por_publicavel(caminho: Path) -> None:
-    """Um modelo publicavel que le um restrito vaza pela porta dos fundos.
+def _pii_usado(caminho: Path) -> set[str]:
+    """`silver.coluna` de cada coluna com tag de PII das silvers restritas que
+    o SQL do modelo menciona fora de comentario."""
+    sem_comentario = re.sub(r"--[^\n]*", "", caminho.read_text())
+    usado = set()
+    for restrito in _restritos_lidos(caminho):
+        for coluna in MODELOS[restrito].get("columns") or []:
+            if _tags_om(coluna) & TAGS_PII and re.search(
+                rf"\b{re.escape(coluna['name'])}\b", sem_comentario
+            ):
+                usado.add(f"{restrito}.{coluna['name']}")
+    return usado
 
-    Excecao, por modelo e por leitura: os legados de salic_dbt/ em
-    LEGADOS_LEEM_RESTRITO podem ler so as silvers restritas listadas para eles,
-    que foram revisadas. Qualquer outra leitura restrita cai aqui.
+
+@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
+def test_publicavel_so_le_pii_declarado(caminho: Path) -> None:
+    """Um modelo publicavel que le um restrito pode vazar pela porta dos fundos.
+
+    Ler a silver restrita e permitido; usar uma coluna pessoal dela, so se
+    estiver declarada no modelo, e a declaracao nao pode ficar velha.
     """
     modelo = MODELOS.get(caminho.stem)
     if modelo is None:
         pytest.skip("modelo sem documentacao: coberto por outro teste")
-    if _governanca(modelo).get("rag_publication") == "prohibited":
+    gov = _governanca(modelo)
+    declarado = set(gov.get(CHAVE_PII_LIDO) or [])
+    if gov.get("rag_publication") == "prohibited":
+        assert not declarado, f"{caminho.stem}: restrito nao precisa de {CHAVE_PII_LIDO}"
         return
-    permitidos = LEGADOS_LEEM_RESTRITO.get(caminho.stem, set())
-    restritos = [r for r in _restritos_lidos(caminho) if r not in permitidos]
-    assert not restritos, f"{caminho.stem} e publicavel e le modelo restrito {restritos}"
-
-
-def test_excecao_de_legado_ainda_e_necessaria() -> None:
-    """A lista nao pode ficar velha: modelo que sumiu, migrou, deixou de ser
-    publicavel ou parou de ler uma silver listada sai dela (ou perde a leitura)."""
-    por_nome = {c.stem: c for c in SQLS}
-    for nome, permitidos in sorted(LEGADOS_LEEM_RESTRITO.items()):
-        caminho = por_nome.get(nome)
-        assert caminho is not None, f"{nome}: nao existe mais; tire da lista"
-        assert not caminho.is_relative_to(SALIC_NOVO_DIR), f"{nome}: ja migrou"
-        rag = _governanca(MODELOS[nome]).get("rag_publication")
-        assert rag != "prohibited", f"{nome}: nao e mais publicavel; tire da lista"
-        sobram = sorted(permitidos - set(_restritos_lidos(caminho)))
-        assert not sobram, f"{nome}: nao le mais {sobram}; tire da lista"
+    usado = _pii_usado(caminho)
+    assert (
+        not usado - declarado
+    ), f"{caminho.stem} e publicavel e usa PII nao declarada {sorted(usado - declarado)}"
+    assert not declarado - usado, (
+        f"{caminho.stem}: {CHAVE_PII_LIDO} declara o que o SQL nao usa "
+        f"{sorted(declarado - usado)}"
+    )
 
 
 @pytest.mark.parametrize("nome", sorted(MODELOS))

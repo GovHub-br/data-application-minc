@@ -52,9 +52,8 @@ models:
       +materialized: view
     # SALIC no layout do ADR. A Bronze nao e modelo: e a copia crua que a
     # salic_ingestion_trino grava em salic.bronze_<banco>_<tabela>, declarada
-    # como source. As silvers caem no mesmo schema. Divide o schema `salic` com
-    # as views do salic_dbt ate ele migrar; os nomes nao colidem (bronze_* e
-    # silver_* aqui, <banco>__<tabela> la). Um modelo chamado bronze_* aqui
+    # como source. As silvers caem no mesmo schema; os nomes nao colidem
+    # (bronze_* e da ingestao, silver_* e do dbt). Um modelo chamado bronze_* aqui
     # substituiria a tabela que a DAG grava com esse nome.
     salic:
       +schema: salic
@@ -85,32 +84,6 @@ models:
     mapas:
       +schema: mapas
       +materialized: table
-    # SALIC — Lei Rouanet. Legado: um dominio, as camadas separadas por PASTA
-    # (o unico que ainda esta assim; migra conforme o ADR 0010).
-    #
-    # Schema `salic`, o mesmo da Bronze (salic.bronze_<banco>_<tabela>, que as
-    # sources daqui declaram por `identifier`). O que evita colisao e o nome:
-    # as views daqui se chamam <banco>__<tabela>, nunca bronze_*. Com target
-    # `prod` o generate_schema_name_for_env aplica o custom schema literal,
-    # entao um modelo com o nome de uma tabela da Bronze a derrubaria para por
-    # uma view no lugar.
-    salic_dbt:
-      +schema: salic
-      # A antiga pasta bronze/ (um modelo por tabela da Bronze) migrou inteira
-      # para models/salic/silver_*; sobra so sources_sac_legado.yml, sem modelo.
-      # Silvers conformadas da Rouanet. `table`, e nao `view`: sao poucos
-      # modelos, todos com join pesado sobre views da bronze que ja leem 157 M
-      # de linhas. Materializar aqui e o que evita recomputar a bronze inteira
-      # a cada consulta de painel.
-      core:
-        +materialized: table
-      meta3:
-        +materialized: table
-      meta4:
-        +materialized: table
-      meta5:
-        +materialized: table
-
     # SIDRA/IBGE e SGS/Bacen ja na estrutura do ADR 0010: pasta por fonte,
     # bronze_<tabela> copia fiel e silver_<tabela> com o cast. Caem no MESMO
     # schema da tabela que a ingestao grava (bacen.serie_sgs), e nao colidem

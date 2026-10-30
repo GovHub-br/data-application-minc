@@ -10,7 +10,7 @@
 -- recebeu). A chave para chegar nele é o PRONAC. Não use ``captacao.idprojeto``:
 -- ele é 0 na maioria das linhas.
 --
--- PRONAC pela macro pronac_de_ano_sequencial, a mesma do fct_captacao_rouanet:
+-- PRONAC pela macro pronac_de_ano_sequencial, a mesma do silver_sac_captacao_rouanet:
 -- os dois lados do join e a reconciliação com o fato precisam da mesma chave.
 -- Ano ou sequencial fora do padrão viram PRONAC nulo e o recibo sai.
 --
