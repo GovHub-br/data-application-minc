@@ -15,6 +15,6 @@ select
     {{ bronze_timestamp("dtacesso") }} as dtacesso,
     {{ bronze_timestamp("dtexclusao") }} as dtexclusao,
     {{ bronze_inteiro("idsuccess") }} as idsuccess,
-    {{ bronze_numerico("idmulticast") }} as idmulticast,
+    {{ bronze_numerico_cientifico("idmulticast") }} as idmulticast,
     _fatia
 from {{ source("salic", "bronze_sac_tbmensagem") }}

@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_historicodelecaoaprovacao (ex-sac__historicodelecaoaprovacao).
+-- Silver SALIC — silver_sac_historicodelecaoaprovacao
+-- (ex-sac__historicodelecaoaprovacao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_historicodelecaoaprovacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
