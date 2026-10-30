@@ -974,7 +974,7 @@ quantidade × ocorrência × valor unitário; a CO vigente soma 50,4 bilhões.
 
 **Notação científica.** Coluna `float` da origem chega pelo Trino como texto
 `1.0E0`. Macro nova `bronze_numerico_cientifico` converte para numeric, sem
-mudar `bronze_numerico`. Aplicada em 22 colunas deste lote e no
+mudar `bronze_numerico`. Aplicada em 20 colunas deste lote e no
 `sugeridoreal` da pauta da CNIC (lote proposta, que estava como texto).
 Conferido no banco que todos os valores passam na regex. Lotes futuros:
 procurar o formato `9.9a9` no perfil.
