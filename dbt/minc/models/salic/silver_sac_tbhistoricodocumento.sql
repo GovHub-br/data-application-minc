@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__tbhistoricodocumento.
--- Origem: salic_bronze.sac__tbhistoricodocumento, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbhistoricodocumento (ex-sac__tbhistoricodocumento).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbhistoricodocumento, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 15 colunas: 12 tipadas, 2 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -20,4 +21,4 @@ select
     {{ bronze_booleano("stestado") }} as stestado,
     {{ bronze_texto("dsjustificativa") }} as dsjustificativa,
     _fatia
-from {{ source("bronze_sac", "sac__tbhistoricodocumento") }}
+from {{ source("salic", "bronze_sac_tbhistoricodocumento") }}

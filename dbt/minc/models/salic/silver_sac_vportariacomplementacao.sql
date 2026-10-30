@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vportariacomplementacao.
--- Origem: salic_bronze.sac__vportariacomplementacao, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_vportariacomplementacao (ex-sac__vportariacomplementacao).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vportariacomplementacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 5 colunas: 2 tipadas, 2 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -10,4 +11,4 @@ select
     {{ bronze_texto("tipoaprovacao") }} as tipoaprovacao,
     {{ bronze_timestamp("dtaprovacao") }} as dtaprovacao,
     _fatia
-from {{ source("bronze_sac", "sac__vportariacomplementacao") }}
+from {{ source("salic", "bronze_sac_vportariacomplementacao") }}

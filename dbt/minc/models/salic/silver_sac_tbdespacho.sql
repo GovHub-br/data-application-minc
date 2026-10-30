@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__tbdespacho.
--- Origem: salic_bronze.sac__tbdespacho, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbdespacho (ex-sac__tbdespacho).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbdespacho, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 11 colunas: 7 tipadas, 3 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -16,4 +17,4 @@ select
     {{ bronze_texto("stencaminhamento") }} as stencaminhamento,
     {{ bronze_texto("sidespacho") }} as sidespacho,
     _fatia
-from {{ source("bronze_sac", "sac__tbdespacho") }}
+from {{ source("salic", "bronze_sac_tbdespacho") }}

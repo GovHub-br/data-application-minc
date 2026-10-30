@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__tbhistoricoemail.
--- Origem: salic_bronze.sac__tbhistoricoemail, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbhistoricoemail (ex-sac__tbhistoricoemail).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbhistoricoemail, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 9 colunas: 8 tipadas, 0 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -14,4 +15,4 @@ select
     {{ bronze_booleano("stestado") }} as stestado,
     {{ bronze_inteiro("idusuario") }} as idusuario,
     _fatia
-from {{ source("bronze_sac", "sac__tbhistoricoemail") }}
+from {{ source("salic", "bronze_sac_tbhistoricoemail") }}

@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__vdocumentoexigido.
--- Origem: salic_bronze.sac__vdocumentoexigido, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_vdocumentoexigido (ex-sac__vdocumentoexigido).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vdocumentoexigido, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 4 colunas: 1 tipadas, 2 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -9,4 +10,4 @@ select
     {{ bronze_inteiro("sequencial") }} as sequencial,
     {{ bronze_texto("documentoexigido") }} as documentoexigido,
     _fatia
-from {{ source("bronze_sac", "sac__vdocumentoexigido") }}
+from {{ source("salic", "bronze_sac_vdocumentoexigido") }}

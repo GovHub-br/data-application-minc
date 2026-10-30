@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__tbnotificacao.
--- Origem: salic_bronze.sac__tbnotificacao, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbnotificacao (ex-sac__tbnotificacao).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbnotificacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 10 colunas: 8 tipadas, 1 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -15,4 +16,4 @@ select
     {{ bronze_booleano("stestado") }} as stestado,
     {{ bronze_inteiro("idusuario") }} as idusuario,
     _fatia
-from {{ source("bronze_sac", "sac__tbnotificacao") }}
+from {{ source("salic", "bronze_sac_tbnotificacao") }}
