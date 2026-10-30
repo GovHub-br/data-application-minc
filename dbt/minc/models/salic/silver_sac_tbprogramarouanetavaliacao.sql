@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbprogramarouanetavaliacao (ex-sac__tbprogramarouanetavaliacao).
+-- Silver SALIC — silver_sac_tbprogramarouanetavaliacao
+-- (ex-sac__tbprogramarouanetavaliacao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbprogramarouanetavaliacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.

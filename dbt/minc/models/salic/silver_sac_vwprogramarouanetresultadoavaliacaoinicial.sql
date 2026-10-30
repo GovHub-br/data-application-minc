@@ -1,9 +1,10 @@
--- Silver SALIC — silver_sac_vwprogramarouanetresultadoavaliacaoinicial (ex-sac__vwprogramarouanetresultadoavaliacaoinicial).
+-- Silver SALIC — silver_sac_vwprogramarouanetresultadoavaliacaoinicial
+-- (ex-sac__vwprogramarouanetresultadoavaliacaoinicial).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprogramarouanetresultadoavaliacaoinicial, onde tudo chega
 -- como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 14 colunas: 3 tipadas, 10 mantidas como texto.
+-- 14 colunas: 4 tipadas, 9 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -18,7 +19,7 @@ select
     {{ bronze_texto("nmmunicipio") }} as nmmunicipio,
     {{ bronze_numerico("nrpontuacao") }} as nrpontuacao,
     {{ bronze_texto("nrpontuacaominima") }} as nrpontuacaominima,
-    {{ bronze_texto("vlproposta") }} as vlproposta,
+    {{ bronze_numerico_cientifico("vlproposta") }} as vlproposta,
     {{ bronze_inteiro("nrranking") }} as nrranking,
     _fatia
 from {{ source("salic", "bronze_sac_vwprogramarouanetresultadoavaliacaoinicial") }}

@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwpautados_cnic_mais_trinta_dias (ex-sac__vwpautados_cnic_mais_trinta_dias).
+-- Silver SALIC — silver_sac_vwpautados_cnic_mais_trinta_dias
+-- (ex-sac__vwpautados_cnic_mais_trinta_dias).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwpautados_cnic_mais_trinta_dias, onde tudo chega como
 -- texto da

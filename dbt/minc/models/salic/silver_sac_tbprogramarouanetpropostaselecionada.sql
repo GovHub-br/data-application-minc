@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbprogramarouanetpropostaselecionada (ex-sac__tbprogramarouanetpropostaselecionada).
+-- Silver SALIC — silver_sac_tbprogramarouanetpropostaselecionada
+-- (ex-sac__tbprogramarouanetpropostaselecionada).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbprogramarouanetpropostaselecionada, onde tudo chega como
 -- texto da

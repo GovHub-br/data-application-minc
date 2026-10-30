@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprogramarouanetpainelresultadofinal (ex-sac__vwprogramarouanetpainelresultadofinal).
+-- Silver SALIC — silver_sac_vwprogramarouanetpainelresultadofinal
+-- (ex-sac__vwprogramarouanetpainelresultadofinal).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprogramarouanetpainelresultadofinal, onde tudo chega como
 -- texto da

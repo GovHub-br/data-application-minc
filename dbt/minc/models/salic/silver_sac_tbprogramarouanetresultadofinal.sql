@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbprogramarouanetresultadofinal (ex-sac__tbprogramarouanetresultadofinal).
+-- Silver SALIC — silver_sac_tbprogramarouanetresultadofinal
+-- (ex-sac__tbprogramarouanetresultadofinal).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbprogramarouanetresultadofinal, onde tudo chega como texto
 -- da

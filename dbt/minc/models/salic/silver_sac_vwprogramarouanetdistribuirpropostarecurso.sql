@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprogramarouanetdistribuirpropostarecurso (ex-sac__vwprogramarouanetdistribuirpropostarecurso).
+-- Silver SALIC — silver_sac_vwprogramarouanetdistribuirpropostarecurso
+-- (ex-sac__vwprogramarouanetdistribuirpropostarecurso).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprogramarouanetdistribuirpropostarecurso, onde tudo chega
 -- como texto da
