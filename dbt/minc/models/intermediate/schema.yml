@@ -11,27 +11,51 @@ models:
       Camada Intermediate. Os eventos em que um agente recebeu recurso, de
       três fontes numa forma só: saída de dinheiro das contas do BB Ágil
       (silver_pagamento_bbagil), recibo de captação da Rouanet
-      (silver_sac_captacao_proponente) e captação de projeto
-      audiovisual da Ancine (silver_consulta). Grão: 1 linha por evento da
-      fonte.
+      (silver_sac_captacao_proponente) e captação de projeto audiovisual da
+      Ancine (silver_consulta).
 
-      Nada é descartado nem classificado aqui. Quais eventos contam, a que
-      política cada um pertence e o piso de valor são regra de negócio e
-      ficam na Gold (eixo2_meta5_evento_fomento). Por isso cada linha leva o
-      que a fonte tem para essa decisão — programa_bruto, beneficiario_nome,
-      beneficiario_documento_bruto, descriptionname, tipo_lancamento —, nulo
-      onde a fonte não tem.
+      GRÃO: uma linha por evento da fonte. UNIVERSO: todo movimento de
+      silver_pagamento_bbagil, todo recibo de silver_sac_captacao_proponente
+      e toda captação de silver_consulta. Nada é descartado aqui.
 
-      As linhas do BB Ágil chegam mesmo sem documento normalizado, sem data
-      ou sem valor, e com crédito e sublançamento de qualquer status: o
-      pareamento de estorno na Gold é por conta e precisa das duas pernas, e
-      só depois dele a Gold descarta o que não é atribuível a um agente. Por
-      isso os testes de não nulo daqui valem só para SALIC e Ancine.
+      PARA QUE SERVE: dá às três fontes uma forma comum para a Gold
+      eixo2_meta5_evento_fomento aplicar a regra de negócio da Meta 5.
+
+      NADA É DECIDIDO AQUI: quais eventos contam, a que política cada um
+      pertence e o piso de valor são regra de negócio e ficam na Gold (ADR
+      0010). Por isso cada linha leva o que a fonte tem para essa decisão —
+      programa_bruto, beneficiario_nome, beneficiario_documento_bruto,
+      descriptionname, tipo_lancamento —, nulo onde a fonte não tem.
+
+      POR QUE O BB ÁGIL CHEGA INCOMPLETO: as linhas do BB Ágil chegam mesmo
+      sem documento normalizado, sem data ou sem valor, e com crédito e
+      sublançamento de qualquer status. O pareamento de estorno na Gold é
+      por conta e precisa das duas pernas, e só depois dele a Gold descarta
+      o que não é atribuível a um agente. Por isso os testes de não nulo
+      daqui valem só para SALIC e Ancine.
+
+      LIMITAÇÕES: a identidade entre fontes é só o CPF/CNPJ normalizado; não
+      há resolução por nome. As janelas das fontes são muito diferentes
+      (Rouanet desde 1993, Ancine desde 2005, BB Ágil desde 2023), e quem
+      trata isso é a Gold.
+
+      ZONA RESTRITA. Carrega CPF/CNPJ e nome em claro: não publicável e
+      proibida em corpus de RAG. A anonimização no momento do acesso é
+      responsabilidade do Apache Ranger (ADR 0009).
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [intermediate, bbagil, salic, ancine]
       meta:
         status: Active
+        meta_objetivo: 'Meta 5 — eventos de recebimento de recurso das três fontes, numa forma só'
         origem_dados: 'silver_pagamento_bbagil + silver_sac_captacao_proponente + silver_consulta'
+        governance:
+          produto_dados: 'Intermediate — eventos de fomento (BB Ágil, SALIC, Ancine)'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes: [status_prestacao_contas]
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier2
@@ -165,22 +189,48 @@ models:
     description: >
       Camada Intermediate. Os eventos de int_ancine_bbagil_salic, cada um
       marcado com as listas oficiais de contemplados de edital do
-      TransfereGov (silver_planilha_contemplados) em que o documento aparece.
-      Grão: o de int_ancine_bbagil_salic, 1 linha por evento. Só cruza; a
-      regra de primeiro acesso dos contemplados fica em
-      eixo2_meta5_primeiro_acesso_contemplados. Desabilitado junto com
-      silver_planilha_contemplados.
+      TransfereGov (silver_planilha_contemplados) em que o documento
+      aparece.
+
+      GRÃO: o de int_ancine_bbagil_salic, uma linha por evento. UNIVERSO:
+      todos os eventos de int_ancine_bbagil_salic, com ou sem contemplado
+      correspondente.
+
+      PARA QUE SERVE: só cruza. A regra de primeiro acesso dos contemplados
+      fica em eixo2_meta5_primeiro_acesso_contemplados.
+
+      AUSÊNCIA NÃO É EVIDÊNCIA: contemplado_lpg e contemplado_pnab são nulos,
+      e não falsos, quando o documento não está na lista.
+
+      LIMITAÇÕES: a marca só cobre as listas da LPG e da PNAB ciclo 1 que
+      a cadeia de anexos do TransfereGov extraiu, e só as em ODS ou Excel —
+      lista publicada em PDF não entra. Contemplado de edital ausente
+      dessas listas aparece como evento sem marca, indistinguível de quem
+      nunca foi contemplado.
+
+      DESABILITADO (enabled=false), junto com silver_planilha_contemplados:
+      as planilhas só nascem da cadeia de anexos do TransfereGov, que ainda
+      não rodou neste banco.
+
+      ZONA RESTRITA. Herda o CPF/CNPJ e o nome em claro de
+      int_ancine_bbagil_salic: não publicável e proibida em corpus de RAG.
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build` quando habilitada;
+      não há carga incremental.
     config:
       tags: [intermediate, bbagil, salic, ancine, transferegov, contemplados]
       meta:
         status: Disabled
+        meta_objetivo: 'Meta 5 — eventos de fomento marcados com as listas de contemplados'
         origem_dados: 'int_ancine_bbagil_salic + silver_planilha_contemplados'
+        governance:
+          produto_dados: 'Intermediate — eventos de fomento com contemplados (TransfereGov)'
+          classificacao_uso: restrito
+          rag_publication: prohibited
         openmetadata:
           domain: Cultura.Fomento Direto
           tier: Tier.Tier2
           owner: minc-data-engineering
-          tags:
-            - Certification.Silver
           glossary:
             - MinC.Agentes.Contemplado
     columns:

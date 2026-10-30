@@ -21,23 +21,45 @@ models:
 
   - name: silver_consulta
     description: >
-      Camada Silver — uma linha por captação de projeto audiovisual registrada
-      pela Ancine (`ancine.consulta`), tipada e com o documento do proponente
-      normalizado. Todos os mecanismos ficam; escolher quais contam para um
+      Camada Silver / Ancine. Captações de projeto audiovisual registradas
+      pela Ancine (`ancine.consulta`), tipadas e com o documento do
+      proponente normalizado.
+
+      GRÃO: uma linha por captação. UNIVERSO: as linhas de ancine.consulta
+      com data e valor nos formatos esperados e documento que não seja só de
+      zeros. Todos os mecanismos ficam.
+
+      PARA QUE SERVE: é a entrada do audiovisual e do FSA na Meta 5, via
+      int_ancine_bbagil_salic. Escolher quais mecanismos contam para um
       indicador é da Gold de cada produto.
 
-      Armadilhas de formato, as duas medidas nesta tabela: a data da origem é
-      TEXT no padrão AMERICANO M/D/YYYY ('7/12/2007' é 12 de julho, não 7 de
-      dezembro), e o valor é TEXT no padrão brasileiro ('50.000,00'). Linha
-      fora desses padrões fica de fora.
+      ARMADILHAS DE FORMATO, as duas medidas nesta tabela: a data da origem
+      é TEXT no padrão AMERICANO M/D/YYYY ('7/12/2007' é 12 de julho, não 7
+      de dezembro), e o valor é TEXT no padrão brasileiro ('50.000,00').
+      Linha fora desses padrões fica de fora.
 
-      A fonte é quase toda CNPJ — proponente pessoa física é, na prática,
-      invisível aqui.
+      LIMITAÇÕES: a fonte é quase toda CNPJ — proponente pessoa física é, na
+      prática, invisível aqui. ancine.consulta é carregada fora deste
+      pipeline, direto da planilha da Ancine, então a atualidade do dado
+      depende de quem a recarrega. O FSA por planilha da Ancine não está
+      nesta tabela.
+
+      ZONA RESTRITA. Carrega CPF/CNPJ e nome do proponente em claro: não
+      publicável e proibida em corpus de RAG. A anonimização no momento do
+      acesso é responsabilidade do Apache Ranger (ADR 0009).
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga
+      incremental.
     config:
       tags: [silver, ancine, audiovisual]
       meta:
         status: Active
+        meta_objetivo: 'Meta 5 — captações de projeto audiovisual (Ancine)'
         origem_dados: 'bronze_consulta'
+        governance:
+          produto_dados: 'Ancine — audiovisual'
+          classificacao_uso: restrito
+          rag_publication: prohibited
         openmetadata:
           domain: Cultura.Incentivo Fiscal
           tier: Tier.Tier2
