@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_distribuicao_avaliacao_proposta_bkp (ex-sac__distribuicao_avaliacao_proposta_bkp).
+-- Silver SALIC — silver_sac_distribuicao_avaliacao_proposta_bkp
+-- (ex-sac__distribuicao_avaliacao_proposta_bkp).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_distribuicao_avaliacao_proposta_bkp, onde tudo chega como
 -- texto da

@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_carregarecibocaptacaodanca2010 (ex-sac__carregarecibocaptacaodanca2010).
+-- Silver SALIC — silver_sac_carregarecibocaptacaodanca2010
+-- (ex-sac__carregarecibocaptacaodanca2010).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_carregarecibocaptacaodanca2010, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.

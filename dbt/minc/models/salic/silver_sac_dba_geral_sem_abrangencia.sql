@@ -1,15 +1,16 @@
--- Silver SALIC — silver_sac_dba_geral_sem_abrangencia (ex-sac__dba_geral_sem_abrangencia).
+-- Silver SALIC — silver_sac_dba_geral_sem_abrangencia
+-- (ex-sac__dba_geral_sem_abrangencia).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_dba_geral_sem_abrangencia, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 28 colunas: 8 tipadas, 19 mantidas como texto.
+-- 28 colunas: 6 tipadas, 21 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
-    {{ bronze_inteiro("projeto_pronac") }} as projeto_pronac,
+    {{ bronze_texto("projeto_pronac") }} as projeto_pronac,
     {{ bronze_texto("projeto_projeto") }} as projeto_projeto,
     {{ bronze_texto("projeto_ano") }} as projeto_ano,
-    {{ bronze_inteiro("projeto_sequencial") }} as projeto_sequencial,
+    {{ bronze_texto("projeto_sequencial") }} as projeto_sequencial,
     {{ bronze_texto("projeto_uf") }} as projeto_uf,
     {{ bronze_texto("area_descricao") }} as area_descricao,
     {{ bronze_texto("segmento_descricao") }} as segmento_descricao,

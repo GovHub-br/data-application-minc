@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_dba_valor_solicitado_captado_projeto_sav (ex-sac__dba_valor_solicitado_captado_projeto_sav).
+-- Silver SALIC — silver_sac_dba_valor_solicitado_captado_projeto_sav
+-- (ex-sac__dba_valor_solicitado_captado_projeto_sav).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_dba_valor_solicitado_captado_projeto_sav, onde tudo chega
 -- como texto da

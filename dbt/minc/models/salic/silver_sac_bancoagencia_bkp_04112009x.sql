@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_bancoagencia_bkp_04112009x (ex-sac__bancoagencia_bkp_04112009x).
+-- Silver SALIC — silver_sac_bancoagencia_bkp_04112009x
+-- (ex-sac__bancoagencia_bkp_04112009x).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_bancoagencia_bkp_04112009x, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.

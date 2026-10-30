@@ -1,12 +1,13 @@
--- Silver SALIC — silver_sac_vw_dba_captacao_2007_2017 (ex-sac__vw_dba_captacao_2007_2017).
+-- Silver SALIC — silver_sac_vw_dba_captacao_2007_2017
+-- (ex-sac__vw_dba_captacao_2007_2017).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vw_dba_captacao_2007_2017, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 3 colunas: 1 tipadas, 1 mantidas como texto.
+-- 3 colunas: 0 tipadas, 2 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_texto("anoprojeto") }} as anoprojeto,
-    {{ bronze_inteiro("sequencial") }} as sequencial,
+    {{ bronze_texto("sequencial") }} as sequencial,
     _fatia
 from {{ source("salic", "bronze_sac_vw_dba_captacao_2007_2017") }}

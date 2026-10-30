@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_dba_qtd_apresentado_aprovado_captado (ex-sac__dba_qtd_apresentado_aprovado_captado).
+-- Silver SALIC — silver_sac_dba_qtd_apresentado_aprovado_captado
+-- (ex-sac__dba_qtd_apresentado_aprovado_captado).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_dba_qtd_apresentado_aprovado_captado, onde tudo chega como
 -- texto da
