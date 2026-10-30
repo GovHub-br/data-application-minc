@@ -3,12 +3,12 @@
 -- Origem: salic.bronze_sac_vwprojetosadequadosrealidadeexecucao, onde tudo chega como
 -- texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 21 colunas: 12 tipadas, 8 mantidas como texto.
+-- 21 colunas: 11 tipadas, 9 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("pronac") }} as pronac,
+    {{ bronze_texto("pronac") }} as pronac,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("cnpjcpf") }} as cnpjcpf,
     {{ bronze_texto("proponente") }} as proponente,

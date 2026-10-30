@@ -370,3 +370,29 @@ def test_accepted_values_sem_aspas_so_em_coluna_numerica(nome: str) -> None:
                 assert (
                     coluna.get("data_type") != "text"
                 ), f"{nome}.{coluna['name']}: accepted_values sem aspas em coluna text"
+
+
+@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
+def test_toda_coluna_do_select_esta_documentada(caminho: Path) -> None:
+    """Coluna que a silver entrega e o schema.yml não lista some do catálogo.
+
+    Vale para as silvers de models/salic/, geradas a partir do SQL. O sqlfmt
+    pode quebrar a linha entre ``}}`` e ``as``, por isso o \\s+.
+    """
+    if not caminho.is_relative_to(SALIC_NOVO_DIR) or not caminho.stem.startswith(
+        "silver_"
+    ):
+        pytest.skip("só as silvers geradas de models/salic/")
+    modelo = MODELOS.get(caminho.stem)
+    if modelo is None:
+        pytest.skip("modelo sem documentacao: coberto por outro teste")
+    sql = caminho.read_text()
+    if not sql.startswith("-- Silver SALIC — "):
+        pytest.skip("silver escrita à mão, fora da migração por lote")
+    corpo = sql[sql.index("select") :]
+    no_sql = set(re.findall(r"\}\}\s+as\s+([a-z0-9_]+)", corpo))
+    if re.search(r"^\s*_fatia\b", corpo, re.M):
+        no_sql.add("_fatia")
+    documentadas = {c["name"] for c in modelo.get("columns") or []}
+    faltam = sorted(no_sql - documentadas)
+    assert not faltam, f"{caminho.stem}: colunas sem documentacao {faltam}"
