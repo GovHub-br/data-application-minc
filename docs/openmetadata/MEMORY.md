@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40. Faltam 165 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42. Faltam 123 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -1112,6 +1112,34 @@ datas, dias e saldos em texto ganharam tipo, sem perda na tabela inteira.
 
 **Validação.** 40 de 40 em `dev_salic`, 2 testes passaram, nenhuma coluna
 com nome de credencial, contagens iguais.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote cópias datadas e DBA
+
+**O que entrou.** 42 silvers: arquivos de abertura de conta enviados ao
+banco (linhas em largura fixa com CPF ou CNPJ e conta), cargas de recibos
+de pequenas doações a projetos de dança, cópias datadas de agências, de
+captação, de documentos e de credenciamento, e as extrações denormalizadas
+do DBA. `dba_geral` não é antiga: 3.434.502 linhas dos 276.887 projetos, com
+recibos até 2026, e variações (`_fred`, `_sem_abrangencia`, por ano). Cada
+descrição aponta a fonte primária. `tbdocumento20100107_1x` tem o arquivo
+inteiro em texto e ocupa 7 GB.
+
+**CPF como número.** `dba_total_investido_investidor_ano.cnpj_cpf` e
+`vwpaineldeliberacao.cgccpf` (lote painéis, já na `main`) estavam como
+`bigint` e perdiam o zero à esquerda; viraram texto. Varredura em todas as
+silvers: não sobrou identificador com tipo numérico.
+
+**Booleano S/N.** O perfilador conta S e N como booleano; a macro
+`bronze_booleano` não aceita. Varredura das 82 colunas tipadas como
+booleano: nenhuma perde valor. Coluna S/N fica texto.
+
+**Gerador.** A regex das colunas não lia nome com espaço e acento
+(`'"nome do projeto"'`), que só existe nas extrações do DBA por ano.
+
+**Validação.** 42 de 42 em `dev_salic`, contagens iguais, nenhuma coluna
+com nome de credencial. O lote não tem teste.
 
 ---
 
