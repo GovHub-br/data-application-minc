@@ -1074,7 +1074,8 @@ mesmo apareceu em 4 descrições do lote parecer (#130) e 3 do documentos.
 Todas foram refeitas por contagem na tabela inteira. Regra: domínio da
 amostra serve para levantar hipótese; "em todas" só com `group by` na
 tabela inteira. Os lotes já mergeados têm 71 afirmações assim; só as do
-lote proposta foram conferidas, e as outras ficam para um PR de correção.
+lote proposta tinham sido conferidas; as outras foram, e dez erradas
+foram corrigidas no #132.
 
 **Perfilador.** Imprimiu nome de conselheiro da CNIC no domínio de uma
 coluna. Só no scratchpad, nunca versionado; os valores foram apagados do
