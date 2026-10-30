@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57. Faltam 65 do `sac`, todas views, e `dtproperties` fica só na Bronze, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57 e (parte 2, views) 65: o `sac` inteiro migrou; `dtproperties` fica só na Bronze. Faltam o PR dos modelos manuais (core, meta3–5) e a limpeza final, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -1170,6 +1170,36 @@ refeitas por `group by` antes do commit: anos-calendário da DBF, grupos da
 
 **Validação.** 57 de 57 em `dev_salic`, 48 testes passaram, contagens
 iguais; a checagem de credencial só apontou `hashregistro`.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote domínios e outros (parte 2, views): o `sac` fecha
+
+**O que entrou.** As 65 views que sobravam, quase todas recortes calculados
+pelo SALIC antigo: captação, aprovação por modalidade, renúncia fiscal por
+ano, área e UF, cartas (824.175, a mesma base de `historicocarta`),
+convênios, regularidade e ranking de bandas. Três merecem nota:
+`vnacional` (953.865 endereços de 948.227 agentes, restrita), `vwmediana`
+(2.681.696 medianas de preço unitário por item, município e unidade, a base
+da comparação de preço na análise de custo) e `vwinformacoes_tcu_etce`
+(informações ao TCU para tomada de contas especial, com a conta específica).
+
+**Legado vazio.** Com este lote, `salic_dbt/bronze/sources_sac.yml` e
+`salic_dbt/bronze/sac/schema.yml` ficaram sem nenhuma tabela e saíram (o
+dbt recusa source vazia), e o bloco `salic_dbt.bronze` do `dbt_project.yml`
+também, porque já não se aplicava a modelo nenhum. Fica
+`sources_sac_legado.yml`, da ingestão v1.
+
+**Casts.** PRONAC, sequencial, segmento e CEP passaram a texto em 29 views;
+o número do endereço de `vnacional` também, porque 57 mil valores não são
+números.
+
+**Amostra.** Várias conclusões da amostra caíram no `group by`: anos de
+`vcartas`, projetos dos itens impugnados (303, não 2), tipos de
+`vtodaaprovacao` (7, não 4).
+
+**Validação.** 65 de 65 em `dev_salic`, 6 testes passaram, nenhuma coluna
+com nome de credencial, contagens iguais.
 
 ---
 
