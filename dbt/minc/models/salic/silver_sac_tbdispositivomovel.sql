@@ -2,11 +2,12 @@
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbdispositivomovel, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 6 colunas: 3 tipadas, 2 mantidas como texto.
+-- 5 colunas: 3 tipadas, 1 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
+-- idregistration, o token de registro do aparelho no serviço de notificação,
+-- fica só na Bronze: é credencial de envio.
 select
-    {{ bronze_texto("idregistration") }} as idregistration,
     {{ bronze_timestamp("dtregistration") }} as dtregistration,
     {{ bronze_texto("nrcpf") }} as nrcpf,
     {{ bronze_timestamp("dtacesso") }} as dtacesso,
