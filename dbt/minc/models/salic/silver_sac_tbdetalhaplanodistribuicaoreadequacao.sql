@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbdetalhaplanodistribuicaoreadequacao (ex-sac__tbdetalhaplanodistribuicaoreadequacao).
+-- Silver SALIC — silver_sac_tbdetalhaplanodistribuicaoreadequacao
+-- (ex-sac__tbdetalhaplanodistribuicaoreadequacao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbdetalhaplanodistribuicaoreadequacao, onde tudo chega como
 -- texto da

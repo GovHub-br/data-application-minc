@@ -7420,6 +7420,102 @@
       "linhas_sql": 16
     },
     {
+      "nome": "silver_sac_editalrelatorio",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_editalrelatorio.sql",
+      "descricao": "Uma linha por relatório de parcela de edital de 2005. Tem 5 linhas: sem uso atual.",
+      "colunas": [
+        {
+          "nome": "idrelatorio",
+          "descricao": "Identificador do relatório."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "idedital",
+          "descricao": "Edital do relatório: 1 em todas as linhas."
+        },
+        {
+          "nome": "nrparcela",
+          "descricao": "Parcela: 1 em todas."
+        },
+        {
+          "nome": "dtrelatorio",
+          "descricao": "Data do relatório da parcela."
+        },
+        {
+          "nome": "relatorio",
+          "descricao": "Texto do relatório da parcela, livre."
+        },
+        {
+          "nome": "comprovado",
+          "descricao": "Se foi comprovado: true em todas."
+        },
+        {
+          "nome": "aprovado",
+          "descricao": "Se foi aprovado: false em todas."
+        },
+        {
+          "nome": "logon",
+          "descricao": "Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de servidores."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 11,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_editalrelatorio"
+      ],
+      "linhas_sql": 21
+    },
+    {
+      "nome": "silver_sac_efeitosresultado",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_efeitosresultado.sql",
+      "descricao": "Uma linha por efeito de resultado de projeto. Tem 1 linha: sem uso.",
+      "colunas": [
+        {
+          "nome": "codigo",
+          "descricao": "Código do efeito de resultado."
+        },
+        {
+          "nome": "opcao",
+          "descricao": "Opção marcada do efeito de resultado."
+        },
+        {
+          "nome": "descricao",
+          "descricao": "Descrição do efeito."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_efeitosresultado"
+      ],
+      "linhas_sql": 14
+    },
+    {
       "nome": "silver_sac_empenho",
       "dominio": "salic",
       "camada": "silver",
@@ -8236,6 +8332,248 @@
       "linhas_sql": 32
     },
     {
+      "nome": "silver_sac_tbcomplianceitemcomprovado",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbcomplianceitemcomprovado.sql",
+      "descricao": "Uma linha por item comprovado que a conferência automática marcou com inconsistência. O tipo é da verificação do sac (grupo 32): 723 execução acima do valor aprovado, 164.759; 722 pagamento fora do período de execução, 23.764; 737 diferença entre o extrato e a despesa comprovada, 11.091; 898 fornecedor irregular na Receita, 14. São 199.628 marcas.",
+      "colunas": [
+        {
+          "nome": "idcompliancefinanceiro",
+          "descricao": "Identificador da marca."
+        },
+        {
+          "nome": "idcompliancecomprovacao",
+          "descricao": "Execução da conferência que marcou."
+        },
+        {
+          "nome": "idtipo",
+          "descricao": "Tipo da inconsistência: 722, 723, 737 ou 898."
+        },
+        {
+          "nome": "nrfonterecurso",
+          "descricao": "Fonte de recurso: 109 incentivo fiscal federal."
+        },
+        {
+          "nome": "idproduto",
+          "descricao": "Produto cultural, código de silver_sac_vwprodutos, como livro ou espetáculo; 0 é a administração do projeto."
+        },
+        {
+          "nome": "iduf",
+          "descricao": "UF da despesa, código IBGE."
+        },
+        {
+          "nome": "idmunicipio",
+          "descricao": "Município da despesa, código IBGE."
+        },
+        {
+          "nome": "idetapa",
+          "descricao": "Etapa do orçamento, código de silver_sac_tbplanilhaetapa: 1 pré- produção, 2 produção, 3 divulgação, 4 custos administrativos, 5 recolhimentos, 6 elaboração e agenciamento, 7 pós-produção, 8 custos vinculados, 9 assessoria contábil e jurídica, 10 captação de recursos."
+        },
+        {
+          "nome": "iditem",
+          "descricao": "Item de orçamento, código de silver_sac_tbplanilhaitens."
+        },
+        {
+          "nome": "idfornecedor",
+          "descricao": "Fornecedor, código de agente."
+        },
+        {
+          "nome": "nrcomprovante",
+          "descricao": "Número do documento fiscal, em texto."
+        },
+        {
+          "nome": "nrlancamento",
+          "descricao": "Número do lançamento bancário."
+        },
+        {
+          "nome": "vlcomprovado",
+          "descricao": "Valor comprovado, em reais."
+        },
+        {
+          "nome": "vllancamento",
+          "descricao": "Valor do lançamento no extrato, em reais."
+        },
+        {
+          "nome": "vldiferenca",
+          "descricao": "Diferença entre lançamento e comprovado, em reais."
+        },
+        {
+          "nome": "dsobservacao",
+          "descricao": "Observação da conferência."
+        },
+        {
+          "nome": "idcomprovantepagamento",
+          "descricao": "Comprovante, código de silver_bdcorporativo_tbcomprovantepagamento."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbcomplianceitemcomprovado"
+      ],
+      "linhas_sql": 29
+    },
+    {
+      "nome": "silver_sac_tbcomprovacaopassivo",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbcomprovacaopassivo.sql",
+      "descricao": "Uma linha por comprovante de despesa de projeto antigo, do passivo da prestação de contas, ligado ao lançamento bancário. São 2.430 comprovantes.",
+      "colunas": [
+        {
+          "nome": "idcomprovacaopassivo",
+          "descricao": "Identificador do comprovante. Único."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "idplanilhaaprovacao",
+          "descricao": "Item aprovado. Preenchido em 86."
+        },
+        {
+          "nome": "idlancamentobancario",
+          "descricao": "Lançamento, código de silver_sac_tblancamentobancario."
+        },
+        {
+          "nome": "idfornecedor",
+          "descricao": "Fornecedor, código de agente."
+        },
+        {
+          "nome": "tpcomprovante",
+          "descricao": "Tipo do comprovante: 1, 2 ou 3."
+        },
+        {
+          "nome": "nrcomprovante",
+          "descricao": "Número do documento fiscal, em texto."
+        },
+        {
+          "nome": "dtemissaocomprovante",
+          "descricao": "Data de emissão do comprovante."
+        },
+        {
+          "nome": "vlcomprovante",
+          "descricao": "Valor do comprovante, em reais."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa, em texto livre."
+        },
+        {
+          "nome": "idarquivo",
+          "descricao": "Arquivo anexado na origem."
+        },
+        {
+          "nome": "idusuario",
+          "descricao": "Usuário interno que registrou."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 13,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbcomprovacaopassivo"
+      ],
+      "linhas_sql": 23
+    },
+    {
+      "nome": "silver_sac_tbcomprovantetrimestral",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbcomprovantetrimestral.sql",
+      "descricao": "Uma linha por relatório trimestral de execução de um projeto: etapas executadas, acessibilidade, democratização e o parecer. São 12.755 relatórios de 5.343 projetos. A situação mais comum é 2 (10.587), sem domínio ingerido.",
+      "colunas": [
+        {
+          "nome": "idcomprovantetrimestral",
+          "descricao": "Identificador do relatório. Único."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "dtcomprovante",
+          "descricao": "Data em que o relatório trimestral foi enviado."
+        },
+        {
+          "nome": "dtinicioperiodo",
+          "descricao": "Início do trimestre."
+        },
+        {
+          "nome": "dtfimperiodo",
+          "descricao": "Data de fim do trimestre relatado."
+        },
+        {
+          "nome": "dsetapasexecutadas",
+          "descricao": "Etapas executadas, em HTML."
+        },
+        {
+          "nome": "dsacessibilidade",
+          "descricao": "Acessibilidade, em HTML."
+        },
+        {
+          "nome": "dsdemocratizacaoacesso",
+          "descricao": "Democratização de acesso, em HTML."
+        },
+        {
+          "nome": "dsimpactoambiental",
+          "descricao": "Impacto ambiental, em HTML."
+        },
+        {
+          "nome": "sicomprovantetrimestral",
+          "descricao": "Situação do relatório: 2 em 10.587, 1 em 1.618, 6 em 380, 5 em 99, 3 em 71; sem domínio ingerido."
+        },
+        {
+          "nome": "nrcomprovantetrimestral",
+          "descricao": "Número do relatório no projeto."
+        },
+        {
+          "nome": "idcadastrador",
+          "descricao": "Conta que enviou, em texto."
+        },
+        {
+          "nome": "dsparecertecnico",
+          "descricao": "Parecer técnico, em texto livre."
+        },
+        {
+          "nome": "dsrecomendacao",
+          "descricao": "Recomendação, em texto livre."
+        },
+        {
+          "nome": "idtecnicoavaliador",
+          "descricao": "Técnico que avaliou."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 16,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbcomprovantetrimestral"
+      ],
+      "linhas_sql": 26
+    },
+    {
       "nome": "silver_sac_tbconfigurarpagamento",
       "dominio": "salic",
       "camada": "silver",
@@ -8422,6 +8760,146 @@
         "salic.bronze_sac_tbcontacartao"
       ],
       "linhas_sql": 20
+    },
+    {
+      "nome": "silver_sac_tbcumprimentoobjeto",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbcumprimentoobjeto.sql",
+      "descricao": "Uma linha por relatório final de cumprimento do objeto de um projeto: etapas concluídas, acessibilidade, fruição, empregos gerados e a avaliação técnica. São 17.334 relatórios, de 2013 a 2026. sicumprimentoobjeto é a situação: pelo SalicWeb, 2 aguardando análise (12.084), 3 em análise (1.301), 5 analisado (50); 1, 4 e 6 (3.290) não aparecem no código.",
+      "colunas": [
+        {
+          "nome": "idcumprimentoobjeto",
+          "descricao": "Identificador do relatório. Único."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "dtcadastro",
+          "descricao": "Data em que o relatório foi enviado."
+        },
+        {
+          "nome": "dsetapasconcluidas",
+          "descricao": "Etapas concluídas, em HTML."
+        },
+        {
+          "nome": "dsmedidasacessibilidade",
+          "descricao": "Medidas de acessibilidade, em HTML."
+        },
+        {
+          "nome": "dsmedidasfruicao",
+          "descricao": "Medidas de fruição, em HTML."
+        },
+        {
+          "nome": "dsmedidaspreventivas",
+          "descricao": "Medidas preventivas, em HTML."
+        },
+        {
+          "nome": "dsinformacaoadicional",
+          "descricao": "Informação adicional, em texto livre."
+        },
+        {
+          "nome": "dsorientacao",
+          "descricao": "Orientação da análise, em HTML."
+        },
+        {
+          "nome": "dsconclusao",
+          "descricao": "Conclusão da análise, em texto livre."
+        },
+        {
+          "nome": "stresultadoavaliacao",
+          "descricao": "Resultado da avaliação técnica: A 2.838, P 349, R 246; vazio em 13.901. Pela proporção, A aprovado, R reprovado e P aprovado com ressalva; não confirmado no código."
+        },
+        {
+          "nome": "idusuariocadastrador",
+          "descricao": "Conta do SalicWeb que enviou o relatório."
+        },
+        {
+          "nome": "idtecnicoavaliador",
+          "descricao": "Técnico que avaliou."
+        },
+        {
+          "nome": "sicumprimentoobjeto",
+          "descricao": "Situação do relatório: 2 aguardando análise, 3 em análise, 5 analisado, pelo SalicWeb; 1, 4 e 6 sem significado no código."
+        },
+        {
+          "nome": "idchefiaimediata",
+          "descricao": "Chefia que validou. Preenchida em 213."
+        },
+        {
+          "nome": "qtempregosdiretos",
+          "descricao": "Empregos diretos gerados, declarados pelo proponente."
+        },
+        {
+          "nome": "qtempregosindiretos",
+          "descricao": "Empregos indiretos gerados, declarados pelo proponente."
+        },
+        {
+          "nome": "dsgeracaoempregos",
+          "descricao": "Descrição da geração de empregos, em texto livre."
+        },
+        {
+          "nome": "dtenviodaprestacaocontas",
+          "descricao": "Data de envio da prestação de contas."
+        },
+        {
+          "nome": "dsmetadadosavaliacao",
+          "descricao": "Metadados da avaliação. Preenchido em 330."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 21,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbcumprimentoobjeto"
+      ],
+      "linhas_sql": 31
+    },
+    {
+      "nome": "silver_sac_tbcumprimentoobjetoxarquivo",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbcumprimentoobjetoxarquivo.sql",
+      "descricao": "Uma linha por arquivo anexado a um relatório de cumprimento do objeto. São 48.834.",
+      "colunas": [
+        {
+          "nome": "idcumprimentoobjetoxarquivo",
+          "descricao": "Identificador da linha. Único."
+        },
+        {
+          "nome": "idcumprimentoobjeto",
+          "descricao": "Relatório, código de silver_sac_tbcumprimentoobjeto."
+        },
+        {
+          "nome": "idarquivo",
+          "descricao": "Arquivo anexado na origem."
+        },
+        {
+          "nome": "idposicao",
+          "descricao": "Posição do arquivo no relatório: 0, 1 ou 2."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbcumprimentoobjetoxarquivo"
+      ],
+      "linhas_sql": 16
     },
     {
       "nome": "silver_sac_tbcustosvinculados",
@@ -8684,6 +9162,144 @@
       "linhas_sql": 36
     },
     {
+      "nome": "silver_sac_tbdetalhaplanodistribuicaoreadequacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbdetalhaplanodistribuicaoreadequacao.sql",
+      "descricao": "Uma linha por local e produto do plano de distribuição numa readequação, como silver_sac_tbdetalhaplanodistribuicao faz para o plano original. São 90.756 linhas. stativo S marca a versão vigente.",
+      "colunas": [
+        {
+          "nome": "iddetalhaplanodistribuicao",
+          "descricao": "Identificador da linha."
+        },
+        {
+          "nome": "idplanodistribuicao",
+          "descricao": "Plano, código de silver_sac_tbplanodistribuicao."
+        },
+        {
+          "nome": "idreadequacao",
+          "descricao": "Readequação, código de silver_sac_tbreadequacao."
+        },
+        {
+          "nome": "iduf",
+          "descricao": "UF do local, código IBGE."
+        },
+        {
+          "nome": "idmunicipio",
+          "descricao": "Município do local, código IBGE."
+        },
+        {
+          "nome": "stdistribuicao",
+          "descricao": "Se o local tem distribuição."
+        },
+        {
+          "nome": "dsproduto",
+          "descricao": "Descrição do produto no local."
+        },
+        {
+          "nome": "qtexemplares",
+          "descricao": "Quantidade de exemplares."
+        },
+        {
+          "nome": "qtgratuitadivulgacao",
+          "descricao": "Quantidade gratuita para divulgação."
+        },
+        {
+          "nome": "qtgratuitapatrocinador",
+          "descricao": "Quantidade gratuita para o patrocinador."
+        },
+        {
+          "nome": "qtgratuitapopulacao",
+          "descricao": "Quantidade gratuita para a população."
+        },
+        {
+          "nome": "qtpopularintegral",
+          "descricao": "Quantidade a preço popular, inteira."
+        },
+        {
+          "nome": "qtpopularparcial",
+          "descricao": "Quantidade a preço popular, meia."
+        },
+        {
+          "nome": "vlunitariopopularintegral",
+          "descricao": "Preço popular inteiro, em reais."
+        },
+        {
+          "nome": "vlreceitapopularintegral",
+          "descricao": "Receita popular inteira prevista."
+        },
+        {
+          "nome": "vlreceitapopularparcial",
+          "descricao": "Receita popular meia prevista."
+        },
+        {
+          "nome": "qtproponenteintegral",
+          "descricao": "Quantidade vendida pelo proponente, inteira."
+        },
+        {
+          "nome": "qtproponenteparcial",
+          "descricao": "Quantidade vendida pelo proponente, meia."
+        },
+        {
+          "nome": "vlunitarioproponenteintegral",
+          "descricao": "Preço do proponente, inteiro."
+        },
+        {
+          "nome": "vlreceitaproponenteintegral",
+          "descricao": "Receita do proponente, inteira."
+        },
+        {
+          "nome": "vlreceitaproponenteparcial",
+          "descricao": "Receita do proponente, meia."
+        },
+        {
+          "nome": "vlreceitaprevista",
+          "descricao": "Receita total prevista no local."
+        },
+        {
+          "nome": "tplocal",
+          "descricao": "Tipo de local, a ou f, sem domínio ingerido."
+        },
+        {
+          "nome": "tpespaco",
+          "descricao": "Tipo de espaço, n ou s."
+        },
+        {
+          "nome": "tpvenda",
+          "descricao": "Tipo de venda, e ou i."
+        },
+        {
+          "nome": "tpsolicitacao",
+          "descricao": "Tipo da solicitação na readequação: A, E, I ou N."
+        },
+        {
+          "nome": "stativo",
+          "descricao": "Se a linha está vigente, S ou N."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "iddetalhaoriginal",
+          "descricao": "Linha do plano original que esta substitui."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 30,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbdetalhaplanodistribuicaoreadequacao"
+      ],
+      "linhas_sql": 42
+    },
+    {
       "nome": "silver_sac_tbdistribuirprojeto",
       "dominio": "salic",
       "camada": "silver",
@@ -8808,6 +9424,72 @@
       "linhas_sql": 19
     },
     {
+      "nome": "silver_sac_tbdistribuirreadequacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbdistribuirreadequacao.sql",
+      "descricao": "Uma linha por envio de um pedido de readequação a uma unidade e um avaliador, com a validação do coordenador. São 61.247 envios.",
+      "colunas": [
+        {
+          "nome": "iddistribuirreadequacao",
+          "descricao": "Identificador do envio. Único."
+        },
+        {
+          "nome": "idreadequacao",
+          "descricao": "Readequação, código de silver_sac_tbreadequacao."
+        },
+        {
+          "nome": "idunidade",
+          "descricao": "Unidade que recebe, código de silver_tabelas_orgaos."
+        },
+        {
+          "nome": "dtencaminhamento",
+          "descricao": "Data do encaminhamento à unidade."
+        },
+        {
+          "nome": "idavaliador",
+          "descricao": "Avaliador designado, usuário interno ou parecerista."
+        },
+        {
+          "nome": "dtenvioavaliador",
+          "descricao": "Data do envio ao avaliador."
+        },
+        {
+          "nome": "dsorientacao",
+          "descricao": "Orientação ao avaliador, em HTML."
+        },
+        {
+          "nome": "dtretornoavaliador",
+          "descricao": "Data do retorno do avaliador."
+        },
+        {
+          "nome": "stvalidacaocoordenador",
+          "descricao": "Se o coordenador validou."
+        },
+        {
+          "nome": "dtvalidacaocoordenador",
+          "descricao": "Data em que o coordenador validou."
+        },
+        {
+          "nome": "idcoordenador",
+          "descricao": "Coordenador que validou."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbdistribuirreadequacao"
+      ],
+      "linhas_sql": 22
+    },
+    {
       "nome": "silver_sac_tbgerarpagamentoparecerista",
       "dominio": "salic",
       "camada": "silver",
@@ -8868,6 +9550,130 @@
         "salic.bronze_sac_tbgerarpagamentoparecerista"
       ],
       "linhas_sql": 22
+    },
+    {
+      "nome": "silver_sac_tbhistoricoalteracaodocumento",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbhistoricoalteracaodocumento.sql",
+      "descricao": "Uma linha por documento anexado a uma alteração de projeto. São 18.716; todos do tipo 58 de sac.documentosexigidos.",
+      "colunas": [
+        {
+          "nome": "idhistoricoalteracaodocumento",
+          "descricao": "Identificador da linha. Único."
+        },
+        {
+          "nome": "iddocumento",
+          "descricao": "Documento anexado à alteração do projeto."
+        },
+        {
+          "nome": "idhistoricoalteracaoprojeto",
+          "descricao": "Alteração, código de silver_sac_tbhistoricoalteracaoprojeto."
+        },
+        {
+          "nome": "iddocumentosexigidos",
+          "descricao": "Tipo do documento: 58 em todas."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbhistoricoalteracaodocumento"
+      ],
+      "linhas_sql": 17
+    },
+    {
+      "nome": "silver_sac_tbhistoricoalteracaoprojeto",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbhistoricoalteracaoprojeto.sql",
+      "descricao": "Uma linha por alteração registrada num projeto: situação, nome, área, segmento, datas de execução ou enquadramento, com a providência. São 284.325 alterações de 70.497 projetos, de 2013 a 2026. Cada linha só preenche o campo que mudou.",
+      "colunas": [
+        {
+          "nome": "idhistoricoalteracaoprojeto",
+          "descricao": "Identificador da alteração. Único."
+        },
+        {
+          "nome": "cdarea",
+          "descricao": "Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas, 2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6 Humanidades, 7 Artes Integradas, 9 Museus e Memória."
+        },
+        {
+          "nome": "cdsegmento",
+          "descricao": "Segmento cultural, código de silver_sac_vsegmento, em texto porque há códigos com letra. O código só é único junto com a área."
+        },
+        {
+          "nome": "nmprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "cdsituacao",
+          "descricao": "Situação nova, código de sac.situacao. Preenchida em 215.312."
+        },
+        {
+          "nome": "cdorgao",
+          "descricao": "Órgão novo. Preenchido em 1."
+        },
+        {
+          "nome": "dtinicioexecucao",
+          "descricao": "Data de início da execução do projeto."
+        },
+        {
+          "nome": "dtfimexecucao",
+          "descricao": "Data de fim da execução do projeto."
+        },
+        {
+          "nome": "idlogon",
+          "descricao": "Usuário interno que alterou."
+        },
+        {
+          "nome": "iddocumento",
+          "descricao": "Documento da alteração. Vazio em todas."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "idenquadramento",
+          "descricao": "Enquadramento alterado. Preenchido em 598."
+        },
+        {
+          "nome": "dthistoricoalteracaoprojeto",
+          "descricao": "Data em que o projeto foi alterado."
+        },
+        {
+          "nome": "dshistoricoalteracaoprojeto",
+          "descricao": "Descrição da alteração, em texto livre."
+        },
+        {
+          "nome": "cgccpf",
+          "descricao": "CPF ou CNPJ novo do proponente. Preenchido em 231."
+        },
+        {
+          "nome": "dsprovidenciatomada",
+          "descricao": "Providência registrada na alteração."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 17,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbhistoricoalteracaoprojeto"
+      ],
+      "linhas_sql": 28
     },
     {
       "nome": "silver_sac_tbhistoricoexclusaoconta",
@@ -9040,6 +9846,52 @@
       "linhas_sql": 23
     },
     {
+      "nome": "silver_sac_tblaudofinal",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tblaudofinal.sql",
+      "descricao": "Uma linha por laudo final da prestação de contas de um projeto, com a manifestação. São 1.994 laudos: A 1.392, P 312, R 290. Pela proporção, A aprovado, R reprovado e P aprovado com ressalva; o SalicWeb grava a manifestação como 1 ou 0 e não usa essas letras.",
+      "colunas": [
+        {
+          "nome": "idlaudofinal",
+          "descricao": "Identificador do laudo. Único."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "dtlaudofinal",
+          "descricao": "Data em que o laudo final foi emitido."
+        },
+        {
+          "nome": "simanifestacao",
+          "descricao": "Manifestação: A, P ou R, ver a descrição da tabela."
+        },
+        {
+          "nome": "dslaudofinal",
+          "descricao": "Texto do laudo, em HTML."
+        },
+        {
+          "nome": "idusuario",
+          "descricao": "Usuário interno que emitiu."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tblaudofinal"
+      ],
+      "linhas_sql": 17
+    },
+    {
       "nome": "silver_sac_tbmonitoramentoprojeto",
       "dominio": "salic",
       "camada": "silver",
@@ -9092,6 +9944,10 @@
           "descricao": "Valor recebido de outro projeto por transferência, em reais."
         },
         {
+          "nome": "vltransferidoparaoutroprojeto",
+          "descricao": "Valor transferido para outro projeto, em reais."
+        },
+        {
           "nome": "vlcomprovado",
           "descricao": "Valor comprovado, em reais."
         },
@@ -9136,7 +9992,7 @@
           "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
         }
       ],
-      "colunas_descritas": 22,
+      "colunas_descritas": 23,
       "testes": 3,
       "materializacao": "",
       "depende_de": [],
@@ -9466,6 +10322,72 @@
       "linhas_sql": 15
     },
     {
+      "nome": "silver_sac_tbpagarpareceristareadequacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbpagarpareceristareadequacao.sql",
+      "descricao": "Uma linha por pagamento a parecerista por análise de readequação. São 1.650 pagamentos, todos do mesmo valor.",
+      "colunas": [
+        {
+          "nome": "idpagarreadequacao",
+          "descricao": "Identificador do pagamento. Único."
+        },
+        {
+          "nome": "idparecerista",
+          "descricao": "Parecerista, código de agente."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "dthomologacao",
+          "descricao": "Data da homologação."
+        },
+        {
+          "nome": "idunidade",
+          "descricao": "Entidade contratante, código de silver_tabelas_orgaos."
+        },
+        {
+          "nome": "idgerarpagamentoparecerista",
+          "descricao": "Lote de pagamento, código de silver_sac_tbgerarpagamentoparecerista."
+        },
+        {
+          "nome": "vlpagamento",
+          "descricao": "Valor pago, o mesmo em todas as linhas."
+        },
+        {
+          "nome": "idusuario",
+          "descricao": "Usuário que registrou: um só valor."
+        },
+        {
+          "nome": "dtdistribuicao",
+          "descricao": "Data da distribuição. Preenchida em 1.058."
+        },
+        {
+          "nome": "idpareceristaempenho",
+          "descricao": "Empenho do parecerista. Vazio em todas."
+        },
+        {
+          "nome": "nrempenho",
+          "descricao": "Número do empenho. Preenchido em 1.058."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbpagarpareceristareadequacao"
+      ],
+      "linhas_sql": 23
+    },
+    {
       "nome": "silver_sac_tbpareceristaempenho",
       "dominio": "salic",
       "camada": "silver",
@@ -9516,6 +10438,98 @@
       "depende_de": [],
       "sources": [
         "salic.bronze_sac_tbpareceristaempenho"
+      ],
+      "linhas_sql": 19
+    },
+    {
+      "nome": "silver_sac_tbpareceristaprorrogarprazo",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbpareceristaprorrogarprazo.sql",
+      "descricao": "Uma linha por prorrogação de prazo concedida a um parecerista para devolver uma análise. São 2.755.",
+      "colunas": [
+        {
+          "nome": "idpareceristaprorrogarprazo",
+          "descricao": "Identificador da prorrogação. Único."
+        },
+        {
+          "nome": "iddistribuir",
+          "descricao": "Distribuição prorrogada."
+        },
+        {
+          "nome": "tpanalise",
+          "descricao": "Tipo de análise: 0 ou 1."
+        },
+        {
+          "nome": "dtsolicitacao",
+          "descricao": "Data em que o parecerista pediu mais prazo."
+        },
+        {
+          "nome": "dtconcessao",
+          "descricao": "Data em que o prazo extra foi concedido."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa, em texto livre."
+        },
+        {
+          "nome": "stestado",
+          "descricao": "Se está ativa: true em todas."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbpareceristaprorrogarprazo"
+      ],
+      "linhas_sql": 19
+    },
+    {
+      "nome": "silver_sac_tbpareceristaprorrogarprazoxdistribuicao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbpareceristaprorrogarprazoxdistribuicao.sql",
+      "descricao": "Uma linha por distribuição coberta por uma prorrogação de prazo de parecerista: de parecer, de readequação ou de recurso. São 2.754.",
+      "colunas": [
+        {
+          "nome": "idpareceristaprorrogarprazoxdistribuicao",
+          "descricao": "Identificador da linha."
+        },
+        {
+          "nome": "idpareceristaprorrogarprazo",
+          "descricao": "Prorrogação, código de silver_sac_tbpareceristaprorrogarprazo."
+        },
+        {
+          "nome": "iddistribuirparecer",
+          "descricao": "Distribuição de parecer. Preenchida em 2.421."
+        },
+        {
+          "nome": "iddsitribuirreadequacao",
+          "descricao": "Distribuição de readequação. Preenchida em 333. O nome vem com erro de digitação da origem."
+        },
+        {
+          "nome": "iddistribuirrecurso",
+          "descricao": "Distribuição de recurso. Vazia em todas."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbpareceristaprorrogarprazoxdistribuicao"
       ],
       "linhas_sql": 19
     },
@@ -10250,6 +11264,48 @@
       "linhas_sql": 20
     },
     {
+      "nome": "silver_sac_tbpreprojetometa",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbpreprojetometa.sql",
+      "descricao": "Uma linha por parte de uma proposta fotografada num momento: a cada diligência e a cada alteração de projeto, o SalicWeb grava cópias da identificação, do orçamento, dos locais, dos documentos e de outras partes. São 756.369 cópias de 53.681 propostas, desde 2017. metavalue é um array PHP serializado, que não se lê sem desserializar; pode conter dado pessoal dos documentos do proponente.",
+      "colunas": [
+        {
+          "nome": "idpreprojetometa",
+          "descricao": "Identificador da cópia. Único."
+        },
+        {
+          "nome": "idpreprojeto",
+          "descricao": "Proposta, código de silver_sac_preprojeto."
+        },
+        {
+          "nome": "metakey",
+          "descricao": "Parte copiada e o momento, como diligencia_tbplanilhaproposta ou alterarprojeto_abrangencia."
+        },
+        {
+          "nome": "metavalue",
+          "descricao": "Conteúdo da parte, em array PHP serializado."
+        },
+        {
+          "nome": "dtalteracao",
+          "descricao": "Data em que a cópia da proposta foi gravada."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 1,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbpreprojetometa"
+      ],
+      "linhas_sql": 16
+    },
+    {
       "nome": "silver_sac_tbprodutoxtipicidade",
       "dominio": "salic",
       "camada": "silver",
@@ -10350,6 +11406,96 @@
       "linhas_sql": 18
     },
     {
+      "nome": "silver_sac_tbprojetoreadequacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbprojetoreadequacao.sql",
+      "descricao": "Uma linha por versão readequada dos textos de um projeto: resumo, objetivos, justificativa, acessibilidade, ficha técnica e outros, em HTML. São 2.334 versões.",
+      "colunas": [
+        {
+          "nome": "idprojetoreadequacao",
+          "descricao": "Identificador da versão. Único."
+        },
+        {
+          "nome": "idreadequacao",
+          "descricao": "Readequação, código de silver_sac_tbreadequacao."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "idagente",
+          "descricao": "Proponente, código de agente."
+        },
+        {
+          "nome": "nmprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "dsresumodoprojeto",
+          "descricao": "Resumo do projeto readequado, em HTML."
+        },
+        {
+          "nome": "dsobjetivos",
+          "descricao": "Objetivos readequados, em HTML."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa readequada, em HTML."
+        },
+        {
+          "nome": "dsacessibilidade",
+          "descricao": "Acessibilidade readequada, em HTML."
+        },
+        {
+          "nome": "dsdemocratizacaodeacesso",
+          "descricao": "Democratização de acesso readequada, em HTML."
+        },
+        {
+          "nome": "dsetapadetrabalho",
+          "descricao": "Etapas de trabalho readequadas, em HTML."
+        },
+        {
+          "nome": "dsfichatecnica",
+          "descricao": "Ficha técnica readequada, em HTML."
+        },
+        {
+          "nome": "dssinopse",
+          "descricao": "Sinopse readequada, em HTML."
+        },
+        {
+          "nome": "dsimpactoambiental",
+          "descricao": "Impacto ambiental readequado, em HTML."
+        },
+        {
+          "nome": "dsespecificacaotecnica",
+          "descricao": "Especificação técnica readequada, em HTML."
+        },
+        {
+          "nome": "dsestrategiadeexecucao",
+          "descricao": "Estratégia de execução readequada, em HTML."
+        },
+        {
+          "nome": "dsdescricaoatividade",
+          "descricao": "Descrição da atividade readequada, em HTML."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbprojetoreadequacao"
+      ],
+      "linhas_sql": 28
+    },
+    {
       "nome": "silver_sac_tbprojetorecebedorrecurso",
       "dominio": "salic",
       "camada": "silver",
@@ -10360,6 +11506,10 @@
         {
           "nome": "idprojetorecebedorrecurso",
           "descricao": "Identificador da transferência. Único."
+        },
+        {
+          "nome": "idsolicitacaotransferenciarecursos",
+          "descricao": "Pedido de transferência."
         },
         {
           "nome": "idpronactransferidor",
@@ -10386,7 +11536,7 @@
           "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
         }
       ],
-      "colunas_descritas": 7,
+      "colunas_descritas": 8,
       "testes": 2,
       "materializacao": "",
       "depende_de": [],
@@ -10538,6 +11688,160 @@
         "salic.bronze_sac_tbprojetosituacaoanterior"
       ],
       "linhas_sql": 24
+    },
+    {
+      "nome": "silver_sac_tbreadequacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbreadequacao.sql",
+      "descricao": "Uma linha por pedido de readequação de um projeto: mudar planilha, prazo, local, objetivo, proponente ou outro aspecto depois da aprovação. São 104.820 pedidos de 20.522 projetos, desde 2013; uma data vai a 2091, digitada errada. O tipo do pedido não tem tabela de domínio ingerida (ver idtiporeadequacao). siencaminhamento é a etapa do pedido, de sac.tbTipoEncaminhamento, também não ingerida; 15 é solicitação finalizada pelo MinC. stestado true marca 96.184 pedidos.",
+      "colunas": [
+        {
+          "nome": "idreadequacao",
+          "descricao": "Identificador do pedido. Único."
+        },
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "idtiporeadequacao",
+          "descricao": "Tipo da readequação, de tbtiporeadequacao, que não é ingerida; os nomes vêm de silver_sac_vwpareceresdereadequacao: 2 planilha orçamentária, 13 período de execução, 11 plano de distribuição, 16 objetivos, 9 local de realização, 23 transferência de recursos entre projetos, entre outros. O 1, com 23.583 pedidos, não aparece na view e fica sem nome."
+        },
+        {
+          "nome": "dtsolicitacao",
+          "descricao": "Data do pedido, de 2013 a 2026, com uma data de 2091 digitada errada."
+        },
+        {
+          "nome": "idsolicitante",
+          "descricao": "Agente que pediu, normalmente o proponente."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa, em texto livre."
+        },
+        {
+          "nome": "dssolicitacao",
+          "descricao": "O que foi pedido, em texto livre."
+        },
+        {
+          "nome": "iddocumento",
+          "descricao": "Documento anexado ao pedido."
+        },
+        {
+          "nome": "idavaliador",
+          "descricao": "Avaliador designado, usuário interno ou parecerista."
+        },
+        {
+          "nome": "dtavaliador",
+          "descricao": "Data em que o pedido foi avaliado."
+        },
+        {
+          "nome": "dsavaliacao",
+          "descricao": "Texto da avaliação, em HTML."
+        },
+        {
+          "nome": "statendimento",
+          "descricao": "Resultado do atendimento do pedido: D em 63.688 (2 em minúscula), N em 37.574, E em 2.905, I em 644, A em 9; sem domínio ingerido."
+        },
+        {
+          "nome": "siencaminhamento",
+          "descricao": "Etapa do pedido, código de sac.tbTipoEncaminhamento, não ingerida. O mais comum é 15, solicitação finalizada pelo MinC, com 73.052."
+        },
+        {
+          "nome": "stanalise",
+          "descricao": "Situação da análise. Preenchida em 19."
+        },
+        {
+          "nome": "idnrreuniao",
+          "descricao": "Reunião da CNIC que apreciou o pedido."
+        },
+        {
+          "nome": "stestado",
+          "descricao": "Se o pedido está ativo: true em 96.184."
+        },
+        {
+          "nome": "dtenvio",
+          "descricao": "Data de envio, preenchida só em duas datas de dezembro de 2014."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbreadequacao"
+      ],
+      "linhas_sql": 28
+    },
+    {
+      "nome": "silver_sac_tbreadequacaoxparecer",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbreadequacaoxparecer.sql",
+      "descricao": "Uma linha por parecer emitido sobre um pedido de readequação. São 60.233 pares.",
+      "colunas": [
+        {
+          "nome": "idreadequacaoxparecer",
+          "descricao": "Identificador do par. Único."
+        },
+        {
+          "nome": "idreadequacao",
+          "descricao": "Readequação, código de silver_sac_tbreadequacao."
+        },
+        {
+          "nome": "idparecer",
+          "descricao": "Parecer técnico sobre o pedido de readequação."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbreadequacaoxparecer"
+      ],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "silver_sac_tbreadequacaoxtbdiligencia",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_tbreadequacaoxtbdiligencia.sql",
+      "descricao": "Uma linha por diligência aberta num pedido de readequação. São 8.821 pares.",
+      "colunas": [
+        {
+          "nome": "idreadequacao",
+          "descricao": "Readequação, código de silver_sac_tbreadequacao."
+        },
+        {
+          "nome": "iddiligencia",
+          "descricao": "Diligência aberta no pedido."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_tbreadequacaoxtbdiligencia"
+      ],
+      "linhas_sql": 14
     },
     {
       "nome": "silver_sac_tbrecursoproposta",
@@ -11444,6 +12748,44 @@
       "linhas_sql": 17
     },
     {
+      "nome": "silver_sac_vportariaprorrogacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vportariaprorrogacao.sql",
+      "descricao": "Uma linha por portaria de prorrogação (aprovação do tipo 3) de projeto. São 722.",
+      "colunas": [
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "tipoaprovacao",
+          "descricao": "Tipo da aprovação: 3, prorrogação, em todas."
+        },
+        {
+          "nome": "dtaprovacao",
+          "descricao": "Data da prorrogação."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vportariaprorrogacao"
+      ],
+      "linhas_sql": 15
+    },
+    {
       "nome": "silver_sac_vprazocaptacao",
       "dominio": "salic",
       "camada": "silver",
@@ -11480,6 +12822,142 @@
         "salic.bronze_sac_vprazocaptacao"
       ],
       "linhas_sql": 15
+    },
+    {
+      "nome": "silver_sac_vprestacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vprestacao.sql",
+      "descricao": "Uma linha por projeto com a prestação de contas: valor executado, aplicação financeira, outras fontes e saldo recolhido. São 13.987 projetos.",
+      "colunas": [
+        {
+          "nome": "area",
+          "descricao": "Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas, 2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6 Humanidades, 7 Artes Integradas, 9 Museus e Memória."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Segmento cultural, código de silver_sac_vsegmento, em texto porque há códigos com letra. O código só é único junto com a área."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "dtiniciorealizacao",
+          "descricao": "Início da realização."
+        },
+        {
+          "nome": "dtfinalrealizacao",
+          "descricao": "Data de fim da realização do projeto."
+        },
+        {
+          "nome": "valorexecutado",
+          "descricao": "Valor executado, em reais."
+        },
+        {
+          "nome": "aplicacaofinanceira",
+          "descricao": "Rendimento de aplicação financeira, em reais."
+        },
+        {
+          "nome": "outrasfontes",
+          "descricao": "Recursos de outras fontes, em reais."
+        },
+        {
+          "nome": "saldorecolhido",
+          "descricao": "Saldo recolhido à União, em reais."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vprestacao"
+      ],
+      "linhas_sql": 22
+    },
+    {
+      "nome": "silver_sac_vprojetosemexecucao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vprojetosemexecucao.sql",
+      "descricao": "Uma linha por projeto em execução, com aprovado, captado e saldo a captar. São 5.567 projetos.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": "Região do país do projeto."
+        },
+        {
+          "nome": "uf",
+          "descricao": "UF do projeto, por extenso."
+        },
+        {
+          "nome": "nrprojeto",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "area",
+          "descricao": "Área cultural do projeto, por extenso."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Segmento por extenso."
+        },
+        {
+          "nome": "aprovado",
+          "descricao": "Valor aprovado, em reais."
+        },
+        {
+          "nome": "captado",
+          "descricao": "Valor captado, em reais."
+        },
+        {
+          "nome": "saldoacaptar",
+          "descricao": "Saldo a captar, em reais."
+        },
+        {
+          "nome": "codigoarea",
+          "descricao": "Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas, 2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6 Humanidades, 7 Artes Integradas, 9 Museus e Memória."
+        },
+        {
+          "nome": "municipio",
+          "descricao": "Município do projeto."
+        },
+        {
+          "nome": "enquadramento",
+          "descricao": "Artigo do enquadramento: 1 artigo 26, 2 artigo 18."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 13,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vprojetosemexecucao"
+      ],
+      "linhas_sql": 23
     },
     {
       "nome": "silver_sac_vprojetosexecutados",
@@ -11716,6 +13194,64 @@
       "linhas_sql": 16
     },
     {
+      "nome": "silver_sac_vprorrogacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vprorrogacao.sql",
+      "descricao": "Uma linha por prorrogação do prazo de captação de um projeto, com portaria e saldo a captar. São 135.438 linhas.",
+      "colunas": [
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "dtaprovacao",
+          "descricao": "Data da prorrogação."
+        },
+        {
+          "nome": "dtiniciocaptacao",
+          "descricao": "Início do novo prazo de captação."
+        },
+        {
+          "nome": "dtfimcaptacao",
+          "descricao": "Fim do novo prazo de captação."
+        },
+        {
+          "nome": "portariaaprovacao",
+          "descricao": "Portaria. Preenchida em 331."
+        },
+        {
+          "nome": "dtportariaaprovacao",
+          "descricao": "Data da portaria de prorrogação."
+        },
+        {
+          "nome": "dtpublicacaoaprovacao",
+          "descricao": "Data de publicação da portaria."
+        },
+        {
+          "nome": "saldoacaptar",
+          "descricao": "Saldo a captar, em reais."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vprorrogacao"
+      ],
+      "linhas_sql": 20
+    },
+    {
       "nome": "silver_sac_vrenunciageralporanoprojeto",
       "dominio": "salic",
       "camada": "silver",
@@ -11880,6 +13416,40 @@
       "linhas_sql": 17
     },
     {
+      "nome": "silver_sac_vversepodeprorrogar",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vversepodeprorrogar.sql",
+      "descricao": "Uma linha por projeto com o tempo sem captar, usado para decidir se o prazo pode ser prorrogado. São 20.564 projetos.",
+      "colunas": [
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "temposemcaptar",
+          "descricao": "Tempo sem captar, em dias."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vversepodeprorrogar"
+      ],
+      "linhas_sql": 14
+    },
+    {
       "nome": "silver_sac_vw_captacao_ano_uf",
       "dominio": "salic",
       "camada": "silver",
@@ -11996,6 +13566,86 @@
       "linhas_sql": 25
     },
     {
+      "nome": "silver_sac_vwalteraranalistaproposta",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwalteraranalistaproposta.sql",
+      "descricao": "Uma linha por proposta com o técnico responsável, da tela de troca de analista. São 22.981 propostas.",
+      "colunas": [
+        {
+          "nome": "idproposta",
+          "descricao": "Proposta, idpreprojeto de silver_sac_preprojeto."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "orgao",
+          "descricao": "Secretaria: 160 SAV ou 251 SEFIC."
+        },
+        {
+          "nome": "idtecnico",
+          "descricao": "Técnico responsável, usuário interno."
+        },
+        {
+          "nome": "tecnico",
+          "descricao": "Nome do técnico responsável."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwalteraranalistaproposta"
+      ],
+      "linhas_sql": 17
+    },
+    {
+      "nome": "silver_sac_vwalterarorgao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwalterarorgao.sql",
+      "descricao": "Uma linha por projeto com o órgão responsável, da tela de troca de órgão. São 276.887 projetos.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "orgao",
+          "descricao": "Órgão, código de silver_tabelas_orgaos."
+        },
+        {
+          "nome": "logon",
+          "descricao": "Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de servidores."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwalterarorgao"
+      ],
+      "linhas_sql": 15
+    },
+    {
       "nome": "silver_sac_vwalterarprojeto",
       "dominio": "salic",
       "camada": "silver",
@@ -12068,6 +13718,52 @@
         "salic.bronze_sac_vwalterarprojeto"
       ],
       "linhas_sql": 24
+    },
+    {
+      "nome": "silver_sac_vwalterarsituacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwalterarsituacao.sql",
+      "descricao": "Uma linha por projeto com a situação e a providência, da tela de troca de situação. São 276.887 projetos.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "dtsituacao",
+          "descricao": "Data da situação atual do projeto."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Situação atual do projeto, código de três caracteres da tabela sac.situacao, como K00 arquivado, E10 autorizada a captação total ou E19 prestação de contas aprovada."
+        },
+        {
+          "nome": "providenciatomada",
+          "descricao": "Última providência registrada, em texto livre."
+        },
+        {
+          "nome": "logon",
+          "descricao": "Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de servidores."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwalterarsituacao"
+      ],
+      "linhas_sql": 17
     },
     {
       "nome": "silver_sac_vwanalisedecusto",
@@ -13118,6 +14814,84 @@
       "linhas_sql": 30
     },
     {
+      "nome": "silver_sac_vwpareceresdereadequacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwpareceresdereadequacao.sql",
+      "descricao": "Uma linha por parecer sobre pedido de readequação já finalizado pelo MinC: tipo da readequação por extenso, justificativa e manifestação. São 59.577 pareceres: 53.344 favoráveis e 6.224 desfavoráveis. É daqui que sai o nome dos tipos de readequação.",
+      "colunas": [
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "idreadequacao",
+          "descricao": "Readequação, código de silver_sac_tbreadequacao."
+        },
+        {
+          "nome": "idtiporeadequacao",
+          "descricao": "Tipo da readequação, de tbtiporeadequacao, que não é ingerida; os nomes vêm de silver_sac_vwpareceresdereadequacao: 2 planilha orçamentária, 13 período de execução, 11 plano de distribuição, 16 objetivos, 9 local de realização, 23 transferência de recursos entre projetos, entre outros. O 1, com 23.583 pedidos, não aparece na view e fica sem nome."
+        },
+        {
+          "nome": "dsreadequacao",
+          "descricao": "Tipo da readequação por extenso, como Planilha Orçamentária ou Período de Execução."
+        },
+        {
+          "nome": "dtenviominc",
+          "descricao": "Data de envio ao MinC."
+        },
+        {
+          "nome": "dsjustificativa",
+          "descricao": "Justificativa, em texto livre."
+        },
+        {
+          "nome": "siencaminhamento",
+          "descricao": "Etapa do pedido: 15, finalizada pelo MinC, em todas."
+        },
+        {
+          "nome": "dsencaminhamento",
+          "descricao": "Etapa por extenso: Solicitação finalizada pelo MinC."
+        },
+        {
+          "nome": "dtparecer",
+          "descricao": "Data em que o parecer foi emitido."
+        },
+        {
+          "nome": "tpmanifestacao",
+          "descricao": "Manifestação: 2 favorável (53.344), 1 desfavorável (6.224); 9 linhas com outro valor."
+        },
+        {
+          "nome": "dsmanifestacao",
+          "descricao": "Manifestação por extenso: Favorável ou Desfavorável."
+        },
+        {
+          "nome": "dsparecer",
+          "descricao": "Texto do parecer, em texto livre."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 15,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwpareceresdereadequacao"
+      ],
+      "linhas_sql": 25
+    },
+    {
       "nome": "silver_sac_vwpecadedivulgacao",
       "dominio": "salic",
       "camada": "silver",
@@ -13154,6 +14928,96 @@
         "salic.bronze_sac_vwpecadedivulgacao"
       ],
       "linhas_sql": 15
+    },
+    {
+      "nome": "silver_sac_vwpedidodeprorrogacao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwpedidodeprorrogacao.sql",
+      "descricao": "Uma linha por pedido de prorrogação de prazo de execução de um projeto, com o atendimento. São 250.214 pedidos de 129.111 projetos; as datas vão de 1986 a 2201, com erros de digitação. atendimento S em 245.822.",
+      "colunas": [
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "anoprojeto",
+          "descricao": "Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é 1992. Junto com sequencial forma o PRONAC."
+        },
+        {
+          "nome": "sequencial",
+          "descricao": "Sequencial do PRONAC dentro do ano, em texto com zero à esquerda. Junto com anoprojeto forma o PRONAC."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "codsituacao",
+          "descricao": "Situação do projeto, código de sac.situacao."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Situação com a descrição."
+        },
+        {
+          "nome": "dtinicioexecucao",
+          "descricao": "Data de início da execução do projeto."
+        },
+        {
+          "nome": "dtfimexecucao",
+          "descricao": "Data de fim da execução do projeto."
+        },
+        {
+          "nome": "mecanismo",
+          "descricao": "Mecanismo do projeto: 1 ou 5."
+        },
+        {
+          "nome": "idprorrogacao",
+          "descricao": "Pedido de prorrogação."
+        },
+        {
+          "nome": "dtpedido",
+          "descricao": "Data do pedido de prorrogação."
+        },
+        {
+          "nome": "dtinicio",
+          "descricao": "Início do novo prazo."
+        },
+        {
+          "nome": "dtfinal",
+          "descricao": "Data de fim do novo prazo de execução."
+        },
+        {
+          "nome": "justificativa",
+          "descricao": "Justificativa, em texto livre."
+        },
+        {
+          "nome": "idusuario",
+          "descricao": "Conta do SalicWeb que fez o pedido."
+        },
+        {
+          "nome": "atendimento",
+          "descricao": "Atendimento do pedido: S em 245.822, I em 4.262, A em 104, N em 26."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 18,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwpedidodeprorrogacao"
+      ],
+      "linhas_sql": 28
     },
     {
       "nome": "silver_sac_vwplanilhaaprovada",
@@ -13864,6 +15728,10 @@
           "descricao": "Dias de análise pelo parecerista."
         },
         {
+          "nome": "nrdiasemdilgenciapeloparecerista",
+          "descricao": "Dias em diligência com o parecerista."
+        },
+        {
           "nome": "qtdediasnavinculada",
           "descricao": "Dias na entidade vinculada."
         },
@@ -13880,7 +15748,7 @@
           "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
         }
       ],
-      "colunas_descritas": 36,
+      "colunas_descritas": 37,
       "testes": 0,
       "materializacao": "",
       "depende_de": [],
@@ -14258,6 +16126,108 @@
       "linhas_sql": 40
     },
     {
+      "nome": "silver_sac_vwprojetosadequadosrealidadeexecucao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwprojetosadequadosrealidadeexecucao.sql",
+      "descricao": "Uma linha por projeto que já teve a proposta adequada à realidade de execução, com valores e técnico. São 576 projetos.",
+      "colunas": [
+        {
+          "nome": "idpronac",
+          "descricao": "Identificador interno do projeto no SALIC. Liga com silver_sac_projetos.idpronac."
+        },
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "cnpjcpf",
+          "descricao": "CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à esquerda."
+        },
+        {
+          "nome": "proponente",
+          "descricao": "Nome do proponente, pessoa ou entidade."
+        },
+        {
+          "nome": "ufprojeto",
+          "descricao": "UF do projeto, em sigla."
+        },
+        {
+          "nome": "area",
+          "descricao": "Área cultural do projeto, por extenso."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Segmento por extenso."
+        },
+        {
+          "nome": "dtinicioexecucao",
+          "descricao": "Data de início da execução do projeto."
+        },
+        {
+          "nome": "dtfimexecucao",
+          "descricao": "Data de fim da execução do projeto."
+        },
+        {
+          "nome": "orgao",
+          "descricao": "Órgão, código de silver_tabelas_orgaos."
+        },
+        {
+          "nome": "dtsituacao",
+          "descricao": "Data da situação atual do projeto."
+        },
+        {
+          "nome": "qtdias",
+          "descricao": "Dias desde a situação."
+        },
+        {
+          "nome": "idtecnico",
+          "descricao": "Técnico responsável, usuário interno."
+        },
+        {
+          "nome": "tecnico",
+          "descricao": "Nome do técnico responsável."
+        },
+        {
+          "nome": "enquadramento",
+          "descricao": "Artigo do enquadramento por extenso."
+        },
+        {
+          "nome": "vlsolicitado",
+          "descricao": "Valor solicitado, em reais."
+        },
+        {
+          "nome": "vloutrasfontes",
+          "descricao": "Valor de outras fontes, em reais."
+        },
+        {
+          "nome": "vlaprovado",
+          "descricao": "Valor aprovado, em reais."
+        },
+        {
+          "nome": "vlprojeto",
+          "descricao": "Valor total do projeto, em reais."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 21,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwprojetosadequadosrealidadeexecucao"
+      ],
+      "linhas_sql": 33
+    },
+    {
       "nome": "silver_sac_vwprojetoscominconsistencianacaptacao",
       "dominio": "salic",
       "camada": "silver",
@@ -14600,6 +16570,116 @@
         "salic.bronze_sac_vwprojetositinerantes"
       ],
       "linhas_sql": 25
+    },
+    {
+      "nome": "silver_sac_vwprojetosliberadosparaadequacaorealidadeexecucao",
+      "dominio": "salic",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/salic/silver_sac_vwprojetosliberadosparaadequacaorealidadeexecucao.sql",
+      "descricao": "Uma linha por projeto liberado para adequar a proposta à realidade de execução, com portaria, conta e valores. São 421 projetos.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, ano em dois dígitos seguido do sequencial, em texto com zero à esquerda."
+        },
+        {
+          "nome": "nomeprojeto",
+          "descricao": "Nome do projeto cultural."
+        },
+        {
+          "nome": "dtsituacao",
+          "descricao": "Data da situação atual do projeto."
+        },
+        {
+          "nome": "area",
+          "descricao": "Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas, 2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6 Humanidades, 7 Artes Integradas, 9 Museus e Memória."
+        },
+        {
+          "nome": "dsarea",
+          "descricao": "Área cultural do projeto, por extenso."
+        },
+        {
+          "nome": "segmento",
+          "descricao": "Segmento cultural, código de silver_sac_vsegmento, em texto porque há códigos com letra. O código só é único junto com a área."
+        },
+        {
+          "nome": "dssegmento",
+          "descricao": "Segmento por extenso."
+        },
+        {
+          "nome": "qtdias",
+          "descricao": "Dias desde a liberação."
+        },
+        {
+          "nome": "nrportaria",
+          "descricao": "Portaria de aprovação, número/ano."
+        },
+        {
+          "nome": "dtpublicacao",
+          "descricao": "Data de publicação da portaria."
+        },
+        {
+          "nome": "agencia",
+          "descricao": "Agência da conta do projeto."
+        },
+        {
+          "nome": "contabloqueada",
+          "descricao": "Conta bloqueada do projeto."
+        },
+        {
+          "nome": "stproposta",
+          "descricao": "Plano de execução imediata, código da verificação do sac (grupo 23)."
+        },
+        {
+          "nome": "excecao",
+          "descricao": "Plano de execução imediata por extenso."
+        },
+        {
+          "nome": "stdatafixa",
+          "descricao": "Se o projeto tem data fixa."
+        },
+        {
+          "nome": "datamarcada",
+          "descricao": "Se o projeto tem data marcada: SIM ou NÃO."
+        },
+        {
+          "nome": "tpprorrogacao",
+          "descricao": "Se aceita prorrogação automática."
+        },
+        {
+          "nome": "solicitacaoprorrogacao",
+          "descricao": "Se pediu prorrogação: SIM ou NÃO."
+        },
+        {
+          "nome": "vlsolicitado",
+          "descricao": "Valor solicitado, em reais."
+        },
+        {
+          "nome": "vlaprovado",
+          "descricao": "Valor aprovado, em reais."
+        },
+        {
+          "nome": "vlcaptado",
+          "descricao": "Valor captado, em reais."
+        },
+        {
+          "nome": "perccaptado",
+          "descricao": "Percentual captado do aprovado."
+        },
+        {
+          "nome": "_fatia",
+          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
+        }
+      ],
+      "colunas_descritas": 23,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "salic.bronze_sac_vwprojetosliberadosparaadequacaorealidadeexecucao"
+      ],
+      "linhas_sql": 35
     },
     {
       "nome": "silver_sac_vwprojetosporfase",
@@ -22860,102 +24940,6 @@
       "linhas_sql": 18
     },
     {
-      "nome": "sac__editalrelatorio",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__editalrelatorio.sql",
-      "descricao": "Tabela responsável por armazenar relatórios exigidos pelos editais, com datas, aprovação e comprovações. Camada bronze tipada a partir de salic_bronze.sac__editalrelatorio.",
-      "colunas": [
-        {
-          "nome": "idrelatorio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idedital",
-          "descricao": "Sequêncial identificador do edital."
-        },
-        {
-          "nome": "nrparcela",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtrelatorio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "relatorio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "comprovado",
-          "descricao": "0.Não;1.Sim"
-        },
-        {
-          "nome": "aprovado",
-          "descricao": "0.Não;1.Sim"
-        },
-        {
-          "nome": "logon",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 11,
-      "testes": 2,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__editalrelatorio"
-      ],
-      "linhas_sql": 20
-    },
-    {
-      "nome": "sac__efeitosresultado",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__efeitosresultado.sql",
-      "descricao": "Tabela responsável por armazenar códigos, opções e descrições de efeitos de resultado dos projetos. Camada bronze tipada a partir de salic_bronze.sac__efeitosresultado.",
-      "colunas": [
-        {
-          "nome": "codigo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "opcao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "descricao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 4,
-      "testes": 0,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__efeitosresultado"
-      ],
-      "linhas_sql": 13
-    },
-    {
       "nome": "sac__estados",
       "dominio": "salic",
       "camada": "bronze",
@@ -24524,248 +26508,6 @@
       "linhas_sql": 27
     },
     {
-      "nome": "sac__tbcomplianceitemcomprovado",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbcomplianceitemcomprovado.sql",
-      "descricao": "Tabela responsável por registrar itens auditados, valores comprovados e diferenças. Camada bronze tipada a partir de salic_bronze.sac__tbcomplianceitemcomprovado.",
-      "colunas": [
-        {
-          "nome": "idcompliancefinanceiro",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idcompliancecomprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idtipo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrfonterecurso",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idproduto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iduf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idmunicipio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idetapa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iditem",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idfornecedor",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrcomprovante",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrlancamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlcomprovado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vllancamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vldiferenca",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsobservacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idcomprovantepagamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 18,
-      "testes": 17,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbcomplianceitemcomprovado"
-      ],
-      "linhas_sql": 27
-    },
-    {
-      "nome": "sac__tbcomprovacaopassivo",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbcomprovacaopassivo.sql",
-      "descricao": "Tabela responsável por registrar comprovantes de passivos financeiros ou orçamentários. Camada bronze tipada a partir de salic_bronze.sac__tbcomprovacaopassivo.",
-      "colunas": [
-        {
-          "nome": "idcomprovacaopassivo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idplanilhaaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idlancamentobancario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idfornecedor",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpcomprovante",
-          "descricao": "1. Cupom Fiscal 2. Guia de Recolhimento 3. Nota Fiscal / Fatura 4. Recibo de Pagamento 5. RPA 6. Invoice"
-        },
-        {
-          "nome": "nrcomprovante",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtemissaocomprovante",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlcomprovante",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsjustificativa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idarquivo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idusuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 13,
-      "testes": 13,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbcomprovacaopassivo"
-      ],
-      "linhas_sql": 22
-    },
-    {
-      "nome": "sac__tbcomprovantetrimestral",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbcomprovantetrimestral.sql",
-      "descricao": "Tabela responsável por registrar comprovantes trimestrais de execução física e financeira. Camada bronze tipada a partir de salic_bronze.sac__tbcomprovantetrimestral.",
-      "colunas": [
-        {
-          "nome": "idcomprovantetrimestral",
-          "descricao": "Identifica o relatório trimestral entregue pelo proponente."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "Identiticador único de uma proposta de um projeto cultural no Ministério da Cultura"
-        },
-        {
-          "nome": "dtcomprovante",
-          "descricao": "Data em que foi cadastrado o relatório trimestral (comprovante)."
-        },
-        {
-          "nome": "dtinicioperiodo",
-          "descricao": "Data inicial do período de cadastro do relatório trimestral. (Comprovante)."
-        },
-        {
-          "nome": "dtfimperiodo",
-          "descricao": "Data do fim do período do relatório trimestral."
-        },
-        {
-          "nome": "dsetapasexecutadas",
-          "descricao": "Descrição das etapas do projeto executado."
-        },
-        {
-          "nome": "dsacessibilidade",
-          "descricao": "descrição das medidas de acessibilidade implantadas até o momento do relatório."
-        },
-        {
-          "nome": "dsdemocratizacaoacesso",
-          "descricao": "descrição das medidas de democratização de acesso."
-        },
-        {
-          "nome": "dsimpactoambiental",
-          "descricao": "Descrição das medidas efetivadas para não haver impacto ambiental na execução doprojeto."
-        },
-        {
-          "nome": "sicomprovantetrimestral",
-          "descricao": "Situação dos comprovantes trimestrais: 1 - Salvo pelo proponente, 2 - Enviado pelo Proponente, 3 - Encaminhado pelo técnico de Acompanhamento, 4 - Em análise pelo técnico, 5 - Finalizado pelo técnico, 6 - Finalizado pelo coordenador."
-        },
-        {
-          "nome": "nrcomprovantetrimestral",
-          "descricao": "Número de ordem, a sequência do relatório trimestral."
-        },
-        {
-          "nome": "idcadastrador",
-          "descricao": "É o usuário logado no sistema do lado do proponente (Usuário externo). O controle de acesso será feito através do banco controle de acesso na tabela SGCAcesso."
-        },
-        {
-          "nome": "dsparecertecnico",
-          "descricao": "Descrição do parecer emitido pelo técnico de acompanhamento do Minc."
-        },
-        {
-          "nome": "dsrecomendacao",
-          "descricao": "São as recomendações do técnico de acompanhamento ao proponente."
-        },
-        {
-          "nome": "idtecnicoavaliador",
-          "descricao": "É o usuário logado no sistema do lado do Minc (Usuário interno). O controle de acesso será feito através do banco Tabelas tabela Usuarios."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 16,
-      "testes": 10,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbcomprovantetrimestral"
-      ],
-      "linhas_sql": 25
-    },
-    {
       "nome": "sac__tbcomunicados",
       "dominio": "salic",
       "camada": "bronze",
@@ -24922,146 +26664,6 @@
         "bronze_sac.sac__tbcredenciaparecerista_2020"
       ],
       "linhas_sql": 16
-    },
-    {
-      "nome": "sac__tbcumprimentoobjeto",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbcumprimentoobjeto.sql",
-      "descricao": "Tabela responsável por registrar o cumprimento do objeto pelos projetos, incluindo etapas concluídas, acessibilidade, fruição, geração de empregos e conclusão técnica. Camada bronze tipada a partir de salic_bronze.sac__tbcumprimentoobjeto.",
-      "colunas": [
-        {
-          "nome": "idcumprimentoobjeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtcadastro",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsetapasconcluidas",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsmedidasacessibilidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsmedidasfruicao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsmedidaspreventivas",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsinformacaoadicional",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsorientacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsconclusao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stresultadoavaliacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idusuariocadastrador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idtecnicoavaliador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sicumprimentoobjeto",
-          "descricao": "1 - Salvo pelo proponente; 2 - Enviado pelo proponente; 3 - Encaminhado pelo Técnico de Acompanhamento; 4 - Em análise pelo Técnico; 5 - Finalizado pelo Técnico; 6 - Finalizado pelo Coordenador."
-        },
-        {
-          "nome": "idchefiaimediata",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtempregosdiretos",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtempregosindiretos",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsgeracaoempregos",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtenviodaprestacaocontas",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsmetadadosavaliacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 21,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbcumprimentoobjeto"
-      ],
-      "linhas_sql": 30
-    },
-    {
-      "nome": "sac__tbcumprimentoobjetoxarquivo",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbcumprimentoobjetoxarquivo.sql",
-      "descricao": "Tabela responsável por vincular arquivos/documentos às informações de cumprimento de objeto. Camada bronze tipada a partir de salic_bronze.sac__tbcumprimentoobjetoxarquivo.",
-      "colunas": [
-        {
-          "nome": "idcumprimentoobjetoxarquivo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idcumprimentoobjeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idarquivo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idposicao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbcumprimentoobjetoxarquivo"
-      ],
-      "linhas_sql": 14
     },
     {
       "nome": "sac__tbdeclaracaobeneficiosfiscais",
@@ -25260,144 +26862,6 @@
         "bronze_sac.sac__tbdespacho"
       ],
       "linhas_sql": 20
-    },
-    {
-      "nome": "sac__tbdetalhaplanodistribuicaoreadequacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbdetalhaplanodistribuicaoreadequacao.sql",
-      "descricao": "Tabela responsável por armazenar detalhamentos do plano de distribuição após readequações, vinculando UF, município, produtos e receitas. Camada bronze tipada a partir de salic_bronze.sac__tbdetalhaplanodistribuicaoreadequacao.",
-      "colunas": [
-        {
-          "nome": "iddetalhaplanodistribuicao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idplanodistribuicao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iduf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idmunicipio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stdistribuicao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsproduto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtexemplares",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtgratuitadivulgacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtgratuitapatrocinador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtgratuitapopulacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtpopularintegral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtpopularparcial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlunitariopopularintegral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlreceitapopularintegral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlreceitapopularparcial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtproponenteintegral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtproponenteparcial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlunitarioproponenteintegral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlreceitaproponenteintegral",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlreceitaproponenteparcial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlreceitaprevista",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tplocal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpespaco",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpvenda",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpsolicitacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stativo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iddetalhaoriginal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 30,
-      "testes": 28,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbdetalhaplanodistribuicaoreadequacao"
-      ],
-      "linhas_sql": 40
     },
     {
       "nome": "sac__tbdiligencia",
@@ -25658,72 +27122,6 @@
         "bronze_sac.sac__tbdistribuirparecer"
       ],
       "linhas_sql": 29
-    },
-    {
-      "nome": "sac__tbdistribuirreadequacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbdistribuirreadequacao.sql",
-      "descricao": "Tabela responsável por distribuir readequações para avaliadores e coordenadores, com datas, status e orientações. Camada bronze tipada a partir de salic_bronze.sac__tbdistribuirreadequacao.",
-      "colunas": [
-        {
-          "nome": "iddistribuirreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idunidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtencaminhamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idavaliador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtenvioavaliador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsorientacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtretornoavaliador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stvalidacaocoordenador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtvalidacaocoordenador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idcoordenador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 7,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbdistribuirreadequacao"
-      ],
-      "linhas_sql": 21
     },
     {
       "nome": "sac__tbdocumento20100107_1x",
@@ -26084,130 +27482,6 @@
       "linhas_sql": 22
     },
     {
-      "nome": "sac__tbhistoricoalteracaodocumento",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbhistoricoalteracaodocumento.sql",
-      "descricao": "Tabela responsável por registrar o histórico de alterações realizadas em documentos vinculados a projetos. Camada bronze tipada a partir de salic_bronze.sac__tbhistoricoalteracaodocumento.",
-      "colunas": [
-        {
-          "nome": "idhistoricoalteracaodocumento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iddocumento",
-          "descricao": "Identificador do documento anexado."
-        },
-        {
-          "nome": "idhistoricoalteracaoprojeto",
-          "descricao": "Identificador do historico de alteração do projeto."
-        },
-        {
-          "nome": "iddocumentosexigidos",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 7,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbhistoricoalteracaodocumento"
-      ],
-      "linhas_sql": 15
-    },
-    {
-      "nome": "sac__tbhistoricoalteracaoprojeto",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbhistoricoalteracaoprojeto.sql",
-      "descricao": "Tabela responsável por registrar o histórico de alterações de dados dos projetos (área, segmento, situação, órgão, execução, enquadramento e providências). Camada bronze tipada a partir de salic_bronze.sac__tbhistoricoalteracaoprojeto.",
-      "colunas": [
-        {
-          "nome": "idhistoricoalteracaoprojeto",
-          "descricao": "Identificador do historico de alterações do projeto."
-        },
-        {
-          "nome": "cdarea",
-          "descricao": "Áreas de seguimento do projeto: 1 Artes Cênicas 2 Audiovisual 3 Música 4 Artes Visuais 5 Patrimônio Cultural 6 Humanidades 7 Artes Integradas"
-        },
-        {
-          "nome": "cdsegmento",
-          "descricao": "Código do seguimento do projeto: 11 Teatro 12 Dança 13 Circo 14 Ópera 15 Mímica 16 Ópera Rock 22 Videofonográfica 24 Rádio/Tvs Educativa 25 Multimídia, etc."
-        },
-        {
-          "nome": "nmprojeto",
-          "descricao": "Armazena o nome do projeto."
-        },
-        {
-          "nome": "cdsituacao",
-          "descricao": "Código da situação do projeto, registrado na tabela Situação."
-        },
-        {
-          "nome": "cdorgao",
-          "descricao": "Unidade por onde o projeto é tramitado."
-        },
-        {
-          "nome": "dtinicioexecucao",
-          "descricao": "Data de inicio de execução de projeto."
-        },
-        {
-          "nome": "dtfimexecucao",
-          "descricao": "Data fim da execução do projeto."
-        },
-        {
-          "nome": "idlogon",
-          "descricao": "Usuário logado responsável pela alteração do registro."
-        },
-        {
-          "nome": "iddocumento",
-          "descricao": "Identifica o documento anexado para alteração do registro."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "Identificador do projeto."
-        },
-        {
-          "nome": "idenquadramento",
-          "descricao": "Identificador do enquadramento utilizado para o projeto."
-        },
-        {
-          "nome": "dthistoricoalteracaoprojeto",
-          "descricao": "Armazena a data que foi realizada a alteração no projeto"
-        },
-        {
-          "nome": "dshistoricoalteracaoprojeto",
-          "descricao": "Descreve o motivo de alteração do projeto."
-        },
-        {
-          "nome": "cgccpf",
-          "descricao": "numero do cgc ou cpf alterado"
-        },
-        {
-          "nome": "dsprovidenciatomada",
-          "descricao": "Descrição da Providência tomada para alteração do registro"
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 17,
-      "testes": 8,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbhistoricoalteracaoprojeto"
-      ],
-      "linhas_sql": 26
-    },
-    {
       "nome": "sac__tbhistoricodevolucaofiscalizacao",
       "dominio": "salic",
       "camada": "bronze",
@@ -26554,52 +27828,6 @@
         "bronze_sac.sac__tbinadimplente"
       ],
       "linhas_sql": 27
-    },
-    {
-      "nome": "sac__tblaudofinal",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tblaudofinal.sql",
-      "descricao": "Tabela responsável por armazenar laudos finais do projeto, contendo manifestação, data, descrição e usuário responsável. Camada bronze tipada a partir de salic_bronze.sac__tblaudofinal.",
-      "colunas": [
-        {
-          "nome": "idlaudofinal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtlaudofinal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "simanifestacao",
-          "descricao": "Manisfetação: A - Aprovado; P - Aprovado com ressalvas; R - Reprovado"
-        },
-        {
-          "nome": "dslaudofinal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idusuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 7,
-      "testes": 9,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tblaudofinal"
-      ],
-      "linhas_sql": 16
     },
     {
       "nome": "sac__tblogintentativasacesso",
@@ -27136,72 +28364,6 @@
       "linhas_sql": 22
     },
     {
-      "nome": "sac__tbpagarpareceristareadequacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbpagarpareceristareadequacao.sql",
-      "descricao": "Tabela responsável por registrar pagamentos a pareceristas referentes a análises de readequação. Camada bronze tipada a partir de salic_bronze.sac__tbpagarpareceristareadequacao.",
-      "colunas": [
-        {
-          "nome": "idpagarreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idparecerista",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dthomologacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idunidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idgerarpagamentoparecerista",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlpagamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idusuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtdistribuicao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpareceristaempenho",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrempenho",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 11,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbpagarpareceristareadequacao"
-      ],
-      "linhas_sql": 21
-    },
-    {
       "nome": "sac__tbpagarpareceristarecurso",
       "dominio": "salic",
       "camada": "bronze",
@@ -27492,98 +28654,6 @@
       "linhas_sql": 18
     },
     {
-      "nome": "sac__tbpareceristaprorrogarprazo",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbpareceristaprorrogarprazo.sql",
-      "descricao": "Tabela responsável por registrar prorrogações de prazo solicitadas por pareceristas durante análises. Camada bronze tipada a partir de salic_bronze.sac__tbpareceristaprorrogarprazo.",
-      "colunas": [
-        {
-          "nome": "idpareceristaprorrogarprazo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iddistribuir",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpanalise",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtsolicitacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtconcessao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsjustificativa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stestado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 8,
-      "testes": 8,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbpareceristaprorrogarprazo"
-      ],
-      "linhas_sql": 17
-    },
-    {
-      "nome": "sac__tbpareceristaprorrogarprazoxdistribuicao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbpareceristaprorrogarprazoxdistribuicao.sql",
-      "descricao": "Tabela responsável por vincular prorrogações de prazo às distribuições de análises. Camada bronze tipada a partir de salic_bronze.sac__tbpareceristaprorrogarprazoxdistribuicao.",
-      "colunas": [
-        {
-          "nome": "idpareceristaprorrogarprazoxdistribuicao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpareceristaprorrogarprazo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iddistribuirparecer",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iddsitribuirreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iddistribuirrecurso",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 6,
-      "testes": 8,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbpareceristaprorrogarprazoxdistribuicao"
-      ],
-      "linhas_sql": 17
-    },
-    {
       "nome": "sac__tbpareceristavaloranalisado",
       "dominio": "salic",
       "camada": "bronze",
@@ -27622,48 +28692,6 @@
       "depende_de": [],
       "sources": [
         "bronze_sac.sac__tbpareceristavaloranalisado"
-      ],
-      "linhas_sql": 15
-    },
-    {
-      "nome": "sac__tbpreprojetometa",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbpreprojetometa.sql",
-      "descricao": "Tabela responsável por registrar metas adicionais, atributos e histórico de alterações vinculados ao pré-projeto. Camada bronze tipada a partir de salic_bronze.sac__tbpreprojetometa.",
-      "colunas": [
-        {
-          "nome": "idpreprojetometa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpreprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "metakey",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "metavalue",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtalteracao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 6,
-      "testes": 7,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbpreprojetometa"
       ],
       "linhas_sql": 15
     },
@@ -28536,250 +29564,6 @@
         "bronze_sac.sac__tbprogramarouanetxproposta"
       ],
       "linhas_sql": 13
-    },
-    {
-      "nome": "sac__tbprojetoreadequacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbprojetoreadequacao.sql",
-      "descricao": "Tabela responsável por armazenar as informações textuais do projeto em contexto de readequação (resumo, objetivos, justificativas, etapas etc.). Camada bronze tipada a partir de salic_bronze.sac__tbprojetoreadequacao.",
-      "colunas": [
-        {
-          "nome": "idprojetoreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idagente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nmprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsresumodoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsobjetivos",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsjustificativa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsacessibilidade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsdemocratizacaodeacesso",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsetapadetrabalho",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsfichatecnica",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dssinopse",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsimpactoambiental",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsespecificacaotecnica",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsestrategiadeexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsdescricaoatividade",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 18,
-      "testes": 19,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbprojetoreadequacao"
-      ],
-      "linhas_sql": 27
-    },
-    {
-      "nome": "sac__tbreadequacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbreadequacao.sql",
-      "descricao": "Tabela responsável por registrar solicitações de readequação de projetos, com justificativa, avaliação, reunião e situação. Camada bronze tipada a partir de salic_bronze.sac__tbreadequacao.",
-      "colunas": [
-        {
-          "nome": "idreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idtiporeadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtsolicitacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idsolicitante",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsjustificativa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dssolicitacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iddocumento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idavaliador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtavaliador",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsavaliacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "statendimento",
-          "descricao": "Status de atendimento referente a solicitação do recurso: D : Deferido I : Indeferido N : Não avaliado; A : Em análise; E : Descartado"
-        },
-        {
-          "nome": "siencaminhamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stanalise",
-          "descricao": "AC : Aprovado pelo Componente; IC : Indeferido pelo Componente; AS : Aprovado pelo Plenário da CNIC; IS : Indeferido pelo Plenário da CNIC"
-        },
-        {
-          "nome": "idnrreuniao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stestado",
-          "descricao": "0.Atual;1.Histórico"
-        },
-        {
-          "nome": "dtenvio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 18,
-      "testes": 10,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbreadequacao"
-      ],
-      "linhas_sql": 27
-    },
-    {
-      "nome": "sac__tbreadequacaoxparecer",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbreadequacaoxparecer.sql",
-      "descricao": "Tabela responsável por relacionar readequações aos pareceres emitidos. Camada bronze tipada a partir de salic_bronze.sac__tbreadequacaoxparecer.",
-      "colunas": [
-        {
-          "nome": "idreadequacaoxparecer",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idparecer",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 4,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbreadequacaoxparecer"
-      ],
-      "linhas_sql": 13
-    },
-    {
-      "nome": "sac__tbreadequacaoxtbdiligencia",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__tbreadequacaoxtbdiligencia.sql",
-      "descricao": "Tabela responsável por relacionar readequações às diligências associadas. Camada bronze tipada a partir de salic_bronze.sac__tbreadequacaoxtbdiligencia.",
-      "colunas": [
-        {
-          "nome": "idreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "iddiligencia",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 3,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__tbreadequacaoxtbdiligencia"
-      ],
-      "linhas_sql": 12
     },
     {
       "nome": "sac__tbrecurso",
@@ -31192,44 +31976,6 @@
       "linhas_sql": 14
     },
     {
-      "nome": "sac__vportariaprorrogacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vportariaprorrogacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vportariaprorrogacao.",
-      "colunas": [
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tipoaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 4,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vportariaprorrogacao"
-      ],
-      "linhas_sql": 14
-    },
-    {
       "nome": "sac__vportariareducao",
       "dominio": "salic",
       "camada": "bronze",
@@ -31266,72 +32012,6 @@
         "bronze_sac.sac__vportariareducao"
       ],
       "linhas_sql": 14
-    },
-    {
-      "nome": "sac__vprestacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vprestacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vprestacao.",
-      "colunas": [
-        {
-          "nome": "area",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "segmento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtiniciorealizacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfinalrealizacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "valorexecutado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "aplicacaofinanceira",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "outrasfontes",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "saldorecolhido",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 12,
-      "testes": 9,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vprestacao"
-      ],
-      "linhas_sql": 21
     },
     {
       "nome": "sac__vprojetoavaliado",
@@ -31472,76 +32152,6 @@
       "depende_de": [],
       "sources": [
         "bronze_sac.sac__vprojetosemanalise"
-      ],
-      "linhas_sql": 22
-    },
-    {
-      "nome": "sac__vprojetosemexecucao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vprojetosemexecucao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vprojetosemexecucao.",
-      "colunas": [
-        {
-          "nome": "regiao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "uf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "area",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "segmento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "aprovado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "captado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "saldoacaptar",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "codigoarea",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "municipio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "enquadramento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 13,
-      "testes": 13,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vprojetosemexecucao"
       ],
       "linhas_sql": 22
     },
@@ -31976,64 +32586,6 @@
         "bronze_sac.sac__vpropufareaseg"
       ],
       "linhas_sql": 14
-    },
-    {
-      "nome": "sac__vprorrogacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vprorrogacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vprorrogacao.",
-      "colunas": [
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtiniciocaptacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfimcaptacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "portariaaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtportariaaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtpublicacaoaprovacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "saldoacaptar",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 10,
-      "testes": 4,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vprorrogacao"
-      ],
-      "linhas_sql": 19
     },
     {
       "nome": "sac__vqtdeprojaproanouf",
@@ -33230,40 +33782,6 @@
       "linhas_sql": 27
     },
     {
-      "nome": "sac__vversepodeprorrogar",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vversepodeprorrogar.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vversepodeprorrogar.",
-      "colunas": [
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "temposemcaptar",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 4,
-      "testes": 3,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vversepodeprorrogar"
-      ],
-      "linhas_sql": 13
-    },
-    {
       "nome": "sac__vw_dba_captacao_2007_2017",
       "dominio": "salic",
       "camada": "bronze",
@@ -33292,132 +33810,6 @@
         "bronze_sac.sac__vw_dba_captacao_2007_2017"
       ],
       "linhas_sql": 12
-    },
-    {
-      "nome": "sac__vwalteraranalistaproposta",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwalteraranalistaproposta.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwalteraranalistaproposta.",
-      "colunas": [
-        {
-          "nome": "idproposta",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "orgao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idtecnico",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tecnico",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 6,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwalteraranalistaproposta"
-      ],
-      "linhas_sql": 15
-    },
-    {
-      "nome": "sac__vwalterarorgao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwalterarorgao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwalterarorgao.",
-      "colunas": [
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "orgao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "logon",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 5,
-      "testes": 5,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwalterarorgao"
-      ],
-      "linhas_sql": 14
-    },
-    {
-      "nome": "sac__vwalterarsituacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwalterarsituacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwalterarsituacao.",
-      "colunas": [
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtsituacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "situacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "providenciatomada",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "logon",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 7,
-      "testes": 6,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwalterarsituacao"
-      ],
-      "linhas_sql": 16
     },
     {
       "nome": "sac__vwanalisedeconteudo",
@@ -38546,84 +38938,6 @@
       "linhas_sql": 38
     },
     {
-      "nome": "sac__vwpareceresdereadequacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwpareceresdereadequacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwpareceresdereadequacao.",
-      "colunas": [
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idtiporeadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsreadequacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtenviominc",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsjustificativa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "siencaminhamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsencaminhamento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtparecer",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpmanifestacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsmanifestacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsparecer",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 15,
-      "testes": 15,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwpareceresdereadequacao"
-      ],
-      "linhas_sql": 24
-    },
-    {
       "nome": "sac__vwpareceristascredenciados",
       "dominio": "salic",
       "camada": "bronze",
@@ -38772,96 +39086,6 @@
         "bronze_sac.sac__vwpautados_cnic_mais_trinta_dias"
       ],
       "linhas_sql": 18
-    },
-    {
-      "nome": "sac__vwpedidodeprorrogacao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwpedidodeprorrogacao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwpedidodeprorrogacao.",
-      "colunas": [
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "anoprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "sequencial",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "codsituacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "situacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtinicioexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfimexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "mecanismo",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idprorrogacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtpedido",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtinicio",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfinal",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "justificativa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idusuario",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "atendimento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 18,
-      "testes": 16,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwpedidodeprorrogacao"
-      ],
-      "linhas_sql": 27
     },
     {
       "nome": "sac__vwportariasgeradas",
@@ -40828,108 +41052,6 @@
       "linhas_sql": 13
     },
     {
-      "nome": "sac__vwprojetosadequadosrealidadeexecucao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwprojetosadequadosrealidadeexecucao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwprojetosadequadosrealidadeexecucao.",
-      "colunas": [
-        {
-          "nome": "idpronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "cnpjcpf",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "proponente",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "ufprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "area",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "segmento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtinicioexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtfimexecucao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "orgao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtsituacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtdias",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "idtecnico",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tecnico",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "enquadramento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlsolicitado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vloutrasfontes",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlaprovado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 21,
-      "testes": 20,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwprojetosadequadosrealidadeexecucao"
-      ],
-      "linhas_sql": 31
-    },
-    {
       "nome": "sac__vwprojetosapreciadosaguardandohomologacao",
       "dominio": "salic",
       "camada": "bronze",
@@ -41274,116 +41396,6 @@
         "bronze_sac.sac__vwprojetosemanalisecomparecerista"
       ],
       "linhas_sql": 35
-    },
-    {
-      "nome": "sac__vwprojetosliberadosparaadequacaorealidadeexecucao",
-      "dominio": "salic",
-      "camada": "bronze",
-      "meta": null,
-      "caminho": "dbt/minc/models/salic_dbt/bronze/sac/sac__vwprojetosliberadosparaadequacaorealidadeexecucao.sql",
-      "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados. Camada bronze tipada a partir de salic_bronze.sac__vwprojetosliberadosparaadequacaorealidadeexecucao.",
-      "colunas": [
-        {
-          "nome": "pronac",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nomeprojeto",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtsituacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "area",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dsarea",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "segmento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dssegmento",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "qtdias",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "nrportaria",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "dtpublicacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "agencia",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "contabloqueada",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stproposta",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "excecao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "stdatafixa",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "datamarcada",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "tpprorrogacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "solicitacaoprorrogacao",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlsolicitado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlaprovado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "vlcaptado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "perccaptado",
-          "descricao": "[NÃO VERIFICADO] Coluna ausente do dicionário de dados original."
-        },
-        {
-          "nome": "_fatia",
-          "descricao": "Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não é campo de negócio."
-        }
-      ],
-      "colunas_descritas": 23,
-      "testes": 24,
-      "materializacao": "",
-      "depende_de": [],
-      "sources": [
-        "bronze_sac.sac__vwprojetosliberadosparaadequacaorealidadeexecucao"
-      ],
-      "linhas_sql": 33
     },
     {
       "nome": "brg_projeto_proponente_rouanet",
@@ -43877,10 +43889,10 @@
     },
     "salic": {
       "modelos": 597,
-      "testes": 3423,
+      "testes": 3150,
       "camadas": {
-        "silver": 230,
-        "bronze": 357,
+        "silver": 262,
+        "bronze": 325,
         "outros": 10
       }
     },
@@ -44763,6 +44775,134 @@
           "descricao": "Uma linha por entrega de produto cultural a um beneficiário de projeto, com quantidade, local e ano de publicação. Réplica em texto da origem; tipada e documentada em silver_sac_vwprojetobeneficiarioprodutocultural."
         },
         {
+          "nome": "bronze_sac_editalrelatorio",
+          "descricao": "Tabela responsável por armazenar relatórios exigidos pelos editais, com datas, aprovação e comprovações."
+        },
+        {
+          "nome": "bronze_sac_efeitosresultado",
+          "descricao": "Tabela responsável por armazenar códigos, opções e descrições de efeitos de resultado dos projetos."
+        },
+        {
+          "nome": "bronze_sac_tbcomplianceitemcomprovado",
+          "descricao": "Tabela responsável por registrar itens auditados, valores comprovados e diferenças."
+        },
+        {
+          "nome": "bronze_sac_tbcomprovacaopassivo",
+          "descricao": "Tabela responsável por registrar comprovantes de passivos financeiros ou orçamentários."
+        },
+        {
+          "nome": "bronze_sac_tbcomprovantetrimestral",
+          "descricao": "Tabela responsável por registrar comprovantes trimestrais de execução física e financeira."
+        },
+        {
+          "nome": "bronze_sac_tbcumprimentoobjeto",
+          "descricao": "Tabela responsável por registrar o cumprimento do objeto pelos projetos, incluindo etapas concluídas, acessibilidade, fruição, geração de empregos e conclusão técnica.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "bronze_sac_tbcumprimentoobjetoxarquivo",
+          "descricao": "Tabela responsável por vincular arquivos/documentos às informações de cumprimento de objeto."
+        },
+        {
+          "nome": "bronze_sac_tbdetalhaplanodistribuicaoreadequacao",
+          "descricao": "Tabela responsável por armazenar detalhamentos do plano de distribuição após readequações, vinculando UF, município, produtos e receitas."
+        },
+        {
+          "nome": "bronze_sac_tbdistribuirreadequacao",
+          "descricao": "Tabela responsável por distribuir readequações para avaliadores e coordenadores, com datas, status e orientações."
+        },
+        {
+          "nome": "bronze_sac_tbhistoricoalteracaodocumento",
+          "descricao": "Tabela responsável por registrar o histórico de alterações realizadas em documentos vinculados a projetos."
+        },
+        {
+          "nome": "bronze_sac_tbhistoricoalteracaoprojeto",
+          "descricao": "Tabela responsável por registrar o histórico de alterações de dados dos projetos (área, segmento, situação, órgão, execução, enquadramento e providências).\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "bronze_sac_tblaudofinal",
+          "descricao": "Tabela responsável por armazenar laudos finais do projeto, contendo manifestação, data, descrição e usuário responsável."
+        },
+        {
+          "nome": "bronze_sac_tbpagarpareceristareadequacao",
+          "descricao": "Tabela responsável por registrar pagamentos a pareceristas referentes a análises de readequação."
+        },
+        {
+          "nome": "bronze_sac_tbpareceristaprorrogarprazo",
+          "descricao": "Tabela responsável por registrar prorrogações de prazo solicitadas por pareceristas durante análises."
+        },
+        {
+          "nome": "bronze_sac_tbpareceristaprorrogarprazoxdistribuicao",
+          "descricao": "Tabela responsável por vincular prorrogações de prazo às distribuições de análises."
+        },
+        {
+          "nome": "bronze_sac_tbpreprojetometa",
+          "descricao": "Tabela responsável por registrar metas adicionais, atributos e histórico de alterações vinculados ao pré-projeto.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
+        },
+        {
+          "nome": "bronze_sac_tbprojetoreadequacao",
+          "descricao": "Tabela responsável por armazenar as informações textuais do projeto em contexto de readequação (resumo, objetivos, justificativas, etapas etc.)."
+        },
+        {
+          "nome": "bronze_sac_tbreadequacao",
+          "descricao": "Tabela responsável por registrar solicitações de readequação de projetos, com justificativa, avaliação, reunião e situação."
+        },
+        {
+          "nome": "bronze_sac_tbreadequacaoxparecer",
+          "descricao": "Tabela responsável por relacionar readequações aos pareceres emitidos."
+        },
+        {
+          "nome": "bronze_sac_tbreadequacaoxtbdiligencia",
+          "descricao": "Tabela responsável por relacionar readequações às diligências associadas."
+        },
+        {
+          "nome": "bronze_sac_vportariaprorrogacao",
+          "descricao": "Uma linha por portaria de prorrogação (aprovação do tipo 3) de projeto. Réplica em texto da origem; tipada e documentada em silver_sac_vportariaprorrogacao."
+        },
+        {
+          "nome": "bronze_sac_vprestacao",
+          "descricao": "Uma linha por projeto com a prestação de contas: valor executado, aplicação financeira, outras fontes e saldo recolhido. Réplica em texto da origem; tipada e documentada em silver_sac_vprestacao."
+        },
+        {
+          "nome": "bronze_sac_vprojetosemexecucao",
+          "descricao": "Uma linha por projeto em execução, com aprovado, captado e saldo a captar. Réplica em texto da origem; tipada e documentada em silver_sac_vprojetosemexecucao."
+        },
+        {
+          "nome": "bronze_sac_vprorrogacao",
+          "descricao": "Uma linha por prorrogação do prazo de captação de um projeto, com portaria e saldo a captar. Réplica em texto da origem; tipada e documentada em silver_sac_vprorrogacao."
+        },
+        {
+          "nome": "bronze_sac_vversepodeprorrogar",
+          "descricao": "Uma linha por projeto com o tempo sem captar, usado para decidir se o prazo pode ser prorrogado. Réplica em texto da origem; tipada e documentada em silver_sac_vversepodeprorrogar."
+        },
+        {
+          "nome": "bronze_sac_vwalteraranalistaproposta",
+          "descricao": "Uma linha por proposta com o técnico responsável, da tela de troca de analista. Réplica em texto da origem; tipada e documentada em silver_sac_vwalteraranalistaproposta."
+        },
+        {
+          "nome": "bronze_sac_vwalterarorgao",
+          "descricao": "Uma linha por projeto com o órgão responsável, da tela de troca de órgão. Réplica em texto da origem; tipada e documentada em silver_sac_vwalterarorgao."
+        },
+        {
+          "nome": "bronze_sac_vwalterarsituacao",
+          "descricao": "Uma linha por projeto com a situação e a providência, da tela de troca de situação. Réplica em texto da origem; tipada e documentada em silver_sac_vwalterarsituacao."
+        },
+        {
+          "nome": "bronze_sac_vwpareceresdereadequacao",
+          "descricao": "Uma linha por parecer sobre pedido de readequação já finalizado pelo MinC: tipo da readequação por extenso, justificativa e manifestação. Réplica em texto da origem; tipada e documentada em silver_sac_vwpareceresdereadequacao."
+        },
+        {
+          "nome": "bronze_sac_vwpedidodeprorrogacao",
+          "descricao": "Uma linha por pedido de prorrogação de prazo de execução de um projeto, com o atendimento. Réplica em texto da origem; tipada e documentada em silver_sac_vwpedidodeprorrogacao."
+        },
+        {
+          "nome": "bronze_sac_vwprojetosadequadosrealidadeexecucao",
+          "descricao": "Uma linha por projeto que já teve a proposta adequada à realidade de execução, com valores e técnico. Réplica em texto da origem; tipada e documentada em silver_sac_vwprojetosadequadosrealidadeexecucao."
+        },
+        {
+          "nome": "bronze_sac_vwprojetosliberadosparaadequacaorealidadeexecucao",
+          "descricao": "Uma linha por projeto liberado para adequar a proposta à realidade de execução, com portaria, conta e valores. Réplica em texto da origem; tipada e documentada em silver_sac_vwprojetosliberadosparaadequacaorealidadeexecucao."
+        },
+        {
           "nome": "bronze_tabelas_autorizados",
           "descricao": "Tabela responsável por registrar permissões, operações e códigos autorizados no sistema."
         },
@@ -45290,14 +45430,6 @@
           "descricao": "Tabela responsável por armazenar a distribuição das parcelas previstas no edital, incluindo valores, faixas e exigência de PC."
         },
         {
-          "nome": "sac__editalrelatorio",
-          "descricao": "Tabela responsável por armazenar relatórios exigidos pelos editais, com datas, aprovação e comprovações."
-        },
-        {
-          "nome": "sac__efeitosresultado",
-          "descricao": "Tabela responsável por armazenar códigos, opções e descrições de efeitos de resultado dos projetos."
-        },
-        {
           "nome": "sac__estados",
           "descricao": "Tabela utilizada para armazenar estados ou fases do fluxo operacional do sistema, com indicação de próximo passo."
         },
@@ -45402,18 +45534,6 @@
           "descricao": "Tabela responsável por armazenar informações sobre kits entregues aos projetos, incluindo datas, documentos e valores."
         },
         {
-          "nome": "sac__tbcomplianceitemcomprovado",
-          "descricao": "Tabela responsável por registrar itens auditados, valores comprovados e diferenças."
-        },
-        {
-          "nome": "sac__tbcomprovacaopassivo",
-          "descricao": "Tabela responsável por registrar comprovantes de passivos financeiros ou orçamentários."
-        },
-        {
-          "nome": "sac__tbcomprovantetrimestral",
-          "descricao": "Tabela responsável por registrar comprovantes trimestrais de execução física e financeira."
-        },
-        {
           "nome": "sac__tbcomunicados",
           "descricao": "Tabela responsável por armazenar comunicados e avisos publicados no sistema."
         },
@@ -45426,14 +45546,6 @@
           "descricao": "Tabela responsável por armazenar os registros de credenciamento de pareceristas no ano de 2020, incluindo unidade, área, segmento e status de atividade.\n\nObservações do levantamento automatizado: [heurística] nome contém um padrão de data — possível cópia/snapshot datado."
         },
         {
-          "nome": "sac__tbcumprimentoobjeto",
-          "descricao": "Tabela responsável por registrar o cumprimento do objeto pelos projetos, incluindo etapas concluídas, acessibilidade, fruição, geração de empregos e conclusão técnica.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
-        },
-        {
-          "nome": "sac__tbcumprimentoobjetoxarquivo",
-          "descricao": "Tabela responsável por vincular arquivos/documentos às informações de cumprimento de objeto."
-        },
-        {
           "nome": "sac__tbdeclaracaobeneficiosfiscais",
           "descricao": "Tabela responsável por armazenar declarações de benefícios fiscais, com dados de proponente, doador, contribuições e base legal."
         },
@@ -45444,10 +45556,6 @@
         {
           "nome": "sac__tbdespacho",
           "descricao": "Tabela responsável por armazenar despachos emitidos no processo, incluindo tipo, data, estado e encaminhamentos."
-        },
-        {
-          "nome": "sac__tbdetalhaplanodistribuicaoreadequacao",
-          "descricao": "Tabela responsável por armazenar detalhamentos do plano de distribuição após readequações, vinculando UF, município, produtos e receitas."
         },
         {
           "nome": "sac__tbdiligencia",
@@ -45464,10 +45572,6 @@
         {
           "nome": "sac__tbdistribuirparecer",
           "descricao": "Tabela responsável por distribuir projetos/produtos para pareceristas, com datas, órgãos, análises e status.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
-        },
-        {
-          "nome": "sac__tbdistribuirreadequacao",
-          "descricao": "Tabela responsável por distribuir readequações para avaliadores e coordenadores, com datas, status e orientações."
         },
         {
           "nome": "sac__tbdocumento20100107_1x",
@@ -45488,14 +45592,6 @@
         {
           "nome": "sac__tbfundopatrimonialusuario",
           "descricao": "[Não documentado no dicionário de dados original do SALIC — tabela presente apenas no bronze, sem descrição confirmada.]"
-        },
-        {
-          "nome": "sac__tbhistoricoalteracaodocumento",
-          "descricao": "Tabela responsável por registrar o histórico de alterações realizadas em documentos vinculados a projetos."
-        },
-        {
-          "nome": "sac__tbhistoricoalteracaoprojeto",
-          "descricao": "Tabela responsável por registrar o histórico de alterações de dados dos projetos (área, segmento, situação, órgão, execução, enquadramento e providências).\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
         },
         {
           "nome": "sac__tbhistoricodevolucaofiscalizacao",
@@ -45520,10 +45616,6 @@
         {
           "nome": "sac__tbinadimplente",
           "descricao": "Tabela responsável por registrar situações de inadimplência e adimplência de proponentes e projetos, com datas, documentos e posicionamento."
-        },
-        {
-          "nome": "sac__tblaudofinal",
-          "descricao": "Tabela responsável por armazenar laudos finais do projeto, contendo manifestação, data, descrição e usuário responsável."
         },
         {
           "nome": "sac__tblogintentativasacesso",
@@ -45570,10 +45662,6 @@
           "descricao": "Tabela responsável por armazenar pagamentos realizados a pareceristas, com valores, datas, unidade e empenho."
         },
         {
-          "nome": "sac__tbpagarpareceristareadequacao",
-          "descricao": "Tabela responsável por registrar pagamentos a pareceristas referentes a análises de readequação."
-        },
-        {
           "nome": "sac__tbpagarpareceristarecurso",
           "descricao": "Tabela responsável por registrar pagamentos a pareceristas referentes a análises de recursos."
         },
@@ -45594,20 +45682,8 @@
           "descricao": "Tabela responsável por registrar redistribuições de projetos entre pareceristas."
         },
         {
-          "nome": "sac__tbpareceristaprorrogarprazo",
-          "descricao": "Tabela responsável por registrar prorrogações de prazo solicitadas por pareceristas durante análises."
-        },
-        {
-          "nome": "sac__tbpareceristaprorrogarprazoxdistribuicao",
-          "descricao": "Tabela responsável por vincular prorrogações de prazo às distribuições de análises."
-        },
-        {
           "nome": "sac__tbpareceristavaloranalisado",
           "descricao": "Tabela responsável por registrar valores analisados pelos pareceristas durante a etapa de avaliação."
-        },
-        {
-          "nome": "sac__tbpreprojetometa",
-          "descricao": "Tabela responsável por registrar metas adicionais, atributos e histórico de alterações vinculados ao pré-projeto.\n\nObservações do levantamento automatizado: [observado] tabela sem nenhuma linha no bronze hoje (0 registros)."
         },
         {
           "nome": "sac__tbpreprojetoxenquadramento",
@@ -45676,22 +45752,6 @@
         {
           "nome": "sac__tbprogramarouanetxproposta",
           "descricao": "Tabela responsável por relacionar propostas de pré-projeto aos programas Rouanet em que estão inscritas."
-        },
-        {
-          "nome": "sac__tbprojetoreadequacao",
-          "descricao": "Tabela responsável por armazenar as informações textuais do projeto em contexto de readequação (resumo, objetivos, justificativas, etapas etc.)."
-        },
-        {
-          "nome": "sac__tbreadequacao",
-          "descricao": "Tabela responsável por registrar solicitações de readequação de projetos, com justificativa, avaliação, reunião e situação."
-        },
-        {
-          "nome": "sac__tbreadequacaoxparecer",
-          "descricao": "Tabela responsável por relacionar readequações aos pareceres emitidos."
-        },
-        {
-          "nome": "sac__tbreadequacaoxtbdiligencia",
-          "descricao": "Tabela responsável por relacionar readequações às diligências associadas."
         },
         {
           "nome": "sac__tbrecurso",
@@ -45970,15 +46030,7 @@
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
-          "nome": "sac__vportariaprorrogacao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
           "nome": "sac__vportariareducao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vprestacao",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
@@ -45991,10 +46043,6 @@
         },
         {
           "nome": "sac__vprojetosemanalise",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vprojetosemexecucao",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
@@ -46035,10 +46083,6 @@
         },
         {
           "nome": "sac__vpropufareaseg",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vprorrogacao",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
@@ -46126,23 +46170,7 @@
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
-          "nome": "sac__vversepodeprorrogar",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
           "nome": "sac__vw_dba_captacao_2007_2017",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vwalteraranalistaproposta",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vwalterarorgao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vwalterarsituacao",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
@@ -46370,10 +46398,6 @@
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
-          "nome": "sac__vwpareceresdereadequacao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
           "nome": "sac__vwpareceristascredenciados",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
@@ -46383,10 +46407,6 @@
         },
         {
           "nome": "sac__vwpautados_cnic_mais_trinta_dias",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vwpedidodeprorrogacao",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
@@ -46478,10 +46498,6 @@
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
-          "nome": "sac__vwprojetosadequadosrealidadeexecucao",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
           "nome": "sac__vwprojetosapreciadosaguardandohomologacao",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
@@ -46491,10 +46507,6 @@
         },
         {
           "nome": "sac__vwprojetosemanalisecomparecerista",
-          "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
-        },
-        {
-          "nome": "sac__vwprojetosliberadosparaadequacaorealidadeexecucao",
           "descricao": "[NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export SchemaSpy). Semântica e grão ainda não confirmados."
         },
         {
@@ -46920,7 +46932,7 @@
   ],
   "totais": {
     "modelos": 731,
-    "testes": 3665,
+    "testes": 3392,
     "com_descricao": 730,
     "sources": 728
   }

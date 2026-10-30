@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51 e planilha 23. Faltam 357 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32. Faltam 325 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -978,6 +978,25 @@ mudar `bronze_numerico`. Aplicada em 20 colunas deste lote e no
 `sugeridoreal` da pauta da CNIC (lote proposta, que estava como texto).
 Conferido no banco que todos os valores passam na regex. Lotes futuros:
 procurar o formato `9.9a9` no perfil.
+
+---
+
+### 2026-10-29 · Claude · F17 — `sac`, lote prestação de contas e readequação
+
+**O que entrou.** 32 silvers. `tbreadequacao` (104.820 pedidos): o tipo não
+tem tabela ingerida, mas `vwpareceresdereadequacao` traz o nome de 23 dos 24
+tipos; o 1 (23.583) fica sem nome. `tbcumprimentoobjeto`: situação 2
+aguardando, 3 em análise, 5 analisado (SalicWeb). Laudo final A/P/R só tem
+leitura pela proporção. `tbcomplianceitemcomprovado`: conformidade
+automática, tipos 722, 723, 737 e 898 da verificação do sac (grupo 32).
+`tbpreprojetometa`: cópias da proposta em PHP serializado a cada diligência
+e alteração.
+
+**Gerador.** O `sqlfmt` quebra `}} as coluna` em duas linhas quando ela fica
+longa, e o gerador dos schemas não via a coluna: faltavam 5 colunas (2 na
+proposta, já na main, 1 na planilha, 2 aqui). A guarda ganhou
+`test_toda_coluna_do_select_esta_documentada`, que compara o select com o yml
+nas silvers migradas por lote.
 
 ---
 

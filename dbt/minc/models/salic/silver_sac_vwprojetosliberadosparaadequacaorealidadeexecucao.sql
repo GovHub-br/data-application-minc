@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_vwprojetosliberadosparaadequacaorealidadeexecucao (ex-sac__vwprojetosliberadosparaadequacaorealidadeexecucao).
+-- Silver SALIC — silver_sac_vwprojetosliberadosparaadequacaorealidadeexecucao
+-- (ex-sac__vwprojetosliberadosparaadequacaorealidadeexecucao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprojetosliberadosparaadequacaorealidadeexecucao, onde
 -- tudo chega como texto da

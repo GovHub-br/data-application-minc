@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbpareceristaprorrogarprazoxdistribuicao (ex-sac__tbpareceristaprorrogarprazoxdistribuicao).
+-- Silver SALIC — silver_sac_tbpareceristaprorrogarprazoxdistribuicao
+-- (ex-sac__tbpareceristaprorrogarprazoxdistribuicao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbpareceristaprorrogarprazoxdistribuicao, onde tudo chega
 -- como texto da
