@@ -31,11 +31,11 @@ models:
     columns:
       - name: database_name
         description: >
-          Banco auditado: sac em todas.
+          Banco auditado: sac em todas, salvo uma linha vazia.
         data_type: text
       - name: schema_name
         description: >
-          Schema auditado: dbo em todas.
+          Schema auditado: dbo em todas, salvo uma linha vazia.
         data_type: text
       - name: class_type
         description: >
@@ -988,10 +988,12 @@ models:
 
   - name: silver_sac_tbdocumentoassinatura
     description: >
-      Uma linha por documento gerado para assinatura eletrônica num projeto: o
-      parecer de aprovação preliminar. São 234.050 documentos de 71.818
-      projetos, de 2017 a 2026. O conteúdo é o documento inteiro em HTML, com
-      nomes e assinaturas.
+      Uma linha por documento gerado para assinatura eletrônica num projeto:
+      parecer, homologação, readequação e outros atos. São 234.050 documentos
+      de 71.818 projetos, de 2017 a 2026, de 38 tipos; os mais comuns são o
+      parecer de aprovação preliminar (70.345) e a análise técnica para
+      homologação (38.574). O conteúdo é o documento inteiro em HTML, com nomes
+      e assinaturas.
     config:
       tags: [silver, salic, sac]
       meta:
@@ -1022,8 +1024,12 @@ models:
         data_type: integer
       - name: idtipodoatoadministrativo
         description: >
-          Tipo do ato: 626, parecer de aprovação preliminar, da verificação do
-          sac, em todas.
+          Tipo do ato, da verificação do sac (grupo 24, quase todos): 626
+          parecer de aprovação preliminar, 630 análise técnica para
+          homologação, 643 homologação para execução, 631 apreciação para
+          homologação, 668 readequação do período de execução, 656 readequação
+          da planilha, 622 parecer de avaliação financeira, 621 parecer de
+          avaliação do objeto, entre 38 tipos.
         data_type: integer
       - name: conteudo
         description: >
@@ -1149,7 +1155,7 @@ models:
         data_type: integer
       - name: stestado
         description: >
-          Se a linha está ativa: false em todas.
+          Se a tramitação é a vigente: true em 250.951, false em 2.392.589.
         data_type: boolean
       - name: dsjustificativa
         description: >
