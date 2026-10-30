@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38. Faltam 287 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30. Faltam 257 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -1026,6 +1026,35 @@ de parecerista. A justificativa de afastamento de parecerista ficou
 
 **Validação.** 38 de 38 rodaram em `dev_salic`, 40 testes passaram, nenhuma
 coluna com nome de credencial, contagens iguais nas 38.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote documentos
+
+**O que entrou.** 30 silvers: documentos exigidos e entregues, certidões,
+despachos, documentos assinados, tramitação, notificações e mensagens ao
+proponente, portarias e os históricos. `historicosituacao` é o histórico
+completo das situações: 5.254.429 mudanças de 297.427 projetos, com datas
+de 1900 a 4005 e 15.463 linhas sem data. `tbnotificacao` (606.851): os 10
+tipos vêm da verificação do sac (grupo 25), com o nome que
+`vwnotificacaoaoproponente` traz. `tbdocumentoassinatura` é o parecer de
+aprovação preliminar (626) inteiro em HTML. `auditoria` é a auditoria do SQL
+Server sobre cerca de 380 objetos, sem data nem usuário.
+
+**Casts.** Ano, sequencial ou PRONAC estavam como inteiro em 7 views e
+passaram a texto. `tbmensagem.idmulticast` vem em notação científica nas
+127 linhas preenchidas e usa `bronze_numerico_cientifico`.
+
+**Dado pessoal.** `documentopessoal` guarda número, órgão emissor e data de
+documento do proponente; `tbmensagem` o CPF do destinatário; o comando de
+`auditoria` pode trazer CPF ou CNPJ nos parâmetros. Todos `PII.Sensitive`.
+
+**Validação.** 30 de 30 em `dev_salic`, 32 testes passaram, nenhuma coluna
+com nome de credencial, contagens iguais.
+
+**#129.** Foi mergeado na branch do #128 antes da troca de base, como o
+#125; o lote parecer foi reaberto para a `main` da mesma branch. Os lotes
+seguintes não abrem PR empilhado.
 
 ---
 
