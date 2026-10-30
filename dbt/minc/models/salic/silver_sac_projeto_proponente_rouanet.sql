@@ -61,7 +61,16 @@ with
             descricao_vinculo
         from vinculo_bruto
         where pronac is not null and id_agente is not null
-        order by pronac asc, id_agente asc, documento_proponente asc nulls last
+        -- O vinculo se repete na origem; em 9.117 deles as linhas diferem so no
+        -- solicitante. O desempate vai ate a ultima coluna para o resultado
+        -- nao mudar entre execucoes.
+        order by
+            pronac asc,
+            id_agente asc,
+            documento_proponente asc nulls last,
+            nome_proponente asc nulls last,
+            id_solicitante asc nulls last,
+            descricao_vinculo asc nulls last
     ),
 
     com_chave as (
