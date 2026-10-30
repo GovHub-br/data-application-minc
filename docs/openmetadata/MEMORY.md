@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52. Faltam 205 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40. Faltam 165 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -1086,6 +1086,31 @@ relator, entidade, evento, currículo e afins.
 notação científica em três views, e todos os valores passam no cast.
 
 **Validação.** 52 de 52 em `dev_salic`, 49 testes passaram, nenhuma coluna
+com nome de credencial, contagens iguais.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote painéis
+
+**O que entrou.** 40 views das telas de trabalho do SalicWeb: filas de
+admissibilidade, análise técnica das vinculadas, readequação, documentos
+aguardando assinatura, deliberação de captação, avaliação trimestral e o
+acompanhamento da SGPTC (15.970 projetos). São retratos do momento da carga,
+e a descrição de cada uma avisa isso. As versões `_20180323` trazem os mesmos
+pedidos das atuais, conferido na tabela inteira.
+
+**Nome longo.** Duas views passam de 63 caracteres com o prefixo e ganharam
+nome curto à mão: `silver_sac_vwpainelcoordreadequacaoaguardandoanalise_20180323`
+e `silver_sac_vwpaineldocsreadequacaoaguardandoassinatura`. A source mantém o
+nome inteiro e o `identifier` cortado que o Postgres gravou; o
+`migrar_lote_salic.py` recusa esses casos e eles se fazem à mão. O script de
+validação aceita `silver:origem` na lista.
+
+**Casts.** PRONAC, sequencial e segmento passaram a texto (há PRONAC com
+zero à esquerda); o valor do produto vem em notação científica em 9 views;
+datas, dias e saldos em texto ganharam tipo, sem perda na tabela inteira.
+
+**Validação.** 40 de 40 em `dev_salic`, 2 testes passaram, nenhuma coluna
 com nome de credencial, contagens iguais.
 
 ---

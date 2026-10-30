@@ -1,0 +1,4749 @@
+version: 2
+
+# Silvers do assunto painéis do banco sac do SALIC: as views que alimentam as
+# telas de trabalho do SalicWeb (filas de admissibilidade, análise técnica,
+# vinculadas, readequação, assinatura, homologação e prestação de contas). São
+# retratos do momento da carga, não histórico. Medições de 30/10/2026 na Bronze
+# (salic.bronze_sac_*), por agregados, sem valor de linha.
+
+models:
+  - name: silver_sac_vwpaineladequacaorealidadeexecucao
+    description: >
+      Uma linha por projeto na fila de adequação à realidade de execução, com
+      valores e técnico. São 39 projetos. É uma fila de tela do SalicWeb:
+      retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineladequacaorealidadeexecucao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: ufprojeto
+        description: >
+          UF do projeto, em sigla.
+        data_type: text
+      - name: dstipologia
+        description: >
+          Tipologia da proposta por extenso.
+        data_type: text
+      - name: dsplanoexecucaoimediata
+        description: >
+          Plano de execução por extenso.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: orgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: dtsituacao
+        description: >
+          Data da situação atual.
+        data_type: timestamp
+      - name: qtdias
+        description: >
+          Dias desde a situação.
+        data_type: integer
+      - name: idtecnico
+        description: >
+          Técnico responsável, usuário interno.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: tecnico
+        description: >
+          Nome do técnico responsável.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: enquadramento
+        description: >
+          Enquadramento por extenso: Artigo 18 ou Artigo 26.
+        data_type: text
+      - name: qtdiligencias
+        description: >
+          Quantidade de diligências.
+        data_type: integer
+      - name: vlautorizado
+        description: >
+          Valor autorizado, em reais.
+        data_type: numeric
+      - name: vladequado
+        description: >
+          Valor adequado, em reais.
+        data_type: numeric
+      - name: vlpercentualcaptado
+        description: >
+          Percentual captado do aprovado.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineladmissibilidade
+    description: >
+      Uma linha por proposta na fila de admissibilidade, com proponente, plano
+      de execução, tipicidade e técnico. São 7.522 linhas de 7.518 propostas:
+      96 proposta para análise inicial (5.792) e 128 proposta em análise final
+      (1.730), da verificação do sac. É uma fila de tela do SalicWeb: retrata o
+      estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineladmissibilidade'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrcnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdtipodeexecucao
+        description: >
+          Plano de execução, da verificação do sac (grupo 23): 610, 614 ou 618.
+        data_type: integer
+      - name: dstipodeexecucao
+        description: >
+          Plano de execução por extenso, como Projeto normal (10% de captação).
+        data_type: text
+      - name: cdtipicidade
+        description: >
+          Tipicidade, da verificação do sac (grupo 28).
+        data_type: integer
+      - name: dstipicidade
+        description: >
+          Tipicidade da proposta por extenso, como Projetos Normais ou Planos
+          Anuais.
+        data_type: text
+      - name: cdtipologia
+        description: >
+          Tipologia, da verificação do sac.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Tipologia da proposta por extenso.
+        data_type: text
+      - name: cdmovimentacao
+        description: >
+          Movimentação da proposta: 96 análise inicial, 128 análise final.
+        data_type: text
+      - name: cdconformidade
+        description: >
+          Conformidade: 9 em 5.743, 1 em 1.498, 0 em 281. Sem domínio ingerido.
+        data_type: integer
+      - name: sianalise
+        description: >
+          Situação da análise, como em silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: idtecnico
+        description: >
+          Técnico responsável, usuário interno.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmtecnico
+        description: >
+          Nome do técnico responsável.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtenvioproposta
+        description: >
+          Data de envio da proposta.
+        data_type: timestamp
+      - name: qtdiasemanalise
+        description: >
+          Dias que o item está em análise.
+        data_type: integer
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelaguardandodistribuicaoanalisetecnica
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada
+      aguardando distribuição a parecerista. Tem 1 linha. É uma fila de tela do
+      SalicWeb: retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelaguardandodistribuicaoanalisetecnica'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: text
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: text
+      - name: produto
+        description: >
+          Produto cultural por extenso.
+        data_type: text
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: sianalise
+        description: >
+          Situação da análise, como em silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: text
+      - name: dtenviomincvinculada
+        description: >
+          Data de envio do MinC à unidade vinculada.
+        data_type: timestamp
+      - name: qtdiasdistribuir
+        description: >
+          Dias até distribuir ao parecerista.
+        data_type: integer
+      - name: qtdesecundarios
+        description: >
+          Quantidade de produtos secundários do projeto.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelavaliarpropostas
+    description: >
+      Uma linha por proposta a avaliar na admissibilidade, com datas e técnico.
+      São 7.286 propostas: 96 em 5.788 e 128 em 1.498. É uma fila de tela do
+      SalicWeb: retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelavaliarpropostas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - diascorridos
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nomeproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dtmovimentacao
+        description: >
+          Data da movimentação.
+        data_type: timestamp
+      - name: diasdesdemovimentacao
+        description: >
+          Dias desde a movimentação.
+        data_type: integer
+      - name: idmovimentacao
+        description: >
+          Movimentação da proposta.
+        data_type: integer
+      - name: codsituacao
+        description: >
+          Movimentação: 96 análise inicial, 128 análise final.
+        data_type: text
+      - name: dtadmissibilidade
+        description: >
+          Data da admissibilidade.
+        data_type: timestamp
+      - name: diascorridos
+        description: >
+          Dias corridos desde a admissibilidade.
+        data_type: integer
+      - name: idusuario
+        description: >
+          Usuário interno que gravou a linha.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dtavaliacao
+        description: >
+          Data da avaliação da proposta.
+        data_type: timestamp
+      - name: idavaliacaoproposta
+        description: >
+          Avaliação da proposta.
+        data_type: integer
+      - name: tecnico
+        description: >
+          Nome do técnico responsável.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadoravaliacaotrimestral
+    description: >
+      Uma linha por relatório trimestral na fila do coordenador. São 10.686
+      relatórios: situação 2 em 10.587, 5 em 99. É uma fila de tela do
+      SalicWeb: retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadoravaliacaotrimestral'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: ufprojeto
+        description: >
+          UF do projeto, em sigla.
+        data_type: text
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: orgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: dtcomprovante
+        description: >
+          Data do relatório trimestral.
+        data_type: timestamp
+      - name: dtinicioperiodo
+        description: >
+          Início do trimestre relatado.
+        data_type: timestamp
+      - name: dtfimperiodo
+        description: >
+          Fim do trimestre relatado.
+        data_type: timestamp
+      - name: sicomprovantetrimestral
+        description: >
+          Situação do relatório trimestral, como em
+          silver_sac_tbcomprovantetrimestral.
+        data_type: text
+      - name: nrcomprovantetrimestral
+        description: >
+          Número do relatório no projeto.
+        data_type: integer
+      - name: diligencia
+        description: >
+          Se o relatório está em diligência: 0 ou 2.
+        data_type: text
+      - name: idtecnicoavaliador
+        description: >
+          Técnico que avaliou o relatório.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dsparecertecnico
+        description: >
+          Parecer técnico, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadorreadequacaoaguardandoanalise
+    description: >
+      Uma linha por pedido de readequação aguardando análise na fila do
+      coordenador. São 28 pedidos. É uma fila de tela do SalicWeb: retrata o
+      estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorreadequacaoaguardandoanalise'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtsolicitacao
+        description: >
+          Data do pedido de readequação.
+        data_type: timestamp
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: qtaguardandodistribuicao
+        description: >
+          Dias aguardando distribuição.
+        data_type: integer
+      - name: dtenvio
+        description: >
+          Data do envio para análise.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordreadequacaoaguardandoanalise_20180323
+    description: >
+      Versão de 23/03/2018 da fila de readequação aguardando análise do
+      coordenador. Tem os mesmos 28 pedidos da versão atual, com dias
+      calculados de outro jeito. O nome encurta o da origem,
+      vwpainelcoordenadorreadequacaoaguardandoanalise_20180323, para caber nos
+      63 caracteres. É uma fila de tela do SalicWeb: retrata o estado no
+      momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorreadequacaoaguardandoanalise_2018'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtsolicitacao
+        description: >
+          Data do pedido de readequação.
+        data_type: timestamp
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: qtaguardandodistribuicao
+        description: >
+          Dias aguardando distribuição.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadorreadequacaoanalisados
+    description: >
+      Uma linha por pedido de readequação já analisado, na fila do coordenador.
+      São 17. É uma fila de tela do SalicWeb: retrata o estado no momento da
+      carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorreadequacaoanalisados'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - iddocumentoassinatura
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: dtenvio
+        description: >
+          Data do envio para análise.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: qtdiasdistribuir
+        description: >
+          Dias até distribuir ao parecerista.
+        data_type: integer
+      - name: qtdiasavaliar
+        description: >
+          Dias de avaliação do pedido.
+        data_type: integer
+      - name: qttotaldiasavaliar
+        description: >
+          Dias totais de avaliação.
+        data_type: integer
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: idtecnicoparecerista
+        description: >
+          Técnico ou parecerista designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmtecnicoparecerista
+        description: >
+          Nome do técnico ou parecerista designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sgunidade
+        description: >
+          Unidade responsável, por sigla.
+        data_type: text
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: integer
+      - name: iddocumentoassinatura
+        description: >
+          Documento, código de silver_sac_tbdocumentoassinatura.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadorreadequacaoanalisados_20180323
+    description: >
+      Versão de 23/03/2018 da fila de readequações analisadas. São 9 pedidos. É
+      uma fila de tela do SalicWeb: retrata o estado no momento da carga e muda
+      a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorreadequacaoanalisados_20180323'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: dtenvio
+        description: >
+          Data do envio para análise.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: qtdiasdistribuir
+        description: >
+          Dias até distribuir ao parecerista.
+        data_type: integer
+      - name: qtdiasavaliar
+        description: >
+          Dias de avaliação do pedido.
+        data_type: integer
+      - name: qttotaldiasavaliar
+        description: >
+          Dias totais de avaliação.
+        data_type: integer
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: idtecnicoparecerista
+        description: >
+          Técnico ou parecerista designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmtecnicoparecerista
+        description: >
+          Nome do técnico ou parecerista designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: sgunidade
+        description: >
+          Unidade responsável, por sigla.
+        data_type: text
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadorreadequacaoemanalise
+    description: >
+      Uma linha por pedido de readequação em análise, na fila do coordenador.
+      São 54. É uma fila de tela do SalicWeb: retrata o estado no momento da
+      carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorreadequacaoemanalise'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: dtsolicitacao
+        description: >
+          Data do pedido de readequação.
+        data_type: timestamp
+      - name: dtencaminhamento
+        description: >
+          Data do encaminhamento à unidade.
+        data_type: timestamp
+      - name: qtdiasencaminhar
+        description: >
+          Dias até encaminhar.
+        data_type: integer
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: text
+      - name: dsencaminhamento
+        description: >
+          Etapa do encaminhamento por extenso.
+        data_type: text
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: qtdiasemanalise
+        description: >
+          Dias que o item está em análise.
+        data_type: integer
+      - name: idtecnicoparecerista
+        description: >
+          Técnico ou parecerista designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmreceptor
+        description: >
+          Nome de quem recebeu.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: nmtecnicoparecerista
+        description: >
+          Nome do técnico ou parecerista designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sgunidade
+        description: >
+          Unidade responsável, por sigla.
+        data_type: text
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: dtenvio
+        description: >
+          Data do envio para análise.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadorreadequacaoemanalise_20180323
+    description: >
+      Versão de 23/03/2018 da fila de readequações em análise. São 54 pedidos,
+      os mesmos da versão atual. É uma fila de tela do SalicWeb: retrata o
+      estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorreadequacaoemanalise_20180323'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: dtsolicitacao
+        description: >
+          Data do pedido de readequação.
+        data_type: timestamp
+      - name: dtencaminhamento
+        description: >
+          Data do encaminhamento à unidade.
+        data_type: timestamp
+      - name: qtdiasencaminhar
+        description: >
+          Dias até encaminhar.
+        data_type: integer
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: text
+      - name: dsencaminhamento
+        description: >
+          Etapa do encaminhamento por extenso.
+        data_type: text
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: qtdiasemanalise
+        description: >
+          Dias que o item está em análise.
+        data_type: integer
+      - name: idtecnicoparecerista
+        description: >
+          Técnico ou parecerista designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmreceptor
+        description: >
+          Nome de quem recebeu.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: nmtecnicoparecerista
+        description: >
+          Nome do técnico ou parecerista designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sgunidade
+        description: >
+          Unidade responsável, por sigla.
+        data_type: text
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadorvinculadasemanalise
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada e em
+      análise com parecerista, na fila do coordenador. São 463 produtos de 162
+      projetos, todos com a análise aberta. É uma fila de tela do SalicWeb:
+      retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorvinculadasemanalise'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: produto
+        description: >
+          Produto cultural por extenso.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtenviomincvinculada
+        description: >
+          Data de envio do MinC à unidade vinculada.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: qtdiasparadistribuir
+        description: >
+          Dias até distribuir ao parecerista.
+        data_type: integer
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: tempototalanalise
+        description: >
+          Dias totais de análise.
+        data_type: integer
+      - name: tempoparecerista
+        description: >
+          Dias com o parecerista.
+        data_type: integer
+      - name: tempodiligencia
+        description: >
+          Dias que o item ficou em diligência.
+        data_type: integer
+      - name: idagenteparecerista
+        description: >
+          Parecerista, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: qtdesecundarios
+        description: >
+          Quantidade de produtos secundários do projeto.
+        data_type: integer
+      - name: dtenviodiligencia
+        description: >
+          Data de envio da diligência.
+        data_type: timestamp
+      - name: dtrespostadiligencia
+        description: >
+          Data da resposta da diligência.
+        data_type: timestamp
+      - name: qtdiligenciaproduto
+        description: >
+          Se o produto tem diligência: 0 ou 1.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: observacao
+        description: >
+          Observação, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise: 0, aberta, em todas.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadorvinculadasemvalidacao
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada com
+      parecer devolvido aguardando validação. São 129. É uma fila de tela do
+      SalicWeb: retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorvinculadasemvalidacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: produto
+        description: >
+          Produto cultural por extenso.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: idagenteparecerista
+        description: >
+          Parecerista, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtenviomincvinculada
+        description: >
+          Data de envio do MinC à unidade vinculada.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: tempototalanalise
+        description: >
+          Dias totais de análise.
+        data_type: integer
+      - name: tempoparecerista
+        description: >
+          Dias com o parecerista.
+        data_type: integer
+      - name: tempodiligencia
+        description: >
+          Dias que o item ficou em diligência.
+        data_type: integer
+      - name: qtdiligenciaproduto
+        description: >
+          Se o produto tem diligência: 0 ou 1.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: obs
+        description: >
+          Observação, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: tecnicovalidador
+        description: >
+          Nome do técnico que valida o parecer.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtvalidacao
+        description: >
+          Data da validação do parecer.
+        data_type: timestamp
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelcoordenadorvinculadasreanalisar
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada
+      devolvido para reanálise. Tem 1 linha. É uma fila de tela do SalicWeb:
+      retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelcoordenadorvinculadasreanalisar'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: text
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: text
+      - name: produto
+        description: >
+          Produto cultural por extenso.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: idagenteparecerista
+        description: >
+          Parecerista, código de agente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: tipoanalise
+        description: >
+          Tipo da análise: 3, conteúdo e custo juntos, como em
+          silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: dtenviomincvinculada
+        description: >
+          Data de envio do MinC à unidade vinculada.
+        data_type: timestamp
+      - name: qtdiasdistribuir
+        description: >
+          Dias até distribuir ao parecerista.
+        data_type: integer
+      - name: justcomponente
+        description: >
+          Justificativa do conselheiro.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: justdevolucaopedido
+        description: >
+          Justificativa da devolução.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: justsecretaria
+        description: >
+          Justificativa da secretaria.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldedocumentosaguardandoassinatura
+    description: >
+      Uma linha por documento e assinatura pendente, com o projeto e o ato. São
+      1.558 linhas; o ato mais comum é a análise técnica para homologação
+      (852). É uma fila de tela do SalicWeb: retrata o estado no momento da
+      carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldedocumentosaguardandoassinatura'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - iddocumentoassinatura
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: resumoprojeto
+        description: >
+          Resumo do projeto, em HTML.
+        data_type: text
+      - name: orgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dias
+        description: >
+          Dias desde o documento.
+        data_type: integer
+      - name: iddocumentoassinatura
+        description: >
+          Documento, código de silver_sac_tbdocumentoassinatura.
+        data_type: integer
+      - name: possuiproximaassinatura
+        description: >
+          Se há próxima assinatura.
+        data_type: integer
+      - name: quantidadeassinaturas
+        description: >
+          Quantidade de assinaturas feitas.
+        data_type: integer
+      - name: quantidadetotalassinaturas
+        description: >
+          Assinaturas exigidas.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: tp_enquadramento
+        description: >
+          Enquadramento: 1 artigo 26, 2 artigo 18.
+        data_type: text
+      - name: idtipodoatoadministrativo
+        description: >
+          Tipo do ato, da verificação do sac (grupo 24), como em
+          silver_sac_tbdocumentoassinatura.
+        data_type: integer
+      - name: tipodoatoadministrativo
+        description: >
+          Tipo do ato por extenso.
+        data_type: text
+      - name: idordemdaassinatura
+        description: >
+          Ordem da assinatura pendente.
+        data_type: integer
+      - name: idatoadministrativo
+        description: >
+          Ato administrativo do documento.
+        data_type: integer
+      - name: idperfildoassinante
+        description: >
+          Perfil de quem assina.
+        data_type: integer
+      - name: idorgaodoassinante
+        description: >
+          Unidade de quem assina.
+        data_type: integer
+      - name: idorgaosuperiordoassinante
+        description: >
+          Órgão superior de quem assina.
+        data_type: integer
+      - name: ordemdaproximaassinatura
+        description: >
+          Ordem da próxima assinatura.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldocsreadequacaoaguardandoassinatura
+    description: >
+      Uma linha por documento de readequação e assinatura pendente. São 130
+      linhas. O nome encurta o da origem,
+      vwpaineldedocumentosdereadequacaoaguardandoassinatura, para caber nos 63
+      caracteres. É uma fila de tela do SalicWeb: retrata o estado no momento
+      da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldedocumentosdereadequacaoaguardandoassinatur'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - qtdedepessoasqueassinaramdocumento
+            - iddocumentoassinatura
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: dstipodoatoadministrativo
+        description: >
+          Tipo do ato por extenso.
+        data_type: text
+      - name: dsreadequacao
+        description: >
+          Tipo de readequação por extenso.
+        data_type: text
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: orgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: iddocumentoassinatura
+        description: >
+          Documento, código de silver_sac_tbdocumentoassinatura.
+        data_type: integer
+      - name: idtipodoatoadministrativo
+        description: >
+          Tipo do ato, da verificação do sac (grupo 24), como em
+          silver_sac_tbdocumentoassinatura.
+        data_type: integer
+      - name: qtdedepessoasquefaltamassinar
+        description: >
+          Pessoas que faltam assinar.
+        data_type: integer
+      - name: qtdedepessoasqueassinaramdocumento
+        description: >
+          Pessoas que já assinaram.
+        data_type: integer
+      - name: qtdeassinaturasporatoadministrativo
+        description: >
+          Assinaturas exigidas pelo ato.
+        data_type: integer
+      - name: idordemdaassinatura
+        description: >
+          Ordem da assinatura pendente.
+        data_type: integer
+      - name: idatoadministrativo
+        description: >
+          Ato administrativo do documento.
+        data_type: integer
+      - name: idperfildoassinante
+        description: >
+          Perfil de quem assina.
+        data_type: integer
+      - name: idorgaodoassinante
+        description: >
+          Unidade de quem assina.
+        data_type: integer
+      - name: idorgaosuperiordoassinante
+        description: >
+          Órgão superior de quem assina.
+        data_type: integer
+      - name: ordemdaproximaassinatura
+        description: >
+          Ordem da próxima assinatura.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldeemissaodelaudofinalderesultado
+    description: >
+      Uma linha por projeto aguardando emissão do laudo final de resultado. Tem
+      7 projetos. É uma fila de tela do SalicWeb: retrata o estado no momento
+      da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldeemissaodelaudofinalderesultado'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dsresutadodaavaliacaodoobjeto
+        description: >
+          Resultado da avaliação do objeto por extenso. O nome vem com erro de
+          digitação da origem.
+        data_type: text
+      - name: dsresutadodaavaliacaofinanceira
+        description: >
+          Resultado da avaliação financeira por extenso.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldeemissaodelaudofinalderesultadopassivo
+    description: >
+      Uma linha por projeto do passivo aguardando emissão do laudo final. Tem 7
+      projetos, os mesmos da fila atual. É uma fila de tela do SalicWeb:
+      retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldeemissaodelaudofinalderesultadopassivo'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cnpjcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dsresutadodaavaliacaodoobjeto
+        description: >
+          Resultado da avaliação do objeto por extenso. O nome vem com erro de
+          digitação da origem.
+        data_type: text
+      - name: dsresutadodaavaliacaofinanceira
+        description: >
+          Resultado da avaliação financeira por extenso.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldehomologacaodeprojetos
+    description: >
+      Uma linha por projeto aguardando homologação, com o valor. Tem 8
+      projetos. É uma fila de tela do SalicWeb: retrata o estado no momento da
+      carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldehomologacaodeprojetos'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: enquadramento
+        description: >
+          Enquadramento por extenso: Artigo 18 ou Artigo 26.
+        data_type: text
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: nrreuniao
+        description: >
+          Número da reunião da CNIC.
+        data_type: integer
+      - name: idunidade
+        description: >
+          Unidade, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: vlhomologado
+        description: >
+          Valor homologado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldeliberacao
+    description: >
+      Uma linha por projeto na fila de deliberação de captação, com
+      inabilitação, certidão e Cadin do proponente. São 1.054 projetos; 1.046
+      na situação E12. É uma fila de tela do SalicWeb: retrata o estado no
+      momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldeliberacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: percentualcaptado
+        description: >
+          Percentual captado do aprovado.
+        data_type: numeric
+      - name: vlcaptado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: inabilitado
+        description: >
+          Se o proponente está inabilitado: SIM em 7.
+        data_type: text
+      - name: certidao
+        description: >
+          Certidão: VÁLIDA ou VENCIDA.
+        data_type: text
+      - name: cadin
+        description: >
+          Situação no Cadin: REGULAR ou PENDENTE.
+        data_type: text
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: dtsituacao
+        description: >
+          Data da situação atual.
+        data_type: timestamp
+      - name: situacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: providenciatomada
+        description: >
+          Providência registrada, em texto.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldemensagens
+    description: >
+      Uma linha por mensagem trocada entre unidades sobre um projeto. Tem 21
+      mensagens de 7 projetos. É uma fila de tela do SalicWeb: retrata o estado
+      no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldemensagens'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: codarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: codsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: enquadramento
+        description: >
+          Enquadramento por extenso: Artigo 18 ou Artigo 26.
+        data_type: text
+      - name: vlsolicitado
+        description: >
+          Valor solicitado, em reais.
+        data_type: numeric
+      - name: idmensagemprojeto
+        description: >
+          Identificador da mensagem.
+        data_type: integer
+      - name: dtmensagem
+        description: >
+          Data em que a mensagem foi enviada.
+        data_type: timestamp
+      - name: qtdedias
+        description: >
+          Dias desde a mensagem.
+        data_type: integer
+      - name: dsmensagem
+        description: >
+          Texto da mensagem, em HTML.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdtipomensagem
+        description: >
+          Tipo: E enviada, R resposta.
+        data_type: text
+      - name: idremetente
+        description: >
+          Remetente, usuário interno.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmremetente
+        description: >
+          Nome de quem enviou a mensagem.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dsunidaderemetente
+        description: >
+          Unidade do remetente.
+        data_type: text
+      - name: idremetenteunidade
+        description: >
+          Unidade do remetente, código.
+        data_type: integer
+      - name: iddestinatario
+        description: >
+          Destinatário, usuário interno.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmdestinatario
+        description: >
+          Nome do destinatário.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: iddestinatariounidade
+        description: >
+          Unidade do destinatário, código.
+        data_type: integer
+      - name: dsunidadedestinatario
+        description: >
+          Unidade do destinatário.
+        data_type: text
+      - name: idmensagemorigem
+        description: >
+          Mensagem respondida.
+        data_type: integer
+      - name: stativo
+        description: >
+          Se está ativa: true em todas.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldetransferenciaderecursos
+    description: >
+      Uma linha por linha da tela de transferência de recursos. Tem 3 linhas
+      com só o ano no lugar do PRONAC e os totais; as outras colunas estão
+      vazias. É uma fila de tela do SalicWeb: retrata o estado no momento da
+      carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldetransferenciaderecursos'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - dtliberacao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: pronac
+        description: >
+          Ano das linhas, no lugar do PRONAC.
+        data_type: text
+      - name: cgccpfmecena
+        description: >
+          CPF ou CNPJ do incentivador. Vazio.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dtchegadarecibo
+        description: >
+          Data de chegada do recibo. Vazia.
+        data_type: timestamp
+      - name: dtrecibo
+        description: >
+          Data do recibo. Vazia.
+        data_type: timestamp
+      - name: captacaoreal
+        description: >
+          Total captado, em reais.
+        data_type: numeric
+      - name: numerorecibo
+        description: >
+          Número do recibo. Vazio.
+        data_type: text
+      - name: tipoapoio
+        description: >
+          Tipo de apoio. Vazio.
+        data_type: text
+      - name: incentivador
+        description: >
+          Nome do incentivador. Vazio.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtliberacao
+        description: >
+          Data de liberação. Vazia.
+        data_type: timestamp
+      - name: inabilitado
+        description: >
+          Inabilitação. Vazia.
+        data_type: text
+      - name: certidao
+        description: >
+          Situação da certidão. Vazia.
+        data_type: text
+      - name: cadin
+        description: >
+          Situação no Cadin. Vazia.
+        data_type: text
+      - name: percentual
+        description: >
+          Percentual sobre o total captado.
+        data_type: numeric
+      - name: idcaptacao
+        description: >
+          Captação, código da origem. Vazia.
+        data_type: text
+      - name: idpronac
+        description: >
+          Projeto, idpronac. Vazio nas 3 linhas.
+        data_type: text
+      - name: situacao
+        description: >
+          Situação do projeto. Vazia nas 3 linhas.
+        data_type: text
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldocomponentedacomissao
+    description: >
+      Uma linha por proposta na fila do conselheiro da CNIC para enquadramento.
+      São 457 propostas: SEFIC 395, SAV 62. É uma fila de tela do SalicWeb:
+      retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldocomponentedacomissao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dstipicidade
+        description: >
+          Tipicidade da proposta por extenso, como Projetos Normais ou Planos
+          Anuais.
+        data_type: text
+      - name: dstipologia
+        description: >
+          Tipologia da proposta por extenso.
+        data_type: text
+      - name: dsenquadramentoproponente
+        description: >
+          Enquadramento pedido pelo proponente, por extenso.
+        data_type: text
+      - name: cdenquadramentominc
+        description: >
+          Enquadramento do MinC: 1 artigo 26, 2 artigo 18.
+        data_type: text
+      - name: dsenquadramentominc
+        description: >
+          Enquadramento do MinC por extenso.
+        data_type: text
+      - name: cdareaminc
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: dsareaminc
+        description: >
+          Área definida pelo MinC, por extenso.
+        data_type: text
+      - name: cdsegmentominc
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: dssegmentominc
+        description: >
+          Segmento definido pelo MinC, por extenso.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: dssecretaria
+        description: >
+          Secretaria por sigla: SAV ou SEFIC.
+        data_type: text
+      - name: idcomponente
+        description: >
+          Conselheiro da CNIC designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmcomponente
+        description: >
+          Nome do conselheiro da CNIC designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdperfilavaliadorproposta
+        description: >
+          Perfil de quem avalia, como em
+          silver_sac_distribuicao_avaliacao_proposta.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldocoordenador
+    description: >
+      Uma linha por proposta na fila do coordenador de admissibilidade, com o
+      estado do enquadramento. São 1.518: em enquadramento pelo coordenador
+      888, pelo conselheiro 458, pelo técnico 135, aguardando transformação 37.
+      É uma fila de tela do SalicWeb: retrata o estado no momento da carga e
+      muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldocoordenador'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dstipicidade
+        description: >
+          Tipicidade da proposta por extenso, como Projetos Normais ou Planos
+          Anuais.
+        data_type: text
+      - name: dstipologia
+        description: >
+          Tipologia da proposta por extenso.
+        data_type: text
+      - name: dstipodeexecucao
+        description: >
+          Plano de execução por extenso, como Projeto normal (10% de captação).
+        data_type: text
+      - name: dtenvioproposta
+        description: >
+          Data de envio da proposta.
+        data_type: timestamp
+      - name: qtdiasemanalise
+        description: >
+          Dias que o item está em análise.
+        data_type: integer
+      - name: dsenquadramentoproponente
+        description: >
+          Enquadramento pedido pelo proponente, por extenso.
+        data_type: text
+      - name: cdenquadramentominc
+        description: >
+          Enquadramento do MinC: 1 artigo 26, 2 artigo 18.
+        data_type: text
+      - name: dsenquadramentominc
+        description: >
+          Enquadramento do MinC por extenso.
+        data_type: text
+      - name: cdareaminc
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: dsareaminc
+        description: >
+          Área definida pelo MinC, por extenso.
+        data_type: text
+      - name: cdsegmentominc
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: dssegmentominc
+        description: >
+          Segmento definido pelo MinC, por extenso.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: siestadoanaliseproposta
+        description: >
+          Estado da análise: 0 em 1.497, 1 em 21.
+        data_type: text
+      - name: dsestadoanaliseproposta
+        description: >
+          Estado da análise por extenso.
+        data_type: text
+      - name: cdperfilavaliadorproposta
+        description: >
+          Perfil de quem avalia, como em
+          silver_sac_distribuicao_avaliacao_proposta.
+        data_type: integer
+      - name: dsperfilavaliadorproposta
+        description: >
+          Perfil de quem avalia, por extenso.
+        data_type: text
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: dssecretaria
+        description: >
+          Secretaria por sigla: SAV ou SEFIC.
+        data_type: text
+      - name: idtecnico
+        description: >
+          Técnico responsável, usuário interno.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmtecnico
+        description: >
+          Nome do técnico responsável.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idcomponente
+        description: >
+          Conselheiro da CNIC designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmcomponente
+        description: >
+          Nome do conselheiro da CNIC designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: stestadorecurso
+        description: >
+          Estado do recurso: 5 em 1.511.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldocoordenadorgeral
+    description: >
+      Uma linha por proposta na fila do coordenador-geral, aguardando análise
+      ou em reanálise. São 1.528; SEFIC tem 1.396. É uma fila de tela do
+      SalicWeb: retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldocoordenadorgeral'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dstipicidade
+        description: >
+          Tipicidade da proposta por extenso, como Projetos Normais ou Planos
+          Anuais.
+        data_type: text
+      - name: dstipologia
+        description: >
+          Tipologia da proposta por extenso.
+        data_type: text
+      - name: dstipodeexecucao
+        description: >
+          Plano de execução por extenso, como Projeto normal (10% de captação).
+        data_type: text
+      - name: dtenvioproposta
+        description: >
+          Data de envio da proposta.
+        data_type: timestamp
+      - name: qtdiasemanalise
+        description: >
+          Dias que o item está em análise.
+        data_type: integer
+      - name: dsenquadramentoproponente
+        description: >
+          Enquadramento pedido pelo proponente, por extenso.
+        data_type: text
+      - name: cdenquadramentominc
+        description: >
+          Enquadramento do MinC: 1 artigo 26, 2 artigo 18.
+        data_type: text
+      - name: dsenquadramentominc
+        description: >
+          Enquadramento do MinC por extenso.
+        data_type: text
+      - name: cdareaminc
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: text
+      - name: dsareaminc
+        description: >
+          Área definida pelo MinC, por extenso.
+        data_type: text
+      - name: cdsegmentominc
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: dssegmentominc
+        description: >
+          Segmento definido pelo MinC, por extenso.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: siestadoanaliseproposta
+        description: >
+          Estado da análise da proposta.
+        data_type: text
+      - name: dsestadoanaliseproposta
+        description: >
+          Estado da análise: Aguardando Análise ou Reanálise.
+        data_type: text
+      - name: cdperfilavaliadorproposta
+        description: >
+          Perfil de quem avalia, como em
+          silver_sac_distribuicao_avaliacao_proposta.
+        data_type: integer
+      - name: dsperfilavaliadorproposta
+        description: >
+          Perfil de quem avalia, por extenso.
+        data_type: text
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: dssecretaria
+        description: >
+          Secretaria por sigla: SAV ou SEFIC.
+        data_type: text
+      - name: idtecnico
+        description: >
+          Técnico responsável, usuário interno.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmtecnico
+        description: >
+          Nome do técnico responsável.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idcomponente
+        description: >
+          Conselheiro da CNIC designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmcomponente
+        description: >
+          Nome do conselheiro da CNIC designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: stestadorecurso
+        description: >
+          Estado do recurso da proposta.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineldotecnicodeadmissibilidade
+    description: >
+      Uma linha por proposta na fila do técnico de admissibilidade. São 134. É
+      uma fila de tela do SalicWeb: retrata o estado no momento da carga e muda
+      a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineldotecnicodeadmissibilidade'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dstipicidade
+        description: >
+          Tipicidade da proposta por extenso, como Projetos Normais ou Planos
+          Anuais.
+        data_type: text
+      - name: dstipologia
+        description: >
+          Tipologia da proposta por extenso.
+        data_type: text
+      - name: dstipodeexecucao
+        description: >
+          Plano de execução por extenso, como Projeto normal (10% de captação).
+        data_type: text
+      - name: dtenvioproposta
+        description: >
+          Data de envio da proposta.
+        data_type: timestamp
+      - name: qtdiasemanalise
+        description: >
+          Dias que o item está em análise.
+        data_type: integer
+      - name: dsenquadramentominc
+        description: >
+          Enquadramento do MinC por extenso.
+        data_type: text
+      - name: dsareaminc
+        description: >
+          Área definida pelo MinC, por extenso.
+        data_type: text
+      - name: dssegmentominc
+        description: >
+          Segmento definido pelo MinC, por extenso.
+        data_type: text
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: text
+      - name: idtecnico
+        description: >
+          Técnico responsável, usuário interno.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dssecretaria
+        description: >
+          Secretaria por sigla: SAV ou SEFIC.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: cdperfilavaliadorproposta
+        description: >
+          Perfil de quem avalia, como em
+          silver_sac_distribuicao_avaliacao_proposta.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelemanalisetecnica
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada e em
+      análise técnica. São 89 produtos de 38 projetos. É uma fila de tela do
+      SalicWeb: retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelemanalisetecnica'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: produto
+        description: >
+          Produto cultural por extenso.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtenviomincvinculada
+        description: >
+          Data de envio do MinC à unidade vinculada.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sianalise
+        description: >
+          Situação da análise, como em silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: text
+      - name: qtdiasparadistribuir
+        description: >
+          Dias até distribuir ao parecerista.
+        data_type: integer
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: tempototalanalise
+        description: >
+          Dias totais de análise.
+        data_type: integer
+      - name: tempoparecerista
+        description: >
+          Dias com o parecerista.
+        data_type: integer
+      - name: tempodiligencia
+        description: >
+          Dias que o item ficou em diligência.
+        data_type: integer
+      - name: idagenteparecerista
+        description: >
+          Parecerista, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: qtdesecundarios
+        description: >
+          Quantidade de produtos secundários do projeto.
+        data_type: integer
+      - name: dtenviodiligencia
+        description: >
+          Data de envio da diligência.
+        data_type: timestamp
+      - name: dtrespostadiligencia
+        description: >
+          Data da resposta da diligência.
+        data_type: timestamp
+      - name: qtdiligenciaproduto
+        description: >
+          Se o produto tem diligência: 0 ou 1.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: observacao
+        description: >
+          Observação, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelemvalidacao
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada em
+      validação do parecer. São 175 produtos de 76 projetos; 42 já validados. É
+      uma fila de tela do SalicWeb: retrata o estado no momento da carga e muda
+      a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelemvalidacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: produto
+        description: >
+          Produto cultural por extenso.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: tipoanalise
+        description: >
+          Tipo da análise: 3, conteúdo e custo juntos, como em
+          silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: idagenteparecerista
+        description: >
+          Parecerista, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sianalise
+        description: >
+          Situação da análise, como em silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: text
+      - name: dtenviomincvinculada
+        description: >
+          Data de envio do MinC à unidade vinculada.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: tempototalanalise
+        description: >
+          Dias totais de análise.
+        data_type: integer
+      - name: tempoparecerista
+        description: >
+          Dias com o parecerista.
+        data_type: integer
+      - name: tempodiligencia
+        description: >
+          Dias que o item ficou em diligência.
+        data_type: integer
+      - name: qtdiligenciaproduto
+        description: >
+          Se o produto tem diligência: 0 ou 1.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: obs
+        description: >
+          Observação, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: tecnicovalidador
+        description: >
+          Nome do técnico que valida o parecer.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtvalidacao
+        description: >
+          Data da validação do parecer.
+        data_type: timestamp
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelenquadramentopropostas
+    description: >
+      Uma linha por proposta na fila de enquadramento, com o perfil e o
+      conselheiro. São 2.261 linhas de 1.568 propostas; perfil 131 em 1.620. É
+      uma fila de tela do SalicWeb: retrata o estado no momento da carga e muda
+      a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelenquadramentopropostas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: dstipicidade
+        description: >
+          Tipicidade da proposta por extenso, como Projetos Normais ou Planos
+          Anuais.
+        data_type: text
+      - name: dstipologia
+        description: >
+          Tipologia da proposta por extenso.
+        data_type: text
+      - name: dsexecucaoimediata
+        description: >
+          Plano de execução por extenso.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dssegmento
+        description: >
+          Segmento por extenso.
+        data_type: text
+      - name: dsenquadramento
+        description: >
+          Enquadramento por extenso.
+        data_type: text
+      - name: cdsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC.
+        data_type: text
+      - name: cdperfil
+        description: >
+          Perfil de quem avalia: 131 em 1.620, 118 em 457, 92 em 138, 147 em
+          46.
+        data_type: integer
+      - name: cdcomponente
+        description: >
+          Conselheiro da CNIC designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dscomponente
+        description: >
+          Nome do conselheiro ou do perfil.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelparecerista
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada, na fila
+      do parecerista. São 89 produtos de 38 projetos, os mesmos de
+      silver_sac_vwpainelemanalisetecnica. É uma fila de tela do SalicWeb:
+      retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelparecerista'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: produto
+        description: >
+          Produto cultural por extenso.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtenviomincvinculada
+        description: >
+          Data de envio do MinC à unidade vinculada.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sianalise
+        description: >
+          Situação da análise, como em silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: text
+      - name: qtdiasparadistribuir
+        description: >
+          Dias até distribuir ao parecerista.
+        data_type: integer
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: tempototalanalise
+        description: >
+          Dias totais de análise.
+        data_type: integer
+      - name: tempoparecerista
+        description: >
+          Dias com o parecerista.
+        data_type: integer
+      - name: tempodiligencia
+        description: >
+          Dias que o item ficou em diligência.
+        data_type: integer
+      - name: idagenteparecerista
+        description: >
+          Parecerista, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: qtdesecundarios
+        description: >
+          Quantidade de produtos secundários do projeto.
+        data_type: integer
+      - name: dtenviodiligencia
+        description: >
+          Data de envio da diligência.
+        data_type: timestamp
+      - name: dtrespostadiligencia
+        description: >
+          Data da resposta da diligência.
+        data_type: timestamp
+      - name: qtdiligenciaproduto
+        description: >
+          Se o produto tem diligência: 0 ou 1.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: observacao
+        description: >
+          Observação, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelpareceristaunificado
+    description: >
+      Uma linha por item na fila unificada do parecerista: análise técnica
+      inicial, readequação ou recurso. São 577: Técnica Inicial 464,
+      Readequação 105, Recurso 8. É uma fila de tela do SalicWeb: retrata o
+      estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelpareceristaunificado'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - iddocumento
+            - iddocumentoassinatura
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: tipopainel
+        description: >
+          Fila: Técnica Inicial, Readequação ou Recurso.
+        data_type: text
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: dtanalise
+        description: >
+          Data da análise, em texto dd/mm/aaaa.
+        data_type: text
+      - name: situacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: orgaosigla
+        description: >
+          Unidade responsável, por sigla.
+        data_type: text
+      - name: dtsolicitacao
+        description: >
+          Data do pedido de readequação.
+        data_type: timestamp
+      - name: dtresposta
+        description: >
+          Data da resposta à diligência.
+        data_type: timestamp
+      - name: stenviado
+        description: >
+          Se a diligência foi enviada: S.
+        data_type: text
+      - name: quantidadeprodutos
+        description: >
+          Quantidade de produtos.
+        data_type: integer
+      - name: idprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: tipoanalise
+        description: >
+          Tipo da análise: 3, conteúdo e custo juntos, como em
+          silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: stdiligenciado
+        description: >
+          Se está em diligência.
+        data_type: text
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: dtenvio
+        description: >
+          Data do envio para análise.
+        data_type: timestamp
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: sianalise
+        description: >
+          Situação da análise, como em silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: dstiporeadequacao
+        description: >
+          Tipo de readequação por extenso.
+        data_type: text
+      - name: qtdiasavaliacao
+        description: >
+          Dias de avaliação do pedido.
+        data_type: integer
+      - name: idtecnicoparecerista
+        description: >
+          Técnico ou parecerista designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: idorgaounidade
+        description: >
+          Unidade da readequação, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: iddocumento
+        description: >
+          Documento anexado ao pedido.
+        data_type: integer
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: text
+      - name: stanalise
+        description: >
+          Situação da análise. Vazia.
+        data_type: text
+      - name: idnrreuniao
+        description: >
+          Reunião da CNIC. Vazia.
+        data_type: text
+      - name: stestado
+        description: >
+          Se o item está ativo na origem.
+        data_type: text
+      - name: idsolicitante
+        description: >
+          Solicitante, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: idavaliador
+        description: >
+          Avaliador, usuário interno ou parecerista.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: statendimento
+        description: >
+          Atendimento do pedido: D ou N, como em silver_sac_tbreadequacao.
+        data_type: text
+      - name: idtiporeadequacao
+        description: >
+          Tipo da readequação, como em silver_sac_tbreadequacao.
+        data_type: integer
+      - name: dssolicitacao
+        description: >
+          Pedido de readequação, em HTML.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dsjustificativa
+        description: >
+          Justificativa, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dsavaliacao
+        description: >
+          Texto da avaliação, em HTML.
+        data_type: text
+      - name: dsorientacao
+        description: >
+          Orientação, em HTML.
+        data_type: text
+      - name: dsnomesolicitante
+        description: >
+          Nome do solicitante.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dsnomeavaliador
+        description: >
+          Nome do avaliador da readequação.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: iddocumentoassinatura
+        description: >
+          Documento, código de silver_sac_tbdocumentoassinatura.
+        data_type: text
+      - name: idtipodoatoadministrativo
+        description: >
+          Tipo do ato, da verificação do sac (grupo 24), como em
+          silver_sac_tbdocumentoassinatura.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto por extenso.
+        data_type: text
+      - name: nomeproduto
+        description: >
+          Nome do produto no projeto.
+        data_type: text
+      - name: tempofimdiligencia
+        description: >
+          Prazo de diligência, em dias.
+        data_type: integer
+      - name: idavaliadordistribuicao
+        description: >
+          Avaliador da distribuição.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: idagenteparecerista
+        description: >
+          Parecerista, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: iddistribuirprojeto
+        description: >
+          Distribuição do recurso.
+        data_type: text
+      - name: dssolicitacaorecurso
+        description: >
+          Pedido de recurso, em texto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idrecurso
+        description: >
+          Recurso, código da origem.
+        data_type: text
+      - name: tprecurso
+        description: >
+          Tipo do recurso, sem domínio ingerido.
+        data_type: text
+      - name: sedisponivelassinatura
+        description: >
+          Se está disponível para assinatura.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: sediligenciaaberta
+        description: >
+          Se há diligência aberta.
+        data_type: text
+      - name: sirecurso
+        description: >
+          Situação do recurso.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelpresidentevinculadas
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada com
+      parecer validado, na fila do presidente da CNIC. São 24 produtos. É uma
+      fila de tela do SalicWeb: retrata o estado no momento da carga e muda a
+      cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelpresidentevinculadas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: tipoanalise
+        description: >
+          Tipo da análise: 3, conteúdo e custo juntos, como em
+          silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: tecnicovalidador
+        description: >
+          Nome do técnico que valida o parecer.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtvalidacao
+        description: >
+          Data da validação do parecer.
+        data_type: timestamp
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelprojetossgptc
+    description: >
+      Uma linha por projeto acompanhado pela SGPTC, com datas, valores e saldos
+      das contas. São 15.970 projetos; 11.859 na situação E24. O aprovado soma
+      25,2 bilhões e o captado 16,7 bilhões de reais. É uma fila de tela do
+      SalicWeb: retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelprojetossgptc'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - vlsaldocontacaptacao
+            - vlsaldocontamovimento
+            - vlsaldodascontas
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: nrpronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: nmprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: cdsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: cdsituacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: dtsituacao
+        description: >
+          Data da situação atual.
+        data_type: timestamp
+      - name: cdultimasituacaoprescricao
+        description: >
+          Última situação de prescrição.
+        data_type: text
+      - name: dtultimasituacaoprescricao
+        description: >
+          Data da última situação de prescrição.
+        data_type: timestamp
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: dtfimcaptacao
+        description: >
+          Fim do prazo de captação.
+        data_type: timestamp
+      - name: idsecretaria
+        description: >
+          Secretaria: 160 SAV ou 251 SEFIC, na maioria.
+        data_type: integer
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: cdufprojeto
+        description: >
+          UF do projeto, em sigla.
+        data_type: text
+      - name: vlsolicitado
+        description: >
+          Valor solicitado, em reais.
+        data_type: numeric
+      - name: vlaprovado
+        description: >
+          Valor aprovado, em reais.
+        data_type: numeric
+      - name: vlcaptado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: vltransferidomovimentacao
+        description: >
+          Valor transferido para a conta de movimentação, em reais.
+        data_type: numeric
+      - name: vlperccaptado
+        description: >
+          Percentual captado do aprovado.
+        data_type: numeric
+      - name: vlcomprovado
+        description: >
+          Valor comprovado, em reais.
+        data_type: numeric
+      - name: vlpercomprovado
+        description: >
+          Percentual comprovado.
+        data_type: numeric
+      - name: vlsaldocontacaptacao
+        description: >
+          Saldo da conta de captação, em reais.
+        data_type: numeric
+      - name: vlsaldocontamovimento
+        description: >
+          Saldo da conta de movimentação, em reais.
+        data_type: numeric
+      - name: vlsaldodascontas
+        description: >
+          Saldo das contas, em reais.
+        data_type: numeric
+      - name: vlutilizado
+        description: >
+          Valor utilizado, em reais.
+        data_type: numeric
+      - name: vlpercutilizado
+        description: >
+          Percentual utilizado.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelreadequacaoaguardandopublicacao
+    description: >
+      Uma linha por readequação aguardando publicação. São 177 de 160 projetos.
+      É uma fila de tela do SalicWeb: retrata o estado no momento da carga e
+      muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelreadequacaoaguardandopublicacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: idtecnicoparecerista
+        description: >
+          Técnico ou parecerista designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmtecnicoparecerista
+        description: >
+          Nome do técnico ou parecerista designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sgunidade
+        description: >
+          Unidade responsável, por sigla.
+        data_type: text
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelreadequacaocoordenadorpareceranalisados
+    description: >
+      Uma linha por parecer de readequação analisado, na fila do coordenador.
+      São 6. É uma fila de tela do SalicWeb: retrata o estado no momento da
+      carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelreadequacaocoordenadorpareceranalisados'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: iddistribuirreadequacao
+        description: >
+          Envio da readequação, código de silver_sac_tbdistribuirreadequacao.
+        data_type: integer
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: dtenvio
+        description: >
+          Data do envio para análise.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: qtdiasdistribuir
+        description: >
+          Dias até distribuir ao parecerista.
+        data_type: integer
+      - name: qtdiasavaliar
+        description: >
+          Dias de avaliação do pedido.
+        data_type: integer
+      - name: qttotaldiasavaliar
+        description: >
+          Dias totais de avaliação.
+        data_type: integer
+      - name: idtecnico
+        description: >
+          Técnico responsável, usuário interno.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmparecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelreadequacaocoordenadorpareceremanalise
+    description: >
+      Uma linha por parecer de readequação em análise, na fila do coordenador.
+      São 47. É uma fila de tela do SalicWeb: retrata o estado no momento da
+      carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelreadequacaocoordenadorpareceremanalise'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: dsavaliacao
+        description: >
+          Texto da avaliação, em HTML.
+        data_type: text
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: qtdiasemanalise
+        description: >
+          Dias que o item está em análise.
+        data_type: integer
+      - name: idavaliador
+        description: >
+          Avaliador, usuário interno ou parecerista.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmparecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: iddistribuirreadequacao
+        description: >
+          Envio da readequação, código de silver_sac_tbdistribuirreadequacao.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelreadequacaotecnico
+    description: >
+      Uma linha por readequação na fila do técnico. São 47. É uma fila de tela
+      do SalicWeb: retrata o estado no momento da carga e muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelreadequacaotecnico'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação, código de silver_sac_tbreadequacao.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: tpreadequacao
+        description: >
+          Tipo da readequação por extenso, como Diversas ou Período de
+          Execução.
+        data_type: text
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: qtdiasavaliacao
+        description: >
+          Dias de avaliação do pedido.
+        data_type: integer
+      - name: idtecnicoparecerista
+        description: >
+          Técnico ou parecerista designado.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineltecnicoavaliacaotrimestral
+    description: >
+      Uma linha por relatório trimestral na fila do técnico. São 71 relatórios.
+      É uma fila de tela do SalicWeb: retrata o estado no momento da carga e
+      muda a cada carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineltecnicoavaliacaotrimestral'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: ufprojeto
+        description: >
+          UF do projeto, em sigla.
+        data_type: text
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: orgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: dtcomprovante
+        description: >
+          Data do relatório trimestral.
+        data_type: timestamp
+      - name: dtinicioperiodo
+        description: >
+          Início do trimestre relatado.
+        data_type: timestamp
+      - name: dtfimperiodo
+        description: >
+          Fim do trimestre relatado.
+        data_type: timestamp
+      - name: sicomprovantetrimestral
+        description: >
+          Situação do relatório trimestral, como em
+          silver_sac_tbcomprovantetrimestral.
+        data_type: text
+      - name: nrcomprovantetrimestral
+        description: >
+          Número do relatório no projeto.
+        data_type: integer
+      - name: diligencia
+        description: >
+          Se o relatório está em diligência: 0 ou 2.
+        data_type: text
+      - name: idtecnicoavaliador
+        description: >
+          Técnico que avaliou o relatório.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpaineltransferenciarecursoscaptacaomovimento
+    description: >
+      Uma linha por projeto com recurso captado a transferir para a conta de
+      movimentação, com a regularidade do proponente. São 123. É uma fila de
+      tela do SalicWeb: retrata o estado no momento da carga e muda a cada
+      carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpaineltransferenciarecursoscaptacaomovimento'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - vlsaldodascontas
+            - stcontaliberada
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrpronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nmprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: vlcaptado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: vlatransferir
+        description: >
+          Valor a transferir, em reais.
+        data_type: numeric
+      - name: vlrecebido
+        description: >
+          Valor recebido, em reais.
+        data_type: numeric
+      - name: vlpercentualcaptado
+        description: >
+          Percentual captado do aprovado.
+        data_type: numeric
+      - name: stcontaliberada
+        description: >
+          Se a conta está liberada.
+        data_type: text
+      - name: sthabilitado
+        description: >
+          Se o proponente está habilitado.
+        data_type: text
+      - name: stcertidao
+        description: >
+          Certidão: REGULAR, IRREGULAR ou FALHA.
+        data_type: text
+      - name: stcadin
+        description: >
+          Cadin: REGULAR ou IRREGULAR.
+        data_type: text
+      - name: cdorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: text
+      - name: vlsaldodascontas
+        description: >
+          Saldo das contas, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpainelvalidadoscomdevolucao
+    description: >
+      Uma linha por produto de projeto enviado a uma unidade vinculada com
+      parecer validado e devolvido. São 15 produtos de 6 projetos. É uma fila
+      de tela do SalicWeb: retrata o estado no momento da carga e muda a cada
+      carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpainelvalidadoscomdevolucao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: produto
+        description: >
+          Produto cultural por extenso.
+        data_type: text
+      - name: idarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: area
+        description: >
+          Área cultural do projeto, por extenso.
+        data_type: text
+      - name: idsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural do projeto, por extenso.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio para análise, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sianalise
+        description: >
+          Situação da análise, como em silver_sac_tbdistribuirparecer.
+        data_type: text
+      - name: siencaminhamento
+        description: >
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida.
+        data_type: text
+      - name: dtenviomincvinculada
+        description: >
+          Data de envio do MinC à unidade vinculada.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: dtdevolucao
+        description: >
+          Data da devolução pelo parecerista.
+        data_type: timestamp
+      - name: tempototalanalise
+        description: >
+          Dias totais de análise.
+        data_type: integer
+      - name: tempoparecerista
+        description: >
+          Dias com o parecerista.
+        data_type: integer
+      - name: tempodiligencia
+        description: >
+          Dias que o item ficou em diligência.
+        data_type: integer
+      - name: qtdiligenciaproduto
+        description: >
+          Se o produto tem diligência: 0 ou 1.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor do produto, em reais. A origem grava em notação científica, e a
+          silver converte para número.
+        data_type: numeric
+      - name: obs
+        description: >
+          Observação, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: stprincipal
+        description: >
+          Se é o produto principal do projeto.
+        data_type: text
+      - name: fecharanalise
+        description: >
+          Etapa da análise, como em silver_sac_tbdistribuirparecer: 0 aberta, 1
+          concluída, 2 devolvida.
+        data_type: text
+      - name: tecnicovalidador
+        description: >
+          Nome do técnico que valida o parecer.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtvalidacao
+        description: >
+          Data da validação do parecer.
+        data_type: timestamp
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
