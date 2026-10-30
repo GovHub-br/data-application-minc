@@ -1,5 +1,7 @@
--- Bronze SALIC — sac__historicoaspectosfisicosx.
--- Origem: salic_bronze.sac__historicoaspectosfisicosx, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_historicoaspectosfisicosx
+-- (ex-sac__historicoaspectosfisicosx).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_historicoaspectosfisicosx, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 8 colunas: 4 tipadas, 3 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -13,4 +15,4 @@ select
     {{ bronze_inteiro("prcont") }} as prcont,
     {{ bronze_inteiro("logon") }} as logon,
     _fatia
-from {{ source("bronze_sac", "sac__historicoaspectosfisicosx") }}
+from {{ source("salic", "bronze_sac_historicoaspectosfisicosx") }}

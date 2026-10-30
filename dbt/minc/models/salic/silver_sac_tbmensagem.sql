@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__tbmensagem.
--- Origem: salic_bronze.sac__tbmensagem, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbmensagem (ex-sac__tbmensagem).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbmensagem, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 11 colunas: 7 tipadas, 3 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -14,6 +15,6 @@ select
     {{ bronze_timestamp("dtacesso") }} as dtacesso,
     {{ bronze_timestamp("dtexclusao") }} as dtexclusao,
     {{ bronze_inteiro("idsuccess") }} as idsuccess,
-    {{ bronze_numerico("idmulticast") }} as idmulticast,
+    {{ bronze_numerico_cientifico("idmulticast") }} as idmulticast,
     _fatia
-from {{ source("bronze_sac", "sac__tbmensagem") }}
+from {{ source("salic", "bronze_sac_tbmensagem") }}

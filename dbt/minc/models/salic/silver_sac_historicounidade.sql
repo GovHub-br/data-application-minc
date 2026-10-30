@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__historicounidade.
--- Origem: salic_bronze.sac__historicounidade, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_historicounidade (ex-sac__historicounidade).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_historicounidade, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 8 colunas: 4 tipadas, 3 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -13,4 +14,4 @@ select
     {{ bronze_timestamp("dtretorno") }} as dtretorno,
     {{ bronze_inteiro("logon") }} as logon,
     _fatia
-from {{ source("bronze_sac", "sac__historicounidade") }}
+from {{ source("salic", "bronze_sac_historicounidade") }}

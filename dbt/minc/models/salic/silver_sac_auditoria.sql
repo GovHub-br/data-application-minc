@@ -1,5 +1,6 @@
--- Bronze SALIC — sac__auditoria.
--- Origem: salic_bronze.sac__auditoria, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_auditoria (ex-sac__auditoria).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_auditoria, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
 -- 6 colunas: 0 tipadas, 5 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -11,4 +12,4 @@ select
     {{ bronze_texto("object_name") }} as object_name,
     {{ bronze_texto("statement") }} as statement,
     _fatia
-from {{ source("bronze_sac", "sac__auditoria") }}
+from {{ source("salic", "bronze_sac_auditoria") }}
