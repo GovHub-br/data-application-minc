@@ -96,13 +96,8 @@ models:
     # uma view no lugar.
     salic_dbt:
       +schema: salic
-      # Um modelo por tabela da Bronze do SALIC, so aplicando
-      # cast. View por padrao: o objetivo e a camada semantica no dbt docs e no
-      # OpenMetadata, e view entrega isso com zero armazenamento. Os 52,7 GB do
-      # raw nao se duplicam antes de alguem saber quais modelos importam --
-      # promova a table so as pesadas, depois.
-      bronze:
-        +materialized: view
+      # A antiga pasta bronze/ (um modelo por tabela da Bronze) migrou inteira
+      # para models/salic/silver_*; sobra so sources_sac_legado.yml, sem modelo.
       # Silvers conformadas da Rouanet. `table`, e nao `view`: sao poucos
       # modelos, todos com join pesado sobre views da bronze que ja leem 157 M
       # de linhas. Materializar aqui e o que evita recomputar a bronze inteira
