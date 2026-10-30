@@ -18,10 +18,14 @@
 -- `silver_sac_projeto_proponente_rouanet`, que e zona restrita. Esta dimensao existe
 -- justamente para ser a parte publicavel do projeto.
 --
--- O QUE ESTA MODELADO COMO "ULTIMO". Aprovacao e enquadramento tem historico
--- no SALIC (readequacao, prorrogacao, reenquadramento). A dimensao guarda o
--- registro mais recente de cada um -- e a leitura que um painel de meta usa --
--- e o historico completo fica em `silver_sac_aprovacao_rouanet`, que nao perde linha.
+-- APROVACAO TEM HISTORICO; ENQUADRAMENTO NAO. Cada projeto acumula atos de
+-- aprovacao (inicial, complementacao, prorrogacao, reducao, readequacao). As
+-- datas e o valor autorizado vem do ato mais recente; o valor aprovado nao,
+-- porque o ato mais recente costuma ser prorrogacao, que vale zero. Ele segue
+-- o SalicWeb: soma dos tipos 1 (inicial) e 2 (complementacao) menos a do tipo
+-- 4 (reducao). O historico completo fica em `silver_sac_aprovacao_rouanet`.
+-- `silver_sac_enquadramento` guarda so o enquadramento atual, uma linha por
+-- projeto; o `distinct on` dele so protege o grao.
 --
 -- LIMITES CONHECIDOS, a fechar no gate G1 do plano (§13 da memoria de
 -- OpenMetadata):
@@ -107,6 +111,7 @@ with
             dtpublicacaoaprovacao,
             dtiniciocaptacao,
             dtfimcaptacao,
+            tipoaprovacao,
             aprovadoreal,
             autorizadoreal
         from {{ ref("silver_sac_aprovacao") }}
@@ -120,7 +125,6 @@ with
             dtpublicacaoaprovacao::date as data_publicacao_ultima_aprovacao,
             dtiniciocaptacao::date as data_inicio_captacao,
             dtfimcaptacao::date as data_fim_captacao,
-            aprovadoreal as valor_aprovado_reais,
             autorizadoreal as valor_autorizado_reais
         from aprovacao_bruta
         where pronac is not null
@@ -132,6 +136,12 @@ with
             pronac,
             count(*) as qt_aprovacoes,
             min(dtaprovacao)::date as data_primeira_aprovacao,
+            coalesce(
+                sum(aprovadoreal) filter (where tipoaprovacao in ('1', '2')),
+                0
+            ) - coalesce(
+                sum(aprovadoreal) filter (where tipoaprovacao = '4'), 0
+            ) as valor_aprovado_reais,
             count(*) > 0 as projeto_aprovado
         from aprovacao_bruta
         where pronac is not null
@@ -179,7 +189,7 @@ select
     ult.data_publicacao_ultima_aprovacao,
     ult.data_inicio_captacao,
     ult.data_fim_captacao,
-    ult.valor_aprovado_reais,
+    ap.valor_aprovado_reais,
     ult.valor_autorizado_reais,
     coalesce(ap.qt_aprovacoes, 0) as qt_aprovacoes,
     coalesce(ap.projeto_aprovado, false) as projeto_aprovado,

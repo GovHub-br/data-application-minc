@@ -328,10 +328,14 @@ models:
       `silver_sac_projeto_proponente_rouanet`, que é zona restrita. Esta dimensão
       existe para ser a parte publicável do projeto.
 
-      "ÚLTIMO" É UMA ESCOLHA DECLARADA: aprovação e enquadramento têm histórico
-      (readequação, prorrogação, reenquadramento). A dimensão guarda o registro
-      mais recente de cada um, que é a leitura de painel; o histórico completo
-      está em `silver_sac_aprovacao_rouanet` e nenhuma linha se perde lá.
+      APROVAÇÃO TEM HISTÓRICO; ENQUADRAMENTO NÃO. Cada projeto acumula atos de
+      aprovação (inicial, complementação, prorrogação, redução, readequação).
+      As datas e o valor autorizado vêm do ato mais recente. O valor aprovado
+      não: o ato mais recente é prorrogação, de valor zero, em 126.064 dos
+      181.292 projetos aprovados, e por isso ele segue a regra do SalicWeb
+      (tipos 1 e 2 menos o tipo 4). O histórico completo está em
+      `silver_sac_aprovacao_rouanet`. O enquadramento tem uma linha por projeto
+      na origem: é o atual, sem histórico de reenquadramento.
 
       MEDIDA E UNIDADE: `valor_aprovado_reais` e `valor_autorizado_reais` estão
       em reais nominais da data da aprovação, sem correção monetária, e são
@@ -432,12 +436,13 @@ models:
         data_type: integer
       - name: codigo_enquadramento
         description: >
-          Código do enquadramento mais recente do projeto — é ele que separa os
+          Código do enquadramento atual do projeto (a origem não guarda
+          histórico) — é ele que separa os
           artigos da lei com percentual de abatimento diferente. Exposto como
           código pelo mesmo motivo do mecanismo.
         data_type: integer
       - name: data_enquadramento
-        description: Data do enquadramento mais recente registrado para o projeto.
+        description: Data do enquadramento atual do projeto; a origem não guarda reenquadramentos.
         data_type: date
       - name: codigo_situacao
         description: >
@@ -479,8 +484,13 @@ models:
         data_type: date
       - name: valor_aprovado_reais
         description: >
-          Valor aprovado na aprovação mais recente, em reais nominais da data
-          da aprovação, sem correção monetária. É teto, não recurso realizado.
+          Valor aprovado do projeto pela regra do SalicWeb: soma do
+          `aprovadoreal` dos atos de tipo 1 (inicial) e 2 (complementação)
+          menos a dos de tipo 4 (redução), em reais nominais, sem correção
+          monetária. É teto, não recurso realizado. Soma R$ 154,8 bi em
+          181.292 projetos; 38 ficam negativos, e 5 não têm ato de tipo 1 nem
+          2. A origem traz 95 reduções e 77 complementações com valor
+          negativo; a regra soma e subtrai o valor como está.
         data_type: numeric
       - name: valor_autorizado_reais
         description: >
@@ -650,7 +660,9 @@ models:
       - name: id_solicitante
         description: >
           Identificador do solicitante do vínculo no SALIC, como texto na
-          origem. Chave técnica ligada a pessoa.
+          origem. Chave técnica ligada a pessoa. Em 9.117 vínculos a origem
+          repete o vínculo com solicitantes diferentes; fica o menor, para o
+          resultado não mudar entre execuções.
         data_type: text
         meta:
           openmetadata:
