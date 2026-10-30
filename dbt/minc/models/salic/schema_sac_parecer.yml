@@ -1,1919 +1,2238 @@
 version: 2
 
+# Silvers do assunto parecer e análise do banco sac do SALIC: distribuição de
+# projetos a pareceristas, diligências, homologação, fiscalização, pagamento e
+# credenciamento de pareceristas, avaliações de risco de projeto e proponente e
+# as views de acompanhamento da análise. Medições de 29/10/2026 na Bronze
+# (salic.bronze_sac_*), por agregados, sem valor de linha.
+
 models:
   - name: silver_sac_avaliacaopc
     description: >
-      Tabela responsável por armazenar avaliações de prestação de contas, incluindo analista,
-      data, campos técnicos, resultado e pronunciamentos. Camada Silver tipada a partir de
-      salic.bronze_sac_avaliacaopc.
+      Uma linha por avaliação antiga de prestação de contas de um projeto, num
+      checklist de 27 itens com nota, resultado, manifestação e pronunciamento.
+      São 13.500 projetos, cada um com uma linha, avaliados de 2002 a 2019 por
+      176 analistas. O sistema atual registra a avaliação em
+      silver_sac_tbcumprimentoobjeto e silver_sac_tblaudofinal; esta tabela é o
+      legado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_avaliacaopc'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - prestacao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: anoprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: sequencial
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: prestacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Se a avaliação é de prestação de contas.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: analista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Analista que avaliou, código de usuário interno.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: dtanalise
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da avaliação, de 2002 a 2019.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_0
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_01
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_02
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_03
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_04
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_05
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_06
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_07
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_08
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_09
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_010
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_011
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_012
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_013
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_014
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_015
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_016
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_017
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_018
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_019
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_020
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_021
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_022
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_023
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_024
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_025
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: campo_026
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nota de 0 a 2 dada ao item do checklist; 9 aparece em todos os itens
+          e parece marcar item não aplicável. O significado de cada item não
+          está em tabela ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: resultado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Resultado da avaliação, de 0 a 3; 3 é o mais comum. Sem domínio
+          ingerido.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: manifestacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Manifestação do analista, de 0 a 3. Sem domínio ingerido.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: pronunciamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Pronunciamento final, de 0 a 3 ou 9. Sem domínio ingerido.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: justificativa
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Justificativa da avaliação, em texto livre.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: providencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Providência indicada, em texto livre.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: logon
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_avaliacaoprojeto
     description: >
-      Tabela utilizada para armazenar avaliações gerais dos projetos, com parâmetros e pesos
-      utilizados. Camada Silver tipada a partir de salic.bronze_sac_avaliacaoprojeto.
+      Uma linha por projeto e parâmetro da classificação de risco do projeto,
+      com o peso dado. São 43.552 projetos com exatamente 5 parâmetros cada,
+      217.760 linhas. A soma dos pesos dá a classificação de
+      silver_sac_vprojetoavaliado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_avaliacaoprojeto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: anoprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: sequencial
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: codparametro
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Parâmetro de risco avaliado, de 1 a 5. A tabela com o nome dos
+          parâmetros não é ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: codpeso
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Peso dado ao parâmetro, quase sempre de 0 a 3; 6 linhas do parâmetro
+          3 têm peso de 4 a 14.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_avaliacaoproponente
     description: >
-      Tabela responsável por registrar avaliações vinculadas ao proponente, com parâmetros e
-      pesos aplicados. Camada Silver tipada a partir de
-      salic.bronze_sac_avaliacaoproponente.
+      Uma linha por proponente e parâmetro da classificação de risco do
+      proponente, com o peso dado. São 14.299 proponentes com 6 parâmetros em
+      média, 85.861 linhas. A soma dos pesos dá a classificação de
+      silver_sac_vproponenteavaliado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_avaliacaoproponente'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: cgccpf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: codparametro
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Parâmetro de risco avaliado, de 1 a 7. A tabela com o nome dos
+          parâmetros não é ingerida.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: codpeso
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Peso dado ao parâmetro, quase sempre de 1 a 3.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_distribuicao_avaliacao_proposta
     description: >
-      Tabela responsável por registrar a distribuição de propostas para avaliação, incluindo
-      avaliador, órgão, perfil e data. Camada Silver tipada a partir de
-      salic.bronze_sac_distribuicao_avaliacao_proposta.
+      Uma linha por envio de uma proposta para avaliação na fase de
+      admissibilidade, antes de virar projeto. São 204.111 envios de 77.742
+      propostas, de 2018 a 2026. avaliacao_atual true marca o envio vigente:
+      77.881 linhas, um por proposta salvo poucas. 95.009 envios não têm
+      avaliador designado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_distribuicao_avaliacao_proposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: id_distribuicao_avaliacao_proposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador do envio. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: id_preprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Proposta, idpreprojeto de silver_sac_preprojeto.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: id_orgao_superior
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Secretaria que avalia: 251 SEFIC (180.829) ou 160 SAV (23.282).
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: id_perfil
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Perfil de quem avalia: 131 em todas as linhas.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: data_distribuicao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data do envio, de 2018 a 2026.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: avaliacao_atual
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Se é o envio vigente da proposta.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: id_avaliador
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Avaliador designado, usuário interno. Vazio em 95.009.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbdiligencia
     description: >
-      Tabela responsável por registrar diligências emitidas aos projetos, seus prazos,
-      produtos, documentos exigidos e situação. Camada Silver tipada a partir de
-      salic.bronze_sac_tbdiligencia.
+      Uma linha por diligência aberta num projeto: pedido de informação ou
+      documento ao proponente, com a resposta. São 114.567 diligências de
+      50.367 projetos, de 2009 a 2026; 562 sem resposta. O tipo diz em que
+      etapa a diligência foi aberta (ver idtipodiligencia). O histórico de cada
+      rodada está em silver_sac_tbhistoricodiligencia.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbdiligencia'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idcodigodocumentosexigidos
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: iddiligencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da diligência. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
       - name: idtipodiligencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Tipo da diligência, da verificação do sac (grupo 8): 124 análise
+          técnica inicial (47.671), 181 checklist da análise (19.660), 183
+          movimentação bancária (16.059), 171 readequação pelo técnico (9.232),
+          744 análise preditiva (7.999), 180 avaliação do relatório final
+          (3.308), 126 CNIC na análise inicial (3.168), 179 readequação pelo
+          parecerista, 645 prestação de contas em todos os itens, 174 prestação
+          de contas, 627 notificação de cobrança da prestação de contas, 563 e
+          564 recurso, 172 fiscalização.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - relationships:
-              arguments:
-                to: ref('sac__verificacao')
-                field: idverificacao
       - name: dtsolicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que a diligência foi aberta.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: solicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          O que foi pedido, em HTML.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: idsolicitante
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que abriu a diligência.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: dtresposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da resposta do proponente. Vazia em 562.
         data_type: timestamp
       - name: resposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Resposta do proponente, em texto livre.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: idproponente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Proponente que respondeu, código de agente.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: stestado
         description: >
-          0.Atual;1.Historico
+          Se a linha está ativa na origem: true ativa, false inativa ou
+          substituída.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idplanodistribuicao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Plano de distribuição diligenciado. Vazio em todas as linhas.
         data_type: integer
       - name: idarquivo
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Arquivo anexado. Preenchido em 9.
         data_type: integer
       - name: idcodigodocumentosexigidos
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Documento exigido. Preenchido em 5.
         data_type: integer
-        tests:
-          - relationships:
-              arguments:
-                to: ref('sac__documentosexigidos')
-                field: codigo
       - name: idproduto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Produto diligenciado, código de silver_sac_vwprodutos. Preenchido em
+          40.238.
         data_type: integer
       - name: stprorrogacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Se o prazo de resposta foi prorrogado: 1 em 9.310, N em 69; vazio no
+          resto.
         data_type: text
       - name: stenviado
         description: >
-          S.Enviado; N.Não enviado
+          Se a diligência foi enviada ao proponente: S em 113.815, N em 139.
         data_type: text
       - name: cdsituacaoorigem
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação do projeto quando a diligência foi aberta, código de
+          sac.situacao, como B11 ou E24. Vazia em 63.797.
         data_type: text
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbdiligenciaxarquivo
     description: >
-      Tabela utilizada para vincular arquivos às diligências. Camada Silver tipada a partir
-      de salic.bronze_sac_tbdiligenciaxarquivo.
+      Uma linha por arquivo anexado a uma diligência. São 83.985 anexos de
+      43.538 diligências.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbdiligenciaxarquivo'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: iddiligencia
         description: >
-          Faz referencia à tabela tbDiligencia do banco SAC.
+          Diligência, código de silver_sac_tbdiligencia.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbdiligencia')
-                field: iddiligencia
       - name: idarquivo
         description: >
-          Faz referencia à tabela tbArquivo do BDCORPORATIVO. O controle de integridade será
-          feita pela aplicação.
+          Arquivo anexado à diligência.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbdistribuirparecer
     description: >
-      Tabela responsável por distribuir projetos/produtos para pareceristas, com datas,
-      órgãos, análises e status. Camada Silver tipada a partir de
-      salic.bronze_sac_tbdistribuirparecer.
+      Uma linha por envio de um produto de um projeto a uma unidade e a um
+      parecerista, para análise de conteúdo ou de custo. São 1.116.537 envios
+      de 75.540 projetos, de 2009 a 2026, com 1.789 pareceristas. Cada nova
+      movimentação grava uma linha e desativa a anterior (stestado false). A
+      FUNARTE (92) recebe 73% dos envios.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbdistribuirparecer'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - dtdistribuicao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: iddistribuirparecer
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador do envio.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idproduto
         description: >
-          0.Enquadramento ou idProduto p/Análise de Custo
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: tipoanalise
         description: >
-          0.Análise de Conteúdo;1.Análise de Custo;2.Análise de Custo Administrativo
+          Tipo da análise, pelo SalicWeb: 0 conteúdo, 1 custo do produto, 2
+          custo administrativo. 3 é o tipo que o SalicWeb usa para os projetos
+          do modelo novo, que juntam conteúdo e custo; isso só aparece num
+          comentário do código, sem confirmação. Contagem: 0 em 269.006, 1 em
+          267.117, 2 em 172.712, 3 em 407.698; 4 linhas com 91.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idorgao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade que analisa, código de silver_tabelas_orgaos: 92 FUNARTE
+          (812.684), 93 FBN, 160 SAV, 335 IBRAM, 91 IPHAN e outras.
         data_type: integer
       - name: dtenvio
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data do envio à unidade.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idagenteparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Parecerista, código de agente em silver_agentes_agentes.idagente.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: dtdistribuicao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que a análise foi distribuída ao parecerista.
         data_type: timestamp
       - name: dtdevolucao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que o parecerista devolveu a análise.
         data_type: timestamp
       - name: observacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Observação do envio, em texto livre.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: stestado
         description: >
-          0.Atual;1.Histórico
+          Se a linha está ativa na origem: true ativa, false inativa ou
+          substituída.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: stprincipal
         description: >
-          0.Não;1.Sim
+          Se o produto é o principal do projeto; o SalicWeb dá 20 dias ao
+          principal e 10 aos outros.
         data_type: boolean
       - name: fecharanalise
         description: >
-          0.Análise aberta; 1.Análise Fechada
+          Etapa da análise: 0 aberta, 1 concluída, pelo SalicWeb; 2 e 3 também
+          aparecem e o SalicWeb trata 2 como aberta. O significado de 2 e 3 não
+          está confirmado.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtretorno
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de retorno à unidade.
         data_type: timestamp
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: stdiligenciado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Se o produto está em diligência: true em 7, false em 607.570, vazio
+          no resto.
         data_type: boolean
       - name: siencaminhamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Etapa do envio, de sac.tbTipoEncaminhamento, não ingerida. Vazia em
+          896.089; 4 e 6 são os mais comuns.
         data_type: integer
       - name: sianalise
         description: >
-          0. Aguardando Distribuição para o parecerista (Coordenador de Parecer) 1. Em
-          análise pelo parecerista (Parecerista) 2. Analisado pelo parecerista (Parecerista)
-          3. Finalizado análise técnica (Parecerista) 4. Em validação pelo coordenador
-          (Coordenador de Parecer) 5. Validados pelo coordenador (Coordenador de Parecer)
+          Situação da análise. Vazia em 896.089. Sem domínio ingerido.
         data_type: integer
       - name: idorgaoorigem
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade que enviou, código de silver_tabelas_orgaos. Vazia em
+          898.284.
         data_type: integer
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbfiscalizacao
     description: >
-      Tabela responsável por registrar as fiscalizações realizadas nos projetos, incluindo
-      datas de início e fim, demandante, situação e responsáveis internos. Camada Silver tipada a partir de salic.bronze_sac_tbfiscalizacao.
+      Uma linha por fiscalização presencial de um projeto. São 1.967
+      fiscalizações de 1.950 projetos, de 2012 a 2026; 1.882 já concluídas pelo
+      coordenador.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbfiscalizacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idfiscalizacao
         description: >
-          Identificador sequencial de fiscalização de determinados projetos culturais.
+          Identificador da fiscalização. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idpronac
         description: >
-          Identificador único de projetos cultural no Ministério da Cultura, faz referencia a
-          tabela Projetos.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtiniciofiscalizacaoprojeto
         description: >
-          Data de inicio da fiscalização de um determinado projeto cultural.
+          Data de início da fiscalização.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtfimfiscalizacaoprojeto
         description: >
-          Data final da fiscalização de um determinado projeto cultural.
+          Data de fim prevista.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtrespostasolicitada
         description: >
-          Data para posicionar o período de resposta da fiscalização.
+          Prazo de resposta pedido ao proponente. Preenchido em 122.
         data_type: timestamp
       - name: dsfiscalizacaoprojeto
         description: >
-          Descrição de informações relativas aos projetos que será fiscalizado.
+          Descrição da fiscalização, em texto livre.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: tpdemandante
         description: >
-          Tipo do demandante responsável pela realização da fiscalização: 0 - SEFIC 1 - SAV
+          Quem demandou a fiscalização: 0 em 1.810, 1 em 131. Sem domínio
+          ingerido.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: stfiscalizacaoprojeto
         description: >
-          Situação da fiscalização. 0 - Fiscalização em andamento 1 - Fiscalização em atraso
-          2 - Fiscalização concluída para parecer.
+          Situação, pelo SalicWeb: 0 e 1 em andamento com o técnico, 2
+          concluída pelo técnico, 3 concluída pelo coordenador (1.882).
         data_type: text
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['0', '1', '2', '3']
+              config:
+                severity: warn
       - name: idagente
         description: >
-          Identificador do agente responsável para execução da fiscalização, faz referência a
-          tabela Agentes do banco Agentes, controle de integridade referencial via aplicação.
+          Técnico fiscal, código de agente. Preenchido em 86.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idsolicitante
         description: >
-          Identificador do solicitante da fiscalização, faz referência a tabela Agentes do
-          banco Agentes, controle de integridade referencial via aplicação.
+          Usuário interno que pediu a fiscalização.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idusuariointerno
         description: >
-          Identifica o usuário que é funcionário do Minc na fiscalização. Faz referência ao
-          atributo identificador usu_codigo da tabela Usuarios do banco Tabelas.
+          Usuário interno responsável.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbhistoricodevolucaofiscalizacao
     description: >
-      Tabela responsável por registrar devoluções de relatórios de fiscalização, com
-      justificativas, datas e status. Camada Silver tipada a partir de
-      salic.bronze_sac_tbhistoricodevolucaofiscalizacao.
+      Uma linha por devolução do relatório de uma fiscalização ao técnico, com
+      a justificativa. São 4.698 devoluções de 1.884 relatórios, de 2012 a
+      2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbhistoricodevolucaofiscalizacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idhistoricodevolucao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da devolução. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idrelatoriofiscalizacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Relatório de fiscalização devolvido.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dsjustificativadevolucao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Justificativa da devolução, em texto livre. Preenchida em 515.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: dtenviodevolucao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que o relatório foi devolvido.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: stdevolucao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação da devolução: 1 em 2.814; o caractere ( nas outras 1.884,
+          sujeira da origem.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbhistoricodiligencia
     description: >
-      Tabela responsável por registrar o histórico de solicitações e respostas de
-      diligências, com datas e usuários envolvidos. Camada Silver tipada a partir de
-      salic.bronze_sac_tbhistoricodiligencia.
+      Uma linha por rodada de uma diligência: cada pedido e resposta trocados.
+      São 217.579 rodadas de 49.808 diligências, de 2012 a 2026. Toda
+      diligência citada existe em silver_sac_tbdiligencia.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbhistoricodiligencia'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idhistoricodiligencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da rodada. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: iddiligencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Diligência, código de silver_sac_tbdiligencia.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbdiligencia')
-                field: iddiligencia
       - name: dtsolicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data do pedido na rodada.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: solicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Pedido da rodada, em HTML.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: dtresposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da resposta. Preenchida em 130.962.
         data_type: timestamp
       - name: resposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Resposta, em texto livre. Preenchida em 111.348.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbhomologacao
     description: >
-      Tabela responsável por registrar as homologações de decisões relativas aos projetos,
-      com tipo, data, decisão, descrição e usuário. Camada Silver tipada a partir de
-      salic.bronze_sac_tbhomologacao.
+      Uma linha por homologação do parecer técnico de um projeto antes da CNIC,
+      com o texto. São 22.646 homologações de 22.640 projetos, de 2017 a 2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbhomologacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idhomologacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da homologação. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: tphomologacao
         description: >
-          1. Homologação normal; 2.Homologação por Ad Referedum
+          Tipo da homologação: 1 em 22.425, 2 em 221. Sem domínio ingerido.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dthomologacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da homologação.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: stdecisao
         description: >
-          1.Desfavoravel; 2.Favorável
+          Decisão: 2 em 21.901, 1 em 744, 0 em 1. Sem domínio ingerido.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dshomologacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Texto da homologação, em HTML.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tborgaofiscalizador
     description: >
-      Tabela responsável por vincular fiscalizações a órgãos fiscalizadores, contendo datas,
-      observações e responsáveis. Camada Silver tipada a partir de
-      salic.bronze_sac_tborgaofiscalizador.
+      Uma linha por órgão que acompanha uma fiscalização. Tem 1 linha, de 2012:
+      sem uso atual.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tborgaofiscalizador'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idorgaofiscalizador
         description: >
-          Registros do órgãos responsáveis pela fiscalização
+          Identificador da linha.
         data_type: integer
       - name: idorgao
         description: >
-          Identificador do órgao que está sendo fiscalizado, faz referência a tabela órgão.
+          Unidade responsável, código de silver_tabelas_orgaos.
         data_type: integer
       - name: idfiscalizacao
         description: >
-          Identificador da fiscalização, faz referência a tabela tbFiscalizacao.
+          Fiscalização, código de silver_sac_tbfiscalizacao.
         data_type: integer
-        tests:
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbfiscalizacao')
-                field: idfiscalizacao
       - name: dsobservacao
         description: >
-          Observação informada pela unidade participante.
+          Observação, em texto livre.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: dtrecebimentoresposta
         description: >
-          Data de recebimento da resposta enviada pelo fiscal.
+          Data em que a resposta foi recebida.
         data_type: timestamp
       - name: dtconfirmacaofiscalizacao
         description: >
-          Data de confirmação da fiscalização.
+          Data em que a fiscalização foi confirmada.
         data_type: timestamp
       - name: idresponsavelconfirmacao
         description: >
-          Identificador do responsável pela confirmação, referencia a tabela Agentes do banco
-          Agentes, controle de integridade referencial via aplicação.
+          Responsável pela confirmação. Vazio.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idparecerista
         description: >
-          Identificador do parecerista do órgão fiscalizador, cada órgão fiscalizador poderá
-          selecionar ou não, um parecerista conhecedor do projeto para acompanhar o fiscal
-          responsável pela fiscalização, faz referência a tabela Agentes do banco Agentes,
-          controle de integridade referencial via aplicação.
+          Parecerista, código de agente em silver_agentes_agentes.idagente.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbpagarparecerista
     description: >
-      Tabela responsável por armazenar pagamentos realizados a pareceristas, com valores,
-      datas, unidade e empenho. Camada Silver tipada a partir de
-      salic.bronze_sac_tbpagarparecerista.
+      Uma linha por pagamento a parecerista pela análise de um produto de um
+      projeto. São 70.797 pagamentos a 874 pareceristas, por 35.236 projetos,
+      que somam 17,1 milhões de reais; a FUNARTE (92) responde por 12,6
+      milhões. Os valores vão de 11,09 a 2.200 reais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpagarparecerista'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idgerarpagamentoparecerista
+            - idpareceristaempenho
+            - nrempenho
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpagarparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador do pagamento. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idnrreuniao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Reunião da CNIC, código de silver_sac_tbreuniao.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Parecerista, código de agente em silver_agentes_agentes.idagente.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idproduto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idunidadeanalise
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade que contratou a análise, código de silver_tabelas_orgaos: 92
+          FUNARTE, 93 FBN, 160 SAV, 335 IBRAM, 91 IPHAN.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idgerarpagamentoparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Lote de pagamento, código de silver_sac_tbgerarpagamentoparecerista.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbgerarpagamentoparecerista')
-                field: idgerarpagamentoparecerista
       - name: vlpagamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Valor pago ao parecerista, em reais.
         data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtdistribuicao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da distribuição. Preenchida em 11.540.
         data_type: timestamp
       - name: dthomologacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da homologação. Preenchida em 11.540, de 2025 a 2026.
         data_type: timestamp
       - name: idpareceristaempenho
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Empenho do parecerista. Vazio em todas as linhas.
         data_type: integer
-        tests:
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbpareceristaempenho')
-                field: idpareceristaempenho
       - name: nrempenho
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Número da nota de empenho do pagamento.
         data_type: text
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbpagarpareceristarecurso
     description: >
-      Tabela responsável por registrar pagamentos a pareceristas referentes a análises de
-      recursos. Camada Silver tipada a partir de salic.bronze_sac_tbpagarpareceristarecurso.
+      Uma linha por pagamento a parecerista pela análise de um recurso. Tem 14
+      pagamentos, todos do mesmo valor.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpagarpareceristarecurso'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idgerarpagamentoparecerista
+            - idpareceristaempenho
+            - nrempenho
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpagarrecurso
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador do pagamento. Único.
         data_type: integer
+        tests:
+          - not_null
+          - unique
       - name: idparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Parecerista, código de agente em silver_agentes_agentes.idagente.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
       - name: tpsolicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Tipo do recurso: OR em 9, PI em 5. Sem domínio ingerido.
         data_type: text
       - name: dthomologacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da homologação do parecer, que libera o pagamento.
         data_type: timestamp
       - name: idunidade
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade que contratou, código de silver_tabelas_orgaos.
         data_type: integer
       - name: idgerarpagamentoparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Lote de pagamento, código de silver_sac_tbgerarpagamentoparecerista.
         data_type: integer
-        tests:
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbgerarpagamentoparecerista')
-                field: idgerarpagamentoparecerista
       - name: vlpagamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Valor pago ao parecerista, em reais.
         data_type: numeric
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: dtdistribuicao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que a análise foi distribuída ao parecerista.
         data_type: timestamp
       - name: idpareceristaempenho
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Empenho do parecerista. Vazio em todas as linhas.
         data_type: integer
-        tests:
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbpareceristaempenho')
-                field: idpareceristaempenho
       - name: nrempenho
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Número da nota de empenho do pagamento.
         data_type: text
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbpareceristaafastamento
     description: >
-      Tabela responsável por registrar afastamentos de pareceristas, com motivos, datas,
-      justificativas e anexos. Camada Silver tipada a partir de
-      salic.bronze_sac_tbpareceristaafastamento.
+      Uma linha por afastamento de um parecerista, período em que não recebe
+      análise. São 296 afastamentos de 2024 a 2026. idmotivo é o motivo e
+      status a situação do pedido; nenhum dos dois tem domínio ingerido.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpareceristaafastamento'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpareceristaafastamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador do afastamento. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idagente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Agente, código de silver_agentes_agentes.idagente.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idmotivo
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Motivo do afastamento: 1 em 100, 4 em 61, 7 em 47, 3 em 46, 2 em 29;
+          0 e 6 nas outras. Sem domínio ingerido.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtinicioafastamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Início do afastamento.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtfimafastamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de fim do afastamento.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: justificativa
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Justificativa do afastamento, em texto livre. Pode conter informação
+          de saúde.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: status
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação do pedido: 1 em 285, 2 em 10, 0 em 1. Sem domínio ingerido.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idarquivo
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Arquivo anexado. Preenchido em 26.
         data_type: integer
       - name: dtsolicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que o afastamento foi pedido.
         data_type: timestamp
       - name: dtautorizacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da autorização.
         data_type: timestamp
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbpareceristaedital
     description: >
-      Tabela responsável por registrar a participação de pareceristas em editais, incluindo
-      vigência, credenciamento e estado. Camada Silver tipada a partir de
-      salic.bronze_sac_tbpareceristaedital.
+      Uma linha por credenciamento de parecerista por edital, com a vigência.
+      Tem 10 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpareceristaedital'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: nredital
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Número do edital, número/ano.
         data_type: text
       - name: dtiniciovigencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de início da vigência do credenciamento.
         data_type: timestamp
       - name: dtfimvigencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de fim da vigência do credenciamento.
         data_type: timestamp
       - name: dtcredenciamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data do credenciamento.
         data_type: timestamp
       - name: dtdescredenciamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data do descredenciamento.
         data_type: timestamp
       - name: stestado
         description: >
-          0.Ativo; 1.Inativo
+          Se a linha está ativa na origem: true ativa, false inativa ou
+          substituída.
         data_type: boolean
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idagente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Agente, código de silver_agentes_agentes.idagente.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: idpareceristasedital
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da linha. Único.
         data_type: integer
+        tests:
+          - not_null
+          - unique
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbpareceristainexigibilidade
     description: >
-      Tabela responsável por registrar pagamentos ou procedimentos de inexigibilidade
-      relacionados a pareceristas. Camada Silver tipada a partir de
-      salic.bronze_sac_tbpareceristainexigibilidade.
+      Uma linha por parecerista contratado num processo de inexigibilidade de
+      licitação, com o valor. São 1.075 linhas de 675 pareceristas, em
+      processos de 2023 a 2026; stestado true marca 497.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpareceristainexigibilidade'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpareceristainexigibilidade
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da linha. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbpareceristainexigibilidade')
-                field: idpareceristainexigibilidade
+          - not_null
+          - unique
       - name: dtinexigibilidade
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data do processo de inexigibilidade.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idagente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Agente, código de silver_agentes_agentes.idagente.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: vlinexigibilidade
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Valor do contrato, em reais.
         data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: stestado
         description: >
-          0.Ativo; 1. Histórico
+          Se a linha está ativa na origem: true ativa, false inativa ou
+          substituída.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: identificacaoinex
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificação do processo: 01.2023 em todas.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbpareceristaprojetoredistribuido
     description: >
-      Tabela responsável por registrar redistribuições de projetos entre pareceristas. Camada Silver tipada a partir de salic.bronze_sac_tbpareceristaprojetoredistribuido.
+      Uma linha por redistribuição de um projeto entre pareceristas. São 5.638,
+      de 2025 a 2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpareceristaprojetoredistribuido'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpareceristaprojetoredistribuido
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da linha. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Parecerista, código de agente em silver_agentes_agentes.idagente.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: dtredistribuicao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da redistribuição.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: tpanalise
         description: >
-          0. Análise inicial; 1.Recurso; 2.Readequação
+          Tipo da análise redistribuída: 2 em 3.192, 3 em 2.391, 1 em 48; 5, 7
+          e 9 em 7. O significado não está confirmado.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: simotivo
         description: >
-          0.Declinado; 1. Retirado
+          Se a redistribuição tem motivo registrado: true em 5.144.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbpareceristavaloranalisado
     description: >
-      Tabela responsável por registrar valores analisados pelos pareceristas durante a etapa
-      de avaliação. Camada Silver tipada a partir de
-      salic.bronze_sac_tbpareceristavaloranalisado.
+      Uma linha por análise assinada por um parecerista num projeto, com o
+      valor devido por ela. São 2.551 linhas de 179 pareceristas, assinadas em
+      2026. tipo é a faixa de valor: a, de 82 a 3.300 reais, tem 2.092; c a f
+      valem 410 reais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpareceristavaloranalisado'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: cnpjcpf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtassinatura
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da assinatura da análise.
         data_type: date
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: valor
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Valor devido pela análise, em reais.
         data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: tipo
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Faixa da análise, de a a f. Sem domínio ingerido.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbpreprojetoxenquadramento
     description: >
-      Tabela responsável por registrar o estado de análise do enquadramento dos pré-projetos.
-      Camada Silver tipada a partir de salic.bronze_sac_tbpreprojetoxenquadramento.
+      Uma linha por proposta com a situação da análise de enquadramento. São
+      43.634 propostas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbpreprojetoxenquadramento'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idproposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Proposta, idpreprojeto de silver_sac_preprojeto. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: siestadoanalise
         description: >
-          0. Não avaliado; 1. Enquadramento pelo Componente da Comissão; 2. Enquadramento
-          pelo Técnico; 3. Enquadramento pelo Coordenador; 4. Enquadramento pelo
-          Coordenador-Geral
+          Situação da análise: 3 em 22.660, 4 em 12.214, 2 em 5.437, 1 em
+          3.323. Sem domínio ingerido.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_tbprioridadedeanalise
     description: >
-      Tabela responsável por registrar prioridades de análise dos projetos, incluindo
-      motivação, tipo, urgência e responsável. Camada Silver tipada a partir de
-      salic.bronze_sac_tbprioridadedeanalise.
+      Uma linha por projeto priorizado para análise na CNIC, com a motivação.
+      São 102 prioridades de 2020 e 2021.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprioridadedeanalise'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idprioridadedeanalise
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da prioridade. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtprioridade
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da priorização.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: dsmotivacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Motivação da prioridade, em HTML.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: idnrreuniao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Reunião da CNIC, código de silver_sac_tbreuniao.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: siurgencia
         description: >
-          0. Não urgente;1.Urgente
+          Se é urgente: true em 96.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: tpanalise
         description: >
-          0. Análise Inicial; 1. Recurso
+          Tipo de análise: true em 2.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: stestado
         description: >
-          0.Historico; 1.Atual
+          Se a linha está ativa na origem: true ativa, false inativa ou
+          substituída.
         data_type: boolean
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vdiligencias
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vdiligencias.
+      Uma linha por diligência de controle antigo de um projeto, com documento
+      de solicitação, posicionamento e resposta. São 1.401 diligências de 1.165
+      projetos, de 1999 a 2018. Os códigos não têm domínio ingerido.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vdiligencias'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - documentosolicitacao
+            - nrdocumentosolicitacao
+            - documentoresposta
+            - nrdocumentoresposta
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: nrprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: controladores
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Órgão de controle que diligenciou, de 0 a 6. Sem domínio ingerido.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: documentosolicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Tipo do documento de solicitação, de 0 a 4.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nrdocumentosolicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Número do documento de solicitação.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtsolicitacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Data da solicitação, de 1999 a 2018.
+        data_type: timestamp
       - name: posicionamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Posicionamento, de 0 a 9; 9 é o mais comum.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: constatacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Constatação, em texto livre.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: documentoresposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Tipo do documento de resposta.
         data_type: text
       - name: nrdocumentoresposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Número do documento de resposta.
         data_type: text
       - name: dtresposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Data da resposta à diligência.
+        data_type: timestamp
       - name: resposta
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Resposta, em texto livre.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vparecerinicial
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vparecerinicial.
+      Uma linha por parecer inicial emitido num projeto, com o texto. São
+      195.176 pareceres de 138.391 projetos; as datas vão de 1992 a 2995, com
+      erro de digitação.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vparecerinicial'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: anoprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: sequencial
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
       - name: tipoparecer
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Tipo do parecer: 1 em todas.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtparecer
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que o parecer foi emitido.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: parecer
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Texto do parecer, livre.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vprojetoavaliado
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vprojetoavaliado.
+      Uma linha por projeto com a classificação de risco calculada pela soma
+      dos pesos de silver_sac_avaliacaoprojeto. São 43.552 projetos: Análise
+      Formal 28.673, Monitoria à Distância 14.877, Auditoria e Fiscalização 1
+      cada.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vprojetoavaliado'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: anoprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: sequencial
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: classificacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Classificação de risco: Análise Formal, Monitoria à Distância,
+          Auditoria ou Fiscalização.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: peso
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Soma dos pesos dos parâmetros.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vprojetodiligencia
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vprojetodiligencia.
+      Uma linha por diligência antiga de um projeto, só com o texto. São 3.776
+      de 1.595 projetos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vprojetodiligencia'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: anoprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: sequencial
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
       - name: diligencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Texto da diligência, livre.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vprojetosemanalise
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vprojetosemanalise.
+      Uma linha por projeto antigo do FNC ou do Tesouro parado em análise. São
+      2.138 projetos, todos com dados congelados: a saída é de 2004 em todos
+      que a têm.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vprojetosemanalise'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: regiao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Região do país do projeto.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: uf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          UF do projeto, por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nrprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: area
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Área cultural por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: segmento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Segmento cultural por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: orgao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade responsável, por sigla.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: mecanismo
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Mecanismo por extenso: FNC, Recurso do Tesouro ou Mecenato.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: situacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação do projeto por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtsaida
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Data de saída para análise.
+        data_type: timestamp
       - name: unidadeanalise
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade de análise: FUNARTE ou IPHAN.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: qtdedias
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Dias desde a saída para análise.
+        data_type: integer
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vproponenteavaliado
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vproponenteavaliado.
+      Uma linha por proponente com a classificação de risco calculada pela soma
+      dos pesos de silver_sac_avaliacaoproponente. São 14.298: Monitoria à
+      Distância 7.978, Fiscalização 4.788, Análise Formal 1.241, Auditoria 291.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vproponenteavaliado'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: cgccpf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: proponente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do proponente, pessoa ou entidade.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: classificacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Classificação de risco: Análise Formal, Monitoria à Distância,
+          Fiscalização ou Auditoria.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: peso
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Soma dos pesos dos parâmetros.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwanalisedeconteudo
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwanalisedeconteudo.
+      Uma linha por análise de conteúdo de um produto de um projeto. São
+      137.580 análises de 75.538 projetos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwanalisedeconteudo'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idanalisedeconteudo
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador da análise. Único.
         data_type: integer
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          - not_null
+          - unique
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idproduto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: produto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Produto por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwanalisedocumentalportecnico
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwanalisedocumentalportecnico.
+      Uma linha por projeto na fila de análise documental, com o técnico e os
+      dias. Tem 69 projetos, de 2009 a 2021.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwanalisedocumentalportecnico'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Projeto, código interno.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: tecnico
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do técnico responsável.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: dtenvio
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de envio para análise documental.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: dtmovimentacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da movimentação.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: dtavaliacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que a análise documental terminou.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: dias
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Dias que o projeto ficou em análise.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idorgao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade responsável, código de silver_tabelas_orgaos.
         data_type: text
       - name: conformidadeok
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Se a conformidade está ok: 1 em todas.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwanalisefinanceiravirtual
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwanalisefinanceiravirtual.
+      Uma linha por projeto na fila de análise financeira da prestação de
+      contas, com o técnico. São 282 projetos: E30 aguarda análise financeira
+      190, E68 diligenciado 59, E17 análise de resposta de diligência 33.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwanalisefinanceiravirtual'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - dssituacaoencprestcontas
+            - idsituacaoencprestcontas
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: pronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: cdarea
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dsarea
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Área cultural por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cdsegmento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dssegmento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Segmento cultural por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cdsituacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação do projeto, código de três caracteres da tabela
+          sac.situacao.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: situacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cdorgao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade, código de silver_tabelas_orgaos.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dsmecanismo
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Mecanismo por extenso: Incentivo Fiscal federal em todas.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dssituacaoencprestcontas
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação do encaminhamento da prestação de contas, por extenso.
         data_type: text
       - name: idagentedestino
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Técnico de destino, código de agente.
         data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: nmtecnico
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do técnico de destino.
         data_type: text
         meta:
           openmetadata:
@@ -1921,859 +2240,835 @@ models:
               - PII.NonSensitive
       - name: dtinicioencaminhamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Início do encaminhamento.
         data_type: timestamp
       - name: dtfimencaminhamento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Fim do encaminhamento. Vazio em todas.
+        data_type: timestamp
       - name: qtdiasemanalise
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Dias em análise. Vazio em todas.
+        data_type: integer
       - name: idsituacaoencprestcontas
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação do encaminhamento, código.
         data_type: text
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwanalisevisualportecnico
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwanalisevisualportecnico.
+      Uma linha por projeto da análise visual, com o técnico. São 15.310
+      projetos, de 2010 a 2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwanalisevisualportecnico'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Projeto, código interno. Único.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: tecnico
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do técnico responsável.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: dtenvio
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de envio para a análise visual.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtmovimentacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da movimentação.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idorgao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade responsável, código de silver_tabelas_orgaos.
         data_type: text
       - name: conformidadeok
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Se a conformidade está ok: 9 em todas.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: qtdedias
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+          Dias em análise: 0 em todas.
+        data_type: integer
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwinformacoesconsolidadasparaavaliacaofinanceira
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwinformacoesconsolidadasparaavaliacaofinanceira.
+      Uma linha por projeto com o resumo para a avaliação financeira: aprovado,
+      captado, comprovado, empregos e resultado do objeto. São 280.061 linhas
+      de 276.887 projetos; 945 projetos aparecem mais de uma vez. O aprovado
+      soma 158,8 bilhões de reais. Só 21.093 linhas têm comprovação.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwinformacoesconsolidadasparaavaliacaofinanceira'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - dtenviodaprestacaocontas
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: pronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cnpjcpf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: proponente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do proponente, pessoa ou entidade.
         data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: area
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Área cultural por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: segmento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Segmento cultural por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: situacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação com a descrição, como K00 - Projeto arquivado.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtenviodaprestacaocontas
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Data de envio da prestação de contas.
+        data_type: timestamp
       - name: resultadoavaliacaoobjeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Resultado da avaliação do objeto: Sem informação em 276.874.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: qtempregosdiretos
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Empregos diretos declarados.
+        data_type: integer
       - name: qtempregosindiretos
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Empregos indiretos declarados.
+        data_type: integer
       - name: qtempregosgerados
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
+          Total de empregos declarados.
+        data_type: integer
       - name: qtcomprovacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+          Quantidade de comprovantes.
+        data_type: integer
       - name: qtnc_90
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+          Quantidade de não conformidades do tipo 90.
+        data_type: integer
       - name: qtnc_95
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+          Quantidade de não conformidades do tipo 95.
+        data_type: integer
       - name: qtnc_99
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+          Quantidade de não conformidades do tipo 99.
+        data_type: integer
       - name: vlaprovado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Valor aprovado, em reais.
         data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: vlcaptado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+          Valor captado, em reais. Diferente de zero em 55.365.
+        data_type: numeric
       - name: vlcomprovado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+          Valor comprovado, em reais. Diferente de zero em 21.093.
+        data_type: numeric
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwlaudofinalavaliacaoderesultadodoprojeto
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwlaudofinalavaliacaoderesultadodoprojeto.
+      Uma linha por laudo final da avaliação de resultado do projeto, com
+      proponente e manifestação. São 1.994 laudos, de 2018 a 2026: APROVADO
+      1.392, APROVADO COM RESSALVAS 312, REPROVADO 290. Confirma o significado
+      das letras de silver_sac_tblaudofinal.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwlaudofinalavaliacaoderesultadodoprojeto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
       - name: pronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cnpjcpf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: proponente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do proponente, pessoa ou entidade.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: idlaudofinal
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Laudo, código de silver_sac_tblaudofinal. Único.
         data_type: integer
-        meta:
-          openmetadata:
-            tags:
-              - PII.Sensitive
         tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tblaudofinal')
-                field: idlaudofinal
+          - not_null
+          - unique
       - name: dtlaudofinal
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que o laudo final foi emitido.
         data_type: timestamp
-        meta:
-          openmetadata:
-            tags:
-              - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: simanifestacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Manifestação: A aprovado, P aprovado com ressalvas, R reprovado.
         data_type: text
         tests:
-          - not_null   # inferido do perfil do banco
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['A', 'P', 'R']
+              config:
+                severity: warn
       - name: dsmanifestacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Manifestação por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dslaudofinal
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Texto do laudo, em HTML.
         data_type: text
         meta:
           openmetadata:
             tags:
-              - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
-          - unique   # inferido do perfil do banco
+              - PII.NonSensitive
       - name: idusuario
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Usuário interno que gravou a linha, código de
+          silver_tabelas_usuarios.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwpareceristascredenciados
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwpareceristascredenciados.
+      Uma linha por parecerista, área, segmento e unidade autorizada. São
+      68.070 linhas de 601 pareceristas. Traz CPF, telefone e e-mail do
+      parecerista.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpareceristascredenciados'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idagente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Agente, código de silver_agentes_agentes.idagente.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: nrcnpjcpf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          CPF do parecerista, sem máscara.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nmparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do parecerista.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cdarea
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nmarea
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Área cultural por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cdsegmento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nmsegmento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Segmento cultural por extenso.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cdorgaosuperior
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Órgão superior, código de silver_tabelas_orgaos: 91 IPHAN, 92
+          FUNARTE, 160 SAV e outros.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: sgorgaoautorizado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade autorizada por sigla, como FUNARTE-RJ ou IPHAN/IPHAN-SP.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nrtelefone
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Telefone do parecerista.
         data_type: text
         meta:
           openmetadata:
             tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
+              - PII.Sensitive
       - name: eecorreioeletronico
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          E-mail do parecerista.
         data_type: text
         meta:
           openmetadata:
             tags:
-              - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
+              - PII.Sensitive
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwpareceristasorgao
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwpareceristasorgao.
+      Uma linha por parecerista e unidade em que atua. São 4.784 linhas de
+      1.505 pareceristas; o IPHAN (91) tem 3.072.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpareceristasorgao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Parecerista, código de agente em silver_agentes_agentes.idagente.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
       - name: nome
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do parecerista.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: idorgao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Unidade responsável, código de silver_tabelas_orgaos.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwprojetosapreciadosaguardandohomologacao
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwprojetosapreciadosaguardandohomologacao.
+      Uma linha por projeto apreciado pela CNIC que aguarda homologação, com
+      portaria e valores. Tem 24 projetos, nas situações D50, D51 e D52.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprojetosapreciadosaguardandohomologacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
+        tests:
+          - not_null
+          - unique
       - name: pronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
         data_type: text
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
       - name: area
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
         data_type: integer
       - name: dsarea
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Área cultural por extenso.
         data_type: text
       - name: segmento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
         data_type: text
       - name: dssegmento
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Segmento cultural por extenso.
         data_type: text
       - name: ufprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          UF do projeto, em sigla.
         data_type: text
       - name: situacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação do projeto, código de três caracteres da tabela
+          sac.situacao.
         data_type: text
       - name: dtsituacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da situação atual do projeto.
         data_type: timestamp
       - name: prazorecursal
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Prazo de recurso: Aberto ou Encerrado.
         data_type: text
       - name: dtpublicacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de publicação da portaria.
         data_type: timestamp
       - name: nrportaria
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Portaria, número/ano.
         data_type: text
       - name: idnrreuniao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Reunião da CNIC, código de silver_sac_tbreuniao.
         data_type: integer
       - name: nrreuniao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Número da reunião da CNIC.
         data_type: integer
       - name: vlsolicitado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Valor solicitado, em reais.
         data_type: numeric
       - name: vlaprovado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Valor aprovado, em reais.
         data_type: numeric
       - name: vlcaptado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Valor captado, em reais.
         data_type: numeric
       - name: perccaptado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Percentual captado do aprovado.
         data_type: numeric
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
 
   - name: silver_sac_vwprojetosaprovadossemhomologacao
     description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwprojetosaprovadossemhomologacao.
+      Uma linha por projeto aprovado que ainda não teve a execução homologada,
+      com os textos da proposta e o plano de execução. São 19.473 linhas de
+      19.471 projetos; 17.589 em E10, captação total autorizada. A fase vem da
+      verificação do sac (grupo 26): 647 comprovação de capacidade de execução,
+      648 avaliação técnica do projeto cultural.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprojetosaprovadossemhomologacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
     columns:
       - name: idpronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: pronac
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
       - name: nomeprojeto
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do projeto cultural.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: tipopessoa
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Tipo do proponente: 1 pessoa física (3.497), 2 jurídica (15.976).
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: cgccpf
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.Sensitive
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: proponente
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: situacao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dssituacao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: area
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dsarea
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: segmento
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dssegmento
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dsexcecao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dtinicioexecucao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dtfimexecucao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: resumoprojeto
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: objetivos
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: justificativa
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: democratizacaodeacesso
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: acessibilidade
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idfase
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dsfase
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: tpexcecao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: vlaprovado
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: vladequado
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: vlcaptado
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: percaptado
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: _fatia
-        description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
-
-  - name: silver_sac_vwprojetosemanalisecomparecerista
-    description: >
-      [NÃO VERIFICADO] Objeto do SALIC ausente do dicionário de dados original (export
-      SchemaSpy). Semântica e grão ainda não confirmados. Camada Silver tipada a partir de
-      salic.bronze_sac_vwprojetosemanalisecomparecerista.
-    columns:
-      - name: tpanalise
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: iddistribuirparecer
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-          - relationships:
-              arguments:
-                to: ref('silver_sac_tbdistribuirparecer')
-                field: iddistribuirparecer
-      - name: idpronac
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: pronac
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nomeprojeto
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idproduto
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idorgao
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idorgaoorigem
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: dtenvio
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: idagenteparecerista
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
-        data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
-      - name: nmparecerista
-        description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Nome do proponente, pessoa ou entidade.
         data_type: text
         meta:
           openmetadata:
             tags:
               - PII.NonSensitive
-        tests:
-          - not_null   # inferido do perfil do banco
+      - name: situacao
+        description: >
+          Situação do projeto, código de três caracteres da tabela
+          sac.situacao.
+        data_type: text
+      - name: dssituacao
+        description: >
+          Situação por extenso.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: segmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: dssegmento
+        description: >
+          Segmento cultural por extenso.
+        data_type: text
+      - name: dsexcecao
+        description: >
+          Plano de execução por extenso, como Projeto normal (10% de captação).
+        data_type: text
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: resumoprojeto
+        description: >
+          Resumo do projeto, em texto livre.
+        data_type: text
+      - name: objetivos
+        description: >
+          Objetivos do projeto, em HTML.
+        data_type: text
+      - name: justificativa
+        description: >
+          Justificativa, em HTML.
+        data_type: text
+      - name: democratizacaodeacesso
+        description: >
+          Democratização de acesso, em HTML.
+        data_type: text
+      - name: acessibilidade
+        description: >
+          Acessibilidade, em HTML.
+        data_type: text
+      - name: idfase
+        description: >
+          Fase, da verificação do sac: 647 ou 648.
+        data_type: text
+      - name: dsfase
+        description: >
+          Fase do projeto, por extenso.
+        data_type: text
+      - name: tpexcecao
+        description: >
+          Plano de execução, da verificação do sac (grupo 23): 610 projeto
+          normal (19.188), 614 planos anuais, 618 editais, 619 contrato de
+          patrocínio, 611 e 612 patrimônio, 616 corpos estáveis, 923 emergência
+          do Rio Grande do Sul.
+        data_type: text
+      - name: vlaprovado
+        description: >
+          Valor aprovado, em reais.
+        data_type: numeric
+      - name: vladequado
+        description: >
+          Valor adequado à realidade de execução, em reais.
+        data_type: numeric
+      - name: vlcaptado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: percaptado
+        description: >
+          Percentual captado do aprovado.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprojetosemanalisecomparecerista
+    description: >
+      Uma linha por produto de projeto em análise com parecerista, com os
+      prazos em dias e o saldo do empenho. São 510 linhas de 70 projetos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprojetosemanalisecomparecerista'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - dtcorrecao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: tpanalise
+        description: >
+          Tipo de análise: 0 em todas.
+        data_type: text
+      - name: iddistribuirparecer
+        description: >
+          Envio, código de silver_sac_tbdistribuirparecer.
+        data_type: integer
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idorgao
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: idorgaoorigem
+        description: >
+          Unidade que enviou, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtenvio
+        description: >
+          Data do envio à unidade de análise.
+        data_type: timestamp
+      - name: idagenteparecerista
+        description: >
+          Parecerista, código de agente em silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmparecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
       - name: dtdistribuicao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data em que a análise foi distribuída ao parecerista.
         data_type: timestamp
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtcorrecao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da correção. Preenchida em 89.
         data_type: timestamp
       - name: dtdevolucao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data da devolução. Preenchida em 78.
         data_type: timestamp
       - name: stestado
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Se a linha está ativa na origem: true ativa, false inativa ou
+          substituída.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: stprincipal
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Se é o produto principal: 0 ou 1.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: sianalise
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação da análise: 0 ou 1.
         data_type: text
       - name: nrdiasparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Dias com o parecerista.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nrdiasdiligencia
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Dias que o produto ficou em diligência.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: nrdiastotalanalise
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Dias totais de análise.
         data_type: integer
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: vlsaldodoempenho
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Saldo do empenho do parecerista, em reais.
         data_type: numeric
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: dtconcessao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Data de concessão de prazo extra.
         data_type: timestamp
       - name: tpparecerista
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Tipo do parecerista: 0 ou 1. Sem domínio ingerido.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: situacao
         description: >
-          [NÃO VERIFICADO] Coluna ausente do dicionário de dados original.
+          Situação do projeto, código de três caracteres da tabela
+          sac.situacao.
         data_type: text
-        tests:
-          - not_null   # inferido do perfil do banco
       - name: _fatia
         description: >
-          Coluna técnica da ingestão: identifica a fatia de extração que trouxe a linha. Não
-          é campo de negócio.
-        data_type: integer
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text

@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbhistoricodevolucaofiscalizacao (ex-sac__tbhistoricodevolucaofiscalizacao).
+-- Silver SALIC — silver_sac_tbhistoricodevolucaofiscalizacao
+-- (ex-sac__tbhistoricodevolucaofiscalizacao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbhistoricodevolucaofiscalizacao, onde tudo chega como
 -- texto da

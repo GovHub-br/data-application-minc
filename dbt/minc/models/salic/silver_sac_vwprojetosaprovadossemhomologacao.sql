@@ -1,14 +1,15 @@
--- Silver SALIC — silver_sac_vwprojetosaprovadossemhomologacao (ex-sac__vwprojetosaprovadossemhomologacao).
+-- Silver SALIC — silver_sac_vwprojetosaprovadossemhomologacao
+-- (ex-sac__vwprojetosaprovadossemhomologacao).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwprojetosaprovadossemhomologacao, onde tudo chega como
 -- texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 28 colunas: 9 tipadas, 18 mantidas como texto.
+-- 28 colunas: 8 tipadas, 19 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
     {{ bronze_inteiro("idpronac") }} as idpronac,
-    {{ bronze_inteiro("pronac") }} as pronac,
+    {{ bronze_texto("pronac") }} as pronac,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("tipopessoa") }} as tipopessoa,
     {{ bronze_texto("cgccpf") }} as cgccpf,

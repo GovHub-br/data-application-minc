@@ -1,9 +1,10 @@
--- Silver SALIC — silver_sac_vwinformacoesconsolidadasparaavaliacaofinanceira (ex-sac__vwinformacoesconsolidadasparaavaliacaofinanceira).
+-- Silver SALIC — silver_sac_vwinformacoesconsolidadasparaavaliacaofinanceira
+-- (ex-sac__vwinformacoesconsolidadasparaavaliacaofinanceira).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_vwinformacoesconsolidadasparaavaliacaofinanceira, onde tudo
 -- chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 21 colunas: 2 tipadas, 18 mantidas como texto.
+-- 21 colunas: 12 tipadas, 8 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -15,17 +16,17 @@ select
     {{ bronze_texto("area") }} as area,
     {{ bronze_texto("segmento") }} as segmento,
     {{ bronze_texto("situacao") }} as situacao,
-    {{ bronze_texto("dtenviodaprestacaocontas") }} as dtenviodaprestacaocontas,
+    {{ bronze_timestamp("dtenviodaprestacaocontas") }} as dtenviodaprestacaocontas,
     {{ bronze_texto("resultadoavaliacaoobjeto") }} as resultadoavaliacaoobjeto,
-    {{ bronze_texto("qtempregosdiretos") }} as qtempregosdiretos,
-    {{ bronze_texto("qtempregosindiretos") }} as qtempregosindiretos,
-    {{ bronze_texto("qtempregosgerados") }} as qtempregosgerados,
-    {{ bronze_texto("qtcomprovacao") }} as qtcomprovacao,
-    {{ bronze_texto("qtnc_90") }} as qtnc_90,
-    {{ bronze_texto("qtnc_95") }} as qtnc_95,
-    {{ bronze_texto("qtnc_99") }} as qtnc_99,
+    {{ bronze_inteiro("qtempregosdiretos") }} as qtempregosdiretos,
+    {{ bronze_inteiro("qtempregosindiretos") }} as qtempregosindiretos,
+    {{ bronze_inteiro("qtempregosgerados") }} as qtempregosgerados,
+    {{ bronze_inteiro("qtcomprovacao") }} as qtcomprovacao,
+    {{ bronze_inteiro("qtnc_90") }} as qtnc_90,
+    {{ bronze_inteiro("qtnc_95") }} as qtnc_95,
+    {{ bronze_inteiro("qtnc_99") }} as qtnc_99,
     {{ bronze_numerico("vlaprovado") }} as vlaprovado,
-    {{ bronze_texto("vlcaptado") }} as vlcaptado,
-    {{ bronze_texto("vlcomprovado") }} as vlcomprovado,
+    {{ bronze_numerico("vlcaptado") }} as vlcaptado,
+    {{ bronze_numerico("vlcomprovado") }} as vlcomprovado,
     _fatia
 from {{ source("salic", "bronze_sac_vwinformacoesconsolidadasparaavaliacaofinanceira") }}

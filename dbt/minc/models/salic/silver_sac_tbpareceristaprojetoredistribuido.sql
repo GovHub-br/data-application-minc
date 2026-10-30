@@ -1,4 +1,5 @@
--- Silver SALIC — silver_sac_tbpareceristaprojetoredistribuido (ex-sac__tbpareceristaprojetoredistribuido).
+-- Silver SALIC — silver_sac_tbpareceristaprojetoredistribuido
+-- (ex-sac__tbpareceristaprojetoredistribuido).
 -- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
 -- Origem: salic.bronze_sac_tbpareceristaprojetoredistribuido, onde tudo chega como
 -- texto da
