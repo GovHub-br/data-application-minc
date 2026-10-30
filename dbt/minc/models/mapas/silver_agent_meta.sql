@@ -24,8 +24,8 @@
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
-            {{ bronze_inteiro("object_id") }} as object_id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
+            {{ bronze_inteiro("object_id", "bigint") }} as object_id,
             {{ bronze_texto("key") }} as key,
             case
                 when octet_length(value) <= 100000 then {{ bronze_texto("value") }}

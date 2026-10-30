@@ -44,7 +44,11 @@ MODELOS = Path("dbt/minc/models/salic")
 SENSIVEL = re.compile(
     r"cpf|cnpj|nome|mail|fone|celular|endereco|logradouro|bairro|cep|nasc|"
     r"rg$|identidade|raca|etnia|deficien|sexo|genero|login|usuario|ip$|"
-    r"senha|pass|hash|token|chave",
+    r"senha|pass|hash|token|chave|texto|obs|parametro|aliases|conta|^nm|analista|"
+    r"tecnico|responsavel|servidor|parecer|autor|assin|dirigente|coordenador|"
+    r"avaliador|procurador|mecena|incentivador|proponente|interessado|beneficiario|"
+    r"conselheiro|membro|relator|presidente|diretor|signatario|destinatario|apoiado|"
+    r"entidade|evento|curriculo|itensfisicos",
     re.I,
 )
 CREDENCIAL = re.compile(r"senha|passw|pwd|hash|token|secret|chave_api", re.I)

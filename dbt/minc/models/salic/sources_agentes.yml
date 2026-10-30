@@ -1,0 +1,616 @@
+version: 2
+sources:
+  - name: salic
+    schema: salic
+    description: >
+      SALIC (Sistema de Apoio às Leis de Incentivo à Cultura). Bronze: réplica do
+      sistema de origem via Trino, tudo text, sem tratamento, com a coluna técnica
+      _fatia da carga em fatias. Uma tabela por <banco>__<tabela> da origem, como
+      salic.bronze_<banco>_<tabela>. As descrições das tabelas vêm do dicionário
+      de dados do SALIC (export SchemaSpy) cruzado com o perfil do banco; o
+      catálogo completo está em dbt/minc/docs/salic/.
+    tables:
+      - name: bronze_agentes_municipios
+        description: >
+          Tabela de domínio geográfico: município IBGE, sua UF, meso e
+          microrregião. Camada bronze (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idmunicipioibge
+            description: Código IBGE do município (6 dígitos). Chave da tabela.
+            data_type: text
+          - name: idufibge
+            description: Código IBGE da UF (2 dígitos).
+            data_type: text
+          - name: idmeso
+            description: Código da mesorregião.
+            data_type: text
+          - name: idmicro
+            description: Código da microrregião.
+            data_type: text
+          - name: descricao
+            description: Nome do município.
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bronze_agentes_populacaomunicipio
+        description: >
+          População por município. Camada bronze (raw do SALIC via Trino, tudo
+          text).
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idmunicipio
+            description: Código IBGE do município (6 dígitos). Chave da tabela.
+            data_type: text
+          - name: idmunicipio7
+            description: Código IBGE do município (7 dígitos, com dígito verificador).
+            data_type: text
+          - name: populacao
+            description: População do município.
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bronze_agentes_uf
+        description: >
+          Unidades federativas com sigla, nome e região. Ingerida em 2026-09-04.
+          Complementa `agentes__municipios` em `dim_municipio_ibge` — é onde estão a
+          sigla e a região, que a tabela de municípios não carrega.
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: iduf
+            description: Código IBGE da unidade federativa.
+            data_type: text
+          - name: sigla
+            description: Sigla de duas letras.
+            data_type: text
+          - name: descricao
+            description: Nome da unidade federativa.
+            data_type: text
+          - name: regiao
+            description: Região geográfica.
+            data_type: text
+      - name: bronze_agentes_vpais
+        description: >
+          Uma linha por país, com nome em português e continente. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vpais.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vperfil
+        description: >
+          Uma linha por perfil institucional de um agente, vinda de uma view da origem.
+          Réplica em texto da origem; tipada e documentada em silver_agentes_vperfil.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vprefeiturasregiaouf
+        description: >
+          Uma linha por agente com perfil de prefeitura, com o CNPJ, o nome da
+          prefeitura, o município, a UF por extenso e a região. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vprefeiturasregiaouf.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vsistema
+        description: >
+          Uma linha por sistema do MinC que usa o cadastro de agentes. Réplica em texto
+          da origem; tipada e documentada em silver_agentes_vsistema.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vtelefones
+        description: >
+          Uma linha por telefone de um agente. Réplica em texto da origem; tipada e
+          documentada em silver_agentes_vtelefones.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vuf
+        description: >
+          Uma linha por unidade da federação, vinda de uma view da origem. Réplica em
+          texto da origem; tipada e documentada em silver_agentes_vuf.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vufmunicipio
+        description: >
+          Uma linha por município, com a sigla e o código da UF. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vufmunicipio.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vverificacao
+        description: >
+          Uma linha por valor de código do banco agentes, vinda de uma view da origem.
+          Réplica em texto da origem; tipada e documentada em
+          silver_agentes_vverificacao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vvinculacao
+        description: >
+          Uma linha por vínculo entre uma pessoa física e uma entidade: o dirigente ou
+          representante (idagente, com CPF) ligado à pessoa jurídica que ele representa
+          (idvinculoprincipal, com CNPJ). Réplica em texto da origem; tipada e
+          documentada em silver_agentes_vvinculacao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vvisao
+        description: >
+          Uma linha por papel ("visão") de um agente no SALIC. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vvisao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vwcadastrarparecerista
+        description: >
+          Uma linha por agente pessoa física e endereço, com o nome de registro. Réplica
+          em texto da origem; tipada e documentada em
+          silver_agentes_vwcadastrarparecerista.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vwempresajuridica
+        description: >
+          Uma linha por CNPJ com os dados cadastrais da Receita Federal: razão social,
+          situação cadastral, natureza jurídica, abertura, capital social, porte e opção
+          pelo Simples e pelo MEI. Réplica em texto da origem; tipada e documentada em
+          silver_agentes_vwempresajuridica.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vwempresajuridicasocios
+        description: >
+          Uma linha por sócio ou dirigente de uma empresa, pelo quadro societário da
+          Receita Federal. Réplica em texto da origem; tipada e documentada em
+          silver_agentes_vwempresajuridicasocios.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vwportifolio
+        description: >
+          Uma linha por análise do portfólio de um proponente. Réplica em texto da
+          origem; tipada e documentada em silver_agentes_vwportifolio.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_agentes_vwpropostasemavaliacao
+        description: >
+          Uma linha por proposta de projeto Rouanet que está em avaliação de
+          admissibilidade, com o técnico responsável. Réplica em texto da origem; tipada
+          e documentada em silver_agentes_vwpropostasemavaliacao.
+        config:
+          tags:
+            - bronze
+            - salic
+            - agentes
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+
+      - name: bronze_agentes_agentes
+        description: >
+          Uma linha por agente cultural (proponente, incentivador ou fornecedor),
+          identificado por idagente e por cnpjcpf. Camada bronze (raw do SALIC via
+          Trino, tudo text).
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idagente
+            description: Identificador do agente. Chave da tabela.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cnpjcpf
+            description: CNPJ/CPF do agente, sem máscara. Dado pessoal; text (zero à esquerda).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cnpjcpfsuperior
+            description: CNPJ da entidade superior; só zeros em quase todas as linhas.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: tipopessoa
+            description: Bit da origem (True/False). Semântica F/J não confirmada.
+            data_type: text
+          - name: dtcadastro
+            description: Data/hora de cadastro do agente.
+            data_type: text
+          - name: dtatualizacao
+            description: Data/hora da última atualização.
+            data_type: text
+          - name: dtvalidade
+            description: Data/hora de validade do cadastro.
+            data_type: text
+          - name: status
+            description: Situação do agente, 0 em todas as linhas.
+            data_type: text
+          - name: usuario
+            description: Conta que fez o último registro da linha.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bronze_agentes_tbagentefisico
+        description: >
+          Uma linha por agente pessoa física, com atributos pessoais. DADO
+          SENSÍVEL: nome dos pais, cor/raça e necessidade especial. Camada bronze
+          (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idagente
+            description: Agente pessoa física. Chave, aponta para agentes__agentes.idagente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: stsexo
+            description: Sexo (M/F).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: stestadocivil
+            description: Estado civil, código de 2 letras (SJ, DI, CA, ...).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: stnecessidadeespecial
+            description: Necessidade especial (N/S). Dado sensível.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nmmae
+            description: Nome da mãe. Dado pessoal; origem char(100) com espaços à direita.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nmpai
+            description: Nome do pai. Dado pessoal; origem char(100) com espaços à direita.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: dtnascimento
+            description: Data de nascimento.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: stcorraca
+            description: Código de cor ou raça autodeclarada, 1 a 5. Dado sensível; vazio em 79% das linhas.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nridentificadorprocessual
+            description: Número identificador processual, preenchido em 1% das linhas.
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bronze_agentes_perfil
+        description: >
+          Uma linha por perfil institucional de um agente, como prefeitura ou ponto
+          de cultura. Camada bronze (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idperfil
+            description: Identificador do vínculo de perfil. Chave da tabela.
+            data_type: text
+          - name: idagente
+            description: Agente. Aponta para agentes__agentes.idagente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: perfil
+            description: Código de perfil, de agentes.verificacao.
+            data_type: text
+          - name: caracteristica
+            description: Código de característica, de agentes.verificacao.
+            data_type: text
+          - name: usuario
+            description: Identificador do usuário.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bronze_agentes_verificacao
+        description: >
+          Tabela de domínio: os valores de "verificação" de um agente (natureza
+          jurídica, esfera etc.), agrupados por idtipo. Camada bronze (raw do
+          SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idverificacao
+            description: Identificador do valor de verificação. Chave da tabela.
+            data_type: text
+          - name: idtipo
+            description: Tipo/grupo do valor de verificação.
+            data_type: text
+          - name: descricao
+            description: Descrição do valor (ex. Público, Municipal, Estadual).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: sistema
+            description: Código de sistema de origem.
+            data_type: text
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text
+
+      - name: bronze_agentes_endereconacional
+        description: >
+          Uma linha por endereço nacional de agente. DADO PESSOAL (endereço).
+          Camada bronze (raw do SALIC via Trino, tudo text).
+        config:
+          tags: [bronze, salic, agentes]
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idendereco
+            description: Identificador do endereço. Chave da tabela.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: idagente
+            description: Agente dono do endereço. Aponta para agentes__agentes.idagente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: tipoendereco
+            description: Código do tipo de endereço.
+            data_type: text
+          - name: tipologradouro
+            description: Código do tipo de logradouro.
+            data_type: text
+          - name: logradouro
+            description: Nome do logradouro.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: numero
+            description: Número do endereço (pode conter S/N).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: bairro
+            description: Bairro.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: complemento
+            description: Complemento do endereço, preenchido em 54%.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cidade
+            description: Código IBGE do município (6 dígitos).
+            data_type: text
+          - name: uf
+            description: Código da UF (2 dígitos IBGE).
+            data_type: text
+          - name: cep
+            description: CEP (8 dígitos). Mantido text (zero à esquerda). Dado pessoal.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: municipio
+            description: Nome do município; vazio em 99,4% das linhas, use cidade.
+            data_type: text
+          - name: ufdescricao
+            description: Nome da UF; vazio em 99,4% das linhas, use uf.
+            data_type: text
+          - name: status
+            description: Se o endereço está ativo, True ou False.
+            data_type: text
+          - name: divulgar
+            description: Se o agente autorizou divulgar o endereço, True ou False.
+            data_type: text
+          - name: usuario
+            description: Identificador do usuário.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: _fatia
+            description: Coluna técnica da ingestão por fatias (ADR 0005). Não é campo de negócio.
+            data_type: text

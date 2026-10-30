@@ -132,7 +132,8 @@ def extracao_anexos_dag() -> None:
             staging(schemas.TABELA_RELATORIO_GESTAO),
             staging(schemas.TABELA_PLANO_ACAO),
         ).drop_duplicates("id")
-        # So os anexos cujo binario ja foi baixado por download_anexos_dag.
+        # So os anexos cujo binario ja foi baixado por download_anexos_dag --
+        # e, se ficou dividido em partes, com todas elas.
         baixados = ids_ja_baixados(
             o["Key"]
             for o in datalakehouse.listar_objetos(schemas.PREFIXO_ANEXOS_ARQUIVOS)
@@ -141,7 +142,8 @@ def extracao_anexos_dag() -> None:
             (
                 linha.id,
                 linha.nome,
-                f"{datalakehouse.BUCKET}/{baixados[str(linha.id)]}",
+                f"{datalakehouse.BUCKET}/{baixados[str(linha.id)].key}",
+                baixados[str(linha.id)].partes,
                 linha.id_relatorio_gestao,
                 linha.id_plano_acao,
                 linha.id_programa,
@@ -161,6 +163,7 @@ def extracao_anexos_dag() -> None:
             id_anexo,
             nome_arquivo,
             caminho_minio,
+            partes,
             id_relatorio_gestao,
             id_plano_acao,
             id_programa,
@@ -210,6 +213,9 @@ def extracao_anexos_dag() -> None:
             arquivos_meta.append(
                 {
                     "key": key,
+                    # As keys a ler, em ordem: a própria key, ou as partes de
+                    # uma planilha que passou do limite do proxy do MinIO.
+                    "partes": partes,
                     "bucket": bucket,
                     "nome_programa": nome_politica,
                     "id_anexo": str(id_anexo),
@@ -274,10 +280,15 @@ def extracao_anexos_dag() -> None:
         key = file_meta["key"]
         file_name = Path(key).name
 
-        # ── Checagem de tamanho + download em chamada S3 única ──
+        # ── Checagem de tamanho + download em chamada S3 única por parte ──
+        # Planilha acima do limite do proxy do MinIO está em partes; o tamanho
+        # que conta para o teto de memória é o da planilha inteira.
         try:
-            obj = s3_hook.get_key(key=key, bucket_name=bucket)
-            tamanho_bytes = obj.content_length
+            objs = [
+                s3_hook.get_key(key=key_parte, bucket_name=bucket)
+                for key_parte in file_meta.get("partes") or [key]
+            ]
+            tamanho_bytes = sum(obj.content_length for obj in objs)
         except Exception as exc:
             logging.warning(
                 "[extracao_anexos_dag.py] Não foi possível obter "
@@ -324,9 +335,9 @@ def extracao_anexos_dag() -> None:
             tamanho_mb,
         )
 
-        # ── Download — reutiliza o obj já obtido (sem 2a chamada get_key) ──
+        # ── Download — reutiliza os objs já obtidos (sem 2a chamada get_key) ──
         try:
-            file_content = obj.get()["Body"].read()
+            file_content = b"".join(obj.get()["Body"].read() for obj in objs)
         except Exception as exc:
             logging.error(
                 "[extracao_anexos_dag.py] Erro ao baixar s3://%s/%s: %s",

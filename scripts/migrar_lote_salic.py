@@ -30,6 +30,14 @@ Antes de mexer em qualquer arquivo, para com erro se algum nome novo de modelo
 passar de 63 caracteres, o limite do Postgres: esses precisam de nome à mão.
 
 Uso: python3 scripts/migrar_lote_salic.py controledeacesso
+
+Lote parcial, para um banco grande demais para um PR só (o sac): só as tabelas
+listadas migram. Os blocos delas saem do schema.yml e do sources_<origem>.yml
+legados, que ficam com o resto; o schema vai para salic/schema_<origem>_<assunto>.yml
+e as tabelas entram no salic/sources_<origem>.yml (a versão do legado substitui
+uma já declarada lá):
+
+    python3 scripts/migrar_lote_salic.py sac --assunto nucleo --tabelas aprovacao,captacao
 """
 
 from __future__ import annotations
@@ -78,12 +86,13 @@ def novo_nome(stem: str, origem: str) -> str:
     return f"silver_{origem}_{stem[len(origem) + 2:]}"
 
 
-def nomes_longos(origem: str) -> list[tuple[str, str]]:
+def nomes_longos(origem: str, tabelas: set[str] | None = None) -> list[tuple[str, str]]:
     """Modelos cujo nome novo passa do limite do Postgres, com o nome velho."""
     return sorted(
         (p.stem, novo)
         for p in (ORIGEM_DIR / origem).glob("*.sql")
-        if len(novo := novo_nome(p.stem, origem)) > LIMITE_NOME
+        if (tabelas is None or p.stem[len(origem) + 2 :] in tabelas)
+        and len(novo := novo_nome(p.stem, origem)) > LIMITE_NOME
     )
 
 
@@ -102,12 +111,22 @@ def re_source(origem: str) -> re.Pattern[str]:
     )
 
 
-def trocar_source(texto: str, origem: str) -> tuple[str, int]:
+def trocar_source(
+    texto: str, origem: str, tabelas: set[str] | None = None
+) -> tuple[str, int]:
+    """Troca a source velha pela salic; com ``tabelas``, só a dessas tabelas."""
+
+    trocas = 0
+
     def sub(m: re.Match[str]) -> str:
+        nonlocal trocas
+        if tabelas is not None and m.group("t") not in tabelas:
+            return m.group(0)
+        trocas += 1
         q = m.group(1)
         return f"source({q}salic{q}, {q}{nome_bronze(origem, m.group('t'))}{q})"
 
-    return re_source(origem).subn(sub, texto)
+    return re_source(origem).sub(sub, texto), trocas
 
 
 def trocar_mencao(texto: str, origem: str) -> str:
@@ -119,9 +138,11 @@ def trocar_mencao(texto: str, origem: str) -> str:
     )
 
 
-def migrar_sql(origem: str) -> dict[str, str]:
+def migrar_sql(origem: str, tabelas: set[str] | None = None) -> dict[str, str]:
     renomes: dict[str, str] = {}
     for sql in sorted((ORIGEM_DIR / origem).glob("*.sql")):
+        if tabelas is not None and sql.stem[len(origem) + 2 :] not in tabelas:
+            continue
         novo = novo_nome(sql.stem, origem)
         renomes[sql.stem] = novo
         destino = DESTINO / f"{novo}.sql"
@@ -226,7 +247,132 @@ def migrar_sources(origem: str) -> None:
         )
 
 
-def reescrever_leitores(origem: str, renomes: dict[str, str]) -> None:
+def tirar_blocos(texto: str, cabeca: str, nomes: set[str]) -> tuple[str, list[str]]:
+    """Separa os blocos ``<cabeca><nome>`` (até o próximo do mesmo recuo)."""
+    linhas = texto.split("\n")
+    fica: list[str] = []
+    sai: list[str] = []
+    atual: list[str] | None = None
+    recuo = len(cabeca) - len(cabeca.lstrip())
+    for linha in linhas:
+        if linha.startswith(cabeca):
+            atual = sai if linha[len(cabeca) :].strip() in nomes else fica
+        elif (
+            atual is sai and linha.strip() and (len(linha) - len(linha.lstrip())) <= recuo
+        ):
+            atual = fica
+        (atual if atual is not None else fica).append(linha)
+    return "\n".join(fica), sai
+
+
+def migrar_schema_parcial(origem: str, assunto: str, renomes: dict[str, str]) -> None:
+    de = ORIGEM_DIR / origem / "schema.yml"
+    para = DESTINO / f"schema_{origem}_{assunto}.yml"
+    fica, sai = tirar_blocos(de.read_text(encoding="utf-8"), "  - name: ", set(renomes))
+    de.write_text(fica, encoding="utf-8")
+    bloco = "\n".join(sai).rstrip() + "\n"
+    for velho, novo in renomes.items():
+        bloco = re.sub(
+            rf"^(  - name: ){re.escape(velho)}$", rf"\g<1>{novo}", bloco, flags=re.M
+        )
+    bloco, n_desc = RE_DESC.subn(DESC_NOVA, bloco)
+    bloco = trocar_mencao(bloco, origem)
+    cabecalho = (
+        "version: 2\n\nmodels:\n"
+        if not para.exists()
+        else para.read_text(encoding="utf-8").rstrip() + "\n\n"
+    )
+    para.write_text(cabecalho + bloco, encoding="utf-8")
+    achados = bloco.count("\n  - name: ") + bloco.startswith("  - name: ")
+    print(f"schema: {achados} blocos para {para.name}, {n_desc} descrições ajustadas")
+    if achados != len(renomes):
+        print(f"  ATENÇÃO esperava {len(renomes)} blocos no schema.yml legado")
+
+
+def migrar_sources_parcial(origem: str, tabelas: set[str]) -> None:
+    de = ORIGEM_DIR / f"sources_{origem}.yml"
+    para = DESTINO / de.name
+    nomes_velhos = {f"{origem}__{t}" for t in tabelas}
+    fica, sai = tirar_blocos(
+        de.read_text(encoding="utf-8"), "      - name: ", nomes_velhos
+    )
+    de.write_text(fica, encoding="utf-8")
+    bloco = "\n".join(sai).rstrip() + "\n"
+
+    # identifier igual ao nome novo sai; diferente (nome cortado em 63) fica.
+    def trocar(m: re.Match[str]) -> str:
+        nome = nome_bronze(origem, m.group(1))
+        ident = m.group(2)
+        return f"      - name: {nome}" + (
+            f"\n        identifier: {ident}" if ident and ident != nome else ""
+        )
+
+    bloco, n_tab = re.subn(
+        rf"^      - name: {re.escape(origem)}__(\S+)$(?:\n        identifier: (\S+)$)?",
+        trocar,
+        bloco,
+        flags=re.M,
+    )
+    destino = para.read_text(encoding="utf-8")
+    novos = {nome_bronze(origem, t) for t in tabelas}
+    destino, substituidos = tirar_blocos(destino, "      - name: ", novos)
+    if substituidos:
+        n_sub = sum(1 for linha in substituidos if linha.startswith("      - name: "))
+        print(f"  {n_sub} tabela(s) de {para.name} trocadas pela versão do legado")
+    para.write_text(destino.rstrip() + "\n" + bloco, encoding="utf-8")
+    print(f"sources: {n_tab} tabelas de {de.name} para {para.relative_to(RAIZ)}")
+    if n_tab != len(tabelas):
+        print(f"  ATENÇÃO esperava {len(tabelas)} tabelas no {de.name} legado")
+
+
+def tables_e_a_ultima_chave(texto: str) -> bool:
+    """``tables:`` é a última chave do arquivo, e as tabelas novas podem ir no fim.
+
+    Ignora linha vazia e comentário; aceita comentário e espaço depois de
+    ``tables:`` e lista no mesmo recuo da chave (``- name:`` logo abaixo).
+    """
+    linhas = texto.split("\n")
+    marcas = [
+        i for i, linha in enumerate(linhas) if re.match(r"^\s*tables:\s*(#.*)?$", linha)
+    ]
+    if not marcas:
+        return False
+    i = marcas[-1]
+    recuo = len(linhas[i]) - len(linhas[i].lstrip())
+    for linha in linhas[i + 1 :]:
+        conteudo = linha.strip()
+        if not conteudo or conteudo.startswith("#"):
+            continue
+        r = len(linha) - len(linha.lstrip())
+        if r < recuo or (r == recuo and not conteudo.startswith("- ")):
+            return False
+    return True
+
+
+def checar_parcial(origem: str, tabelas: set[str], assunto: str) -> list[str]:
+    """Tudo que impede o lote parcial, conferido antes de mexer em arquivo."""
+    erros = []
+    if not re.fullmatch(r"[a-z0-9_]+", assunto):
+        erros.append(
+            f"--assunto inválido: {assunto!r} (use letras minúsculas, dígito, _)"
+        )
+    existem = {p.stem[len(origem) + 2 :] for p in (ORIGEM_DIR / origem).glob("*.sql")}
+    if tabelas - existem:
+        erros.append(f"sem modelo legado para {sorted(tabelas - existem)}")
+    for arq in (ORIGEM_DIR / origem / "schema.yml", ORIGEM_DIR / f"sources_{origem}.yml"):
+        if not arq.exists():
+            erros.append(f"não há {arq.relative_to(RAIZ)}")
+    para = DESTINO / f"sources_{origem}.yml"
+    if not para.exists():
+        erros.append(f"não há {para.relative_to(RAIZ)} para receber as tabelas")
+    elif not tables_e_a_ultima_chave(para.read_text(encoding="utf-8")):
+        erros.append(f"{para.name} tem chave depois de tables:; anexe à mão")
+    return erros
+
+
+def reescrever_leitores(
+    origem: str, renomes: dict[str, str], tabelas: set[str] | None = None
+) -> None:
     # .yml entra por causa dos relationships: to: ref('<origem>__x').
     alvos = (
         list((PROJETO / "models").rglob("*.sql"))
@@ -242,29 +388,56 @@ def reescrever_leitores(origem: str, renomes: dict[str, str]) -> None:
         novo, n_ref = padrao_ref.subn(
             lambda m: f"ref({m.group(1)}{renomes[m.group(2)]}{m.group(1)})", texto
         )
-        novo, n_src = trocar_source(novo, origem)
+        novo, n_src = trocar_source(novo, origem, tabelas)
         if n_ref or n_src:
             arq.write_text(novo, encoding="utf-8")
             print(
                 f"  {n_ref} ref() e {n_src} source() reescrito(s) em "
                 f"{arq.relative_to(RAIZ)}"
             )
-        if sobra.search(novo):
+        if tabelas is None and sobra.search(novo):
             print(
                 f"  ATENÇÃO sobrou source('bronze_{origem}', ...) em "
                 f"{arq.relative_to(RAIZ)}"
             )
         velho = re.search(rf"""ref\(\s*['"]{re.escape(origem)}__""", novo)
-        if velho:
+        if velho and (tabelas is None or arq.is_relative_to(DESTINO)):
             print(f"  ATENÇÃO sobrou ref('{origem}__...') em {arq.relative_to(RAIZ)}")
 
 
-def main(argv: list[str]) -> int:
+USO = "[--assunto X --tabelas a,b]"
+
+
+def ler_opcoes(argv: list[str]) -> tuple[str, set[str] | None, str | None] | None:
+    """Origem, tabelas e assunto; None (e a mensagem impressa) se algo não bate."""
     origem = argv[1] if len(argv) > 1 else ""
-    if origem not in ORIGENS:
-        print(f"uso: {argv[0]} <{'|'.join(ORIGENS)}>")
+    resto = argv[2:]
+    chaves = resto[::2]
+    if origem not in ORIGENS or (
+        len(resto) % 2
+        or any(k not in ("--assunto", "--tabelas") for k in chaves)
+        or len(set(chaves)) != len(chaves)
+        or any(not v.strip() for v in resto[1::2])
+    ):
+        if resto:
+            print(f"argumento não reconhecido, repetido ou vazio: {' '.join(resto)}")
+        print(f"uso: {argv[0]} <{'|'.join(ORIGENS)}> {USO}")
+        return None
+    opcoes = dict(zip(chaves, resto[1::2]))
+    tabelas = set(filter(None, opcoes.get("--tabelas", "").split(","))) or None
+    assunto = opcoes.get("--assunto")
+    if (tabelas is None) != (assunto is None):
+        print("--assunto e --tabelas vão juntos")
+        return None
+    return origem, tabelas, assunto
+
+
+def main(argv: list[str]) -> int:
+    lidas = ler_opcoes(argv)
+    if lidas is None:
         return 2
-    longos = nomes_longos(origem)
+    origem, tabelas, assunto = lidas
+    longos = nomes_longos(origem, tabelas)
     if longos:
         print(
             f"ERRO: {len(longos)} modelo(s) passariam de {LIMITE_NOME} caracteres. "
@@ -273,6 +446,18 @@ def main(argv: list[str]) -> int:
         for velho, novo in longos:
             print(f"  {velho} -> {novo} ({len(novo)})")
         return 1
+    if tabelas is not None:
+        erros = checar_parcial(origem, tabelas, str(assunto))
+        if erros:
+            for erro in erros:
+                print(f"ERRO: {erro}")
+            print("nada foi alterado")
+            return 1
+        renomes = migrar_sql(origem, tabelas)
+        migrar_schema_parcial(origem, str(assunto), renomes)
+        migrar_sources_parcial(origem, tabelas)
+        reescrever_leitores(origem, renomes, tabelas)
+        return 0
     renomes = migrar_sql(origem)
     migrar_schema(origem, renomes)
     migrar_sources(origem)

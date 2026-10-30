@@ -21,10 +21,11 @@ Duas coisas justificam o modulo em vez de repetir o laco nas duas DAGs:
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, NamedTuple
 
 import pandas as pd
 
+import datalakehouse
 import schemas_minc as schemas
 
 # Mesmo default de agencias_transferegov.get_contas_agencias_programas: a
@@ -216,14 +217,44 @@ def politica_do_programa(id_programa: Any) -> str:
 
 
 def key_anexo_arquivo(politica: str, id_anexo: Any, nome_arquivo: str) -> str:
-    return f"{schemas.PREFIXO_ANEXOS_ARQUIVOS}{politica}/anexo_{id_anexo}_{nome_arquivo}"
+    """Key do binario de um anexo. ``nome_arquivo`` e o nome que o usuario deu a
+    planilha: um ``_pNdeM`` no fim dele viraria marca de parte de outro arquivo
+    (ver ``datalakehouse.neutralizar_sufixo_de_parte``)."""
+    nome = datalakehouse.neutralizar_sufixo_de_parte(nome_arquivo)
+    return f"{schemas.PREFIXO_ANEXOS_ARQUIVOS}{politica}/anexo_{id_anexo}_{nome}"
 
 
-def ids_ja_baixados(keys: Iterable[str]) -> dict[str, str]:
-    """``id do anexo -> key`` dos binarios que ja estao no datalakehouse."""
-    baixados: dict[str, str] = {}
-    for key in keys:
+class AnexoBaixado(NamedTuple):
+    """Um anexo no datalakehouse: a key do arquivo e as keys que se leem para
+    te-lo inteiro -- ela mesma, ou as partes em ordem (ver ``datalakehouse``)."""
+
+    key: str
+    partes: list[str]
+
+
+def ids_ja_baixados(keys: Iterable[str]) -> dict[str, AnexoBaixado]:
+    """``id do anexo -> AnexoBaixado`` dos binarios completos no datalakehouse.
+
+    Anexo dividido so conta com todas as partes. Com parte faltando, ou inteiro
+    e dividido ao mesmo tempo, fica de fora: volta a ser baixado, e a nova
+    gravacao apaga a forma antiga.
+    """
+    completos, problemas = datalakehouse.agrupar_partes(keys)
+    if problemas:
+        # So os ids: a key traz o nome que o usuario deu a planilha, que pode ter
+        # nome de pessoa ou de documento.
+        ids_com_problema = sorted(
+            {achado.group(1) for key in problemas if (achado := _ID_NO_NOME.search(key))}
+        )
+        logging.warning(
+            "[extracao_por_plano_acao] %d anexos com parte faltando ou ambiguos no "
+            "datalakehouse -- voltam a ser baixados. Ids: %s",
+            len(problemas),
+            ids_com_problema[:20],
+        )
+    baixados: dict[str, AnexoBaixado] = {}
+    for key in sorted(completos):
         encontrado = _ID_NO_NOME.search(key)
         if encontrado:
-            baixados[encontrado.group(1)] = key
+            baixados[encontrado.group(1)] = AnexoBaixado(key, completos[key])
     return baixados

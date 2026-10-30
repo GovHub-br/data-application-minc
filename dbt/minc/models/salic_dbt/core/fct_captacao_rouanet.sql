@@ -47,7 +47,7 @@ select
     sitransferenciarecurso as situacao_transferencia_recurso,
     dttransferenciarecurso::date as data_transferencia_recurso,
     isbemservico as indicador_bem_servico
-from {{ ref("sac__captacao") }}
+from {{ ref("silver_sac_captacao") }}
 where
     idcaptacao is not null
     and dtrecibo is not null

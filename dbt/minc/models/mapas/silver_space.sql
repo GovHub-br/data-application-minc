@@ -4,7 +4,7 @@
 --
 -- Grão: 1 linha por `id`.
 --
--- Tipagem pelos tipos que o banco do Mapas declara. Texto vazio e só de espaços viram
+-- Tipos da origem, mas id e código em bigint (R17). Texto vazio e só de espaços viram
 -- NULL;
 -- valor que não casa com o tipo vira NULL; ausente fica nulo, nunca vira falso.
 --
@@ -16,8 +16,8 @@
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
-            {{ bronze_inteiro("parent_id") }} as parent_id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
+            {{ bronze_inteiro("parent_id", "bigint") }} as parent_id,
             {{ mapas_ponto("location", 1) }} as longitude,
             {{ mapas_ponto("location", 2) }} as latitude,
             {{ bronze_texto("_geo_location") }} as _geo_location,
@@ -27,12 +27,12 @@ with
             {{ bronze_timestamp("create_timestamp") }} as create_timestamp,
             {{ bronze_inteiro("status", "smallint") }} as status,
             {{ bronze_inteiro("type", "smallint") }} as type,
-            {{ bronze_inteiro("agent_id") }} as agent_id,
+            {{ bronze_inteiro("agent_id", "bigint") }} as agent_id,
             {{ bronze_booleano("is_verified") }} as is_verified,
             {{ bronze_booleano("public") }} as public,
             {{ bronze_timestamp("update_timestamp") }} as update_timestamp,
-            {{ bronze_inteiro("codigo") }} as codigo,
-            {{ bronze_inteiro("subsite_id") }} as subsite_id,
+            {{ bronze_inteiro("codigo", "bigint") }} as codigo,
+            {{ bronze_inteiro("subsite_id", "bigint") }} as subsite_id,
             _fatia
         from {{ source("mapas", "bronze_space") }}
     ),

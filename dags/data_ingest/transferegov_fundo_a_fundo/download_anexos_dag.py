@@ -94,7 +94,8 @@ def download_anexos_dag() -> None:
         """
         Processa UM único anexo por invocação (Dynamic Task Mapping).
         Faz o request na API, decodifica o base64 e grava o binário em
-        ``raw/transferegov/anexos_arquivos/<politica>/``.
+        ``raw/transferegov/anexos_arquivos/<politica>/`` -- em partes, se passar
+        do limite do proxy do MinIO (``datalakehouse.gravar_bytes_em_partes``).
         A concorrência é controlada por max_active_tis_per_dag=3 para evitar
         HTTP 429 (rate limit) na API do governo.
         """
@@ -113,7 +114,7 @@ def download_anexos_dag() -> None:
             )
             return
 
-        key = datalakehouse.gravar_bytes(
+        key = datalakehouse.gravar_bytes_em_partes(
             base64.b64decode(arquivo_base64),
             key_anexo_arquivo(pendente["politica"], anexo_id, nome_arquivo),
         )

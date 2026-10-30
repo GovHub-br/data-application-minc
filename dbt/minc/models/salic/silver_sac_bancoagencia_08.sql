@@ -1,0 +1,9 @@
+-- Silver SALIC — silver_sac_bancoagencia_08 (ex-sac__bancoagencia_08).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_bancoagencia_08, onde tudo chega como texto da
+-- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
+-- 2 colunas: 0 tipadas, 1 mantidas como texto.
+-- Os casts são guardados por regex (macros bronze_*): valor fora do
+-- padrão vira NULL em vez de derrubar o modelo.
+select {{ bronze_texto("banco") }} as banco, _fatia
+from {{ source("salic", "bronze_sac_bancoagencia_08") }}

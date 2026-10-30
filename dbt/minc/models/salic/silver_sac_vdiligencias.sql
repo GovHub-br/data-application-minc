@@ -1,0 +1,22 @@
+-- Silver SALIC — silver_sac_vdiligencias (ex-sac__vdiligencias).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vdiligencias, onde tudo chega como texto da
+-- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
+-- 13 colunas: 5 tipadas, 7 mantidas como texto.
+-- Os casts são guardados por regex (macros bronze_*): valor fora do
+-- padrão vira NULL em vez de derrubar o modelo.
+select
+    {{ bronze_texto("nrprojeto") }} as nrprojeto,
+    {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
+    {{ bronze_inteiro("controladores") }} as controladores,
+    {{ bronze_inteiro("documentosolicitacao") }} as documentosolicitacao,
+    {{ bronze_texto("nrdocumentosolicitacao") }} as nrdocumentosolicitacao,
+    {{ bronze_timestamp("dtsolicitacao") }} as dtsolicitacao,
+    {{ bronze_inteiro("posicionamento") }} as posicionamento,
+    {{ bronze_texto("constatacao") }} as constatacao,
+    {{ bronze_texto("documentoresposta") }} as documentoresposta,
+    {{ bronze_texto("nrdocumentoresposta") }} as nrdocumentoresposta,
+    {{ bronze_timestamp("dtresposta") }} as dtresposta,
+    {{ bronze_texto("resposta") }} as resposta,
+    _fatia
+from {{ source("salic", "bronze_sac_vdiligencias") }}

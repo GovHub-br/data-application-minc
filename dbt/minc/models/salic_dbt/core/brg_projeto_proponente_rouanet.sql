@@ -43,7 +43,7 @@ with
             nomeproponente as nome_proponente,
             idsolicitante as id_solicitante,
             descricao as descricao_vinculo
-        from {{ ref("sac__vwagentesseusprojetos") }}
+        from {{ ref("silver_sac_vwagentesseusprojetos") }}
     ),
 
     vinculo as (

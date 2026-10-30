@@ -18,12 +18,12 @@
 with
     tipado as (
         select
-            {{ bronze_inteiro("id") }} as id,
+            {{ bronze_inteiro("id", "bigint") }} as id,
             {{ bronze_inteiro("auth_provider", "smallint") }} as auth_provider,
             {{ bronze_timestamp("last_login_timestamp") }} as last_login_timestamp,
             {{ bronze_timestamp("create_timestamp") }} as create_timestamp,
             {{ bronze_inteiro("status", "smallint") }} as status,
-            {{ bronze_inteiro("profile_id") }} as profile_id,
+            {{ bronze_inteiro("profile_id", "bigint") }} as profile_id,
             _fatia
         from {{ source("mapas", "bronze_usr") }}
     ),

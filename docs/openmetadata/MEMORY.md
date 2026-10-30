@@ -48,7 +48,7 @@ vem depois dela.
 
 ## 1. Estado atual
 
-**Última atualização: 2026-09-03 00:40 -03 · Codex (F13/F14 parciais; auditoria live em §18)**
+**Última atualização: 2026-10-29 · Claude (F17: lotes do SALIC; as linhas SALIC abaixo descrevem a migração em curso, as outras seguem de 2026-09-03)**
 
 | Item | Situação |
 |---|---|
@@ -68,10 +68,11 @@ vem depois dela.
 | Cidades — testes OM | ✅ 69 testes: `test_governanca_openmetadata.py` (890 linhas) + guarda de recipes (31 linhas); todos passaram nesta sessão |
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
-| SALIC — bronze | ✅ 571 modelos SQL tipados/documentados na `main@d404531` |
-| SALIC — silver núcleo | ✅ **6 modelos em `dbt/minc/models/salic_dbt/core/`**, na `feat/dbt-salic-silver`. A normalização de PRONAC foi corrigida após auditoria live; `status: Disabled` até o run da DAG. Ver §14 e §18 |
+| SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57. Faltam 65 do `sac`, todas views, e `dtproperties` fica só na Bronze, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
-| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py`, 90 casos; suíte completa 187 passed, 3 skipped |
+| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
 
 **Direção do fluxo histórico:** Cidades (`origin/refactor/openmetadata`, 2026-08-18)
 → MinC portou e evoluiu → Cidades recuperou de volta em `fixture/ajustes-conjuntura`.
@@ -387,7 +388,7 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | F14 | Meta 4 — IBGE, capitais, vulnerabilidade e bridge de execução | minc | 🟠 PARCIAL · Codex · 2026-09-03 — bridge entregue como `Disabled`; cobertura de PRONAC é só 4.269 projetos |
 | F15 | Meta 5 — histórico do proponente e golds de primeiro acesso | minc | 🟢 LIVRE — depende de `fct_evento_acesso_rouanet` e da chave HMAC |
 | F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | ✅ FEITO · Claude · 2026-09-02 20:20 -03 |
-| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | 🟣 EM CURSO · Claude + Luiza · 2026-10-27 · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
+| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | 🟣 EM CURSO · Claude + Luiza · 2026-10-29 — feitos `controledeacesso`, `bdcorporativo`, `agentes`, `tabelas` e o núcleo do `sac`; próximos: triagem e lotes do resto do `sac`, PR dos modelos manuais, limpeza final · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
 
 ### F1 — Credencial (cidades) 🔴
 **Arquivos/refs:** HEAD e histórico de
@@ -758,6 +759,417 @@ prest**conta**s, ficam dispensados no próprio modelo.
 
 **Para a ingestão.** Vale trazer `tbComprovantePagamentoxPlanilhaAprovacao`:
 é o que liga 4 M de comprovantes ao projeto.
+
+### 2026-10-29 · Claude · F17 — lote `agentes`
+
+**O que entrou.** 23 silvers. Perfil pela conexão de leitura direta, e os
+códigos decodificados pela própria tabela de domínio do banco,
+`agentes.verificacao`, que agrupa por `idtipo` os tipos de endereço,
+telefone, logradouro, perfil e papel do agente. Cor ou raça e estado civil
+vêm do formulário de informações adicionais do SalicWeb.
+
+**Achados.**
+- O nome do agente não está na Bronze: mora em `agentes.Nomes`, que a
+  ingestão não traz. Só `vwcadastrarparecerista` tem nome, de pessoa física.
+- O papel do agente (proponente, incentivador, fornecedor, dirigente) está
+  em `vvisao`. Visão de proponente é cadastro, não projeto.
+- `tipopessoa` false é CPF e true é CNPJ, confirmado pelo tamanho do
+  documento. `status` de `agentes` vale 0 em tudo.
+- `vvinculacao` liga a pessoa física dirigente (`idagente`) à entidade
+  (`idvinculoprincipal`).
+- `tbagentefisico` tem cor ou raça e deficiência; cor ou raça está vazia
+  em 79%, e a ficha só existe para um quarto dos agentes com CPF.
+- `populacaomunicipio` não tem ano de referência e o total não bate com os
+  Censos de 2010 nem de 2022. Ela alimenta `dim_municipio_ibge`.
+- `vperfil`, `vuf` e `vverificacao` são cópias exatas de `perfil`, `uf` e
+  `verificacao`; `vufmunicipio` é `municipios` com a sigla da UF.
+- `verificacao` tem nomes de pessoas no grupo 26, então não é publicável.
+
+**Casts que perdiam dado e viraram texto.** Número de telefone (154 mil com
+hífen viravam NULL), CEP e número de endereço em `vwcadastrarparecerista`
+(40 mil CEPs com zero à esquerda) e o documento de `vwportifolio`, que era
+`bigint`.
+
+**Para a ingestão.** Vale trazer `agentes.Nomes`: sem ela, nenhum
+proponente pessoa jurídica tem nome no banco agentes.
+
+### 2026-10-29 · Claude · F17 — lote `tabelas`
+
+**O que entrou.** 75 silvers. `sysdiagrams` e `dtproperties`, artefatos do
+SQL Server, ficaram só na Bronze. O banco é o cadastro corporativo dos
+sistemas internos do MinC: usuários servidores, órgãos, grupos de acesso por
+sistema, menus, pessoas, e-mails do domínio e uma base de CEP dos Correios.
+Os códigos se traduzem pelas tabelas de domínio do próprio banco,
+`tabelas.tabelas` (esfera, administração, tipos de evento) e
+`tabelas.meta_dados` (tipos de nome, documento e endereço).
+
+**Credencial.** Saem das silvers de usuário `usu_senha`, `usu_sql_senha` e
+os três códigos de segurança: `usu_seguranca` é calculado por função do SQL
+Server com a senha criptografada (código do SalicWeb), e `usu_validacao` e
+`usu_controle` são códigos de verificação da conta. Sai também `ususenha`
+de `usuexternosistemas`. `usu_duracao_senha` (dias) e `ect*_hash` (chave da
+base dos Correios) ficam, e a checagem de credencial do script de validação
+os lista: é esperado.
+
+**Achados.**
+- `usuariosxorgaosxgrupos` é a matriz de permissão dos sistemas internos,
+  SalicWeb e PRONAC inclusive: 30.401 permissões, sem órfão.
+- Em `eventos`, `eve_usuario` é o CPF de quem agiu e `eve_codigo` é o
+  usuário afetado.
+- `v_municipios_por_palavra` não tem município: são as mesmas 43 linhas de
+  UF de `v_estados_por_palavra`.
+- As cópias `_ares` e `_minc11` são fotografias de outros ambientes, a
+  mais recente de 2008.
+- `indice_palavras` indexa nome completo de pessoa (tipo 101): reconstrói
+  nomes, então é restrita.
+
+**Casts.** Os CEPs de `v_logradouro_completo` e `v_localidade_completa`
+eram inteiro e cortavam o zero dos 130 mil logradouros de São Paulo.
+
+**Na skill.** O `perfilar.py` imprimia o domínio de colunas de texto livre
+(`eve_texto` tinha nomes de pessoa). A regra de coluna sensível agora pega
+`texto`, `obs`, `parametro`, `aliases` e `conta`.
+
+### 2026-10-29 · Claude · F17 — `sac`, núcleo (primeiro lote parcial)
+
+**Modo parcial.** O `scripts/migrar_lote_salic.py` ganhou `--assunto` e
+`--tabelas`: só as tabelas listadas migram, os blocos delas saem do
+`schema.yml` e do `sources_sac.yml` legados e vão para
+`salic/schema_sac_<assunto>.yml` e `salic/sources_sac.yml`, e a troca de
+`source()` fica restrita a elas. A primeira versão trocava a source dos 468
+legados que ficavam; foi desfeito antes do commit.
+
+**O que entrou.** 13 silvers: as 12 que `core` e as metas 3, 4 e 5 leem, mais
+`projetos`. Os modelos manuais passam a ler `silver_sac_*`.
+
+**Códigos que passaram a ter significado.**
+- `tipoaprovacao`: 1 inicial, 2 complementação, 3 prorrogação, 4 redução,
+  8 readequação (SalicWeb). Valor aprovado = tipo 1 + tipo 2 - tipo 4.
+- `enquadramento`: 1 artigo 26, 2 artigo 18 (SalicWeb). Um registro por
+  projeto: não há histórico de reenquadramento, ao contrário do que
+  `dim_projeto_rouanet` supõe.
+- `mecanismo`: 1 é Incentivo Fiscal Federal, confirmado cruzando com a
+  descrição em `vwanalisefinanceiravirtual`. 2 e 6 são convênio no SalicWeb.
+  3 e 5 sem significado; `sac.Mecanismo` não é ingerida.
+- `tipoapoio` é ambíguo no próprio SalicWeb (três consultas leem 2 como
+  patrocínio, duas leem 1).
+
+**Armadilhas.** `tbapicomprovacoes.sguf` são as duas primeiras letras do nome
+do estado, ambíguas (Ri, Pa, Ma). `vsegmento` só tem os 71 segmentos ativos:
+135.921 projetos têm segmento fora dela, e `sac.Segmento` não é ingerida.
+
+**Casts.** Segmento tinha letra e virava NULL (41.492 projetos, 56 dos 71
+segmentos); PRONAC e números de documento do pagamento detalhado perdiam o
+zero à esquerda. Só afetam `dim_projeto` e `fct_pagamento`, que nunca rodaram
+em produção. Os 5 modelos em produção foram reconstruídos sobre as silvers
+novas com a mesma contagem.
+
+**Governança.** A anonimização é do Ranger, na consulta (decisão da usuária):
+a silver não descarta coluna pessoal. A regra da guarda "publicável não lê
+restrito" passa a valer só em `models/salic/`; `core` e metas entram quando
+migrarem.
+
+**Custo.** `map_chave_projeto_rouanet` passou de 20 minutos no dev e foi
+interrompida; é view sobre texto sem índice. Medir no PR 6.
+
+**Na skill.** O perfil imprimiu primeiros nomes de servidores em
+`projetos.analista`; a regra de coluna sensível agora pega papéis de pessoa
+(analista, técnico, responsável, parecerista, proponente e outros).
+
+### 2026-10-29 · Claude · F17 — revisão do #121 (PR #122)
+
+Ajustes do que a revisão (ananunesv, devwallyson) pediu:
+- A guarda "publicável não lê restrito" isenta os 5 modelos de `salic_dbt/`
+  por nome (`LEGADOS_LEEM_RESTRITO`), não por pasta. Um teste falha se um nome
+  da lista sumir, migrar ou deixar de ler restrito.
+- Segmento em texto na `dim_projeto_rouanet`: medido nas bronzes, o par área e
+  segmento de `vwalterarprojeto` casa com `vsegmento` em 140.961 projetos
+  comparando texto, contra 116.817 pelo cast antigo para inteiro, e nenhum
+  projeto perde o casamento. `codigo_segmento` passou a `text` no
+  `core/schema.yml`.
+
+**Para o PR dos modelos manuais** (registro, não corrigido aqui):
+- `dim_projeto_rouanet.valor_aprovado_reais` pega o `aprovadoreal` da última
+  aprovação. Pelo SalicWeb o valor aprovado é tipo 1 + tipo 2 - tipo 4, e a
+  última aprovação costuma ser prorrogação (tipo 3, valor perto de zero) ou
+  redução. O erro é anterior à migração; a dim nunca rodou em produção.
+- `dim_projeto_rouanet` supõe histórico de enquadramento, e
+  `silver_sac_enquadramento` tem um registro por projeto.
+- `brg_projeto_proponente_rouanet` tem a mesma contagem a cada build, mas não o
+  mesmo conteúdo: o `distinct on (pronac, id_agente)` desempata só até
+  `documento_proponente`, e nome, solicitante ou descrição diferentes do mesmo
+  vínculo saem a cada vez de um jeito. Completar o `order by`.
+- `map_chave_projeto_rouanet` passou de 20 minutos no dev.
+
+Segunda revisão (devwallyson, no #122), também no #122:
+- o script confere tudo antes de mexer em arquivo (assunto, tabelas, existência
+  dos YAML e se `tables:` é a última chave, com leitura que aceita comentário e
+  lista no mesmo recuo) e recusa argumento repetido ou vazio;
+- a exceção da guarda é por leitura: cada modelo de `LEGADOS_LEEM_RESTRITO` só
+  pode ler as silvers restritas listadas para ele, e a lista falha se o modelo
+  deixar de ser publicável ou parar de ler uma delas;
+- `origem_dados` de `map_chave`, `dim_projeto`, `dim_municipio_ibge` e
+  `fct_proponente_ano` citam as silvers.
+
+---
+
+### 2026-10-29 · Claude · F17 — `sac`, lote proposta
+
+**Triagem do resto do `sac`.** As 468 tabelas restantes foram agrupadas por
+assunto (proposta, bancário, planilha, prestação de contas, parecer,
+documentos, readequação, Programa Rouanet, pessoas e CNIC, domínios, cópias
+datadas e DBA, painéis). Decisão da usuária: todas ganham silver, inclusive
+cópias datadas, extrações de DBA e painéis de tela.
+
+**O que entrou.** 37 silvers de proposta e projeto. `preprojeto` é a proposta
+antes de virar projeto (450 mil, 35% viraram projeto); `stTipoDemanda` NA é
+proposta comum de incentivo fiscal e ED é de edital. `tbprojetofase` traz a
+fase (647 a 652 na verificação do sac) e o normativo (`sac.tbnormativos`, 15
+instruções de 1995 a 2026). `tbmonitoramentoprojeto` é a fotografia
+financeira do projeto desde 2023. `vrenunciageralporanoprojeto` dá a renúncia
+fiscal por projeto, ano e lei.
+
+**Armadilhas.** `tbdetalhaplanodistribuicao` detalha `sac.PlanoDistribuicaoProduto`,
+que não é ingerida; `tbplanodistribuicao` é o plano da readequação. A
+renúncia por projeto e ano só é única com a lei.
+
+**Lição.** Afirmação "em todas as linhas" precisa da tabela inteira, não da
+amostra de 200: a revisão pegou nove erros assim neste lote, o maior dizendo
+que `vvaloresprojeto.captado` era sempre zero (soma 35,9 bilhões).
+
+---
+
+### 2026-10-29 · Claude · F17 — `sac`, lote bancário
+
+**O que entrou.** 51 silvers de contas, extratos e lançamentos do Banco do
+Brasil, captação por incentivador, empenho, ordem bancária e pagamento de
+parecerista. Cada projeto tem duas contas: a bloqueada recebe a captação, a
+livre paga as despesas. `tblancamentobancario` (8,3 M) e
+`tbmovimentacaobancariaitem` (18,6 M, a maior do sac) são o extrato.
+
+**`tipoapoio` resolvido.** Empresas concentram o tipo 2 (32 bilhões) e
+pessoas físicas o tipo 1: 1 doação, 2 patrocínio, como o dicionário. O
+`cdpatrocinio` do arquivo do banco usa a ordem inversa. O núcleo foi
+atualizado.
+
+**Armadilhas.** `vrenunciaporincentivador` soma 225 milhões, contra 33,7
+bilhões da renúncia por projeto: recorte não documentado. Em
+`tbmovimentacao`, `stestado` true aparece várias vezes por proposta e não
+marca o estado atual.
+
+**Erros pegos na validação.** `accepted_values` sem aspas em coluna texto
+dá ERROR no build; a guarda agora barra isso. Uma varredura de estouro de
+`integer` nas 182 silvers migradas não achou nenhum caso.
+
+---
+
+### 2026-10-29 · Claude · F17 — `sac`, lote planilha
+
+**O que entrou.** 23 silvers de orçamento. Três camadas: `tbplanilhaproposta`
+(orçamento da proposta, 10,9 M itens), `tbplanilhaprojeto` (o que entrou na
+análise técnica) e `tbplanilhaaprovacao` (uma linha por versão depois da
+aprovação). `tpplanilha`, pelo SalicWeb: CO aprovada, RP remanejamento de até
+20%, SR solicitação de readequação; SE sem uso no código. Valor do item =
+quantidade × ocorrência × valor unitário; a CO vigente soma 50,4 bilhões.
+
+**Notação científica.** Coluna `float` da origem chega pelo Trino como texto
+`1.0E0`. Macro nova `bronze_numerico_cientifico` converte para numeric, sem
+mudar `bronze_numerico`. Aplicada em 20 colunas deste lote e no
+`sugeridoreal` da pauta da CNIC (lote proposta, que estava como texto).
+Conferido no banco que todos os valores passam na regex. Lotes futuros:
+procurar o formato `9.9a9` no perfil.
+
+---
+
+### 2026-10-29 · Claude · F17 — `sac`, lote prestação de contas e readequação
+
+**O que entrou.** 32 silvers. `tbreadequacao` (104.820 pedidos): o tipo não
+tem tabela ingerida, mas `vwpareceresdereadequacao` traz o nome de 23 dos 24
+tipos; o 1 (23.583) fica sem nome. `tbcumprimentoobjeto`: situação 2
+aguardando, 3 em análise, 5 analisado (SalicWeb). Laudo final A/P/R só tem
+leitura pela proporção. `tbcomplianceitemcomprovado`: conformidade
+automática, tipos 722, 723, 737 e 898 da verificação do sac (grupo 32).
+`tbpreprojetometa`: cópias da proposta em PHP serializado a cada diligência
+e alteração.
+
+**Gerador.** O `sqlfmt` quebra `}} as coluna` em duas linhas quando ela fica
+longa, e o gerador dos schemas não via a coluna: faltavam 5 colunas (2 na
+proposta, já na main, 1 na planilha, 2 aqui). A guarda ganhou
+`test_toda_coluna_do_select_esta_documentada`, que compara o select com o yml
+nas silvers migradas por lote.
+
+---
+
+### 2026-10-29 · Claude · F17 — `sac`, lote parecer e análise
+
+**O que entrou.** 38 silvers: distribuição a pareceristas, diligências,
+homologação, fiscalização, pagamento e credenciamento de pareceristas,
+classificação de risco de projeto e proponente e as views de acompanhamento.
+`tbdistribuirparecer` (1,1 milhão de envios): tipo de análise 0 conteúdo,
+1 custo do produto, 2 custo administrativo pelo SalicWeb; o 3, o mais comum,
+só tem leitura num comentário do código. Diligência: os 14 tipos vêm da
+verificação do sac (grupo 8). Fiscalização: 0 e 1 em andamento, 2 concluída
+pelo técnico, 3 pelo coordenador. A view do laudo final traz as letras por
+extenso e confirma A aprovado, P com ressalvas, R reprovado no
+`tblaudofinal` do lote anterior. Classificação de risco: `avaliacaoprojeto`
+tem 5 parâmetros por projeto e a soma dos pesos dá `vprojetoavaliado`; os
+nomes dos parâmetros não são ingeridos.
+
+**Casts.** PRONAC e sequencial com zero à esquerda estavam como inteiro em
+quatro views (21, 694, 25.599 e 308 linhas perdiam o zero); passaram a
+texto, e o PRONAC das outras três views do lote também, por coerência.
+Datas e contagens gravadas como texto ganharam tipo.
+
+**Dado pessoal.** `vwpareceristascredenciados` traz CPF, telefone e e-mail
+de parecerista. A justificativa de afastamento de parecerista ficou
+`PII.Sensitive` por poder conter informação de saúde.
+
+**Validação.** 38 de 38 rodaram em `dev_salic`, 40 testes passaram, nenhuma
+coluna com nome de credencial, contagens iguais nas 38.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote documentos
+
+**O que entrou.** 30 silvers: documentos exigidos e entregues, certidões,
+despachos, documentos assinados, tramitação, notificações e mensagens ao
+proponente, portarias e os históricos. `historicosituacao` é o histórico
+completo das situações: 5.254.429 mudanças de 297.427 projetos, com datas
+de 1900 a 4005 e 15.463 linhas sem data. `tbnotificacao` (606.851): os 10
+tipos vêm da verificação do sac (grupo 25), com o nome que
+`vwnotificacaoaoproponente` traz. `tbdocumentoassinatura` é o parecer de
+aprovação preliminar (626) inteiro em HTML. `auditoria` é a auditoria do SQL
+Server sobre cerca de 380 objetos, sem data nem usuário.
+
+**Casts.** Ano, sequencial ou PRONAC estavam como inteiro em 7 views e
+passaram a texto. `tbmensagem.idmulticast` vem em notação científica nas
+127 linhas preenchidas e usa `bronze_numerico_cientifico`.
+
+**Dado pessoal.** `documentopessoal` guarda número, órgão emissor e data de
+documento do proponente; `tbmensagem` o CPF do destinatário; o comando de
+`auditoria` pode trazer CPF ou CNPJ nos parâmetros. Todos `PII.Sensitive`.
+
+**Validação.** 30 de 30 em `dev_salic`, 32 testes passaram, nenhuma coluna
+com nome de credencial, contagens iguais.
+
+**#129.** Foi mergeado na branch do #128 antes da troca de base, como o
+#125; o lote parecer foi reaberto para a `main` da mesma branch. Os lotes
+seguintes não abrem PR empilhado.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote Programa Rouanet, pessoas, CNIC e editais
+
+**O que entrou.** 52 silvers. Programa Rouanet: 9 programas de seleção
+pública de 2023 a 2026, cujos nomes vêm da verificação do sac (grupo 36),
+com inscrição, habilitação, avaliação por critério, recurso, resultado
+preliminar e final, seleção por equidade e patrocinador. Pessoas:
+`interessado`, o cadastro antigo com 313.495 CPFs e CNPJs, endereço e
+contato (27.460 fora de `agentes`), e as views de proponente. CNIC: a pauta
+antiga de 2004 a 2007. Editais do FNC: o fundo vem do grupo 15.
+
+**Amostra não é tabela.** Afirmações do tipo "todas do programa 1" saíram
+da amostra de 200 linhas e estavam erradas em 12 tabelas deste lote; o
+mesmo apareceu em 4 descrições do lote parecer (#130) e 3 do documentos.
+Todas foram refeitas por contagem na tabela inteira. Regra: domínio da
+amostra serve para levantar hipótese; "em todas" só com `group by` na
+tabela inteira. Os lotes já mergeados têm 71 afirmações assim; só as do
+lote proposta tinham sido conferidas; as outras foram, e dez erradas
+foram corrigidas no #132.
+
+**Perfilador.** Imprimiu nome de conselheiro da CNIC no domínio de uma
+coluna. Só no scratchpad, nunca versionado; os valores foram apagados do
+perfil salvo e a regex de coluna sensível passou a cobrir conselheiro,
+relator, entidade, evento, currículo e afins.
+
+**Casts.** PRONAC e segmento passaram a texto. O valor da proposta vem em
+notação científica em três views, e todos os valores passam no cast.
+
+**Validação.** 52 de 52 em `dev_salic`, 49 testes passaram, nenhuma coluna
+com nome de credencial, contagens iguais.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote painéis
+
+**O que entrou.** 40 views das telas de trabalho do SalicWeb: filas de
+admissibilidade, análise técnica das vinculadas, readequação, documentos
+aguardando assinatura, deliberação de captação, avaliação trimestral e o
+acompanhamento da SGPTC (15.970 projetos). São retratos do momento da carga,
+e a descrição de cada uma avisa isso. As versões `_20180323` trazem os mesmos
+pedidos das atuais, conferido na tabela inteira.
+
+**Nome longo.** Duas views passam de 63 caracteres com o prefixo e ganharam
+nome curto à mão: `silver_sac_vwpainelcoordreadequacaoaguardandoanalise_20180323`
+e `silver_sac_vwpaineldocsreadequacaoaguardandoassinatura`. A source mantém o
+nome inteiro e o `identifier` cortado que o Postgres gravou; o
+`migrar_lote_salic.py` recusa esses casos e eles se fazem à mão. O script de
+validação aceita `silver:origem` na lista.
+
+**Casts.** PRONAC, sequencial e segmento passaram a texto (há PRONAC com
+zero à esquerda); o valor do produto vem em notação científica em 9 views;
+datas, dias e saldos em texto ganharam tipo, sem perda na tabela inteira.
+
+**Validação.** 40 de 40 em `dev_salic`, 2 testes passaram, nenhuma coluna
+com nome de credencial, contagens iguais.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote cópias datadas e DBA
+
+**O que entrou.** 42 silvers: arquivos de abertura de conta enviados ao
+banco (linhas em largura fixa com CPF ou CNPJ e conta), cargas de recibos
+de pequenas doações a projetos de dança, cópias datadas de agências, de
+captação, de documentos e de credenciamento, e as extrações denormalizadas
+do DBA. `dba_geral` não é antiga: 3.434.502 linhas dos 276.887 projetos, com
+recibos até 2026, e variações (`_fred`, `_sem_abrangencia`, por ano). Cada
+descrição aponta a fonte primária. `tbdocumento20100107_1x` tem o arquivo
+inteiro em texto e ocupa 7 GB.
+
+**CPF como número.** `dba_total_investido_investidor_ano.cnpj_cpf` e
+`vwpaineldeliberacao.cgccpf` (lote painéis, já na `main`) estavam como
+`bigint` e perdiam o zero à esquerda; viraram texto. Varredura em todas as
+silvers: não sobrou identificador com tipo numérico.
+
+**Booleano S/N.** O perfilador conta S e N como booleano; a macro
+`bronze_booleano` não aceita. Varredura das 82 colunas tipadas como
+booleano: nenhuma perde valor. Coluna S/N fica texto.
+
+**Gerador.** A regex das colunas não lia nome com espaço e acento
+(`'"nome do projeto"'`), que só existe nas extrações do DBA por ano.
+
+**Validação.** 42 de 42 em `dev_salic`, contagens iguais, nenhuma coluna
+com nome de credencial. O lote não tem teste.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote domínios e outros (parte 1)
+
+**O que entrou.** 57 silvers: os domínios `situacao` (296 códigos),
+`verificacao` (850 códigos em 43 grupos, a fonte da maior parte das
+decodificações dos outros lotes), `fase`, `fonte`, `genero`, `veiculacao`,
+`kitbanda` e `tbnormativos`; cadastros antigos (projeto Bandas, bolsas,
+convênios, consultores, conselheiros); `tbrecurso`, `tbinadimplente`,
+`tbdeclaracaobeneficiosfiscais` (753.524 doações declaradas à Receita,
+anos-calendário de 2023 a 2026) e os arquivos DBF; e os caches de tela
+`intranet` (5,3 milhões de linhas, mais de 50 tipos) e `internet`, cujas
+colunas genéricas mudam de sentido com o tipo.
+
+**Credencial.** `tbdispositivomovel.idregistration`, o token de envio de
+notificação push, saiu da silver. `tbapiaprovacoes.hashregistro` é o hash
+da linha para a API detectar mudança: fica, e a checagem de credencial por
+nome o aponta como falso positivo.
+
+**Fora da regra.** `dtproperties`, artefato do SQL Server, fica só na
+Bronze, como no lote `tabelas`. `bcoagmar2011$` tem cifrão na origem: a
+silver é `silver_sac_bcoagmar2011_` e a source foi movida à mão.
+
+**Amostra, de novo.** Quatro afirmações saíram erradas da amostra e foram
+refeitas por `group by` antes do commit: anos-calendário da DBF, grupos da
+`verificacao`, tipos do covid e situação do recurso.
+
+**Validação.** 57 de 57 em `dev_salic`, 48 testes passaram, contagens
+iguais; a checagem de credencial só apontou `hashregistro`.
 
 ---
 

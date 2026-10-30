@@ -24,48 +24,41 @@
 -- este segue a mesma classificação.
 with
 
-pagamentos as (
-    select
-        {{ pronac_normalizado("nrpronac") }} as pronac,
-        aaanocomprovacao as ano,
-        idapicomprovacoes as id_comprovacao
-    from {{ ref('sac__tbapicomprovacoes') }}
-    -- ano nulo é comprovação sem ano utilizável na origem. Fica de fora do
-    -- fato porque não há a que ano atribuí-la, e mantê-la criaria uma
-    -- categoria "sem ano" que ninguém pediu.
-    where aaanocomprovacao is not null
-),
+    pagamentos as (
+        select
+            {{ pronac_normalizado("nrpronac") }} as pronac,
+            aaanocomprovacao as ano,
+            idapicomprovacoes as id_comprovacao
+        from {{ ref("silver_sac_tbapicomprovacoes") }}
+        -- ano nulo é comprovação sem ano utilizável na origem. Fica de fora do
+        -- fato porque não há a que ano atribuí-la, e mantê-la criaria uma
+        -- categoria "sem ano" que ninguém pediu.
+        where aaanocomprovacao is not null
+    ),
 
-proponentes as (
-    select
-        pronac,
-        id_agente,
-        documento_proponente,
-        tipo_pessoa_proponente
-    from {{ ref('brg_projeto_proponente_rouanet') }}
-),
+    proponentes as (
+        select pronac, id_agente, documento_proponente, tipo_pessoa_proponente
+        from {{ ref("brg_projeto_proponente_rouanet") }}
+    ),
 
-proponente_ano as (
-    select
-        pr.id_agente,
-        pr.documento_proponente,
-        pr.tipo_pessoa_proponente,
-        pg.ano,
-        count(distinct pg.pronac) as projetos_com_pagamento,
-        count(distinct pg.id_comprovacao) as comprovacoes
-    from pagamentos as pg
-    inner join proponentes as pr
-        on pg.pronac = pr.pronac
-    group by 1, 2, 3, 4
-),
+    proponente_ano as (
+        select
+            pr.id_agente,
+            pr.documento_proponente,
+            pr.tipo_pessoa_proponente,
+            pg.ano,
+            count(distinct pg.pronac) as projetos_com_pagamento,
+            count(distinct pg.id_comprovacao) as comprovacoes
+        from pagamentos as pg
+        inner join proponentes as pr on pg.pronac = pr.pronac
+        group by 1, 2, 3, 4
+    ),
 
-primeiro as (
-    select
-        id_agente,
-        min(ano) as ano_primeiro_pagamento
-    from proponente_ano
-    group by 1
-)
+    primeiro as (
+        select id_agente, min(ano) as ano_primeiro_pagamento
+        from proponente_ano
+        group by 1
+    )
 
 select
     pa.id_agente,
@@ -77,5 +70,4 @@ select
     pm.ano_primeiro_pagamento,
     pa.ano = pm.ano_primeiro_pagamento as eh_primeiro_ano
 from proponente_ano as pa
-inner join primeiro as pm
-    on pa.id_agente = pm.id_agente
+inner join primeiro as pm on pa.id_agente = pm.id_agente

@@ -56,6 +56,29 @@ def _sem_acento(texto: str) -> str:
 DOMINIO_ESPERADO = "Cultura.Incentivo Fiscal"
 DONO_ESPERADO = "minc-data-engineering"
 
+# Modelos de salic_dbt/ marcados como publicaveis que leem silver restrita do
+# sac, cada um com as leituras restritas revisadas no #121: nenhum projeta CPF,
+# CNPJ ou logon. Leitura restrita nova nao entra sem revisao. Saem quando
+# migrarem (PR dos modelos manuais).
+LEGADOS_LEEM_RESTRITO: dict[str, set[str]] = {
+    "brg_projeto_local_execucao": {"silver_sac_abrangencia"},
+    "dim_projeto_rouanet": {
+        "silver_sac_aprovacao",
+        "silver_sac_enquadramento",
+        "silver_sac_vwagentesseusprojetos",
+        "silver_sac_vwalterarprojeto",
+    },
+    "fct_aprovacao_rouanet": {"silver_sac_aprovacao"},
+    "fct_captacao_rouanet": {"silver_sac_captacao"},
+    "map_chave_projeto_rouanet": {
+        "silver_sac_aprovacao",
+        "silver_sac_captacao",
+        "silver_sac_enquadramento",
+        "silver_sac_vwagentesseusprojetos",
+        "silver_sac_vwalterarprojeto",
+    },
+}
+
 
 def _modelos_documentados() -> dict[str, dict]:
     """Todo bloco `models:` dos schema.yml da silver, indexado por nome."""
@@ -275,21 +298,86 @@ def test_silver_le_so_a_bronze_do_salic(caminho: Path) -> None:
         assert "source(" not in sql, f"{caminho.name}: usa source() em vez de ref()"
 
 
-@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
-def test_modelo_restrito_nao_e_consumido_por_publicavel(caminho: Path) -> None:
-    """Um modelo publicavel que le um restrito vaza pela porta dos fundos."""
-    modelo = MODELOS.get(caminho.stem)
-    if modelo is None:
-        pytest.skip("modelo sem documentacao: coberto por outro teste")
-    if _governanca(modelo).get("rag_publication") == "prohibited":
-        return
+def _restritos_lidos(caminho: Path) -> list[str]:
     referenciados = set(
         re.findall(r"ref\(\s*[\"']([^\"']+)[\"']\s*\)", caminho.read_text())
     )
-    restritos = sorted(
+    return sorted(
         nome
         for nome in referenciados
         if nome in MODELOS
         and _governanca(MODELOS[nome]).get("rag_publication") == "prohibited"
     )
+
+
+@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
+def test_modelo_restrito_nao_e_consumido_por_publicavel(caminho: Path) -> None:
+    """Um modelo publicavel que le um restrito vaza pela porta dos fundos.
+
+    Excecao, por modelo e por leitura: os legados de salic_dbt/ em
+    LEGADOS_LEEM_RESTRITO podem ler so as silvers restritas listadas para eles,
+    que foram revisadas. Qualquer outra leitura restrita cai aqui.
+    """
+    modelo = MODELOS.get(caminho.stem)
+    if modelo is None:
+        pytest.skip("modelo sem documentacao: coberto por outro teste")
+    if _governanca(modelo).get("rag_publication") == "prohibited":
+        return
+    permitidos = LEGADOS_LEEM_RESTRITO.get(caminho.stem, set())
+    restritos = [r for r in _restritos_lidos(caminho) if r not in permitidos]
     assert not restritos, f"{caminho.stem} e publicavel e le modelo restrito {restritos}"
+
+
+def test_excecao_de_legado_ainda_e_necessaria() -> None:
+    """A lista nao pode ficar velha: modelo que sumiu, migrou, deixou de ser
+    publicavel ou parou de ler uma silver listada sai dela (ou perde a leitura)."""
+    por_nome = {c.stem: c for c in SQLS}
+    for nome, permitidos in sorted(LEGADOS_LEEM_RESTRITO.items()):
+        caminho = por_nome.get(nome)
+        assert caminho is not None, f"{nome}: nao existe mais; tire da lista"
+        assert not caminho.is_relative_to(SALIC_NOVO_DIR), f"{nome}: ja migrou"
+        rag = _governanca(MODELOS[nome]).get("rag_publication")
+        assert rag != "prohibited", f"{nome}: nao e mais publicavel; tire da lista"
+        sobram = sorted(permitidos - set(_restritos_lidos(caminho)))
+        assert not sobram, f"{nome}: nao le mais {sobram}; tire da lista"
+
+
+@pytest.mark.parametrize("nome", sorted(MODELOS))
+def test_accepted_values_sem_aspas_so_em_coluna_numerica(nome: str) -> None:
+    """``quote: false`` compara a coluna com número; em coluna texto o Postgres
+    recusa a comparação e o teste dá ERROR no build, não FAIL."""
+    for coluna in MODELOS[nome].get("columns") or []:
+        for teste in coluna.get("tests") or []:
+            if not isinstance(teste, dict) or "accepted_values" not in teste:
+                continue
+            argumentos = teste["accepted_values"].get("arguments") or {}
+            if argumentos.get("quote") is False:
+                assert (
+                    coluna.get("data_type") != "text"
+                ), f"{nome}.{coluna['name']}: accepted_values sem aspas em coluna text"
+
+
+@pytest.mark.parametrize("caminho", SQLS, ids=NOMES_SQL)
+def test_toda_coluna_do_select_esta_documentada(caminho: Path) -> None:
+    """Coluna que a silver entrega e o schema.yml não lista some do catálogo.
+
+    Vale para as silvers de models/salic/, geradas a partir do SQL. O sqlfmt
+    pode quebrar a linha entre ``}}`` e ``as``, por isso o \\s+.
+    """
+    if not caminho.is_relative_to(SALIC_NOVO_DIR) or not caminho.stem.startswith(
+        "silver_"
+    ):
+        pytest.skip("só as silvers geradas de models/salic/")
+    modelo = MODELOS.get(caminho.stem)
+    if modelo is None:
+        pytest.skip("modelo sem documentacao: coberto por outro teste")
+    sql = caminho.read_text()
+    if not sql.startswith("-- Silver SALIC — "):
+        pytest.skip("silver escrita à mão, fora da migração por lote")
+    corpo = sql[sql.index("select") :]
+    no_sql = set(re.findall(r"\}\}\s+as\s+([a-z0-9_]+)", corpo))
+    if re.search(r"^\s*_fatia\b", corpo, re.M):
+        no_sql.add("_fatia")
+    documentadas = {c["name"] for c in modelo.get("columns") or []}
+    faltam = sorted(no_sql - documentadas)
+    assert not faltam, f"{caminho.stem}: colunas sem documentacao {faltam}"
