@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57 e (parte 2, views) 65: o `sac` inteiro migrou; `dtproperties` fica só na Bronze. Os modelos manuais (core, meta3–5) saíram de `salic_dbt/` para `salic/silver_sac_*` e a gold `eixo2_meta5_proponente_ano_rouanet`. Faltam o PR dos defeitos que mudam número e a limpeza final, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57 e (parte 2, views) 65: o `sac` inteiro migrou; `dtproperties` fica só na Bronze. Os modelos manuais (core, meta3–5) saíram de `salic_dbt/` para `salic/silver_sac_*` e a gold `eixo2_meta5_proponente_ano_rouanet`. Os defeitos que mudavam número foram corrigidos. Falta a limpeza final, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -388,7 +388,7 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | F14 | Meta 4 — IBGE, capitais, vulnerabilidade e bridge de execução | minc | 🟠 PARCIAL · Codex · 2026-09-03 — bridge entregue como `Disabled`; cobertura de PRONAC é só 4.269 projetos |
 | F15 | Meta 5 — histórico do proponente e golds de primeiro acesso | minc | 🟢 LIVRE — depende de `fct_evento_acesso_rouanet` e da chave HMAC |
 | F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | ✅ FEITO · Claude · 2026-09-02 20:20 -03 |
-| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | 🟣 EM CURSO · Claude + Luiza · 2026-10-29 — feitos `controledeacesso`, `bdcorporativo`, `agentes`, `tabelas`, o `sac` inteiro e os modelos manuais; próximos: PR dos defeitos (valor aprovado, enquadramento, desempate da ponte), limpeza final · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
+| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | 🟣 EM CURSO · Claude + Luiza · 2026-10-29 — feitos `controledeacesso`, `bdcorporativo`, `agentes`, `tabelas`, o `sac` inteiro e os modelos manuais; defeitos corrigidos (valor aprovado, enquadramento, desempate da ponte); próximo: limpeza final · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
 
 ### F1 — Credencial (cidades) 🔴
 **Arquivos/refs:** HEAD e histórico de
@@ -1246,6 +1246,30 @@ proponente por ano 27.640. Os quatro novos: chave 276.866 (276.857 com
 ficam em produção até a limpeza final. Os defeitos registrados no #122
 (valor aprovado, enquadramento, desempate da ponte) vão no PR seguinte, com
 contagem antes e depois.
+
+---
+
+### 2026-10-30 · Claude · F17 — os defeitos do projeto e da ponte
+
+**Valor aprovado.** `silver_sac_projeto_rouanet.valor_aprovado_reais` vinha do
+ato de aprovação mais recente, e em 126.064 dos 181.292 projetos aprovados
+esse ato é prorrogação, de valor zero. Passou à regra do SalicWeb, tipos 1 + 2
+− 4, somando o valor como a origem traz. Antes R$ 28,89 bi, depois R$ 154,80
+bi; 136.026 projetos mudam, 37 ficam negativos (a origem tem 95 reduções e 77
+complementações negativas). As datas e o valor autorizado continuam do ato
+mais recente. Nenhum modelo a jusante lê o valor.
+
+**Enquadramento.** `silver_sac_enquadramento` tem 180.190 linhas para 180.190
+PRONACs: não há histórico de reenquadramento. Comentário e documentação
+corrigidos; o `distinct on` fica só como proteção do grão. Número não muda.
+
+**Ponte projeto–proponente.** Em 9.117 vínculos a origem repete o par
+PRONAC × agente com solicitantes diferentes, e o `order by` parava no
+documento. Agora desempata até a última coluna e fica o menor solicitante.
+Mesmas 205.760 linhas; o solicitante mudou em 2.496 vínculos em relação à
+tabela antiga de produção.
+
+**Validação.** 12 modelos em `dev_salic`, 12 testes passaram.
 
 ---
 

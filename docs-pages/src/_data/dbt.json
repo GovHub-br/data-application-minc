@@ -15259,7 +15259,7 @@
         },
         {
           "nome": "id_solicitante",
-          "descricao": "Identificador do solicitante do vínculo no SALIC, como texto na origem. Chave técnica ligada a pessoa."
+          "descricao": "Identificador do solicitante do vínculo no SALIC, como texto na origem. Chave técnica ligada a pessoa. Em 9.117 vínculos a origem repete o vínculo com solicitantes diferentes; fica o menor, para o resultado não mudar entre execuções."
         },
         {
           "nome": "descricao_vinculo",
@@ -15273,7 +15273,7 @@
         "silver_sac_vwagentesseusprojetos"
       ],
       "sources": [],
-      "linhas_sql": 86
+      "linhas_sql": 95
     },
     {
       "nome": "silver_sac_projeto_rouanet",
@@ -15281,7 +15281,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_projeto_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Dimensão do projeto cultural na Lei Rouanet: nome, área, segmento, mecanismo, enquadramento, situação, janela de execução, janela de captação e valores autorizados.\nGRÃO: uma linha por PRONAC. CHAVE: `pronac`. UNIVERSO: todo PRONAC de `silver_sac_chave_projeto_rouanet`, e não apenas os projetos que o cadastro resolve — um projeto que só aparece em captação existe para efeito de indicador, e incluí-lo só quando o cadastro o descreve produziria um denominador que muda sozinho conforme a carga avança. Projeto sem cadastro sai com atributos descritivos nulos e `cadastro_resolvido` `false`, nunca fora da tabela.\nIDENTIDADE FICA DE FORA: nem CPF/CNPJ, nem nome de proponente, nem `logon` de analista. A ligação projeto → proponente é `silver_sac_projeto_proponente_rouanet`, que é zona restrita. Esta dimensão existe para ser a parte publicável do projeto.\n\"ÚLTIMO\" É UMA ESCOLHA DECLARADA: aprovação e enquadramento têm histórico (readequação, prorrogação, reenquadramento). A dimensão guarda o registro mais recente de cada um, que é a leitura de painel; o histórico completo está em `silver_sac_aprovacao_rouanet` e nenhuma linha se perde lá.\nMEDIDA E UNIDADE: `valor_aprovado_reais` e `valor_autorizado_reais` estão em reais nominais da data da aprovação, sem correção monetária, e são teto de captação — não recurso realizado. Para recurso realizado use `silver_sac_captacao_rouanet`.\nJOINS: `silver_sac_vwalterarprojeto` (cadastro), `silver_sac_vwagentesseusprojetos` (mecanismo), `silver_sac_enquadramento`, `silver_sac_aprovacao`, `silver_sac_area` e `silver_sac_vsegmento` (dimensões descritivas, esta última casada por área + código, porque o código de segmento se repete entre áreas).\nLIMITAÇÕES: `Projetos` da ingestão v2 ainda não foi carregada, então o cadastro vem da view `silver_sac_vwalterarprojeto`, cujo grão não foi medido contra o banco — o `distinct on` do modelo garante o grão declarado independentemente disso. A cobertura de cadastro e a de nome de área e segmento também não foram medidas (gate G1). ATUALIZAÇÃO: recalculada a cada `dbt build`.",
+      "descricao": "Camada Silver / núcleo SALIC. Dimensão do projeto cultural na Lei Rouanet: nome, área, segmento, mecanismo, enquadramento, situação, janela de execução, janela de captação e valores autorizados.\nGRÃO: uma linha por PRONAC. CHAVE: `pronac`. UNIVERSO: todo PRONAC de `silver_sac_chave_projeto_rouanet`, e não apenas os projetos que o cadastro resolve — um projeto que só aparece em captação existe para efeito de indicador, e incluí-lo só quando o cadastro o descreve produziria um denominador que muda sozinho conforme a carga avança. Projeto sem cadastro sai com atributos descritivos nulos e `cadastro_resolvido` `false`, nunca fora da tabela.\nIDENTIDADE FICA DE FORA: nem CPF/CNPJ, nem nome de proponente, nem `logon` de analista. A ligação projeto → proponente é `silver_sac_projeto_proponente_rouanet`, que é zona restrita. Esta dimensão existe para ser a parte publicável do projeto.\nAPROVAÇÃO TEM HISTÓRICO; ENQUADRAMENTO NÃO. Cada projeto acumula atos de aprovação (inicial, complementação, prorrogação, redução, readequação). As datas e o valor autorizado vêm do ato mais recente. O valor aprovado não: o ato mais recente é prorrogação, de valor zero, em 126.064 dos 181.292 projetos aprovados, e por isso ele segue a regra do SalicWeb (tipos 1 e 2 menos o tipo 4). O histórico completo está em `silver_sac_aprovacao_rouanet`. O enquadramento tem uma linha por projeto na origem: é o atual, sem histórico de reenquadramento.\nMEDIDA E UNIDADE: `valor_aprovado_reais` e `valor_autorizado_reais` estão em reais nominais da data da aprovação, sem correção monetária, e são teto de captação — não recurso realizado. Para recurso realizado use `silver_sac_captacao_rouanet`.\nJOINS: `silver_sac_vwalterarprojeto` (cadastro), `silver_sac_vwagentesseusprojetos` (mecanismo), `silver_sac_enquadramento`, `silver_sac_aprovacao`, `silver_sac_area` e `silver_sac_vsegmento` (dimensões descritivas, esta última casada por área + código, porque o código de segmento se repete entre áreas).\nLIMITAÇÕES: `Projetos` da ingestão v2 ainda não foi carregada, então o cadastro vem da view `silver_sac_vwalterarprojeto`, cujo grão não foi medido contra o banco — o `distinct on` do modelo garante o grão declarado independentemente disso. A cobertura de cadastro e a de nome de área e segmento também não foram medidas (gate G1). ATUALIZAÇÃO: recalculada a cada `dbt build`.",
       "colunas": [
         {
           "nome": "pronac",
@@ -15321,11 +15321,11 @@
         },
         {
           "nome": "codigo_enquadramento",
-          "descricao": "Código do enquadramento mais recente do projeto — é ele que separa os artigos da lei com percentual de abatimento diferente. Exposto como código pelo mesmo motivo do mecanismo."
+          "descricao": "Código do enquadramento atual do projeto (a origem não guarda histórico) — é ele que separa os artigos da lei com percentual de abatimento diferente. Exposto como código pelo mesmo motivo do mecanismo."
         },
         {
           "nome": "data_enquadramento",
-          "descricao": "Data do enquadramento mais recente registrado para o projeto."
+          "descricao": "Data do enquadramento atual do projeto; a origem não guarda reenquadramentos."
         },
         {
           "nome": "codigo_situacao",
@@ -15365,7 +15365,7 @@
         },
         {
           "nome": "valor_aprovado_reais",
-          "descricao": "Valor aprovado na aprovação mais recente, em reais nominais da data da aprovação, sem correção monetária. É teto, não recurso realizado."
+          "descricao": "Valor aprovado do projeto pela regra do SalicWeb: soma do `aprovadoreal` dos atos de tipo 1 (inicial) e 2 (complementação) menos a dos de tipo 4 (redução), em reais nominais, sem correção monetária. É teto, não recurso realizado. Soma R$ 154,8 bi em 181.292 projetos (R$ 28,9 bi pela regra antiga, do ato mais recente); 37 ficam negativos, e 5 não têm ato de tipo 1 nem 2. A origem traz 95 reduções e 77 complementações com valor negativo; a regra soma e subtrai o valor como está."
         },
         {
           "nome": "valor_autorizado_reais",
@@ -15397,7 +15397,7 @@
         "silver_sac_vwalterarprojeto"
       ],
       "sources": [],
-      "linhas_sql": 198
+      "linhas_sql": 208
     },
     {
       "nome": "silver_sac_projetos",
