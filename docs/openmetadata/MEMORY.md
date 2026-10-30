@@ -69,7 +69,7 @@ vem depois dela.
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30. Faltam 257 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
+| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52. Faltam 205 do `sac`, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
 | SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
@@ -1055,6 +1055,38 @@ com nome de credencial, contagens iguais.
 **#129.** Foi mergeado na branch do #128 antes da troca de base, como o
 #125; o lote parecer foi reaberto para a `main` da mesma branch. Os lotes
 seguintes não abrem PR empilhado.
+
+---
+
+### 2026-10-30 · Claude · F17 — `sac`, lote Programa Rouanet, pessoas, CNIC e editais
+
+**O que entrou.** 52 silvers. Programa Rouanet: 9 programas de seleção
+pública de 2023 a 2026, cujos nomes vêm da verificação do sac (grupo 36),
+com inscrição, habilitação, avaliação por critério, recurso, resultado
+preliminar e final, seleção por equidade e patrocinador. Pessoas:
+`interessado`, o cadastro antigo com 313.495 CPFs e CNPJs, endereço e
+contato (27.460 fora de `agentes`), e as views de proponente. CNIC: a pauta
+antiga de 2004 a 2007. Editais do FNC: o fundo vem do grupo 15.
+
+**Amostra não é tabela.** Afirmações do tipo "todas do programa 1" saíram
+da amostra de 200 linhas e estavam erradas em 12 tabelas deste lote; o
+mesmo apareceu em 4 descrições do lote parecer (#130) e 3 do documentos.
+Todas foram refeitas por contagem na tabela inteira. Regra: domínio da
+amostra serve para levantar hipótese; "em todas" só com `group by` na
+tabela inteira. Os lotes já mergeados têm 71 afirmações assim; só as do
+lote proposta tinham sido conferidas; as outras foram, e dez erradas
+foram corrigidas no #132.
+
+**Perfilador.** Imprimiu nome de conselheiro da CNIC no domínio de uma
+coluna. Só no scratchpad, nunca versionado; os valores foram apagados do
+perfil salvo e a regex de coluna sensível passou a cobrir conselheiro,
+relator, entidade, evento, currículo e afins.
+
+**Casts.** PRONAC e segmento passaram a texto. O valor da proposta vem em
+notação científica em três views, e todos os valores passam no cast.
+
+**Validação.** 52 de 52 em `dev_salic`, 49 testes passaram, nenhuma coluna
+com nome de credencial, contagens iguais.
 
 ---
 

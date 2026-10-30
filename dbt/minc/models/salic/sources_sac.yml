@@ -10292,3 +10292,1837 @@ sources:
             tier: Tier.Tier4
             domain: Cultura.Incentivo Fiscal
             owner: minc-data-engineering
+      - name: bronze_sac_cnic
+        description: >
+          Tabela responsável por armazenar informações das reuniões da CNIC, incluindo número,
+          data, pauta, resultados e observações.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: anoprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: sequencial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+          - name: nrreuniao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): smallint(2).
+            data_type: text
+          - name: dtreuniao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: tipodepauta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: resultadodaanalise
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: observacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): text(2147483647).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_edital
+        description: >
+          Tabela responsável por armazenar informações sobre editais, incluindo número, objeto,
+          órgão, datas e parâmetros de avaliação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idedital
+            description: >
+              Sequêncial identificador do edital. Tipo original (SQL Server): int identity(4).
+            data_type: text
+          - name: idorgao
+            description: >
+              Código identificador do orgão/ entidade cadastrado. Tipo original (SQL Server):
+              int(4).
+            data_type: text
+          - name: nredital
+            description: >
+              Número do edital a tramitar no sistema. Tipo original (SQL Server): tinyint(1).
+            data_type: text
+          - name: dtedital
+            description: >
+              Data de criação do edital. ** Tipo original (SQL Server): datetime(16,3).
+            data_type: text
+          - name: celulaorcamentaria
+            description: >
+              Número identificaor da célula orçamentaria. Este atributo é proveniente do sistema
+              SIMC e é composto por uma série de campos. Tipo original (SQL Server): varchar(30).
+            data_type: text
+          - name: objeto
+            description: >
+              Descrição …***** Tipo original (SQL Server): varchar(2147483647).
+            data_type: text
+          - name: logon
+            description: >
+              Identificação da pessoa que inseriu no sistema. Tipo original (SQL Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: qtavaliador
+            description: >
+              Define a quantidade de de avalidores por Edital Tipo original (SQL Server): tinyint(1).
+            data_type: text
+          - name: stdistribuicao
+            description: >
+              Indica se a distribuição do edital para cada avaliador será manual (M) ou Altomática
+              (A). Tipo original (SQL Server): char(1).
+            data_type: text
+          - name: stadmissibilidade
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: cdtipofundo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idati
+            description: >
+              Essa coluna servirá como uma espécie de FK para o campo “atiid” da tabela “BDSIMEC.pde.atividade”,
+              mas não é campo obrigatório. obs.: Quando a integração “SIMC x SALIC” for publicada
+              em produção é necessário publicar também a coluna “idAti” da tabela “SAC.dbo.Edital”,
+              isso é fundamental para a integração funcionar. Tipo original (SQL Server): int(4).
+            data_type: text
+          - name: idlinguagem
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idmodalidade
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+      - name: bronze_sac_editaldesembolso
+        description: >
+          Tabela responsável por registrar desembolsos associados aos editais, incluindo parcelas,
+          valores e empenhos.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: iddesembolso
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: anoprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: sequencial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(5).
+            data_type: text
+          - name: idedital
+            description: >
+              Sequêncial identificador do edital. Tipo original (SQL Server): int(4).
+            data_type: text
+          - name: nrparcela
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: data
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: vlcapital
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: vlcusteio
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: pagou
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): bit(1).
+            data_type: text
+          - name: nrempenho
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+          - name: nrordembancaria
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+          - name: nrempenhocusteio
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+          - name: nrordembancariacusteio
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_editalparcelas
+        description: >
+          Tabela responsável por armazenar a distribuição das parcelas previstas no edital,
+          incluindo valores, faixas e exigência de PC.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idedital
+            description: >
+              Sequêncial identificador do edital. Tipo original (SQL Server): int(4).
+            data_type: text
+          - name: nrparcela
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: faixa
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: diasparaliberar
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: valor
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: exigepc
+            description: >
+              0.Não ;1.Sim Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: parcela
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_interessado
+        description: >
+          Tabela responsável por armazenar dados completos de interessados vinculados ao sistema,
+          incluindo contatos, endereço, natureza jurídica e grupo.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: cgccpf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(14).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nome
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(150).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: tipopessoa
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: endereco
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(100).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: cidade
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(50).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: uf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: cep
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(8).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: telefoneresidencial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: telefonecomercial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: telefonecelular
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: telefonefax
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(12).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: natureza
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: esfera
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: administracao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: utilidade
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: responsavel
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(100).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: enderecointernet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(100).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: correioeletronico
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(100).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: grupo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: loc_codigo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: logon
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_tbfundopatrimonialusuario
+        description: >
+          [Não documentado no dicionário de dados original do SALIC — tabela presente apenas
+          no bronze, sem descrição confirmada.]
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idfundopatrimonialusuario
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idfundopatrimonial
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idagenteapoiado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cpfcnpjapoiado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(14).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: nmapoiado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(255).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: vlvalordestinado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): numeric(20,2).
+            data_type: text
+          - name: dtvinculacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dtdesvinculacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: stvinculacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: dsobservacoes
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): text(2147483647).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: cdusuariocriacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: cdusuarioatualizacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanet
+        description: >
+          Tabela responsável por cadastrar programas Rouanet, com dados de período, objetivos,
+          limites de proposta, valores e situação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: tptipologia
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dtabertura
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dtfechamento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dsobjetivo
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(3000).
+            data_type: text
+          - name: qtavaliadores
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: qtpropostas
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: tppessoa
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): bit(1).
+            data_type: text
+          - name: vlmaximoproposta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: dthabilitacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dtresultado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: stestado
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): bit(1).
+            data_type: text
+          - name: dtselecao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: nrpropostaselecionada
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: nrpontuacaominima
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: vltotalprograma
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetareasegmento
+        description: >
+          Tabela responsável por vincular programas Rouanet às respectivas áreas e segmentos
+          culturais.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetareasegmento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: cdarea
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: cdsegmento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetavaliacao
+        description: >
+          Tabela responsável por registrar as avaliações dos avaliadores sobre as propostas
+          do programa Rouanet, com pontuação e situação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetavaliacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idprogramarouanetpergunta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idavaliador
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: qtpontos
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: siavaliacao
+            description: >
+              Em avaliação; 1. avaliação finalizada Tipo original (SQL Server): bit(1).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetavaliacaorecurso
+        description: >
+          Tabela responsável por registrar as avaliações em fase de recurso, com médias de pontos
+          e situação do recurso.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetavaliacaorecurso
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idprogramarouanetpergunta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idavaliador
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: qtmediapontos
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(7,2).
+            data_type: text
+          - name: qtpontosrecurso
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(7,2).
+            data_type: text
+          - name: siavaliacaorecurso
+            description: >
+              Em avaliação; 1. avaliação finalizada Tipo original (SQL Server): bit(1).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetavaliador
+        description: >
+          Tabela responsável por relacionar avaliadores aos programas Rouanet, por área e segmento
+          de atuação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetavaliador
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idavaliador
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cdarea
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: cdsegmento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetdistribuirproposta
+        description: >
+          Tabela responsável por distribuir propostas de pré-projetos aos avaliadores do programa
+          Rouanet, indicando tipo de análise e avaliação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetdistribuirproposta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idavaliador
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: tpanalise
+            description: >
+              0.Avaliacao Inicial;1.Recurso Tipo original (SQL Server): char(1).
+            data_type: text
+          - name: tpavaliacao
+            description: >
+              A. Proposta; R.Recurso Tipo original (SQL Server): char(1).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanethabilitacao
+        description: >
+          Tabela responsável por registrar a habilitação das propostas no programa Rouanet,
+          com datas, descrição e situação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanethabilitacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dthabilitacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dshabilitacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(1000).
+            data_type: text
+          - name: sihabilitacao
+            description: >
+              Inabilitado, 1.Habilitado Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: idtecnico
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+      - name: bronze_sac_tbprogramarouanetlocalidade
+        description: >
+          Tabela responsável por vincular programas Rouanet a UF e municípios atendidos.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetlocalidade
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: iduf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idmunicipio
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(6).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetpergunta
+        description: >
+          Tabela responsável por cadastrar as perguntas/itens de avaliação do programa Rouanet,
+          com faixas de pontuação e ordem.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetpergunta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dspergunta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(250).
+            data_type: text
+          - name: nrfaixainicio
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: nrfaixaincremento
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: nrfaixafinal
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: nrordem
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetpropostaselecionada
+        description: >
+          Tabela responsável por registrar as propostas selecionadas no programa Rouanet, com
+          dados de UF, região, pontuação, ranking e valores alocados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetpropostaselecionada
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: iduf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: sguf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(2).
+            data_type: text
+          - name: nmregiao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(50).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: nrpontuacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(7,2).
+            data_type: text
+          - name: vlproposta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: nrrankingpontuacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: nrrankingfinal
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: siselecao
+            description: >
+              0.Propostas suplementares incluídas para garantir equidade; 1. Propostas selecionadas
+              inicialmente Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: siselecaoequidade
+            description: >
+              0.Propostas suplementares incluídas para garantir equidade; 1. Propostas selecionadas
+              inicialmente Tipo original (SQL Server): bit(1).
+            data_type: text
+          - name: vlalocadoarea
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: vlalocadouf
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: vlalocadoregiao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): money(21,4).
+            data_type: text
+          - name: cdarea
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): char(1).
+            data_type: text
+          - name: cdfaixa
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetrecurso
+        description: >
+          Tabela responsável por registrar recursos interpostos no âmbito do programa Rouanet,
+          com datas, manifestações e situação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetrecurso
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: dtrecurso
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dsrecurso
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(2147483647).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: simanifestacao
+            description: >
+              Indeferido; 1. Deferido Tipo original (SQL Server): tinyint(1).
+            data_type: text
+          - name: dtmanifestacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): datetime(16,3).
+            data_type: text
+          - name: dsmanifestacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(2147483647).
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.NonSensitive
+          - name: sirecurso
+            description: >
+              0.Cadastramento;1.Enviado;2.Em análise;3.Finalizado Tipo original (SQL Server):
+              char(1).
+            data_type: text
+          - name: siestado
+            description: >
+              0.Historico; 1.Ativo Tipo original (SQL Server): bit(1).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetresultadofinal
+        description: >
+          Tabela responsável por consolidar o resultado final de avaliação das propostas do
+          programa Rouanet, com pontuação total, ranking e situação.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetresultadofinal
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: nrtotalpontos
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(7,2).
+            data_type: text
+          - name: mrpontosextras
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): tinyint(1).
+            data_type: text
+          - name: dsmotivacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): varchar(3000).
+            data_type: text
+          - name: nrranking
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: siresultadofinal
+            description: >
+              (S)elecionada;(D)esclassificada Tipo original (SQL Server): char(1).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetresultadopreliminar
+        description: >
+          Tabela responsável por registrar o resultado preliminar de avaliação das propostas
+          do programa Rouanet.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetresultadopreliminar
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: nrpontuacao
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): decimal(7,2).
+            data_type: text
+          - name: siresultadopreliminar
+            description: >
+              (C)lassficada; (D)esclassificada; (S)elecionada Tipo original (SQL Server): char(1).
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetselecaopatrocinador
+        description: >
+          [Não documentado no dicionário de dados original do SALIC — tabela presente apenas
+          no bronze, sem descrição confirmada.]
+
+
+          Observações do levantamento automatizado: [observado] tabela ausente do dicionário
+          de dados original do SALIC (export SchemaSpy) — pode ter sido criada após a extração
+          do dicionário, ou ser uma tabela técnica não catalogada na origem.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+            - possivel_obsoleta
+            - nao_documentado
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetselecaopatrocinador
+            description: >
+              [não documentado no dicionário de dados original do SALIC]
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC]
+            data_type: text
+          - name: idpronac
+            description: >
+              [não documentado no dicionário de dados original do SALIC]
+            data_type: text
+          - name: idpatrocinador
+            description: >
+              [não documentado no dicionário de dados original do SALIC]
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: stopcao
+            description: >
+              [não documentado no dicionário de dados original do SALIC]
+            data_type: text
+          - name: siselecionado
+            description: >
+              [não documentado no dicionário de dados original do SALIC]
+            data_type: text
+      - name: bronze_sac_tbprogramarouanetxproposta
+        description: >
+          Tabela responsável por relacionar propostas de pré-projeto aos programas Rouanet em
+          que estão inscritas.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+        columns:
+          - name: idprogramarouanetxproposta
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int identity(4).
+            data_type: text
+          - name: idprogramarouanet
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+          - name: idpreprojeto
+            description: >
+              [não documentado no dicionário de dados original do SALIC] Tipo original (SQL
+              Server): int(4).
+            data_type: text
+      - name: bronze_sac_vchecaproponente
+        description: >
+          Uma linha por proponente com quantidade de projetos e valores solicitado,
+          aprovado e captado. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vchecaproponente.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vcomparativoanomec
+        description: >
+          Uma linha por ano, com quantidade e valor de projetos apresentados, aprovados
+          e captados no mecenato. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vcomparativoanomec.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vpautadereuniaofncintercambio
+        description: >
+          Uma linha por projeto de intercâmbio do FNC na pauta de reunião, com evento,
+          país e valores. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vpautadereuniaofncintercambio.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vproponenteanouf
+        description: >
+          Uma linha por proponente, ano e UF em que apresentou projeto. Réplica em texto
+          da origem; tipada e documentada em silver_sac_vproponenteanouf.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vproponentecommaisdecincoproj
+        description: >
+          Uma linha por proponente com mais de cinco projetos. Réplica em texto da
+          origem; tipada e documentada em silver_sac_vproponentecommaisdecincoproj.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vproponenteporarea
+        description: >
+          Uma linha por proponente e área cultural em que apresentou projeto. Réplica em
+          texto da origem; tipada e documentada em silver_sac_vproponenteporarea.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vproponentetipopessoa
+        description: >
+          Uma linha por proponente e mecanismo, com tipo de pessoa e valores. Réplica em
+          texto da origem; tipada e documentada em silver_sac_vproponentetipopessoa.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vusuarios
+        description: >
+          Uma linha por usuário interno do SALIC com o órgão e a função: a mesma base de
+          silver_tabelas_usuarios, com CPF e nome. Réplica em texto da origem; tipada e
+          documentada em silver_sac_vusuarios.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwmaioresproponentesporanouf
+        description: >
+          Uma linha por proponente entre os 100 que mais captaram num ano e UF, com o
+          valor e a posição. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwmaioresproponentesporanouf.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwpautados_cnic_mais_trinta_dias
+        description: >
+          Uma linha por projeto pautado na CNIC há mais de 30 dias, com o conselheiro
+          relator. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwpautados_cnic_mais_trinta_dias.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanet
+        description: >
+          Uma linha por programa do Programa Rouanet, com o nome e as datas. Réplica em
+          texto da origem; tipada e documentada em silver_sac_vwprogramarouanet.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetavaliacaofinalizada
+        description: >
+          Uma linha por proposta de Programa Rouanet com a avaliação inicial finalizada:
+          pontuação e ranking. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetavaliacaofinalizada.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta
+        description: >
+          Uma linha por proposta de Programa Rouanet e critério, com a média das notas
+          da avaliação inicial. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetavaliacaoinicialnotasporproposta
+        description: >
+          Uma linha por proposta de Programa Rouanet, critério e avaliador, com a nota
+          da avaliação inicial. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetavaliacaoinicialnotasporproposta.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetavaliadores
+        description: >
+          Uma linha por avaliador designado a um programa, com CPF e nome. Réplica em
+          texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetavaliadores.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetdistribuirproposta
+        description: >
+          Uma linha por proposta de Programa Rouanet com o avaliador designado. Réplica
+          em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetdistribuirproposta.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetdistribuirpropostarecurso
+        description: >
+          Uma linha por proposta de Programa Rouanet em recurso com o avaliador
+          designado. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetdistribuirpropostarecurso.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouaneteditais
+        description: >
+          Uma linha por proposta de Programa Rouanet inscrita, com proponente,
+          localização, situação e, quando virou projeto, valores e incentivador. Réplica
+          em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouaneteditais.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanethabilitarproposta
+        description: >
+          Uma linha por proposta de Programa Rouanet com a habilitação e os dados do
+          programa. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanethabilitarproposta.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetincentivadorprojetosapoiados
+        description: >
+          Uma linha por projeto do Programa Rouanet e incentivador, com o incentivo e a
+          execução financeira. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetincentivadorprojetosapoiados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetnotasporproposta
+        description: >
+          Uma linha por proposta de Programa Rouanet, critério e recurso, com a nota
+          antes e depois. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetnotasporproposta.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetpainelresultadofinal
+        description: >
+          Uma linha por proposta de Programa Rouanet no resultado final, com ranking e
+          valores alocados. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetpainelresultadofinal.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetpainelsolicitarrecurso
+        description: >
+          Uma linha por proposta de Programa Rouanet com o prazo de recurso e a
+          pontuação. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetpainelsolicitarrecurso.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetprojetosselecionados
+        description: >
+          Uma linha por projeto do Programa Rouanet, com os textos, a fase e a execução
+          financeira. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetprojetosselecionados.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetpropostasavaliadas
+        description: >
+          Uma linha por proposta de Programa Rouanet e avaliador com a avaliação
+          finalizada. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetpropostasavaliadas.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetpropostasnaoavaliadas
+        description: >
+          Uma linha por proposta de Programa Rouanet ainda sem avaliação, com o
+          avaliador quando houver. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetpropostasnaoavaliadas.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetpropostasrecebidas
+        description: >
+          Uma linha por proposta de Programa Rouanet recebida, com proponente, produto e
+          local. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetpropostasrecebidas.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetrecursopropostaavaliadas
+        description: >
+          Uma linha por proposta de Programa Rouanet em recurso com a avaliação. Réplica
+          em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetrecursopropostaavaliadas.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetrecursospropostasnaoavaliadas
+        description: >
+          Uma linha por proposta de Programa Rouanet em recurso ainda sem avaliação.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetrecursospropostasnaoavaliadas.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanetresultadoavaliacaoinicial
+        description: >
+          Uma linha por proposta de Programa Rouanet no resultado da avaliação inicial.
+          Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanetresultadoavaliacaoinicial.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering
+      - name: bronze_sac_vwprogramarouanettipologia
+        description: >
+          Uma linha por tipologia de programa, da verificação do sac (grupo 36), com o
+          nome do programa. Réplica em texto da origem; tipada e documentada em
+          silver_sac_vwprogramarouanettipologia.
+        config:
+          tags:
+            - bronze
+            - salic
+            - sac
+        meta:
+          openmetadata:
+            tier: Tier.Tier4
+            domain: Cultura.Incentivo Fiscal
+            owner: minc-data-engineering

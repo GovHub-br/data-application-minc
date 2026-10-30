@@ -1,0 +1,4472 @@
+version: 2
+
+# Silvers do assunto Programa Rouanet, pessoas, CNIC e editais do banco sac do
+# SALIC: os programas de seleção pública do Programa Rouanet (propostas,
+# avaliação, recurso, resultado), o cadastro antigo de interessados e as views
+# de proponentes, a pauta antiga da CNIC e os editais do FNC. Medições de
+# 29 e 30/10/2026 na Bronze (salic.bronze_sac_*), por agregados, sem valor de linha.
+
+models:
+  - name: silver_sac_cnic
+    description: >
+      Uma linha por projeto pautado numa reunião antiga da CNIC, com o tipo de
+      pauta e o resultado. São 17.491 pautas de 15.420 projetos, de 2004 a 2007
+      (reuniões 112 a 145). O sistema atual guarda a pauta em
+      silver_sac_tbpauta.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_cnic'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: nrreuniao
+        description: >
+          Número da reunião da CNIC.
+        data_type: integer
+      - name: dtreuniao
+        description: >
+          Data da reunião da CNIC.
+        data_type: timestamp
+      - name: tipodepauta
+        description: >
+          Tipo de pauta: 0 em 15.402, 1, 2 e 3 nas outras. Sem domínio
+          ingerido.
+        data_type: integer
+      - name: resultadodaanalise
+        description: >
+          Resultado: 0 em 15.769, 4 em 775, 2 em 487, 1 em 459. Sem domínio
+          ingerido.
+        data_type: integer
+      - name: observacao
+        description: >
+          Observação, em texto livre. Preenchida em 10.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vpautadereuniaofncintercambio
+    description: >
+      Uma linha por projeto de intercâmbio do FNC na pauta de reunião, com
+      evento, país e valores. Tem 1 linha, de 2010: sem uso atual.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vpautadereuniaofncintercambio'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrprojeto
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: evento
+        description: >
+          Nome do evento de intercâmbio.
+        data_type: text
+      - name: entidadepromotora
+        description: >
+          Entidade que promove o evento.
+        data_type: text
+      - name: cidadeevento
+        description: >
+          Cidade onde ocorre o evento.
+        data_type: text
+      - name: pais
+        description: >
+          País onde ocorre o evento.
+        data_type: text
+      - name: processo
+        description: >
+          Número do processo administrativo.
+        data_type: text
+      - name: resumoprojeto
+        description: >
+          Resumo do projeto, em texto livre.
+        data_type: text
+      - name: parecertecnico
+        description: >
+          Parecer técnico. Vazio.
+        data_type: text
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: text
+      - name: cidade
+        description: >
+          Cidade do proponente.
+        data_type: text
+      - name: uf
+        description: >
+          UF do proponente ou da proposta.
+        data_type: text
+      - name: resumocurriculo
+        description: >
+          Resumo do currículo do proponente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: vlnormal
+        description: >
+          Valor da passagem normal, em reais.
+        data_type: text
+      - name: vlpromocional
+        description: >
+          Valor da passagem promocional, em reais.
+        data_type: text
+      - name: vlnormaltotal
+        description: >
+          Valor total normal, em reais.
+        data_type: text
+      - name: vlpromocionaltotal
+        description: >
+          Valor total promocional, em reais.
+        data_type: text
+      - name: dtinicio
+        description: >
+          Data de início do evento.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwpautados_cnic_mais_trinta_dias
+    description: >
+      Uma linha por projeto pautado na CNIC há mais de 30 dias, com o
+      conselheiro relator. Tem 7 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwpautados_cnic_mais_trinta_dias'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: conselheiro
+        description: >
+          Nome do conselheiro relator.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: situacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: qtdias
+        description: >
+          Dias desde que o projeto entrou em pauta.
+        data_type: integer
+      - name: tipo
+        description: >
+          Tipo do projeto: IN em todas.
+        data_type: text
+      - name: recurso
+        description: >
+          Recurso. Vazio em todas.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_edital
+    description: >
+      Uma linha por edital do FNC e dos fundos setoriais cadastrado no SALIC.
+      São 798 editais, de 2005 a 2021. O fundo vem da verificação do sac (grupo
+      15): 202 Fundo de Apoio à Cultura do GDF (431), 161 Fundo Nacional de
+      Cultura (238) e os fundos setoriais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_edital'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idedital
+        description: >
+          Identificador do edital. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idorgao
+        description: >
+          Órgão do edital, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: nredital
+        description: >
+          Número do edital no órgão.
+        data_type: integer
+      - name: dtedital
+        description: >
+          Data de publicação do edital.
+        data_type: timestamp
+      - name: celulaorcamentaria
+        description: >
+          Célula orçamentária. Vazia em todas.
+        data_type: text
+      - name: objeto
+        description: >
+          Objeto do edital, em texto.
+        data_type: text
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: qtavaliador
+        description: >
+          Quantidade de avaliadores.
+        data_type: integer
+      - name: stdistribuicao
+        description: >
+          Distribuição: M em todas.
+        data_type: text
+      - name: stadmissibilidade
+        description: >
+          Se o edital tem admissibilidade: S em 795.
+        data_type: text
+      - name: cdtipofundo
+        description: >
+          Fundo, da verificação do sac (grupo 15): 161 FNC, 162 a 170 fundos
+          setoriais, 202 Fundo de Apoio à Cultura do GDF; 347, 348 e 406 fora
+          do grupo.
+        data_type: integer
+      - name: idati
+        description: >
+          Código ATI: 0 ou um único valor.
+        data_type: integer
+      - name: idlinguagem
+        description: >
+          Linguagem artística do edital.
+        data_type: integer
+      - name: idmodalidade
+        description: >
+          Modalidade do edital.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_editaldesembolso
+    description: >
+      Uma linha por parcela desembolsada a um projeto de edital de 2005 e 2006,
+      com capital, custeio, empenho e ordem bancária. São 774 parcelas de 158
+      projetos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_editaldesembolso'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: iddesembolso
+        description: >
+          Identificador da parcela. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: idedital
+        description: >
+          Edital, código de silver_sac_edital: 3 (420), 1 (315), 4 e 2.
+        data_type: integer
+      - name: nrparcela
+        description: >
+          Número da parcela, de 1 a 5.
+        data_type: integer
+      - name: data
+        description: >
+          Data de desembolso da parcela.
+        data_type: timestamp
+      - name: vlcapital
+        description: >
+          Valor de capital, em reais.
+        data_type: numeric
+      - name: vlcusteio
+        description: >
+          Valor de custeio, em reais.
+        data_type: numeric
+      - name: pagou
+        description: >
+          Se a parcela foi paga: true em 266.
+        data_type: boolean
+      - name: nrempenho
+        description: >
+          Nota de empenho de capital.
+        data_type: text
+      - name: nrordembancaria
+        description: >
+          Ordem bancária de capital.
+        data_type: text
+      - name: nrempenhocusteio
+        description: >
+          Nota de empenho de custeio.
+        data_type: text
+      - name: nrordembancariacusteio
+        description: >
+          Ordem bancária de custeio.
+        data_type: text
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_editalparcelas
+    description: >
+      Uma linha por parcela prevista num edital, com o prazo e o valor. Tem 22
+      parcelas de 8 editais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_editalparcelas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idedital
+        description: >
+          Edital, código de silver_sac_edital.
+        data_type: integer
+      - name: nrparcela
+        description: >
+          Número da parcela no edital.
+        data_type: integer
+      - name: faixa
+        description: >
+          Faixa de valor: 0 em todas.
+        data_type: integer
+      - name: diasparaliberar
+        description: >
+          Dias até liberar a parcela.
+        data_type: integer
+      - name: valor
+        description: >
+          Valor da parcela, em reais.
+        data_type: numeric
+      - name: exigepc
+        description: >
+          Se exige prestação de contas antes.
+        data_type: boolean
+      - name: parcela
+        description: >
+          Parcela anterior exigida, de 0 a 3.
+        data_type: integer
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_interessado
+    description: >
+      Uma linha por interessado do cadastro antigo do SALIC: proponente pessoa
+      física ou jurídica, com endereço, telefones e e-mail. São 313.495
+      cadastros, um por CPF ou CNPJ: 183.920 pessoas físicas e 129.575
+      jurídicas. 27.460 não estão em silver_agentes_agentes, o cadastro atual.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_interessado'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - administracao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+      - name: nome
+        description: >
+          Nome do interessado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: tipopessoa
+        description: >
+          Tipo: 1 pessoa física, 2 jurídica.
+        data_type: text
+      - name: endereco
+        description: >
+          Endereço do interessado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cidade
+        description: >
+          Cidade do interessado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: uf
+        description: >
+          UF do interessado, em sigla.
+        data_type: text
+      - name: cep
+        description: >
+          CEP do endereço do interessado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: telefoneresidencial
+        description: >
+          Telefone residencial.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: telefonecomercial
+        description: >
+          Telefone comercial do interessado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: telefonecelular
+        description: >
+          Telefone celular do interessado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: telefonefax
+        description: >
+          Número de fax do interessado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: natureza
+        description: >
+          Natureza jurídica: 1 pública, 2 privada, pela combinação com esfera.
+          Sem domínio ingerido.
+        data_type: text
+      - name: esfera
+        description: >
+          Esfera da entidade pública, de 1 a 3. Sem domínio ingerido.
+        data_type: text
+      - name: administracao
+        description: >
+          Tipo de administração da entidade pública. Sem domínio ingerido.
+        data_type: text
+      - name: utilidade
+        description: >
+          Se a entidade é de utilidade pública: 1 ou 2. Sem domínio ingerido.
+        data_type: text
+      - name: responsavel
+        description: >
+          Nome do responsável pela entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: enderecointernet
+        description: >
+          Site do interessado na internet.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: correioeletronico
+        description: >
+          E-mail do interessado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: grupo
+        description: >
+          Grupo do interessado: 0 em 312.826; os outros 61 valores somam 669.
+        data_type: integer
+      - name: loc_codigo
+        description: >
+          Localidade, código do cadastro antigo.
+        data_type: integer
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbfundopatrimonialusuario
+    description: >
+      Uma linha por entidade apoiada por um fundo patrimonial. Tem 2 linhas, de
+      2025.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbfundopatrimonialusuario'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - idfundopatrimonialusuario
+            - cdusuariocriacao
+            - cdusuarioatualizacao
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idfundopatrimonialusuario
+        description: >
+          Identificador da linha.
+        data_type: integer
+      - name: idfundopatrimonial
+        description: >
+          Fundo patrimonial que apoia a entidade.
+        data_type: integer
+      - name: idagenteapoiado
+        description: >
+          Entidade apoiada, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cpfcnpjapoiado
+        description: >
+          CPF ou CNPJ da entidade apoiada.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmapoiado
+        description: >
+          Nome da entidade apoiada.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: vlvalordestinado
+        description: >
+          Valor destinado. Vazio.
+        data_type: numeric
+      - name: dtvinculacao
+        description: >
+          Data em que a entidade foi vinculada.
+        data_type: timestamp
+      - name: dtdesvinculacao
+        description: >
+          Data da desvinculação. Vazia.
+        data_type: timestamp
+      - name: stvinculacao
+        description: >
+          Se está vinculada: S.
+        data_type: text
+      - name: dsobservacoes
+        description: >
+          Observações, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdusuariocriacao
+        description: >
+          Usuário que criou o vínculo.
+        data_type: integer
+      - name: cdusuarioatualizacao
+        description: >
+          Usuário que atualizou. Vazio.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vchecaproponente
+    description: >
+      Uma linha por proponente com quantidade de projetos e valores solicitado,
+      aprovado e captado. São 91.500 proponentes.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vchecaproponente'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: quant
+        description: >
+          Quantidade de projetos.
+        data_type: integer
+      - name: solicitado
+        description: >
+          Valor solicitado, em reais.
+        data_type: numeric
+      - name: aprovado
+        description: >
+          Valor aprovado, em reais.
+        data_type: numeric
+      - name: captado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vcomparativoanomec
+    description: >
+      Uma linha por ano, com quantidade e valor de projetos apresentados,
+      aprovados e captados no mecenato. São 34 anos, de 1993 a 2026; o captado
+      soma 35,5 bilhões de reais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vcomparativoanomec'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano de referência dos totais.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: q_apresentado
+        description: >
+          Projetos apresentados.
+        data_type: integer
+      - name: t_apresentado
+        description: >
+          Valor apresentado, em reais.
+        data_type: numeric
+      - name: q_aprovado
+        description: >
+          Quantidade de projetos aprovados.
+        data_type: integer
+      - name: t_aprovado
+        description: >
+          Valor aprovado, em reais.
+        data_type: numeric
+      - name: q_captado
+        description: >
+          Projetos que captaram.
+        data_type: integer
+      - name: t_captado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vproponenteanouf
+    description: >
+      Uma linha por proponente, ano e UF em que apresentou projeto. São 191.831
+      linhas de 102.314 proponentes, de 1996 a 2026.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vproponenteanouf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: ano
+        description: >
+          Ano em que o projeto foi apresentado.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nome
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: uf
+        description: >
+          UF do projeto, em sigla.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vproponentecommaisdecincoproj
+    description: >
+      Uma linha por proponente com mais de cinco projetos. São 7.332
+      proponentes.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vproponentecommaisdecincoproj'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: qtde
+        description: >
+          Quantidade de projetos.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vproponenteporarea
+    description: >
+      Uma linha por proponente e área cultural em que apresentou projeto. São
+      138.947 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vproponenteporarea'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vproponentetipopessoa
+    description: >
+      Uma linha por proponente e mecanismo, com tipo de pessoa e valores. São
+      93.429 linhas; o mecanismo 1, mecenato, tem 70.243.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vproponentetipopessoa'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: tipopessoa
+        description: >
+          Tipo: 1 pessoa física, 2 jurídica.
+        data_type: text
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: mecanismo
+        description: >
+          Mecanismo de financiamento: 1 é Incentivo Fiscal Federal, o mecenato
+          da Lei Rouanet, confirmado pela descrição que a origem grava em
+          vwanalisefinanceiravirtual. 2 e 6 são tratados como convênio pelo
+          SalicWeb. 3 e 5 não têm significado confirmado; a tabela
+          sac.Mecanismo, com os nomes, não é ingerida.
+        data_type: integer
+      - name: solicitado
+        description: >
+          Valor solicitado, em reais.
+        data_type: numeric
+      - name: aprovado
+        description: >
+          Valor aprovado, em reais.
+        data_type: numeric
+      - name: captado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: saldo
+        description: >
+          Saldo a captar, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vusuarios
+    description: >
+      Uma linha por usuário interno do SALIC com o órgão e a função: a mesma
+      base de silver_tabelas_usuarios, com CPF e nome. São 11.765 usuários de
+      426 órgãos. Não traz senha.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vusuarios'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: usu_codigo
+        description: >
+          Usuário, código de silver_tabelas_usuarios. Único.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+        tests:
+          - not_null
+          - unique
+      - name: usu_identificacao
+        description: >
+          CPF do usuário, com espaços à direita.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: usu_nome
+        description: >
+          Nome curto do usuário.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: usu_pessoa
+        description: >
+          Pessoa, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: usu_orgao
+        description: >
+          Órgão do usuário, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: usu_sala
+        description: >
+          Sala do usuário: 0 em todas.
+        data_type: text
+      - name: usu_ramal
+        description: >
+          Ramal: 0 em todas salvo uma.
+        data_type: text
+      - name: usu_nivel
+        description: >
+          Nível do usuário: 9 em todas.
+        data_type: text
+      - name: usu_nome_completo
+        description: >
+          Nome completo do usuário.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: org_codigo
+        description: >
+          Órgão, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: org_sigla
+        description: >
+          Sigla do órgão do usuário.
+        data_type: text
+      - name: org_estrutura
+        description: >
+          Estrutura hierárquica do órgão.
+        data_type: text
+      - name: org_nome
+        description: >
+          Nome do órgão do usuário.
+        data_type: text
+      - name: org_gerente
+        description: >
+          Gerente do órgão, código de usuário.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: org_nomegerente
+        description: >
+          Nome do gerente do órgão.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: fun_descricao
+        description: >
+          Função do usuário. Preenchida em 1.034.
+        data_type: text
+      - name: fun_funcaoorgao
+        description: >
+          Função no órgão. Preenchida em 1.034.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwmaioresproponentesporanouf
+    description: >
+      Uma linha por proponente entre os 100 que mais captaram num ano e UF, com
+      o valor e a posição. São 34.772 linhas, de 1993 a 2026, em 27 UFs.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwmaioresproponentesporanouf'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: uf
+        description: >
+          UF da captação, em sigla.
+        data_type: text
+      - name: ano
+        description: >
+          Ano em que houve a captação.
+        data_type: integer
+      - name: cgccpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara, em texto para manter o zero à
+          esquerda.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: vlcaptado
+        description: >
+          Valor captado no ano e UF, em reais.
+        data_type: numeric
+      - name: ranking
+        description: >
+          Posição, de 1 a 100.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanet
+    description: >
+      Uma linha por programa de seleção pública do Programa Rouanet, com datas,
+      regras e valor total. São 9 programas abertos de 2023 a 2026; 3 ainda
+      ativos. Os nomes estão em silver_sac_vwprogramarouanettipologia.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanet'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Identificador do programa. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dtabertura
+        description: >
+          Data de abertura das inscrições.
+        data_type: timestamp
+      - name: dtfechamento
+        description: >
+          Data de fechamento das inscrições.
+        data_type: timestamp
+      - name: dsobjetivo
+        description: >
+          Objetivo do programa, em HTML.
+        data_type: text
+      - name: qtavaliadores
+        description: >
+          Quantidade de avaliadores por proposta.
+        data_type: integer
+      - name: qtpropostas
+        description: >
+          Quantidade máxima de propostas por proponente.
+        data_type: integer
+      - name: tppessoa
+        description: >
+          Se o programa aceita pessoa física.
+        data_type: boolean
+      - name: vlmaximoproposta
+        description: >
+          Valor máximo por proposta, em reais.
+        data_type: numeric
+      - name: dthabilitacao
+        description: >
+          Data da habilitação.
+        data_type: timestamp
+      - name: dtresultado
+        description: >
+          Data do resultado final.
+        data_type: timestamp
+      - name: stestado
+        description: >
+          Se a linha está ativa na origem: true ativa, false inativa.
+        data_type: boolean
+      - name: dtselecao
+        description: >
+          Data da seleção das propostas.
+        data_type: timestamp
+      - name: nrpropostaselecionada
+        description: >
+          Quantidade de propostas a selecionar.
+        data_type: integer
+      - name: nrpontuacaominima
+        description: >
+          Pontuação mínima exigida pelo programa.
+        data_type: integer
+      - name: vltotalprograma
+        description: >
+          Valor total do programa, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetareasegmento
+    description: >
+      Uma linha por área e segmento aceitos num programa. São 122 linhas de 6
+      programas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetareasegmento'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetareasegmento
+        description: >
+          Identificador da linha. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: cdsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetavaliacao
+    description: >
+      Uma linha por nota dada por um avaliador a uma proposta num critério, na
+      avaliação inicial. São 58.944 notas, de 1 a 10, para 4.412 propostas, por
+      65 avaliadores, nos programas 5 (39.676), 1 (13.056), 7 e 6.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetavaliacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetavaliacao
+        description: >
+          Identificador da nota. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idprogramarouanetpergunta
+        description: >
+          Critério de avaliação, código de
+          silver_sac_tbprogramarouanetpergunta.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: idavaliador
+        description: >
+          Avaliador, usuário interno ou parecerista.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: qtpontos
+        description: >
+          Nota dada ao critério, de 1 a 10.
+        data_type: integer
+      - name: siavaliacao
+        description: >
+          Se a avaliação está concluída: true em 58.572, false em 372.
+        data_type: boolean
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetavaliacaorecurso
+    description: >
+      Uma linha por nota revista num recurso, por critério. São 36.738 notas,
+      nos programas 5 (19.754), 6, 1 e 7.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetavaliacaorecurso'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetavaliacaorecurso
+        description: >
+          Identificador da nota. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idprogramarouanetpergunta
+        description: >
+          Critério de avaliação, código de
+          silver_sac_tbprogramarouanetpergunta.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: idavaliador
+        description: >
+          Avaliador, usuário interno ou parecerista.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: qtmediapontos
+        description: >
+          Média dos pontos antes do recurso.
+        data_type: numeric
+      - name: qtpontosrecurso
+        description: >
+          Pontos depois do recurso.
+        data_type: numeric
+      - name: siavaliacaorecurso
+        description: >
+          Se a avaliação do recurso está concluída: true em 20.990, false em
+          15.748.
+        data_type: boolean
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetavaliador
+    description: >
+      Uma linha por avaliador designado a um programa. São 71 designações de 62
+      avaliadores.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetavaliador'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetavaliador
+        description: >
+          Identificador da designação. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idavaliador
+        description: >
+          Avaliador, usuário interno ou parecerista.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cdarea
+        description: >
+          Área. Vazia em todas.
+        data_type: text
+      - name: cdsegmento
+        description: >
+          Segmento. Vazio em todas.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetdistribuirproposta
+    description: >
+      Uma linha por proposta distribuída a um avaliador. São 9.767
+      distribuições, nos programas 5 (6.649), 1 (2.332), 7 e 6: 8.536 de
+      avaliação inicial e 1.231 de recurso.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetdistribuirproposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetdistribuirproposta
+        description: >
+          Identificador da distribuição. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: idavaliador
+        description: >
+          Avaliador, usuário interno ou parecerista.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: tpanalise
+        description: >
+          Tipo de análise: 0 em todas.
+        data_type: text
+      - name: tpavaliacao
+        description: >
+          Tipo de avaliação: A avaliação inicial, R recurso.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanethabilitacao
+    description: >
+      Uma linha por proposta habilitada num programa. São 6.438 propostas de 8
+      programas: 5.684 habilitadas e 754 não.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanethabilitacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanethabilitacao
+        description: >
+          Identificador da habilitação. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: dthabilitacao
+        description: >
+          Data da habilitação.
+        data_type: timestamp
+      - name: dshabilitacao
+        description: >
+          Texto da habilitação, em HTML.
+        data_type: text
+      - name: sihabilitacao
+        description: >
+          Se a proposta foi habilitada: true em 5.684, false em 754.
+        data_type: boolean
+      - name: idtecnico
+        description: >
+          Técnico que habilitou.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetlocalidade
+    description: >
+      Uma linha por UF ou município elegível num programa. São 380 localidades
+      de 6 programas, a maior parte do programa 5 (289); 60 valem para a UF
+      inteira.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetlocalidade'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetlocalidade
+        description: >
+          Identificador da localidade. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: iduf
+        description: >
+          UF da proposta, código IBGE.
+        data_type: integer
+      - name: idmunicipio
+        description: >
+          Município, código IBGE. Vazio em 60, quando vale a UF inteira.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetpergunta
+    description: >
+      Uma linha por critério de avaliação de um programa, com a faixa de
+      pontos. São 42 critérios de 6 programas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetpergunta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetpergunta
+        description: >
+          Identificador do critério. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: dspergunta
+        description: >
+          Critério de avaliação por extenso.
+        data_type: text
+      - name: nrfaixainicio
+        description: >
+          Ponto mínimo do critério.
+        data_type: integer
+      - name: nrfaixaincremento
+        description: >
+          Incremento de pontos.
+        data_type: integer
+      - name: nrfaixafinal
+        description: >
+          Ponto máximo: 10 em todos.
+        data_type: integer
+      - name: nrordem
+        description: >
+          Ordem do critério no formulário.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetpropostaselecionada
+    description: >
+      Uma linha por proposta selecionada num programa, com pontuação, ranking e
+      valor alocado por área, UF e região. São 158 propostas dos programas 1 e
+      5: 112 selecionadas na ampla concorrência e 5 por equidade.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetpropostaselecionada'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetpropostaselecionada
+        description: >
+          Identificador da linha. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: iduf
+        description: >
+          UF da proposta, código IBGE.
+        data_type: integer
+      - name: sguf
+        description: >
+          UF da proposta, em sigla.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: numeric
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: nrrankingpontuacao
+        description: >
+          Posição pela pontuação.
+        data_type: integer
+      - name: nrrankingfinal
+        description: >
+          Posição final da proposta.
+        data_type: integer
+      - name: siselecao
+        description: >
+          Se foi selecionada: true em 112.
+        data_type: boolean
+      - name: siselecaoequidade
+        description: >
+          Se foi selecionada por equidade: true em 5.
+        data_type: boolean
+      - name: vlalocadoarea
+        description: >
+          Valor do programa alocado à área, em reais.
+        data_type: numeric
+      - name: vlalocadouf
+        description: >
+          Valor alocado à UF, em reais.
+        data_type: numeric
+      - name: vlalocadoregiao
+        description: >
+          Valor alocado à região, em reais.
+        data_type: numeric
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: text
+      - name: cdfaixa
+        description: >
+          Faixa de valor da proposta: 1, 2 ou 3.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetrecurso
+    description: >
+      Uma linha por recurso de um proponente contra o resultado, com a
+      manifestação. São 1.251 recursos dos programas 1 e 5.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetrecurso'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetrecurso
+        description: >
+          Identificador do recurso. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: dtrecurso
+        description: >
+          Data em que o recurso foi enviado.
+        data_type: timestamp
+      - name: dsrecurso
+        description: >
+          Texto do recurso, em HTML.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: simanifestacao
+        description: >
+          Manifestação: 1 em 813, 0 em 412; vazia em 26. Sem domínio ingerido.
+        data_type: integer
+      - name: dtmanifestacao
+        description: >
+          Data da manifestação.
+        data_type: timestamp
+      - name: dsmanifestacao
+        description: >
+          Texto da manifestação, em HTML.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: sirecurso
+        description: >
+          Situação do recurso: 3 em 1.180, 2 em 45, 0 e 1 nas outras. Sem
+          domínio ingerido.
+        data_type: text
+      - name: siestado
+        description: >
+          Se está ativo: true em todas.
+        data_type: boolean
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetresultadofinal
+    description: >
+      Uma linha por proposta no resultado final, com pontos e ranking. São 158:
+      S em 32 e F em 126, que batem com as 32 do programa 1 e as 126 do
+      programa 5 em silver_sac_tbprogramarouanetpropostaselecionada.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetresultadofinal'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetresultadofinal
+        description: >
+          Identificador da linha. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nrtotalpontos
+        description: >
+          Total de pontos da proposta.
+        data_type: numeric
+      - name: mrpontosextras
+        description: >
+          Pontos extras: 0 em todas.
+        data_type: integer
+      - name: dsmotivacao
+        description: >
+          Motivação. Vazia em todas.
+        data_type: text
+      - name: nrranking
+        description: >
+          Posição da proposta na classificação.
+        data_type: integer
+      - name: siresultadofinal
+        description: >
+          Resultado: S em 32, F em 126. Sem domínio ingerido.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetresultadopreliminar
+    description: >
+      Uma linha por proposta no resultado preliminar, com a pontuação. São
+      5.500 propostas dos programas 5, 6, 1 e 7: C em 5.142, D em 358. Pela
+      proporção, C classificada e D desclassificada.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetresultadopreliminar'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetresultadopreliminar
+        description: >
+          Identificador da linha. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: numeric
+      - name: siresultadopreliminar
+        description: >
+          Resultado preliminar: C ou D.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetselecaopatrocinador
+    description: >
+      Uma linha por projeto de Programa Rouanet e patrocinador, com a escolha
+      do patrocinador. São 334 linhas de 7 patrocinadores, dos programas 5
+      (326) e 3 (8).
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetselecaopatrocinador'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetselecaopatrocinador
+        description: >
+          Identificador da linha. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: text
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idpatrocinador
+        description: >
+          Patrocinador, código de agente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: stopcao
+        description: >
+          Opção do patrocinador, de 1 a 3. Sem domínio ingerido.
+        data_type: integer
+      - name: siselecionado
+        description: >
+          Se o projeto foi escolhido: true em 134.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprogramarouanetxproposta
+    description: >
+      Uma linha por proposta inscrita e enviada num programa. São 6.438
+      inscrições de 8 programas; silver_sac_vwprogramarouaneteditais traz
+      também as inscrições ainda com o proponente.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprogramarouanetxproposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetxproposta
+        description: >
+          Identificador da inscrição. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanet
+    description: >
+      Uma linha por programa do Programa Rouanet, com o nome e as datas. São 9
+      programas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanet'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: tipologia
+        description: >
+          Nome do Programa Rouanet.
+        data_type: text
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dataabertura
+        description: >
+          Data de abertura das inscrições.
+        data_type: timestamp
+      - name: datafechamento
+        description: >
+          Data de fechamento das inscrições.
+        data_type: timestamp
+      - name: objetivo
+        description: >
+          Objetivo do programa, em HTML.
+        data_type: text
+      - name: qtavaliadores
+        description: >
+          Quantidade de avaliadores por proposta.
+        data_type: text
+      - name: qtpropostas
+        description: >
+          Quantidade máxima de propostas por proponente.
+        data_type: text
+      - name: tppessoa
+        description: >
+          Se o programa aceita pessoa física.
+        data_type: text
+      - name: pessoa
+        description: >
+          Pessoa Física ou Pessoa Jurídica.
+        data_type: text
+      - name: vlmaximoproposta
+        description: >
+          Valor máximo por proposta, em reais.
+        data_type: numeric
+      - name: datahabilitacao
+        description: >
+          Data da habilitação.
+        data_type: timestamp
+      - name: dataselecao
+        description: >
+          Data da seleção das propostas.
+        data_type: timestamp
+      - name: dataresultado
+        description: >
+          Data do resultado final.
+        data_type: timestamp
+      - name: nrpropostaselecionada
+        description: >
+          Quantidade de propostas a selecionar.
+        data_type: integer
+      - name: nrpontuacaominima
+        description: >
+          Pontuação mínima exigida pelo programa.
+        data_type: integer
+      - name: vltotalprograma
+        description: >
+          Valor total do programa, em reais.
+        data_type: numeric
+      - name: stestado
+        description: >
+          Se a linha está ativa na origem: true ativa, false inativa.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetavaliacaofinalizada
+    description: >
+      Uma linha por proposta de Programa Rouanet com a avaliação inicial
+      finalizada: pontuação e ranking. São 5.500 propostas dos programas 5, 6,
+      1 e 7: 5.085 classificadas, 383 desclassificadas, 32 selecionadas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetavaliacaofinalizada'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: text
+      - name: nmprograma
+        description: >
+          Nome do Programa Rouanet.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor da proposta, em reais. A origem grava em notação científica, e
+          a silver converte para número.
+        data_type: numeric
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: numeric
+      - name: nrpontuacaominima
+        description: >
+          Pontuação mínima exigida pelo programa.
+        data_type: text
+      - name: stsituacao
+        description: >
+          Situação: CLASSIFICADA, DESCLASSIFICADA ou SELECIONADA.
+        data_type: text
+      - name: nrranking
+        description: >
+          Posição da proposta na classificação.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta
+    description: >
+      Uma linha por proposta de Programa Rouanet e critério, com a média das
+      notas da avaliação inicial. São 30.150 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetavaliacaoinicialmediasnotasproposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dspergunta
+        description: >
+          Critério de avaliação por extenso.
+        data_type: text
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetavaliacaoinicialnotasporproposta
+    description: >
+      Uma linha por proposta de Programa Rouanet, critério e avaliador, com a
+      nota da avaliação inicial. São 58.572 notas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetavaliacaoinicialnotasporproposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dspergunta
+        description: >
+          Critério de avaliação por extenso.
+        data_type: text
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: integer
+      - name: idavaliador
+        description: >
+          Avaliador, usuário interno ou parecerista.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: siavaliacao
+        description: >
+          Se a avaliação está concluída.
+        data_type: text
+      - name: nrordem
+        description: >
+          Ordem do critério no formulário.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetavaliadores
+    description: >
+      Uma linha por avaliador designado a um programa, com CPF e nome. São 71
+      designações.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetavaliadores'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cpf
+        description: >
+          CPF do avaliador, sem máscara.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nome
+        description: >
+          Nome do avaliador designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idprogramarouanetavaliador
+        description: >
+          Designação, código de silver_sac_tbprogramarouanetavaliador.
+        data_type: integer
+      - name: qtavaliadores
+        description: >
+          Quantidade de avaliadores por proposta.
+        data_type: text
+      - name: qtpropostas
+        description: >
+          Quantidade máxima de propostas por proponente.
+        data_type: text
+      - name: cdarea
+        description: >
+          Área. Vazia em todas.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área. Vazia em todas.
+        data_type: text
+      - name: cdsegmento
+        description: >
+          Segmento. Vazio em todas.
+        data_type: text
+      - name: dssegmento
+        description: >
+          Segmento. Vazio em todas.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetdistribuirproposta
+    description: >
+      Uma linha por proposta de Programa Rouanet com o avaliador designado. São
+      9.808 linhas de 6 programas; 1.272 ainda sem avaliador.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetdistribuirproposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idunicolinha
+        description: >
+          Identificador da linha na view.
+        data_type: integer
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: text
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: text
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmavaliador
+        description: >
+          Nome do avaliador designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: tpavaliacao
+        description: >
+          Tipo de avaliação: A avaliação inicial, R recurso.
+        data_type: text
+      - name: usu_codigo
+        description: >
+          Avaliador, código de silver_tabelas_usuarios.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetdistribuirpropostarecurso
+    description: >
+      Uma linha por proposta de Programa Rouanet em recurso com o avaliador
+      designado. São 1.231 linhas: 1.225 em análise, 6 enviadas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetdistribuirpropostarecurso'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idunicolinha
+        description: >
+          Identificador da linha na view.
+        data_type: integer
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmavaliador
+        description: >
+          Nome do avaliador designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: tpavaliacao
+        description: >
+          Tipo de avaliação: A avaliação inicial, R recurso.
+        data_type: text
+      - name: sianalise
+        description: >
+          Situação: Em análise ou Enviado.
+        data_type: text
+      - name: usu_codigo
+        description: >
+          Avaliador, código de silver_tabelas_usuarios.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouaneteditais
+    description: >
+      Uma linha por proposta de Programa Rouanet inscrita, com proponente,
+      localização, situação e, quando virou projeto, valores e incentivador.
+      São 14.350 inscrições nos 9 programas; 990 viraram projeto. O valor da
+      proposta vem em notação científica na origem.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouaneteditais'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: regiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: uf
+        description: >
+          UF do proponente ou da proposta.
+        data_type: text
+      - name: municipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: cdsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: dssegmento
+        description: >
+          Segmento cultural por extenso.
+        data_type: text
+      - name: cdsituacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: dssituacao
+        description: >
+          Situação por extenso.
+        data_type: text
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: tptipicidade
+        description: >
+          Tipicidade, da verificação do sac (grupo 28): 836 Editais
+          Compartilhados em quase todas.
+        data_type: text
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: stestado
+        description: >
+          Se a linha está ativa na origem: true ativa, false inativa.
+        data_type: text
+      - name: idfase
+        description: >
+          Fase do projeto, da verificação do sac (grupo 26): 647 comprovação de
+          capacidade de execução, 648 avaliação técnica, 649 atingimento de
+          captação, 650 execução e comprovação dos gastos, 651 avaliação dos
+          resultados, 652 encerrado.
+        data_type: text
+      - name: dsfase
+        description: >
+          Fase do projeto, por extenso.
+        data_type: text
+      - name: dsestado
+        description: >
+          Estado da proposta: Ativa ou Arquivada.
+        data_type: text
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: dtabertura
+        description: >
+          Data de abertura das inscrições.
+        data_type: timestamp
+      - name: dtfechamento
+        description: >
+          Data de fechamento das inscrições.
+        data_type: timestamp
+      - name: dtresultado
+        description: >
+          Data do resultado final.
+        data_type: timestamp
+      - name: stestadoprograma
+        description: >
+          Se o programa está ativo.
+        data_type: text
+      - name: vltotalprograma
+        description: >
+          Valor total do programa, em reais.
+        data_type: numeric
+      - name: nrpronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda. Preenchido em 990.
+        data_type: text
+      - name: dslocalizacao
+        description: >
+          Onde está a proposta: Com o Proponente ou Enviado ao MinC.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor da proposta, em reais. A origem grava em notação científica, e
+          a silver converte para número.
+        data_type: numeric
+      - name: vlaprovado
+        description: >
+          Valor aprovado, em reais.
+        data_type: numeric
+      - name: vlcaptado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: dscontrato
+        description: >
+          Contrato: Sem contrato em 14.123, Contratado em 227.
+        data_type: text
+      - name: nrcnpjcpfincentivador
+        description: >
+          CPF ou CNPJ do incentivador.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmincentivador
+        description: >
+          Nome do incentivador.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: vlincentivo
+        description: >
+          Valor incentivado, em reais. Preenchido em 227.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanethabilitarproposta
+    description: >
+      Uma linha por proposta de Programa Rouanet com a habilitação e os dados
+      do programa. São 6.438; 5.684 habilitadas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanethabilitarproposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanethabilitacao
+        description: >
+          Habilitação, código de silver_sac_tbprogramarouanethabilitacao.
+        data_type: integer
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: text
+      - name: idpreprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: dthabilitacao
+        description: >
+          Data da habilitação.
+        data_type: text
+      - name: dshabilitacao
+        description: >
+          Texto da habilitação, em HTML.
+        data_type: text
+      - name: sihabilitacao
+        description: >
+          Se foi habilitada: true em 5.684.
+        data_type: text
+      - name: idtecnico
+        description: >
+          Técnico que habilitou.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dtiniciodeexecucao
+        description: >
+          Data de início da execução prevista na proposta.
+        data_type: timestamp
+      - name: dtfinaldeexecucao
+        description: >
+          Data de fim da execução prevista na proposta.
+        data_type: timestamp
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: text
+      - name: dtabertura
+        description: >
+          Data de abertura das inscrições.
+        data_type: text
+      - name: dtfechamento
+        description: >
+          Data de fechamento das inscrições.
+        data_type: text
+      - name: dtresultado
+        description: >
+          Data do resultado final.
+        data_type: text
+      - name: qtavaliadores
+        description: >
+          Quantidade de avaliadores por proposta.
+        data_type: text
+      - name: qtpropostas
+        description: >
+          Quantidade máxima de propostas por proponente.
+        data_type: text
+      - name: tppessoa
+        description: >
+          Se o programa aceita pessoa física.
+        data_type: text
+      - name: vlmaximoproposta
+        description: >
+          Valor máximo por proposta, em reais.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: segmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: uf
+        description: >
+          UF da proposta, código IBGE.
+        data_type: integer
+      - name: cidade
+        description: >
+          Município, código IBGE.
+        data_type: integer
+      - name: proponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetincentivadorprojetosapoiados
+    description: >
+      Uma linha por projeto do Programa Rouanet e incentivador, com o incentivo
+      e a execução financeira. São 189 linhas de 162 projetos e 8
+      incentivadores; o incentivo soma 29,1 milhões de reais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetincentivadorprojetosapoiados'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - vlsaldodiariocontas
+            - percentualnascontas
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: nrpronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: sguf
+        description: >
+          UF da proposta, em sigla.
+        data_type: text
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: cdsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: dssegmento
+        description: >
+          Segmento cultural por extenso.
+        data_type: text
+      - name: nmprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: nrcnpfcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara. O nome da coluna vem com erro
+          de digitação da origem.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdsituacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: dssituacao
+        description: >
+          Situação por extenso.
+        data_type: text
+      - name: dscdsituacao
+        description: >
+          Situação com código e descrição.
+        data_type: text
+      - name: dtadmissao
+        description: >
+          Data de admissão do projeto.
+        data_type: timestamp
+      - name: idunidade
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: idsecretaria
+        description: >
+          Secretaria, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtsituacao
+        description: >
+          Data da situação atual do projeto.
+        data_type: timestamp
+      - name: dsresumoprojeto
+        description: >
+          Resumo do projeto, em texto livre.
+        data_type: text
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: tptipicidade
+        description: >
+          Tipicidade, da verificação do sac (grupo 28): 836 Editais
+          Compartilhados em quase todas.
+        data_type: text
+      - name: dstipicidade
+        description: >
+          Tipicidade por extenso: Editais Compartilhados.
+        data_type: text
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: idfase
+        description: >
+          Fase do projeto, da verificação do sac (grupo 26): 647 comprovação de
+          capacidade de execução, 648 avaliação técnica, 649 atingimento de
+          captação, 650 execução e comprovação dos gastos, 651 avaliação dos
+          resultados, 652 encerrado.
+        data_type: integer
+      - name: dsfase
+        description: >
+          Fase do projeto, por extenso.
+        data_type: text
+      - name: nrcnpjcpfincentivador
+        description: >
+          CPF ou CNPJ do incentivador.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmincentivador
+        description: >
+          Nome do incentivador.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtincentivo
+        description: >
+          Data em que houve o incentivo.
+        data_type: timestamp
+      - name: dttransferenciarecurso
+        description: >
+          Data da transferência do recurso.
+        data_type: timestamp
+      - name: vlincentivo
+        description: >
+          Valor incentivado, em reais.
+        data_type: numeric
+      - name: vlaprovado
+        description: >
+          Valor aprovado, em reais.
+        data_type: numeric
+      - name: vlcaptado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: percentualcaptado
+        description: >
+          Percentual captado do aprovado.
+        data_type: numeric
+      - name: vlcomprovado
+        description: >
+          Valor comprovado, em reais.
+        data_type: numeric
+      - name: vlsaldodiariocontas
+        description: >
+          Saldo nas contas do projeto, em reais.
+        data_type: numeric
+      - name: vlutilizado
+        description: >
+          Valor utilizado, em reais.
+        data_type: numeric
+      - name: percentualutilizado
+        description: >
+          Percentual utilizado do captado.
+        data_type: numeric
+      - name: percentualnascontas
+        description: >
+          Percentual do captado ainda nas contas.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetnotasporproposta
+    description: >
+      Uma linha por proposta de Programa Rouanet, critério e recurso, com a
+      nota antes e depois. São 36.738 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetnotasporproposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dspergunta
+        description: >
+          Critério de avaliação por extenso.
+        data_type: text
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: numeric
+      - name: qtpontosrecurso
+        description: >
+          Pontos depois do recurso.
+        data_type: numeric
+      - name: siavaliacaorecurso
+        description: >
+          Se o recurso foi avaliado.
+        data_type: text
+      - name: nrordem
+        description: >
+          Ordem do critério no formulário.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetpainelresultadofinal
+    description: >
+      Uma linha por proposta de Programa Rouanet no resultado final, com
+      ranking e valores alocados. São 158.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetpainelresultadofinal'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetresultadofinal
+        description: >
+          Resultado, código de silver_sac_tbprogramarouanetresultadofinal.
+        data_type: integer
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: sguf
+        description: >
+          UF da proposta, em sigla.
+        data_type: text
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: numeric
+      - name: nrrankingpontuacao
+        description: >
+          Posição pela pontuação.
+        data_type: integer
+      - name: nrrankingfinal
+        description: >
+          Posição final da proposta.
+        data_type: integer
+      - name: dsresultadofinal
+        description: >
+          Selecionada ou Transformação em Projeto.
+        data_type: text
+      - name: tpselecao
+        description: >
+          Tipo da seleção: Normal ou Equidade.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: vlalocadoregiao
+        description: >
+          Valor alocado à região, em reais.
+        data_type: numeric
+      - name: vlalocadouf
+        description: >
+          Valor alocado à UF, em reais.
+        data_type: numeric
+      - name: vlalocadoarea
+        description: >
+          Valor alocado à área, em reais.
+        data_type: numeric
+      - name: cdfaixa
+        description: >
+          Faixa de valor: 1, 2 ou 3.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetpainelsolicitarrecurso
+    description: >
+      Uma linha por proposta de Programa Rouanet com o prazo de recurso e a
+      pontuação. São 5.500.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetpainelsolicitarrecurso'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dtinicioprazorecursal
+        description: >
+          Início do prazo de recurso.
+        data_type: timestamp
+      - name: dtfimprazorecursal
+        description: >
+          Fim do prazo de recurso.
+        data_type: timestamp
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: numeric
+      - name: idusuario
+        description: >
+          Usuário que gravou a linha.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetprojetosselecionados
+    description: >
+      Uma linha por projeto do Programa Rouanet, com os textos, a fase e a
+      execução financeira. São 351 projetos: aprovado de 91,6 milhões e captado
+      de 29,1 milhões de reais.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetprojetosselecionados'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - vlsaldodiariocontas
+            - percentualnascontas
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: nrpronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: sguf
+        description: >
+          UF da proposta, em sigla.
+        data_type: text
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: cdsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: dssegmento
+        description: >
+          Segmento cultural por extenso.
+        data_type: text
+      - name: nmprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: nrcnpfcpf
+        description: >
+          CPF ou CNPJ do proponente, sem máscara. O nome da coluna vem com erro
+          de digitação da origem.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: cdsituacao
+        description: >
+          Situação atual do projeto, código de três caracteres da tabela
+          sac.situacao, como K00 arquivado, E10 autorizada a captação total ou
+          E19 prestação de contas aprovada.
+        data_type: text
+      - name: dssituacao
+        description: >
+          Situação por extenso.
+        data_type: text
+      - name: dscdsituacao
+        description: >
+          Situação com código e descrição.
+        data_type: text
+      - name: dtadmissao
+        description: >
+          Data de admissão do projeto.
+        data_type: timestamp
+      - name: idunidade
+        description: >
+          Unidade responsável, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: idsecretaria
+        description: >
+          Secretaria, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: dtsituacao
+        description: >
+          Data da situação atual do projeto.
+        data_type: timestamp
+      - name: dsresumoprojeto
+        description: >
+          Resumo do projeto, em texto livre.
+        data_type: text
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: dsobjetivos
+        description: >
+          Objetivos do projeto, em HTML.
+        data_type: text
+      - name: dsacessibilidade
+        description: >
+          Acessibilidade, em HTML.
+        data_type: text
+      - name: dsdemocratizacaodeacesso
+        description: >
+          Democratização de acesso, em HTML.
+        data_type: text
+      - name: dsetapadetrabalho
+        description: >
+          Etapas de trabalho, em HTML.
+        data_type: text
+      - name: dsfichatecnica
+        description: >
+          Ficha técnica, em HTML.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dssinopse
+        description: >
+          Sinopse do projeto, em HTML.
+        data_type: text
+      - name: dsespecificacaotecnica
+        description: >
+          Especificação técnica, em HTML.
+        data_type: text
+      - name: dsestrategiadeexecucao
+        description: >
+          Estratégia de execução, em HTML.
+        data_type: text
+      - name: dsdescricaoatividade
+        description: >
+          Descrição da atividade, em HTML.
+        data_type: text
+      - name: tptipicidade
+        description: >
+          Tipicidade, da verificação do sac (grupo 28): 836 Editais
+          Compartilhados em quase todas.
+        data_type: text
+      - name: dstipicidade
+        description: >
+          Tipicidade por extenso: Editais Compartilhados.
+        data_type: text
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: idfase
+        description: >
+          Fase do projeto, da verificação do sac (grupo 26): 647 comprovação de
+          capacidade de execução, 648 avaliação técnica, 649 atingimento de
+          captação, 650 execução e comprovação dos gastos, 651 avaliação dos
+          resultados, 652 encerrado.
+        data_type: integer
+      - name: dsfase
+        description: >
+          Fase do projeto, por extenso.
+        data_type: text
+      - name: dtiniciocaptacao
+        description: >
+          Início do prazo de captação.
+        data_type: timestamp
+      - name: dtfimcaptacao
+        description: >
+          Fim do prazo de captação.
+        data_type: timestamp
+      - name: vlaprovado
+        description: >
+          Valor aprovado, em reais.
+        data_type: numeric
+      - name: vlcaptado
+        description: >
+          Valor captado, em reais.
+        data_type: numeric
+      - name: percentualcaptado
+        description: >
+          Percentual captado do aprovado.
+        data_type: numeric
+      - name: vlcomprovado
+        description: >
+          Valor comprovado, em reais.
+        data_type: numeric
+      - name: vlsaldodiariocontas
+        description: >
+          Saldo nas contas do projeto, em reais.
+        data_type: numeric
+      - name: vlutilizado
+        description: >
+          Valor utilizado, em reais.
+        data_type: numeric
+      - name: percentualutilizado
+        description: >
+          Percentual utilizado do captado.
+        data_type: numeric
+      - name: percentualnascontas
+        description: >
+          Percentual do captado ainda nas contas.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetpropostasavaliadas
+    description: >
+      Uma linha por proposta de Programa Rouanet e avaliador com a avaliação
+      finalizada. São 8.552 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetpropostasavaliadas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmavaliador
+        description: >
+          Nome do avaliador designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: usu_codigo
+        description: >
+          Avaliador, código de silver_tabelas_usuarios.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrpontos
+        description: >
+          Pontos dados pelo avaliador.
+        data_type: integer
+      - name: ststatusavaliacao
+        description: >
+          Situação da avaliação: 1 finalizada, 0 em análise.
+        data_type: text
+      - name: dsstatusavaliacao
+        description: >
+          Situação da avaliação por extenso.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetpropostasnaoavaliadas
+    description: >
+      Uma linha por proposta de Programa Rouanet ainda sem avaliação, com o
+      avaliador quando houver. São 3.262 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetpropostasnaoavaliadas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: text
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: text
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmavaliador
+        description: >
+          Nome do avaliador designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: usu_codigo
+        description: >
+          Avaliador, código de silver_tabelas_usuarios.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrpontos
+        description: >
+          Pontos dados pelo avaliador.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetpropostasrecebidas
+    description: >
+      Uma linha por proposta de Programa Rouanet recebida, com proponente,
+      produto e local. São 6.438.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetpropostasrecebidas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanetxproposta
+        description: >
+          Inscrição, código de silver_sac_tbprogramarouanetxproposta.
+        data_type: integer
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrcnpjcpf
+        description: >
+          CPF ou CNPJ, sem máscara.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmproponente
+        description: >
+          Nome do proponente, pessoa ou entidade.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtiniciodeexecucao
+        description: >
+          Data de início da execução prevista na proposta.
+        data_type: timestamp
+      - name: dtfinaldeexecucao
+        description: >
+          Data de fim da execução prevista na proposta.
+        data_type: timestamp
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: cdsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: dssegmento
+        description: >
+          Segmento cultural por extenso.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto principal, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: cduf
+        description: >
+          UF da proposta, código IBGE.
+        data_type: integer
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: cdcidade
+        description: >
+          Município, código IBGE.
+        data_type: integer
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor pedido na proposta, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetrecursopropostaavaliadas
+    description: >
+      Uma linha por proposta de Programa Rouanet em recurso com a avaliação.
+      São 1.232 linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetrecursopropostaavaliadas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmavaliador
+        description: >
+          Nome do avaliador designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: usu_codigo
+        description: >
+          Avaliador, código de silver_tabelas_usuarios.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrpontos
+        description: >
+          Pontos dados pelo avaliador.
+        data_type: numeric
+      - name: ststatusavaliacao
+        description: >
+          Situação da avaliação: 1 finalizada, 0 em análise.
+        data_type: text
+      - name: dsstatusavaliacao
+        description: >
+          Situação da avaliação por extenso.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetrecursospropostasnaoavaliadas
+    description: >
+      Uma linha por proposta de Programa Rouanet em recurso ainda sem
+      avaliação. São 58.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetrecursospropostasnaoavaliadas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: integer
+      - name: tptipologia
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+      - name: dstipologia
+        description: >
+          Nome do programa, como Programa Rouanet da Juventude.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: idagente
+        description: >
+          Agente, código de silver_agentes_agentes.idagente.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nmavaliador
+        description: >
+          Nome do avaliador designado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: usu_codigo
+        description: >
+          Avaliador, código de silver_tabelas_usuarios.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: nrpontosavaliacao
+        description: >
+          Pontos da avaliação inicial.
+        data_type: numeric
+      - name: nrpontosrecurso
+        description: >
+          Pontos dados no recurso.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanetresultadoavaliacaoinicial
+    description: >
+      Uma linha por proposta de Programa Rouanet no resultado da avaliação
+      inicial. São 4.412 dos programas 5, 1, 6 e 7.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanetresultadoavaliacaoinicial'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idprogramarouanet
+        description: >
+          Programa Rouanet, código de silver_sac_tbprogramarouanet: 1
+          Juventude, 2 Favelas 2024, 3 Norte 2024-2025, 4 Emergencial RS, 5
+          Nordeste 2025, 6 Festivais Audiovisuais, 7 no Interior, 8 Centro-
+          Oeste 2026, 9 Favelas 2026.
+        data_type: text
+      - name: nmprograma
+        description: >
+          Nome do Programa Rouanet.
+        data_type: text
+      - name: nrproposta
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: nmproposta
+        description: >
+          Nome da proposta cultural.
+        data_type: text
+      - name: dsarea
+        description: >
+          Área cultural por extenso.
+        data_type: text
+      - name: dsproduto
+        description: >
+          Produto principal da proposta por extenso.
+        data_type: text
+      - name: nmregiao
+        description: >
+          Região do país da proposta.
+        data_type: text
+      - name: dsuf
+        description: >
+          UF da proposta por extenso.
+        data_type: text
+      - name: nmmunicipio
+        description: >
+          Município da proposta.
+        data_type: text
+      - name: nrpontuacao
+        description: >
+          Pontuação da proposta.
+        data_type: numeric
+      - name: nrpontuacaominima
+        description: >
+          Pontuação mínima exigida pelo programa.
+        data_type: text
+      - name: vlproposta
+        description: >
+          Valor da proposta, em reais. A origem grava em notação científica, e
+          a silver converte para número.
+        data_type: numeric
+      - name: nrranking
+        description: >
+          Posição da proposta na classificação.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprogramarouanettipologia
+    description: >
+      Uma linha por tipologia de programa, da verificação do sac (grupo 36),
+      com o nome do programa. São 9.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprogramarouanettipologia'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idverificacao
+        description: >
+          Tipologia do programa, da verificação do sac (grupo 36): 938
+          Juventude, 906 Favelas 2024, 907 Norte 2024-2025, 922 Emergencial RS,
+          941 Nordeste 2025, 946 Festivais Audiovisuais, 948 no Interior, 1950
+          Centro-Oeste 2026, 1951 Favelas 2026.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idtipo
+        description: >
+          Grupo da verificação: 36 em todas.
+        data_type: text
+      - name: tipicidade
+        description: >
+          Nome do Programa Rouanet.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
