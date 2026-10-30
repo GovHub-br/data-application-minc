@@ -1,7 +1,8 @@
--- Bronze SALIC — sac__tbplanilhaaprovacao.
--- Origem: salic_bronze.sac__tbplanilhaaprovacao, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_tbplanilhaaprovacao (ex-sac__tbplanilhaaprovacao).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_tbplanilhaaprovacao, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 30 colunas: 23 tipadas, 6 mantidas como texto.
+-- 30 colunas: 24 tipadas, 5 mantidas como texto.
 -- 1 coluna(s) ficaram texto porque a amostra do banco
 -- contradiz o tipo declarado no dicionário do SALIC.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
@@ -18,7 +19,7 @@ select
     {{ bronze_inteiro("idplanilhaitem") }} as idplanilhaitem,
     {{ bronze_texto("dsitem") }} as dsitem,
     {{ bronze_inteiro("idunidade") }} as idunidade,
-    {{ bronze_texto("qtitem") }} as qtitem,
+    {{ bronze_numerico_cientifico("qtitem") }} as qtitem,
     {{ bronze_numerico("nrocorrencia") }} as nrocorrencia,
     {{ bronze_numerico("vlunitario") }} as vlunitario,
     {{ bronze_inteiro("qtdias") }} as qtdias,
@@ -37,4 +38,4 @@ select
     {{ bronze_texto("stativo") }} as stativo,
     {{ bronze_booleano("stcustopraticado") }} as stcustopraticado,
     _fatia
-from {{ source("bronze_sac", "sac__tbplanilhaaprovacao") }}
+from {{ source("salic", "bronze_sac_tbplanilhaaprovacao") }}

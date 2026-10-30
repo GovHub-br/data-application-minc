@@ -1,12 +1,14 @@
--- Bronze SALIC — sac__vwprojetobeneficiarioprodutocultural.
--- Origem: salic_bronze.sac__vwprojetobeneficiarioprodutocultural, onde tudo chega como
+-- Silver SALIC — silver_sac_vwprojetobeneficiarioprodutocultural
+-- (ex-sac__vwprojetobeneficiarioprodutocultural).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vwprojetobeneficiarioprodutocultural, onde tudo chega como
 -- texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 16 colunas: 7 tipadas, 8 mantidas como texto.
+-- 16 colunas: 6 tipadas, 9 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
-    {{ bronze_inteiro("pronac") }} as pronac,
+    {{ bronze_texto("pronac") }} as pronac,
     {{ bronze_texto("nomeprojeto") }} as nomeprojeto,
     {{ bronze_texto("ufprojeto") }} as ufprojeto,
     {{ bronze_inteiro("area") }} as area,
@@ -22,4 +24,4 @@ select
     {{ bronze_texto("municipio") }} as municipio,
     {{ bronze_inteiro("anopublicacao") }} as anopublicacao,
     _fatia
-from {{ source("bronze_sac", "sac__vwprojetobeneficiarioprodutocultural") }}
+from {{ source("salic", "bronze_sac_vwprojetobeneficiarioprodutocultural") }}

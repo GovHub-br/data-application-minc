@@ -1,0 +1,2289 @@
+version: 2
+
+# Silvers do assunto planilha orçamentária do banco sac do SALIC: o orçamento
+# da proposta, a planilha do projeto em análise, a planilha aprovada e suas
+# versões de remanejamento e readequação, os domínios de etapa, item, unidade e
+# produto, e as views de custo, preço médio e itens comprovados. Medições de
+# 29/10/2026 na Bronze (salic.bronze_sac_*), por agregados, sem valor de linha.
+# Valores em float na origem chegam em notação científica e são convertidos
+# pela macro bronze_numerico_cientifico.
+
+models:
+  - name: silver_sac_tbplanilhaproposta
+    description: >
+      Uma linha por item do orçamento de uma proposta, como o proponente
+      apresentou: produto, etapa, item, unidade, quantidade, ocorrências, valor
+      unitário e local da despesa. São 10.894.342 itens de 276.133 propostas,
+      todas existentes em silver_sac_preprojeto (idprojeto é o idpreprojeto). O
+      valor do item é quantidade × ocorrência × valor unitário. Quase tudo é
+      fonte 109, incentivo fiscal federal.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbplanilhaproposta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - ocorrencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idplanilhaproposta
+        description: >
+          Identificador do item. Único.
+        data_type: integer
+        tests:
+          - not_null
+      - name: idprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto, sem órfão.
+        data_type: integer
+        tests:
+          - not_null
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idetapa
+        description: >
+          Etapa do orçamento, código de silver_sac_tbplanilhaetapa: 1 pré-
+          produção, 2 produção, 3 divulgação, 4 custos administrativos, 5
+          recolhimentos, 6 elaboração e agenciamento, 7 pós-produção, 8 custos
+          vinculados, 9 assessoria contábil e jurídica, 10 captação de
+          recursos.
+        data_type: integer
+        tests:
+          - not_null
+      - name: idplanilhaitem
+        description: >
+          Item de orçamento, código de silver_sac_tbplanilhaitens, como cachê
+          de músico ou passagem aérea.
+        data_type: integer
+      - name: descricao
+        description: >
+          Descrição livre do item. Preenchida em 3.
+        data_type: text
+      - name: unidade
+        description: >
+          Unidade de medida, código de silver_sac_tbplanilhaunidade, como 5
+          dia, 7 unidade, 21 verba, 25 cachê.
+        data_type: integer
+      - name: quantidade
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: ocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: numeric
+      - name: valorunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: qtdedias
+        description: >
+          Quantidade de dias do item, quando cobrado por dia.
+        data_type: integer
+      - name: tipodespesa
+        description: >
+          Tipo de despesa: 0 em quase todas as linhas, sem domínio ingerido.
+        data_type: integer
+      - name: tipopessoa
+        description: >
+          Tipo de pessoa do fornecedor previsto: 0 em quase todas as linhas,
+          sem domínio ingerido.
+        data_type: integer
+      - name: contrapartida
+        description: >
+          Indicador de contrapartida: 0 em quase todas as linhas.
+        data_type: integer
+      - name: fonterecurso
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: integer
+      - name: ufdespesa
+        description: >
+          UF onde a despesa ocorre, código IBGE.
+        data_type: integer
+      - name: municipiodespesa
+        description: >
+          Município onde a despesa ocorre, código IBGE de 6 dígitos.
+        data_type: integer
+      - name: idusuario
+        description: >
+          Conta que gravou o item.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dsjustificativa
+        description: >
+          Justificativa do item, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: stcustopraticado
+        description: >
+          Se o valor está acima do custo praticado: false em 5.389.640, true em
+          1.650.939, vazio no resto.
+        data_type: boolean
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbplanilhaprojeto
+    description: >
+      Uma linha por item da planilha do projeto como entrou na análise técnica,
+      com o parecer que a avaliou. São 3.739.882 itens de 75.540 projetos. É o
+      orçamento depois da admissibilidade e antes da aprovação; o valor
+      sugerido pelo parecer é quantidade × ocorrência × valor unitário desta
+      tabela.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbplanilhaprojeto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - ocorrencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idplanilhaprojeto
+        description: >
+          Identificador do item. Único.
+        data_type: integer
+        tests:
+          - not_null
+      - name: idplanilhaproposta
+        description: >
+          Item de origem na proposta, código de silver_sac_tbplanilhaproposta.
+        data_type: integer
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+        tests:
+          - not_null
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idetapa
+        description: >
+          Etapa do orçamento, código de silver_sac_tbplanilhaetapa: 1 pré-
+          produção, 2 produção, 3 divulgação, 4 custos administrativos, 5
+          recolhimentos, 6 elaboração e agenciamento, 7 pós-produção, 8 custos
+          vinculados, 9 assessoria contábil e jurídica, 10 captação de
+          recursos.
+        data_type: integer
+      - name: idplanilhaitem
+        description: >
+          Item de orçamento, código de silver_sac_tbplanilhaitens, como cachê
+          de músico ou passagem aérea.
+        data_type: integer
+      - name: descricao
+        description: >
+          Descrição livre do item. Preenchida em 9.
+        data_type: text
+      - name: idunidade
+        description: >
+          Unidade de medida, código de silver_sac_tbplanilhaunidade, como 5
+          dia, 7 unidade, 21 verba, 25 cachê.
+        data_type: integer
+      - name: quantidade
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: ocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: numeric
+      - name: valorunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: qtdedias
+        description: >
+          Quantidade de dias do item, quando cobrado por dia.
+        data_type: integer
+      - name: tipodespesa
+        description: >
+          Tipo de despesa: 0 em quase todas as linhas, sem domínio ingerido.
+        data_type: integer
+      - name: tipopessoa
+        description: >
+          Tipo de pessoa do fornecedor previsto: 0 em quase todas as linhas,
+          sem domínio ingerido.
+        data_type: integer
+      - name: contrapartida
+        description: >
+          Indicador de contrapartida: 0 em quase todas as linhas.
+        data_type: integer
+      - name: fonterecurso
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: integer
+      - name: ufdespesa
+        description: >
+          UF onde a despesa ocorre, código IBGE.
+        data_type: integer
+      - name: municipiodespesa
+        description: >
+          Município onde a despesa ocorre, código IBGE de 6 dígitos.
+        data_type: integer
+      - name: justificativa
+        description: >
+          Justificativa do item, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idparecer
+        description: >
+          Parecer técnico que avaliou o item. Vazio em 1.042.293.
+        data_type: integer
+      - name: idusuario
+        description: >
+          Usuário interno que gravou o item.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: stcustopraticado
+        description: >
+          Se o valor está acima do custo praticado no mercado, marcado pela
+          análise.
+        data_type: boolean
+      - name: tpacao
+        description: >
+          Ação sobre o item. Preenchida em 1.294.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbplanilhaaprovacao
+    description: >
+      Uma linha por item de uma versão da planilha de um projeto depois da
+      aprovação. tpplanilha diz a versão, pelo SalicWeb: CO a planilha
+      aprovada, 3.148.087 itens; RP remanejamento de até 20%, 2.220.566; SR
+      solicitação de readequação, 1.251.407; SE, 2.403, sem significado no
+      código. stativo S marca a versão vigente. São 6.622.463 itens, de 2011 a
+      2026. O valor aprovado do item é qtitem × nrocorrencia × vlunitario: a
+      planilha CO ativa soma 50,4 bilhões de reais em 50.841 projetos.
+
+
+      Armadilha: somar todas as linhas soma versões substituídas e
+      readequações; filtre tpplanilha e stativo.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbplanilhaaprovacao'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - nrocorrencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idplanilhaaprovacao
+        description: >
+          Identificador do item. Único.
+        data_type: integer
+        tests:
+          - not_null
+      - name: tpplanilha
+        description: >
+          Versão da planilha: CO aprovada, RP remanejamento de até 20%, SR
+          solicitação de readequação, SE sem significado no código.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['CO', 'RP', 'SR', 'SE']
+              config:
+                severity: warn
+      - name: dtplanilha
+        description: >
+          Data em que a versão da planilha foi gravada.
+        data_type: timestamp
+      - name: idplanilhaprojeto
+        description: >
+          Item de origem na planilha do projeto, código de
+          silver_sac_tbplanilhaprojeto.
+        data_type: integer
+      - name: idplanilhaproposta
+        description: >
+          Item de origem na proposta, código de silver_sac_tbplanilhaproposta.
+        data_type: integer
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+        tests:
+          - not_null
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idetapa
+        description: >
+          Etapa do orçamento, código de silver_sac_tbplanilhaetapa: 1 pré-
+          produção, 2 produção, 3 divulgação, 4 custos administrativos, 5
+          recolhimentos, 6 elaboração e agenciamento, 7 pós-produção, 8 custos
+          vinculados, 9 assessoria contábil e jurídica, 10 captação de
+          recursos.
+        data_type: integer
+      - name: idplanilhaitem
+        description: >
+          Item de orçamento, código de silver_sac_tbplanilhaitens, como cachê
+          de músico ou passagem aérea.
+        data_type: integer
+      - name: dsitem
+        description: >
+          Descrição livre do item. Preenchida em 472.
+        data_type: text
+      - name: idunidade
+        description: >
+          Unidade de medida, código de silver_sac_tbplanilhaunidade, como 5
+          dia, 7 unidade, 21 verba, 25 cachê.
+        data_type: integer
+      - name: qtitem
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: nrocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: numeric
+      - name: vlunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: qtdias
+        description: >
+          Quantidade de dias do item, quando cobrado por dia.
+        data_type: integer
+      - name: tpdespesa
+        description: >
+          Tipo de despesa: 0 em quase todas as linhas, sem domínio ingerido.
+        data_type: integer
+      - name: tppessoa
+        description: >
+          Tipo de pessoa do fornecedor previsto: 0 em quase todas as linhas,
+          sem domínio ingerido.
+        data_type: integer
+      - name: nrcontrapartida
+        description: >
+          Indicador de contrapartida: 0 em quase todas as linhas.
+        data_type: integer
+      - name: nrfonterecurso
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: integer
+      - name: idufdespesa
+        description: >
+          UF onde a despesa ocorre, código IBGE.
+        data_type: integer
+      - name: idmunicipiodespesa
+        description: >
+          Município onde a despesa ocorre, código IBGE de 6 dígitos.
+        data_type: integer
+      - name: dsjustificativa
+        description: >
+          Justificativa do item, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idagente
+        description: >
+          Agente, quando o item é ligado a um. Preenchido em 59%.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: idplanilhaaprovacaopai
+        description: >
+          Item da versão anterior que este substitui.
+        data_type: integer
+      - name: idreadequacao
+        description: >
+          Readequação que gerou a versão.
+        data_type: integer
+      - name: tpacao
+        description: >
+          Ação sobre o item na readequação: N nenhuma, 2.813.345; A alteração,
+          369.938; E exclusão, 122.889; I inclusão, 122.428. Vazio em
+          3.193.863.
+        data_type: text
+      - name: idrecursodecisao
+        description: >
+          Recurso que mudou a decisão. Preenchido em 21.
+        data_type: integer
+      - name: stativo
+        description: >
+          Se a versão está vigente: S ou N.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['S', 'N']
+              config:
+                severity: warn
+      - name: stcustopraticado
+        description: >
+          Se o valor está acima do custo praticado.
+        data_type: boolean
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbplanilhaetapa
+    description: >
+      Uma linha por etapa do orçamento: 10, de pré-produção a captação de
+      recursos, com o tipo de custo (P produção, A administração) e o grupo.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbplanilhaetapa'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idplanilhaetapa
+        description: >
+          Etapa do orçamento, código de silver_sac_tbplanilhaetapa: 1 pré-
+          produção, 2 produção, 3 divulgação, 4 custos administrativos, 5
+          recolhimentos, 6 elaboração e agenciamento, 7 pós-produção, 8 custos
+          vinculados, 9 assessoria contábil e jurídica, 10 captação de
+          recursos.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: descricao
+        description: >
+          Nome da etapa, como Pré-Produção / Preparação.
+        data_type: text
+      - name: tpcusto
+        description: >
+          Tipo de custo: P produção, A administração.
+        data_type: text
+      - name: stestado
+        description: >
+          Se a etapa está ativa.
+        data_type: boolean
+      - name: tpgrupo
+        description: >
+          Grupo da etapa, de A a D.
+        data_type: text
+      - name: nrordenacao
+        description: >
+          Ordem de exibição da etapa.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbplanilhaunidade
+    description: >
+      Uma linha por unidade de medida de item de orçamento: 25, como dia,
+      unidade, verba e cachê.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbplanilhaunidade'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idunidade
+        description: >
+          Unidade de medida, código de silver_sac_tbplanilhaunidade, como 5
+          dia, 7 unidade, 21 verba, 25 cachê.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: sigla
+        description: >
+          Sigla da unidade, como Vb ou CH.
+        data_type: text
+      - name: descricao
+        description: >
+          Nome da unidade, como Verba ou Cachê.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbplanilhaitens
+    description: >
+      Uma linha por item de orçamento: 6.587, como cachê de músico ou passagem
+      aérea. É o domínio de idplanilhaitem.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbplanilhaitens'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - idusuario
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idplanilhaitens
+        description: >
+          Item de orçamento, código de silver_sac_tbplanilhaitens, como cachê
+          de músico ou passagem aérea.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: descricao
+        description: >
+          Nome do item de orçamento.
+        data_type: text
+      - name: idusuario
+        description: >
+          Usuário interno que cadastrou o item.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbitensplanilhaproduto
+    description: >
+      Uma linha por item permitido para um produto numa etapa: o catálogo de
+      que itens cada produto pode ter. São 46.688 combinações.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbitensplanilhaproduto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - idusuario
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: iditensplanilhaproduto
+        description: >
+          Identificador da combinação. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idplanilhaetapa
+        description: >
+          Etapa do orçamento, código de silver_sac_tbplanilhaetapa: 1 pré-
+          produção, 2 produção, 3 divulgação, 4 custos administrativos, 5
+          recolhimentos, 6 elaboração e agenciamento, 7 pós-produção, 8 custos
+          vinculados, 9 assessoria contábil e jurídica, 10 captação de
+          recursos.
+        data_type: integer
+      - name: idplanilhaitens
+        description: >
+          Item de orçamento, código de silver_sac_tbplanilhaitens, como cachê
+          de músico ou passagem aérea.
+        data_type: integer
+      - name: idusuario
+        description: >
+          Usuário que cadastrou. Preenchido em 6.616.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbplanilhajustificativa
+    description: >
+      Uma linha por sugestão de valor da análise para um item da planilha do
+      projeto, com a justificativa. São 1.233 sugestões. vlaprovado é 0 em
+      todas as linhas e justificativaaprovada está vazia: a aprovação não é
+      gravada aqui.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbplanilhajustificativa'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - operacaosugerida
+            - operacaoaprovada
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idplanilhaorcamento
+        description: >
+          Identificador da sugestão.
+        data_type: integer
+      - name: idplanilhaprojeto
+        description: >
+          Item, código de silver_sac_tbplanilhaprojeto.
+        data_type: integer
+      - name: data
+        description: >
+          Data em que a análise sugeriu o valor.
+        data_type: timestamp
+      - name: vlsugerido
+        description: >
+          Valor sugerido pela análise, em reais.
+        data_type: numeric
+      - name: operacaosugerida
+        description: >
+          Operação sugerida sobre o item.
+        data_type: boolean
+      - name: justificativasugerida
+        description: >
+          Justificativa da sugestão, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: vlaprovado
+        description: >
+          Valor aprovado: 0 em todas as linhas.
+        data_type: numeric
+      - name: operacaoaprovada
+        description: >
+          Operação aprovada sobre o item.
+        data_type: boolean
+      - name: justificativaaprovada
+        description: >
+          Justificativa da aprovação. Vazia em todas as linhas.
+        data_type: text
+      - name: stestado
+        description: >
+          Se a linha está ativa na origem: true ativa, false inativa ou
+          substituída.
+        data_type: boolean
+      - name: idusuario
+        description: >
+          Técnico que sugeriu.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbcustosvinculados
+    description: >
+      Uma linha por custo vinculado calculado sobre o orçamento de uma
+      proposta, como percentual: os itens de custo administrativo, divulgação e
+      captação que a norma limita a um percentual do projeto. São 541.815
+      linhas de 177.024 propostas, em 4 itens.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbcustosvinculados'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idcustosvinculados
+        description: >
+          Identificador da linha. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: idprojeto
+        description: >
+          Proposta, idpreprojeto de silver_sac_preprojeto.
+        data_type: integer
+      - name: idplanilhaitem
+        description: >
+          Item de orçamento, código de silver_sac_tbplanilhaitens, como cachê
+          de músico ou passagem aérea.
+        data_type: integer
+      - name: dtcadastro
+        description: >
+          Data em que o custo vinculado foi calculado.
+        data_type: timestamp
+      - name: dsobservacao
+        description: >
+          Observação. Vazia em todas as linhas.
+        data_type: text
+      - name: pccalculo
+        description: >
+          Percentual aplicado sobre o orçamento.
+        data_type: numeric
+      - name: idusuario
+        description: >
+          Conta que gravou o cálculo.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_tbprodutoxtipicidade
+    description: >
+      Uma linha por produto permitido numa tipicidade e tipologia de projeto,
+      com a área e o segmento. São 27.398 combinações.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_tbprodutoxtipicidade'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idtipicidade
+        description: >
+          Tipicidade, código da verificação do sac, grupo 28.
+        data_type: integer
+      - name: idtipologia
+        description: >
+          Tipologia, código da verificação do sac.
+        data_type: integer
+      - name: cdarea
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: text
+      - name: cdsegmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: idprodutoxtipicidade
+        description: >
+          Identificador da combinação. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: stprincipal
+        description: >
+          Se é o produto principal da tipicidade.
+        data_type: boolean
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_acaoproduto
+    description: >
+      Uma linha por produto de uma ação cultural antiga, de convênio, com
+      quantidades produzida, recebida e existente. São 19.323 linhas de 5
+      entidades. Liga com silver_sac_acaoprojeto.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_acaoproduto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: entidade
+        description: >
+          Entidade executora, de 1 a 5, como em silver_sac_acaoprojeto.
+        data_type: integer
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: codigoproduto
+        description: >
+          Produto, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: opcao
+        description: >
+          Indicador de opção do produto.
+        data_type: boolean
+      - name: nomeproduto
+        description: >
+          Nome do produto cultural da ação.
+        data_type: text
+      - name: qtdeproduzida
+        description: >
+          Quantidade produzida.
+        data_type: integer
+      - name: qtderecebida
+        description: >
+          Quantidade recebida: 0 ou 1.
+        data_type: integer
+      - name: qtdeexistente
+        description: >
+          Quantidade existente: 0 ou 1.
+        data_type: integer
+      - name: localizacao
+        description: >
+          Localização do produto: 2 ou 9, sem domínio ingerido.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_entregaproduto
+    description: >
+      Uma linha por entrega de produto de projeto de 1998. Tem 2 linhas: sem
+      uso.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_entregaproduto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: dtentrega
+        description: >
+          Data da entrega do produto.
+        data_type: timestamp
+      - name: observacao
+        description: >
+          Observação livre sobre a entrega.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: logon
+        description: >
+          Usuário interno que gravou a linha. Em silver_sac_projetos, 99,6% dos
+          valores existem em silver_tabelas_usuarios.usu_codigo, o cadastro de
+          servidores.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vcustodoprojeto
+    description: >
+      Uma linha por projeto de 2000 com o custo total, para prestação de contas
+      antiga. São 13.499 projetos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vcustodoprojeto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: tipoprestacao
+        description: >
+          Tipo da prestação de contas: true em 785, false em 12.714.
+        data_type: text
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: custoprojeto
+        description: >
+          Custo total do projeto, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwanalisedecusto
+    description: >
+      Uma linha por item da planilha do projeto com a análise de custo: valor
+      total solicitado e sugerido, por produto, etapa e local. São 3.739.167
+      itens, os da silver_sac_tbplanilhaprojeto. vlcorte vale 0 em todas as
+      linhas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwanalisedecusto'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - ocorrencia
+            - vlcorte
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idplanilhaprojeto
+        description: >
+          Item, código de silver_sac_tbplanilhaprojeto.
+        data_type: integer
+      - name: produto
+        description: >
+          Nome do produto cultural.
+        data_type: text
+      - name: etapa
+        description: >
+          Etapa do orçamento, com o código e o nome, como 2 - Produção /
+          Execução.
+        data_type: text
+      - name: item
+        description: >
+          Nome do item de orçamento.
+        data_type: text
+      - name: unidade
+        description: >
+          Unidade de medida, por extenso.
+        data_type: text
+      - name: quantidade
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: ocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: integer
+      - name: valorunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: vltotal
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: qtdedias
+        description: >
+          Quantidade de dias do item, quando cobrado por dia.
+        data_type: integer
+      - name: tipodespesa
+        description: >
+          Tipo de despesa por extenso: Não Informado em quase todas.
+        data_type: text
+      - name: tipopessoa
+        description: >
+          Tipo de pessoa por extenso: Não Informado em quase todas.
+        data_type: text
+      - name: contrapartida
+        description: >
+          Contrapartida por extenso: Não Informado em quase todas.
+        data_type: text
+      - name: fonterecurso
+        description: >
+          Fonte de recurso por extenso, como Incentivo Fiscal Federal.
+        data_type: text
+      - name: uf
+        description: >
+          UF da despesa, em sigla.
+        data_type: text
+      - name: municipio
+        description: >
+          Município da despesa, por extenso.
+        data_type: text
+      - name: data
+        description: >
+          Data da análise. Preenchida em 900.
+        data_type: timestamp
+      - name: vlcorte
+        description: >
+          Valor de corte: 0 em todas as linhas.
+        data_type: numeric
+      - name: justificativasugerida
+        description: >
+          Justificativa da sugestão. Preenchida em 842.
+        data_type: text
+      - name: vlsugerido
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: idusuario
+        description: >
+          Usuário interno que analisou.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio
+    description: >
+      Uma linha por item da planilha aprovada com o valor comprovado e a
+      situação da avaliação da comprovação, por produto, etapa, UF e município.
+      São 4.667.201 itens de 62.516 projetos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwitenscomprovados_fonte_produto_etapa_uf_municipio'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - nrocorrencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: idplanilhaaprovacao
+        description: >
+          Item aprovado, código de silver_sac_tbplanilhaaprovacao.
+        data_type: integer
+      - name: codigo
+        description: >
+          Produto, código de silver_sac_vwprodutos. Vazio em 411.545.
+        data_type: integer
+      - name: descricao
+        description: >
+          Nome do produto cultural do item.
+        data_type: text
+      - name: idplanilhaetapa
+        description: >
+          Etapa do orçamento, código de silver_sac_tbplanilhaetapa: 1 pré-
+          produção, 2 produção, 3 divulgação, 4 custos administrativos, 5
+          recolhimentos, 6 elaboração e agenciamento, 7 pós-produção, 8 custos
+          vinculados, 9 assessoria contábil e jurídica, 10 captação de
+          recursos.
+        data_type: integer
+      - name: descetapa
+        description: >
+          Etapa do orçamento, por extenso.
+        data_type: text
+      - name: uf
+        description: >
+          UF da despesa, em sigla.
+        data_type: text
+      - name: cidade
+        description: >
+          Município da despesa, por extenso.
+        data_type: text
+      - name: idplanilhaitens
+        description: >
+          Item de orçamento, código de silver_sac_tbplanilhaitens, como cachê
+          de músico ou passagem aérea.
+        data_type: integer
+      - name: descitem
+        description: >
+          Item de orçamento, por extenso.
+        data_type: text
+      - name: qtitem
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: nrocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: integer
+      - name: vlunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: total
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: vlcomprovado
+        description: >
+          Valor comprovado do item, em reais.
+        data_type: numeric
+      - name: comprovacaovalidada
+        description: >
+          Valor da comprovação validada pela análise, em reais.
+        data_type: text
+      - name: tpcusto
+        description: >
+          Tipo de custo da etapa: P produção, A administração.
+        data_type: text
+      - name: stitemavaliado
+        description: >
+          Situação da avaliação do item: 4 em 4.547.172, 1 em 118.041, 3 em
+          1.988. Sem domínio ingerido.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vworcamentosolicitado
+    description: >
+      Uma linha por item do orçamento solicitado de um projeto, com nomes de
+      produto, etapa, item, unidade e local. São 6.011.044 itens de 122.154
+      projetos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vworcamentosolicitado'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - ocorrencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: anoprojeto
+        description: >
+          Ano do PRONAC em dois dígitos, com zero à esquerda: 00 é 2000, 92 é
+          1992. Junto com sequencial forma o PRONAC.
+        data_type: text
+      - name: sequencial
+        description: >
+          Sequencial do PRONAC dentro do ano, em texto com zero à esquerda.
+          Junto com anoprojeto forma o PRONAC.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idplanilhaproposta
+        description: >
+          Item, código de silver_sac_tbplanilhaproposta.
+        data_type: integer
+      - name: produto
+        description: >
+          Nome do produto cultural.
+        data_type: text
+      - name: etapa
+        description: >
+          Etapa do orçamento, com o código e o nome, como 2 - Produção /
+          Execução.
+        data_type: text
+      - name: item
+        description: >
+          Nome do item de orçamento.
+        data_type: text
+      - name: unidade
+        description: >
+          Unidade de medida, por extenso.
+        data_type: text
+      - name: quantidade
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: ocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: integer
+      - name: valorunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: vltotal
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: qtdedias
+        description: >
+          Quantidade de dias do item, quando cobrado por dia.
+        data_type: integer
+      - name: tipodespesa
+        description: >
+          Tipo de despesa por extenso.
+        data_type: text
+      - name: tipopessoa
+        description: >
+          Tipo de pessoa por extenso.
+        data_type: text
+      - name: contrapartida
+        description: >
+          Contrapartida por extenso.
+        data_type: text
+      - name: fonterecurso
+        description: >
+          Fonte de recurso por extenso.
+        data_type: text
+      - name: uf
+        description: >
+          UF da despesa, em sigla.
+        data_type: text
+      - name: municipio
+        description: >
+          Município da despesa, por extenso.
+        data_type: text
+      - name: justificativa
+        description: >
+          Justificativa do item, em texto livre.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwplanilhaaprovada
+    description: >
+      Uma linha por item da planilha aprovada de um projeto, com o solicitado,
+      o sugerido pelo parecer, o aprovado pela comissão e as justificativas de
+      cada um. São 3.079.132 itens de 62.885 projetos.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwplanilhaaprovada'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - nrocorrencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idplanilhaaprovacao
+        description: >
+          Item aprovado, código de silver_sac_tbplanilhaaprovacao.
+        data_type: integer
+      - name: produto
+        description: >
+          Nome do produto cultural.
+        data_type: text
+      - name: etapa
+        description: >
+          Etapa do orçamento, com o código e o nome, como 2 - Produção /
+          Execução.
+        data_type: text
+      - name: item
+        description: >
+          Nome do item de orçamento.
+        data_type: text
+      - name: vlsolicitado
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: justproponente
+        description: >
+          Justificativa do proponente para o item.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: vlsugerido
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: justparecerista
+        description: >
+          Justificativa do parecerista para o valor sugerido.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: unidade
+        description: >
+          Unidade de medida, por extenso.
+        data_type: text
+      - name: qtitem
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: nrocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: integer
+      - name: vlunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: qtdias
+        description: >
+          Quantidade de dias do item, quando cobrado por dia.
+        data_type: integer
+      - name: tpdespesa
+        description: >
+          Tipo de despesa: 0 em quase todas as linhas, sem domínio ingerido.
+        data_type: text
+      - name: tppessoa
+        description: >
+          Tipo de pessoa do fornecedor previsto: 0 em quase todas as linhas,
+          sem domínio ingerido.
+        data_type: text
+      - name: nrcontrapartida
+        description: >
+          Indicador de contrapartida: 0 em quase todas as linhas.
+        data_type: text
+      - name: idfonte
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: text
+      - name: fonterecurso
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: text
+      - name: uf
+        description: >
+          UF da despesa, em sigla.
+        data_type: text
+      - name: municipio
+        description: >
+          Município da despesa, por extenso.
+        data_type: text
+      - name: aprovado
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: justcomponente
+        description: >
+          Justificativa do conselheiro da CNIC para o valor aprovado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwplanilhasugerida
+    description: >
+      Uma linha por item da planilha do projeto com o valor solicitado e o
+      sugerido pela análise técnica. São 3.730.375 itens.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwplanilhasugerida'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - ocorrencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idplanilhaprojeto
+        description: >
+          Item, código de silver_sac_tbplanilhaprojeto.
+        data_type: integer
+      - name: produto
+        description: >
+          Nome do produto cultural.
+        data_type: text
+      - name: etapa
+        description: >
+          Etapa do orçamento, com o código e o nome, como 2 - Produção /
+          Execução.
+        data_type: text
+      - name: item
+        description: >
+          Nome do item de orçamento.
+        data_type: text
+      - name: vlsolicitado
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: justificativaproponente
+        description: >
+          Justificativa do proponente para o item.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: unidade
+        description: >
+          Unidade de medida, por extenso.
+        data_type: text
+      - name: quantidade
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: ocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: integer
+      - name: valorunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: qtdedias
+        description: >
+          Quantidade de dias do item, quando cobrado por dia.
+        data_type: integer
+      - name: tipodespesa
+        description: >
+          Tipo de despesa: 0 em quase todas as linhas, sem domínio ingerido.
+        data_type: text
+      - name: tipopessoa
+        description: >
+          Tipo de pessoa do fornecedor previsto: 0 em quase todas as linhas,
+          sem domínio ingerido.
+        data_type: text
+      - name: contrapartida
+        description: >
+          Indicador de contrapartida: 0 em quase todas as linhas.
+        data_type: text
+      - name: idfonte
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: integer
+      - name: fonterecurso
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: text
+      - name: uf
+        description: >
+          UF da despesa, em sigla.
+        data_type: text
+      - name: municipio
+        description: >
+          Município da despesa, por extenso.
+        data_type: text
+      - name: sugerido
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: justificativa
+        description: >
+          Justificativa do item, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idusuario
+        description: >
+          Usuário interno que analisou.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwplanilhasugeridacompleta
+    description: >
+      Uma linha por item da planilha do projeto com o valor solicitado e o
+      sugerido, com todas as fontes de recurso. São 3.738.907 itens, 8.532 a
+      mais que silver_sac_vwplanilhasugerida; a diferença entre as duas views
+      não está documentada.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwplanilhasugeridacompleta'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+          derivadas_nao_identificantes:
+            - ocorrencia
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: integer
+      - name: idplanilhaprojeto
+        description: >
+          Item, código de silver_sac_tbplanilhaprojeto.
+        data_type: integer
+      - name: produto
+        description: >
+          Nome do produto cultural.
+        data_type: text
+      - name: etapa
+        description: >
+          Etapa do orçamento, com o código e o nome, como 2 - Produção /
+          Execução.
+        data_type: text
+      - name: item
+        description: >
+          Nome do item de orçamento.
+        data_type: text
+      - name: vlsolicitado
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: unidade
+        description: >
+          Unidade de medida, por extenso.
+        data_type: text
+      - name: quantidade
+        description: >
+          Quantidade do item. A origem grava em notação científica, como 1.0E0,
+          e a silver converte para número.
+        data_type: numeric
+      - name: ocorrencia
+        description: >
+          Número de ocorrências do item, multiplicador da quantidade.
+        data_type: integer
+      - name: valorunitario
+        description: >
+          Valor unitário do item, em reais.
+        data_type: numeric
+      - name: qtdedias
+        description: >
+          Quantidade de dias do item, quando cobrado por dia.
+        data_type: integer
+      - name: tipodespesa
+        description: >
+          Tipo de despesa: 0 em quase todas as linhas, sem domínio ingerido.
+        data_type: text
+      - name: tipopessoa
+        description: >
+          Tipo de pessoa do fornecedor previsto: 0 em quase todas as linhas,
+          sem domínio ingerido.
+        data_type: text
+      - name: contrapartida
+        description: >
+          Indicador de contrapartida: 0 em quase todas as linhas.
+        data_type: text
+      - name: idfonte
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: integer
+      - name: fonterecurso
+        description: >
+          Fonte de recurso do item: 109 incentivo fiscal federal, quase todas
+          as linhas; 99 recursos privados de terceiros, 100 ONG, 101 organismo
+          internacional, 102 a 104 administração municipal, estadual e federal,
+          110 e 111 incentivo fiscal estadual e municipal, 112 recursos
+          privados próprios.
+        data_type: text
+      - name: uf
+        description: >
+          UF da despesa, em sigla.
+        data_type: text
+      - name: municipio
+        description: >
+          Município da despesa, por extenso.
+        data_type: text
+      - name: sugerido
+        description: >
+          Valor, em reais. A origem grava em notação científica, como 1.5E3, e
+          a silver converte para número.
+        data_type: numeric
+      - name: justificativa
+        description: >
+          Justificativa do item, em texto livre.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idusuario
+        description: >
+          Usuário interno que analisou.
+        data_type: integer
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprecomedio_produto_item_unidade_uf_municipio
+    description: >
+      Uma linha por produto, item, unidade e município com o preço mínimo,
+      médio e máximo praticado nos orçamentos. São 853.576 linhas, de 82
+      produtos, 4.296 itens e 3.884 municípios. É a referência de custo que a
+      análise usa para marcar custo acima do praticado.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprecomedio_produto_item_unidade_uf_municipio'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idproduto
+        description: >
+          Produto cultural, código de silver_sac_vwprodutos, como livro ou
+          espetáculo; 0 é a administração do projeto.
+        data_type: text
+      - name: produto
+        description: >
+          Nome do produto cultural.
+        data_type: text
+      - name: idplanilhaitem
+        description: >
+          Item de orçamento, código de silver_sac_tbplanilhaitens, como cachê
+          de músico ou passagem aérea.
+        data_type: integer
+      - name: item
+        description: >
+          Nome do item de orçamento.
+        data_type: text
+      - name: idunidade
+        description: >
+          Unidade de medida, código de silver_sac_tbplanilhaunidade, como 5
+          dia, 7 unidade, 21 verba, 25 cachê.
+        data_type: integer
+      - name: unidade
+        description: >
+          Unidade de medida, por extenso.
+        data_type: text
+      - name: idufdespesa
+        description: >
+          UF onde a despesa ocorre, código IBGE.
+        data_type: integer
+      - name: uf
+        description: >
+          UF da despesa, por extenso.
+        data_type: text
+      - name: idmunicipiodespesa
+        description: >
+          Município onde a despesa ocorre, código IBGE de 6 dígitos.
+        data_type: integer
+      - name: cidade
+        description: >
+          Município da despesa, por extenso.
+        data_type: text
+      - name: preco_minimo
+        description: >
+          Menor preço unitário praticado, em reais.
+        data_type: numeric
+      - name: preco_medio
+        description: >
+          Preço unitário médio praticado, em reais.
+        data_type: numeric
+      - name: preco_maximo
+        description: >
+          Maior preço unitário praticado, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprodutos
+    description: >
+      Uma linha por produto cultural: 141, como livro, CD, espetáculo e
+      exposição; 80 ativos. É o domínio de idproduto.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprodutos'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          derivadas_nao_identificantes:
+            - nmproduto
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: codigo
+        description: >
+          Código do produto. Único.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: nmproduto
+        description: >
+          Nome do produto cultural.
+        data_type: text
+      - name: stestado
+        description: >
+          Se o produto está ativo: 1 em 80.
+        data_type: text
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprodutosemanalisetecnicanasvinculadas
+    description: >
+      Uma linha por produto de projeto em análise técnica numa entidade
+      vinculada, com parecerista, datas e dias de análise. São 612 linhas de
+      223 projetos, de 2023 a 2026. É a fila do momento da carga.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprodutosemanalisetecnicanasvinculadas'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: idpronac
+        description: >
+          Identificador interno do projeto no SALIC. Liga com
+          silver_sac_projetos.idpronac.
+        data_type: integer
+      - name: cdorgaosuperior
+        description: >
+          Órgão superior, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: cdorgaoorigem
+        description: >
+          Órgão que analisa, código de silver_tabelas_orgaos.
+        data_type: integer
+      - name: sigla
+        description: >
+          Sigla do órgão que analisa.
+        data_type: text
+      - name: nrano
+        description: >
+          Ano do PRONAC do projeto.
+        data_type: integer
+      - name: nrpronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nmprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: cdsituacao
+        description: >
+          Situação do projeto, código de sac.situacao: B11 ou B14.
+        data_type: text
+      - name: providenciatomada
+        description: >
+          Última providência, em texto.
+        data_type: text
+      - name: parecer
+        description: >
+          Situação do parecer.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: text
+      - name: datafixa
+        description: >
+          Se o projeto tem data fixa: Sim ou Não.
+        data_type: text
+      - name: cdencaminhamento
+        description: >
+          Código do encaminhamento.
+        data_type: integer
+      - name: dsencaminhamento
+        description: >
+          Encaminhamento por extenso.
+        data_type: text
+      - name: tpproduto
+        description: >
+          Se é o produto principal.
+        data_type: text
+      - name: cdanalise
+        description: >
+          Código da situação da análise.
+        data_type: integer
+      - name: sifecharanalise
+        description: >
+          Situação do fechamento da análise.
+        data_type: integer
+      - name: tpanalise
+        description: >
+          Tipo de análise: 3 em todas.
+        data_type: text
+      - name: cdproduto
+        description: >
+          Produto, código de silver_sac_vwprodutos.
+        data_type: integer
+      - name: dsanalise
+        description: >
+          Análise por extenso.
+        data_type: text
+      - name: dtinicioexecucao
+        description: >
+          Data de início da execução do projeto.
+        data_type: timestamp
+      - name: dtfimexecucao
+        description: >
+          Data de fim da execução do projeto.
+        data_type: timestamp
+      - name: dtprimeiroenvio
+        description: >
+          Data do primeiro envio.
+        data_type: timestamp
+      - name: dtultimoenvio
+        description: >
+          Data do último envio.
+        data_type: timestamp
+      - name: dtdistribuicao
+        description: >
+          Data da distribuição ao parecerista.
+        data_type: timestamp
+      - name: nrcpf_parecerista
+        description: >
+          CPF do parecerista, sem máscara.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: parecerista
+        description: >
+          Nome do parecerista.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: tpavaliador
+        description: >
+          Tipo de avaliador do produto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: dtdevolucao
+        description: >
+          Data em que o parecerista devolveu.
+        data_type: timestamp
+      - name: mesdoultimoenvio
+        description: >
+          Mês do último envio.
+        data_type: integer
+      - name: nrdiastotalcomparecerista
+        description: >
+          Dias com o parecerista no total.
+        data_type: integer
+      - name: nrdiasdeanalisedoparecerita
+        description: >
+          Dias de análise pelo parecerista.
+        data_type: integer
+      - name: nrdiasemdilgenciapeloparecerista
+        description: >
+          Dias em diligência com o parecerista.
+        data_type: integer
+      - name: qtdediasnavinculada
+        description: >
+          Dias na entidade vinculada.
+        data_type: integer
+      - name: vlsolicitado
+        description: >
+          Valor solicitado, em reais.
+        data_type: numeric
+      - name: vlsugerido
+        description: >
+          Valor sugerido, em reais.
+        data_type: numeric
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text
+
+  - name: silver_sac_vwprojetobeneficiarioprodutocultural
+    description: >
+      Uma linha por entrega de produto cultural a um beneficiário de projeto,
+      com quantidade, local e ano de publicação. São 141.706 entregas.
+    config:
+      tags: [silver, salic, sac]
+      meta:
+        status: Disabled
+        origem_dados: 'salic.bronze_sac_vwprojetobeneficiarioprodutocultural'
+        governance:
+          produto_dados: 'SALIC — Rouanet'
+          classificacao_uso: restrito
+          rag_publication: prohibited
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+    columns:
+      - name: pronac
+        description: >
+          PRONAC do projeto, ano em dois dígitos seguido do sequencial, em
+          texto com zero à esquerda.
+        data_type: text
+      - name: nomeprojeto
+        description: >
+          Nome do projeto cultural.
+        data_type: text
+      - name: ufprojeto
+        description: >
+          UF do projeto, em sigla.
+        data_type: text
+      - name: area
+        description: >
+          Área cultural do projeto, código de silver_sac_area: 1 Artes Cênicas,
+          2 Audiovisual, 3 Música, 4 Artes Visuais, 5 Patrimônio Cultural, 6
+          Humanidades, 7 Artes Integradas, 9 Museus e Memória.
+        data_type: integer
+      - name: segmento
+        description: >
+          Segmento cultural, código de silver_sac_vsegmento, em texto porque há
+          códigos com letra. O código só é único junto com a área.
+        data_type: text
+      - name: tptipicidade
+        description: >
+          Tipicidade do projeto, código da verificação do sac.
+        data_type: integer
+      - name: tptipologia
+        description: >
+          Tipologia do projeto, código da verificação do sac.
+        data_type: integer
+      - name: produto
+        description: >
+          Nome do produto cultural.
+        data_type: text
+      - name: beneficiario
+        description: >
+          Nome do beneficiário que recebeu o produto.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.NonSensitive
+      - name: idtipobeneficiario
+        description: >
+          Tipo do beneficiário: 21 em 121.421, 19 e 20 em 10 mil cada. Na
+          verificação do sac esses códigos são peças de divulgação, o que não
+          faz sentido aqui; o domínio não está confirmado.
+        data_type: integer
+      - name: qtrecebida
+        description: >
+          Quantidade recebida pelo beneficiário.
+        data_type: integer
+      - name: regiao
+        description: >
+          Região do beneficiário.
+        data_type: text
+      - name: uf
+        description: >
+          UF do beneficiário, por extenso.
+        data_type: text
+      - name: municipio
+        description: >
+          Município do beneficiário.
+        data_type: text
+      - name: anopublicacao
+        description: >
+          Ano de publicação do produto.
+        data_type: integer
+      - name: _fatia
+        description: >
+          Coluna técnica da ingestão: identifica a fatia de extração que trouxe
+          a linha. Não é campo de negócio.
+        data_type: text

@@ -1,7 +1,8 @@
--- Bronze SALIC — sac__vworcamentosolicitado.
--- Origem: salic_bronze.sac__vworcamentosolicitado, onde tudo chega como texto da
+-- Silver SALIC — silver_sac_vworcamentosolicitado (ex-sac__vworcamentosolicitado).
+-- Lê a Bronze do SALIC, que a ingestão grava em salic.bronze_<banco>_<tabela>.
+-- Origem: salic.bronze_sac_vworcamentosolicitado, onde tudo chega como texto da
 -- ingestão via Trino (ADR 0005). Tipar é o trabalho desta camada.
--- 23 colunas: 6 tipadas, 16 mantidas como texto.
+-- 23 colunas: 8 tipadas, 14 mantidas como texto.
 -- Os casts são guardados por regex (macros bronze_*): valor fora do
 -- padrão vira NULL em vez de derrubar o modelo.
 select
@@ -15,10 +16,10 @@ select
     {{ bronze_texto("etapa") }} as etapa,
     {{ bronze_texto("item") }} as item,
     {{ bronze_texto("unidade") }} as unidade,
-    {{ bronze_texto("quantidade") }} as quantidade,
+    {{ bronze_numerico_cientifico("quantidade") }} as quantidade,
     {{ bronze_inteiro("ocorrencia") }} as ocorrencia,
     {{ bronze_numerico("valorunitario") }} as valorunitario,
-    {{ bronze_texto("vltotal") }} as vltotal,
+    {{ bronze_numerico_cientifico("vltotal") }} as vltotal,
     {{ bronze_inteiro("qtdedias") }} as qtdedias,
     {{ bronze_texto("tipodespesa") }} as tipodespesa,
     {{ bronze_texto("tipopessoa") }} as tipopessoa,
@@ -28,4 +29,4 @@ select
     {{ bronze_texto("municipio") }} as municipio,
     {{ bronze_texto("justificativa") }} as justificativa,
     _fatia
-from {{ source("bronze_sac", "sac__vworcamentosolicitado") }}
+from {{ source("salic", "bronze_sac_vworcamentosolicitado") }}
