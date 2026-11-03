@@ -57,6 +57,11 @@ PREFIXO_ANEXOS_ARQUIVOS = f"raw/{FONTE_TRANSFEREGOV}/anexos_arquivos/"
 # seeds.<fonte>_<entidade> no Postgres.
 SCHEMA_SEEDS = "seeds"
 FONTE_INEP = "inep"
+# MUNIC e ESTADIC (ibge_perfil_dag), execucao orcamentaria federal
+# (siop_execucao_dag) e CSVs do CKAN do Tesouro (tesouro_transparente_dag).
+FONTE_IBGE = "ibge"
+FONTE_SIOP = "siop"
+FONTE_TESOURO_TRANSPARENTE = "tesouro_transparente"
 
 # ---------------------------------------------------------------------------
 # bbagil (secao 7.2)
