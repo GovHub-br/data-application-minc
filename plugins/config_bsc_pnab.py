@@ -103,6 +103,17 @@ INVALID_ACCOUNT_ERROR_MESSAGE = "Conta corrente inválida"
 LISTA_ANOS = Variable.get(
     "bsc_pnab_lista_anos", default=[2023, 2024, 2025, 2026], deserialize_json=True
 )
+# Anos pedidos a mais para um programa, alem de LISTA_ANOS, no formato
+# {"<codigo_programa>": [anos]}. Existe para a LAB 1, cujo extrato de
+# 2020-2022 o Eixo 1 do Cultura em Numeros usa: os programas dela sao de 2020
+# e 2021, e pedir esses anos para todas as contas gastaria chamadas em conta
+# que nem existia (LPG e PNAB sao de 2023 em diante). Vazio por padrao porque
+# o volume e grande: sao ~4,8 mil contas da LAB 1 e um mes por chamada, cerca
+# de 174 mil chamadas para 2020-2022. Os codigos estao em
+# transferegov.programa_minc.
+ANOS_EXTRAS_POR_PROGRAMA = Variable.get(
+    "bsc_pnab_anos_extras_por_programa", default={}, deserialize_json=True
+)
 LIMIAR_VALOR_BBAGIL = float(Variable.get("bsc_pnab_limiar_valor_bbagil", default="375"))
 DATA_CORTE_PNAB = Variable.get("bsc_pnab_data_corte", default="2025-12-31")
 
