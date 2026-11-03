@@ -4,11 +4,15 @@ Carrega as DAGs de verdade e confere o que um refactor pode quebrar sem que
 nenhum teste de função perceba: a ordem raw → staging → seeds, as tabelas
 declaradas para a linhagem, os parâmetros e o default do IPCA no BACEN.
 
-As DAGs usam ``airflow.sdk`` (Airflow 3), que só existe na imagem do
-Airflow: no ambiente do Poetry o arquivo é pulado, como em
-``test_siconfi_dags.py``.
+As DAGs usam ``airflow.sdk`` (Airflow 3): sem ele o arquivo é pulado, como em
+``test_siconfi_dags.py``. As três DAGs de seeds também importam a linhagem do
+OpenMetadata, que só existe na imagem do Airflow e fica fora do Poetry de
+propósito (ver ``test_openmetadata_execution.py``). Os testes que as carregam
+são pulados no job ``test`` e rodam no ``docker_build``, que executa a suíte
+dentro da imagem. Os do BACEN e do BB Ágil rodam nos dois.
 """
 
+import importlib.util
 from pathlib import Path
 from typing import Any
 
@@ -28,19 +32,29 @@ _ARQUIVOS = {
     "bacen_sgs_ingest_dag": _DAGS / "bacen" / "bacen_sgs_ingest_dag.py",
     "extracao_bbagil_dag": _DAGS / "bsc_pnab" / "extracao_bbagil_dag.py",
 }
+_DAGS_DE_SEEDS = ("ibge_perfil_dag", "siop_execucao_dag", "tesouro_transparente_dag")
 _CAMINHO = ["baixar_para_raw", "raw_para_parquet", "parquet_para_seeds"]
+
+requer_openmetadata = pytest.mark.skipif(
+    importlib.util.find_spec("metadata") is None,
+    reason=(
+        "openmetadata-ingestion ausente: as DAGs de seeds importam a linhagem; "
+        "rodam dentro da imagem do Airflow (job docker_build)"
+    ),
+)
 
 
 @pytest.fixture(scope="module")
 def dags() -> dict[str, Any]:
     carregadas: dict[str, Any] = {}
-    for dag_id, arquivo in _ARQUIVOS.items():
-        bag = DagBag(str(arquivo), include_examples=False)
+    for dag_id in _DAGS_DE_SEEDS:
+        bag = DagBag(str(_ARQUIVOS[dag_id]), include_examples=False)
         assert not bag.import_errors, bag.import_errors
         carregadas[dag_id] = bag.dags[dag_id]
     return carregadas
 
 
+@requer_openmetadata
 @pytest.mark.parametrize(
     "dag_id", ["ibge_perfil_dag", "siop_execucao_dag", "tesouro_transparente_dag"]
 )
@@ -58,6 +72,7 @@ def _outlets(dag: Any) -> set[str]:
     }
 
 
+@requer_openmetadata
 def test_ibge_declara_todas_as_tabelas_do_catalogo(dags: dict[str, Any]) -> None:
     nomes = " ".join(_outlets(dags["ibge_perfil_dag"]))
     for tabela in ibge.tabelas_seeds():
@@ -65,6 +80,7 @@ def test_ibge_declara_todas_as_tabelas_do_catalogo(dags: dict[str, Any]) -> None
     assert "ibge_controle_carga" in nomes
 
 
+@requer_openmetadata
 def test_ibge_e_tesouro_sao_manuais(dags: dict[str, Any]) -> None:
     for dag_id in ("ibge_perfil_dag", "tesouro_transparente_dag"):
         assert type(dags[dag_id].timetable).__name__ == "NullTimetable", dag_id
