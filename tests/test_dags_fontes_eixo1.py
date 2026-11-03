@@ -29,10 +29,16 @@ _ARQUIVOS = {
     "ibge_perfil_dag": _DAGS / "ibge" / "ibge_perfil_dag.py",
     "siop_execucao_dag": _DAGS / "siop" / "siop_execucao_dag.py",
     "tesouro_transparente_dag": _DAGS / "tesouro" / "tesouro_transparente_dag.py",
+    "dados_cultura_dag": _DAGS / "dados_cultura" / "dados_cultura_dag.py",
     "bacen_sgs_ingest_dag": _DAGS / "bacen" / "bacen_sgs_ingest_dag.py",
     "extracao_bbagil_dag": _DAGS / "bsc_pnab" / "extracao_bbagil_dag.py",
 }
-_DAGS_DE_SEEDS = ("ibge_perfil_dag", "siop_execucao_dag", "tesouro_transparente_dag")
+_DAGS_DE_SEEDS = (
+    "ibge_perfil_dag",
+    "siop_execucao_dag",
+    "tesouro_transparente_dag",
+    "dados_cultura_dag",
+)
 _CAMINHO = ["baixar_para_raw", "raw_para_parquet", "parquet_para_seeds"]
 
 requer_openmetadata = pytest.mark.skipif(
@@ -55,9 +61,7 @@ def dags() -> dict[str, Any]:
 
 
 @requer_openmetadata
-@pytest.mark.parametrize(
-    "dag_id", ["ibge_perfil_dag", "siop_execucao_dag", "tesouro_transparente_dag"]
-)
+@pytest.mark.parametrize("dag_id", _DAGS_DE_SEEDS)
 def test_caminho_raw_staging_seeds(dags: dict[str, Any], dag_id: str) -> None:
     dag = dags[dag_id]
     for anterior, seguinte in zip(_CAMINHO, _CAMINHO[1:]):
@@ -157,3 +161,10 @@ def test_bbagil_sem_extras_e_como_antes() -> None:
     }
     pendentes = modulo._combinacoes_extrato_pendentes(_BancoFalso([]), [ente], base)
     assert [p for _, p in pendentes] == base
+
+
+@requer_openmetadata
+def test_dados_cultura_e_mensal_e_declara_a_tabela_do_snc(dags: dict[str, Any]) -> None:
+    dag = dags["dados_cultura_dag"]
+    assert dag.params["recursos"] == []
+    assert "dados_cultura_snc_entes" in " ".join(_outlets(dag))
