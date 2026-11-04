@@ -4,9 +4,9 @@ Pipeline de dados do Ministério da Cultura no Gov Hub BR. Ingere dados de siste
 de governo (TransfereGov, BB Ágil, SALIC, FCU), transforma com dbt em Postgres e
 serve o acompanhamento das metas do PNAB e da Lei Paulo Gustavo.
 
-> **Trabalho em curso nas silvers do SALIC:** o registro vivo, com protocolo de
-> handoff entre agentes, é [`docs/openmetadata/MEMORY.md`](docs/openmetadata/MEMORY.md).
-> Leia antes de mexer em `dbt/minc/models/salic_dbt/`.
+> **Silvers do SALIC:** o registro vivo, com protocolo de handoff entre agentes,
+> é [`docs/openmetadata/MEMORY.md`](docs/openmetadata/MEMORY.md).
+> Leia antes de mexer em `dbt/minc/models/salic/`.
 
 ## Stack
 
@@ -21,9 +21,9 @@ As DAGs de API do TransfereGov gravam no datalakehouse (MinIO, `raw/` e
 
 | Pasta | O que tem | Você edita? |
 |---|---|---|
-| `dags/data_ingest/` | uma DAG por endpoint de origem — 13 hoje | Sim |
+| `dags/data_ingest/` | uma DAG por endpoint de origem | Sim |
 | `dags/dbt/minc_cosmos_dag.py` | a DAG que roda o projeto dbt inteiro | Raramente |
-| `dbt/minc/models/` | legado por domínio só em `salic_dbt`; `mapas/`, `bbagil/`, `salic/`, `ancine/`, `transferegov/`, `bacen/`, `ibge_sidra/`, `intermediate/` e `data_products/cultura_em_numeros/` (Metas 3 e 5) já seguem a estrutura aprovada; a estrutura aprovada é pasta por fonte e, dentro de `data_products/`, por produto, com as camadas no nome do arquivo — [ADR 0010](docs/adr/0010-camadas-e-schemas-do-data-lakehouse.md). Modelo novo segue o ADR; o legado migra aos poucos. Use a skill `arquitetura-lakehouse-minc` antes de criar ou mover modelo | Sim |
+| `dbt/minc/models/` | pasta por fonte (`mapas/`, `bbagil/`, `salic/`, `ancine/`, `transferegov/`, `bacen/`, `ibge_sidra/`), `intermediate/` e, dentro de `data_products/`, pasta por produto (`cultura_em_numeros/`, Metas 3 e 5), com as camadas no nome do arquivo — [ADR 0010](docs/adr/0010-camadas-e-schemas-do-data-lakehouse.md). Modelo novo segue o ADR. Use a skill `arquitetura-lakehouse-minc` antes de criar ou mover modelo | Sim |
 | `dbt/minc/models/sources.yml` | declaração das tabelas de origem | Sim |
 | `dbt/minc/target/` | saída do `dbt run` e do `dbt docs generate` | **Não.** Gerada, e ignorada pelo git |
 | `plugins/` | clientes de API (`cliente_*.py`), autenticação e regras de negócio | Sim |

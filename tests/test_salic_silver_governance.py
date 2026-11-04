@@ -268,16 +268,11 @@ def test_silver_le_so_a_bronze_do_salic(caminho: Path) -> None:
 
     Em models/salic/ (ADR 0017) a Bronze e a tabela salic.bronze_<banco>_<tabela>
     que a DAG grava, declarada como source `salic`; a silver le dela e tipa com
-    as macros `bronze_*`. No legado salic_dbt/, as silvers leem os modelos da
-    bronze por ref() e nunca por source().
+    as macros `bronze_*`.
     """
-    sql = caminho.read_text(encoding="utf-8")
-    fontes = RE_SOURCE.findall(sql)
-    if caminho.is_relative_to(SALIC_NOVO_DIR):
-        fora = [f for f in fontes if f[0] != "salic" or not f[1].startswith("bronze_")]
-        assert not fora, f"{caminho.name}: source() fora da Bronze do SALIC {fora}"
-    else:
-        assert "source(" not in sql, f"{caminho.name}: usa source() em vez de ref()"
+    fontes = RE_SOURCE.findall(caminho.read_text(encoding="utf-8"))
+    fora = [f for f in fontes if f[0] != "salic" or not f[1].startswith("bronze_")]
+    assert not fora, f"{caminho.name}: source() fora da Bronze do SALIC {fora}"
 
 
 def _restritos_lidos(caminho: Path) -> list[str]:
