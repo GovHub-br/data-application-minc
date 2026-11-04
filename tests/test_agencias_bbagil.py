@@ -4,8 +4,13 @@ O que importa aqui: só as contas do programa listado na Variable
 ``bsc_pnab_anos_extras_por_programa`` ganham os meses a mais (a LAB 1 em
 2020-2022), as outras continuam com os de ``bsc_pnab_lista_anos``, e um mês
 que já está na lista não é pedido duas vezes.
+
+E o mês em andamento nunca é pedido: o checkpoint grava conta × mês como feito
+na primeira consulta, então pedir o mês corrente o congelava no dia da consulta
+(o extrato de set/2026 parou em 04/09 e o de out/2026 veio vazio).
 """
 
+from datetime import date
 from typing import Any, cast
 
 import pytest
@@ -23,6 +28,43 @@ def test_ano_gera_doze_meses_com_o_ultimo_dia() -> None:
     assert len(periodos) == 12
     assert periodos[1] == ("2020-02-01", "2020-02-29")
     assert periodos[-1] == ("2020-12-01", "2020-12-31")
+
+
+def test_mes_em_andamento_nao_entra() -> None:
+    periodos = agencias_bbagil.gerar_periodos_mensais([2026], hoje=date(2026, 11, 4))
+    assert len(periodos) == 10
+    assert periodos[-1] == ("2026-10-01", "2026-10-31")
+
+
+def test_mes_recem_encerrado_espera_um_dia_de_carencia() -> None:
+    no_dia_1 = agencias_bbagil.gerar_periodos_mensais([2026], hoje=date(2026, 11, 1))
+    no_dia_2 = agencias_bbagil.gerar_periodos_mensais([2026], hoje=date(2026, 11, 2))
+    assert no_dia_1[-1] == ("2026-09-01", "2026-09-30")
+    assert no_dia_2[-1] == ("2026-10-01", "2026-10-31")
+
+
+def test_virada_do_ano_fecha_dezembro() -> None:
+    periodos = agencias_bbagil.gerar_periodos_mensais([2026, 2027], hoje=date(2027, 1, 2))
+    assert len(periodos) == 12
+    assert periodos[-1] == ("2026-12-01", "2026-12-31")
+
+
+def test_padrao_usa_o_dia_de_brasilia_e_deixa_o_mes_corrente_de_fora() -> None:
+    hoje = agencias_bbagil.hoje_em_brasilia()
+    periodos = agencias_bbagil.gerar_periodos_mensais([hoje.year])
+    assert all(not inicio.startswith(f"{hoje:%Y-%m}") for inicio, _ in periodos)
+
+
+def test_lista_recebida_perde_o_mes_em_andamento() -> None:
+    recebidos = [
+        ("2026-09-01", "2026-09-30"),
+        ("2026-10-01", "2026-10-31"),
+        ("2026-11-01", "2026-11-30"),
+    ]
+    encerrados = agencias_bbagil.apenas_meses_encerrados(
+        recebidos, hoje=date(2026, 11, 4)
+    )
+    assert encerrados == recebidos[:2]
 
 
 def test_so_o_programa_listado_ganha_os_anos_extras() -> None:
