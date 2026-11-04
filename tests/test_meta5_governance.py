@@ -1,11 +1,10 @@
 """Guardas de governanca da cadeia da Meta 5 no ADR 0010.
 
-As silvers do SALIC em salic_dbt seguem um padrao de documentacao feito para o
-RAG e para o OpenMetadata (ver test_salic_silver_governance). A Meta 5
-refatorada substitui a de la, entao a cadeia dela -- das silvers das fontes as
-golds do Cultura em Numeros -- precisa declarar a mesma politica: sem isso, o
-exportador de RAG nao tem como decidir o que pode sair, e ausencia nao pode
-significar "publicavel".
+As silvers do SALIC (models/salic/) seguem um padrao de documentacao feito para
+o RAG e para o OpenMetadata (ver test_salic_silver_governance). A cadeia da
+Meta 5 refatorada -- das silvers das fontes as golds do Cultura em Numeros --
+precisa declarar a mesma politica: sem isso, o exportador de RAG nao tem como
+decidir o que pode sair, e ausencia nao pode significar "publicavel".
 
 A selecao e pela cadeia, nao pela pasta: pelo ADR 0010 as pastas sao por
 fonte e compartilhadas entre produtos, entao `transferegov/` e
@@ -50,6 +49,17 @@ CADEIA_META5 = {
     "eixo2_meta5_conversao_direto_rouanet_coorte",
 }
 
+# Golds com o prefixo da Meta 5 que ficam fora da cadeia de proposito. A
+# exclusao e pelo nome, nunca pelo prefixo, para a guarda continuar pegando
+# gold nova da Meta 5 que alguem esqueca de listar.
+FORA_DA_CADEIA = {
+    # Primeiro acesso medido pelo PAGAMENTO (silver_sac_tbapicomprovacoes),
+    # herdado do salic_dbt/meta5 pelo #138. A cadeia refatorada mede pela
+    # captacao; as duas definicoes convivem, e esta segue a governanca das
+    # silvers do SALIC (restrito, prohibited, Disabled ate os gates).
+    "eixo2_meta5_proponente_ano_rouanet",
+}
+
 # O formato que o RAG le: secoes nomeadas, e nao um paragrafo corrido.
 SECOES_OBRIGATORIAS = [
     "GRÃO:",
@@ -59,8 +69,12 @@ SECOES_OBRIGATORIAS = [
     "ATUALIZAÇÃO:",
 ]
 
-DESABILITADO = re.compile(r"config\([^)]*enabled\s*=\s*false", re.IGNORECASE)
+# O bloco `{{ config(...) }}` inteiro, ate o `}}`: um `[^)]*` pararia no
+# primeiro `)` de um argumento como `post_hook=grant(...)`.
+CONFIG = re.compile(r"\{\{-?\s*config\((.*?)\)\s*-?\}\}", re.DOTALL)
+ENABLED_FALSE = re.compile(r"\benabled\s*=\s*false\b", re.IGNORECASE)
 REF = re.compile(r"ref\(\s*[\"']([^\"']+)[\"']\s*\)")
+DBT_PROJECT = MODELS_DIR.parent / "dbt_project.yml"
 
 
 def _todos_os_modelos() -> dict[str, tuple[dict, Path]]:
@@ -81,6 +95,36 @@ def _meta(modelo: dict) -> dict:
     return (modelo.get("config") or {}).get("meta", {}) or {}
 
 
+def _pastas_desabilitadas_no_projeto() -> list[Path]:
+    """Pastas com `+enabled: false` no bloco `models:` do dbt_project.yml."""
+    projeto = yaml.safe_load(DBT_PROJECT.read_text(encoding="utf-8")) or {}
+    nome_projeto = projeto.get("name")
+    pastas: list[Path] = []
+
+    def percorre(no: dict, caminho: Path) -> None:
+        if str(no.get("+enabled", "")).lower() == "false":
+            pastas.append(caminho)
+        for chave, filho in no.items():
+            if not chave.startswith("+") and isinstance(filho, dict):
+                percorre(filho, caminho / chave)
+
+    percorre((projeto.get("models") or {}).get(nome_projeto) or {}, MODELS_DIR)
+    return pastas
+
+
+PASTAS_DESABILITADAS = _pastas_desabilitadas_no_projeto()
+
+
+def _desabilitado(nome: str, modelo: dict, pasta: Path) -> bool:
+    """enabled=false no SQL, no config do schema.yml ou no dbt_project.yml."""
+    sql = (pasta / f"{nome}.sql").read_text(encoding="utf-8")
+    if any(ENABLED_FALSE.search(bloco) for bloco in CONFIG.findall(sql)):
+        return True
+    if str((modelo.get("config") or {}).get("enabled", "")).lower() == "false":
+        return True
+    return any(pasta == p or p in pasta.parents for p in PASTAS_DESABILITADAS)
+
+
 def test_todo_modelo_da_lista_esta_documentado() -> None:
     faltam = sorted(CADEIA_META5 - set(TODOS))
     assert not faltam, f"CADEIA_META5 cita modelo sem schema.yml: {faltam}"
@@ -88,8 +132,16 @@ def test_todo_modelo_da_lista_esta_documentado() -> None:
 
 def test_toda_gold_da_meta5_esta_na_lista() -> None:
     golds = {nome for nome in TODOS if nome.startswith("eixo2_meta5_")}
-    faltam = sorted(golds - CADEIA_META5)
+    faltam = sorted(golds - CADEIA_META5 - FORA_DA_CADEIA)
     assert not faltam, f"gold da Meta 5 fora de CADEIA_META5: {faltam}"
+
+
+def test_excecao_da_cadeia_existe_e_nao_esta_na_lista() -> None:
+    """Exclusao de modelo que sumiu ou que entrou na cadeia e lixo: sai daqui."""
+    orfas = sorted(FORA_DA_CADEIA - set(TODOS))
+    assert not orfas, f"FORA_DA_CADEIA cita modelo inexistente: {orfas}"
+    nas_duas = sorted(FORA_DA_CADEIA & CADEIA_META5)
+    assert not nas_duas, f"modelo em CADEIA_META5 e em FORA_DA_CADEIA: {nas_duas}"
 
 
 @pytest.mark.parametrize("nome", sorted(MODELOS))
@@ -130,14 +182,18 @@ def test_descricao_tem_as_secoes_do_padrao(nome: str) -> None:
 
 
 @pytest.mark.parametrize("nome", sorted(MODELOS))
-def test_status_bate_com_o_enabled_do_sql(nome: str) -> None:
-    """`status: Active` num modelo com enabled=false publica tabela que nao existe."""
+def test_modelo_desabilitado_nao_e_active(nome: str) -> None:
+    """`status: Active` num modelo com enabled=false publica tabela que nao existe.
+
+    So esse sentido e cobrado. Modelo habilitado aceita os dois status: a
+    convencao do padrao e `Disabled` enquanto bloqueado e `Active` depois dos
+    gates (docs/openmetadata/MEMORY.md).
+    """
     modelo, pasta = MODELOS[nome]
-    sql = (pasta / f"{nome}.sql").read_text(encoding="utf-8")
-    esperado = "Disabled" if DESABILITADO.search(sql) else "Active"
-    assert (
-        _meta(modelo).get("status") == esperado
-    ), f"{nome}: status deveria ser {esperado}"
+    if _desabilitado(nome, modelo, pasta):
+        assert (
+            _meta(modelo).get("status") == "Disabled"
+        ), f"{nome}: enabled=false mas status nao e Disabled"
 
 
 @pytest.mark.parametrize("nome", sorted(MODELOS))
@@ -150,7 +206,7 @@ def test_certificacao_so_em_modelo_ativo(nome: str) -> None:
 
 @pytest.mark.parametrize("nome", sorted(MODELOS))
 def test_salic_nunca_vai_para_fomento_direto(nome: str) -> None:
-    """Mesma regra das silvers do salic_dbt: SALIC e incentivo fiscal."""
+    """Mesma regra das silvers de models/salic/: SALIC e incentivo fiscal."""
     modelo, pasta = MODELOS[nome]
     if pasta.name != "salic":
         return
