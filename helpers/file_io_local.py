@@ -55,9 +55,10 @@ def flatten_records(
     """Achata uma lista de respostas brutas (em memoria) em registros tabulares.
 
     Se ``record_key`` for informado (ex.: "transactions", "subtransactions"),
-    cada documento deve conter uma lista nessa chave; os campos do nivel raiz
-    do documento (ex.: ente, agencia) sao propagados para cada registro da
-    lista. Caso contrario, cada documento vira um unico registro.
+    cada documento deve conter uma lista nessa chave -- ausente ou nula conta
+    como lista vazia; os campos do nivel raiz do documento (ex.: ente,
+    agencia) sao propagados para cada registro da lista. Caso contrario, cada
+    documento vira um unico registro.
 
     Extraida de ``flatten_json_dir_to_dataframe`` para poder achatar respostas
     da API acumuladas em memoria (Postgres como destino) sem precisar
@@ -70,7 +71,10 @@ def flatten_records(
             registros.append(data)
             continue
 
-        itens = data.get(record_key, [])
+        # ``or []`` e nao o default do ``get``: o default so cobre a chave
+        # ausente, e o BSC ja mandou a chave presente com ``null`` (nov/2026),
+        # o que quebrava aqui e impedia a extracao de gravar o lote inteiro.
+        itens = data.get(record_key) or []
         campos_raiz = {k: v for k, v in data.items() if k != record_key}
         for item in itens:
             registros.append({**campos_raiz, **item})
