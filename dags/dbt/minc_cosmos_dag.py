@@ -53,6 +53,10 @@ minc_cosmos_dag = DbtDag(
     render_config=RenderConfig(
         load_method=LoadMode.DBT_LS,
         group_nodes_by_folder=True,
+        # Teste com dois pais (relationships) ganha task propria, depois dos
+        # dois. Sem isso ele roda no test do primeiro pai, antes de o segundo
+        # existir, e se o segundo depende do primeiro ele nunca roda.
+        should_detach_multiple_parents_tests=True,
     ),
     profile_config=profile_config,
     execution_config=ExecutionConfig(

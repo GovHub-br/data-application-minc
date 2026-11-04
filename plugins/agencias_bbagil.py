@@ -35,3 +35,31 @@ def gerar_periodos_mensais(
 
     logger.info("[agencias_bbagil] %d periodos mensais gerados", len(periodos))
     return periodos
+
+
+def periodos_extras_por_programa(
+    anos_por_programa: dict[str, list[int]] = settings.ANOS_EXTRAS_POR_PROGRAMA,
+) -> dict[str, list[tuple[str, str]]]:
+    """Periodos mensais a mais por codigo de programa (Variable
+    ``bsc_pnab_anos_extras_por_programa``)."""
+    if not isinstance(anos_por_programa, dict):
+        raise ValueError(
+            "bsc_pnab_anos_extras_por_programa deve ser um objeto "
+            '{"<codigo_programa>": [anos]}'
+        )
+    return {
+        str(codigo).strip(): gerar_periodos_mensais([int(ano) for ano in anos])
+        for codigo, anos in anos_por_programa.items()
+    }
+
+
+def periodos_da_conta(
+    codigo_programa: str | None,
+    periodos: list[tuple[str, str]],
+    extras: dict[str, list[tuple[str, str]]],
+) -> list[tuple[str, str]]:
+    """Periodos de uma conta: os de LISTA_ANOS mais os extras do programa dela,
+    sem repetir mes."""
+    adicionais = extras.get(str(codigo_programa or "").strip(), [])
+    vistos = set(periodos)
+    return list(periodos) + [p for p in adicionais if p not in vistos]

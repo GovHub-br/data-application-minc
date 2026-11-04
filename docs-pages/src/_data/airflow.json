@@ -45,6 +45,22 @@
       "schedule": "0 3 * * 0"
     },
     {
+      "arquivo": "ibge_perfil_dag.py",
+      "caminho": "dags/data_ingest/ibge/ibge_perfil_dag.py",
+      "fonte": "ibge",
+      "dag_id": "ibge_perfil_dag",
+      "descricao": "Carrega as bases da MUNIC e da ESTADIC do IBGE no schema seeds, uma tabela por aba e edição.",
+      "tags": [
+        "minc",
+        "ibge",
+        "munic",
+        "estadic",
+        "datalakehouse",
+        "seeds"
+      ],
+      "schedule": ""
+    },
+    {
       "arquivo": "inep_censo_escolar_dag.py",
       "caminho": "dags/data_ingest/inep/inep_censo_escolar_dag.py",
       "fonte": "inep",
@@ -129,6 +145,21 @@
       "schedule": ""
     },
     {
+      "arquivo": "siop_execucao_dag.py",
+      "caminho": "dags/data_ingest/siop/siop_execucao_dag.py",
+      "fonte": "siop",
+      "dag_id": "siop_execucao_dag",
+      "descricao": "Carrega a execução orçamentária federal do SIOP, por exercício, no schema seeds.",
+      "tags": [
+        "minc",
+        "siop",
+        "orcamento",
+        "datalakehouse",
+        "seeds"
+      ],
+      "schedule": "dinâmico (schedule_loader)"
+    },
+    {
       "arquivo": "ingest_territorio_fcu_dag.py",
       "caminho": "dags/data_ingest/territorio/ingest_territorio_fcu_dag.py",
       "fonte": "territorio",
@@ -140,6 +171,21 @@
         "ibge",
         "cotas",
         "raw"
+      ],
+      "schedule": ""
+    },
+    {
+      "arquivo": "tesouro_transparente_dag.py",
+      "caminho": "dags/data_ingest/tesouro/tesouro_transparente_dag.py",
+      "fonte": "tesouro",
+      "dag_id": "tesouro_transparente_dag",
+      "descricao": "Carrega CSVs do Tesouro Transparente no schema seeds, como a RCL anual da União desde 2000.",
+      "tags": [
+        "minc",
+        "tesouro",
+        "ckan",
+        "datalakehouse",
+        "seeds"
       ],
       "schedule": ""
     },
@@ -336,6 +382,13 @@
       "descricao": "Cliente para operações com GitHub API."
     },
     {
+      "arquivo": "cliente_ibge_perfil.py",
+      "sistema": "ibge_perfil",
+      "nome": "Edicao",
+      "base": "",
+      "descricao": ""
+    },
+    {
       "arquivo": "cliente_pncp.py",
       "sistema": "pncp",
       "nome": "ClientePNCP",
@@ -434,6 +487,13 @@
       "descricao": ""
     },
     {
+      "arquivo": "cliente_tesouro_transparente.py",
+      "sistema": "tesouro_transparente",
+      "nome": "Recurso",
+      "base": "",
+      "descricao": ""
+    },
+    {
       "arquivo": "cliente_transferegov_emendas.py",
       "sistema": "transferegov_emendas",
       "nome": "ClienteTransfereGov",
@@ -458,17 +518,19 @@
   "por_fonte": {
     "bacen": 1,
     "bsc_pnab": 1,
-    "ibge": 1,
+    "ibge": 2,
     "inep": 1,
     "mapas": 1,
     "salic": 2,
     "siconfi": 2,
+    "siop": 1,
     "territorio": 1,
+    "tesouro": 1,
     "transferegov_fundo_a_fundo": 10
   },
   "totais": {
-    "dags": 20,
-    "fontes": 9,
-    "clientes": 24
+    "dags": 23,
+    "fontes": 11,
+    "clientes": 26
   }
 }

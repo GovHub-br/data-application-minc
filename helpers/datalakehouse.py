@@ -697,6 +697,28 @@ def raw_para_staging(
     return key_staging
 
 
+def gravar_parquet(
+    registros: list[dict[str, Any]], key: str, dt_ingest: datetime | None = None
+) -> list[str]:
+    """Grava ``registros`` como Parquet de staging em ``key`` e devolve as keys.
+
+    Para quem monta os registros sem passar por um JSON no raw (a planilha de
+    uma fonte estática). Acima do limite do proxy vira partes com as mesmas
+    colunas, como em ``raw_para_staging``; ``ler_parquet`` junta.
+    """
+    keys = _gravar_partes(
+        partes_do_parquet(registros, limite_objeto_bytes(), dt_ingest=dt_ingest), key
+    )
+    logging.info(
+        "[datalakehouse] %d registros gravados em s3://%s/%s (%d arquivo(s))",
+        len(registros),
+        BUCKET,
+        key,
+        len(keys),
+    )
+    return keys
+
+
 def existe_objeto(prefixo_busca: str) -> bool:
     """Se há ao menos um objeto sob ``prefixo_busca``, sem listar o prefixo inteiro.
 

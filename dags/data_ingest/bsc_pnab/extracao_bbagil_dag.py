@@ -6,7 +6,11 @@ import psycopg2
 from airflow.sdk import dag, task
 
 import schemas_minc as schemas
-from agencias_bbagil import gerar_periodos_mensais
+from agencias_bbagil import (
+    gerar_periodos_mensais,
+    periodos_da_conta,
+    periodos_extras_por_programa,
+)
 from cliente_bsc import (
     AsyncBscClient,
     BscRequestError,
@@ -277,7 +281,10 @@ def _consultar_ou_vazio(db: ClientPostgresDB, query: str, descricao: str) -> lis
 
 
 def _combinacoes_extrato_pendentes(
-    db: ClientPostgresDB, entes: list[dict[str, Any]], periodos: list[tuple[str, str]]
+    db: ClientPostgresDB,
+    entes: list[dict[str, Any]],
+    periodos: list[tuple[str, str]],
+    periodos_extras: dict[str, list[tuple[str, str]]] | None = None,
 ) -> list[Any]:
     # A conta (``id_plano_acao_dado_bancario``) faz parte do checkpoint: sem
     # ela, a segunda conta de um plano seria dada como ja feita pela primeira e
@@ -295,7 +302,13 @@ def _combinacoes_extrato_pendentes(
         for id_plano_acao, id_dado_bancario, periodo_inicial, periodo_final in feitas
     }
 
-    combinacoes = [(ente, periodo) for ente in entes for periodo in periodos]
+    combinacoes = [
+        (ente, periodo)
+        for ente in entes
+        for periodo in periodos_da_conta(
+            ente.get("codigo_programa"), periodos, periodos_extras or {}
+        )
+    ]
     return [
         (ente, periodo)
         for ente, periodo in combinacoes
@@ -367,13 +380,23 @@ def _persistir_resultados_extrato(
 def _extrair_extrato(agencias_periodos: dict[str, Any]) -> dict[str, int]:
     entes = agencias_periodos["entes"]
     periodos = [tuple(p) for p in agencias_periodos["periodos"]]
+    # O XCom devolve as tuplas como listas.
+    periodos_extras = {
+        codigo: [tuple(p) for p in lista]
+        for codigo, lista in agencias_periodos.get("periodos_extras", {}).items()
+    }
     db = ClientPostgresDB(get_postgres_conn())
 
-    pendentes = _combinacoes_extrato_pendentes(db, entes, periodos)
+    pendentes = _combinacoes_extrato_pendentes(db, entes, periodos, periodos_extras)
     logging.info(
-        "[extracao_bbagil_dag] Extrato BB Agil: %d/%d combinacoes pendentes",
+        "[extracao_bbagil_dag] Extrato BB Agil: %d/%d combinacoes pendentes "
+        "(%d programas com anos extras)",
         len(pendentes),
-        len(entes) * len(periodos),
+        sum(
+            len(periodos_da_conta(e.get("codigo_programa"), periodos, periodos_extras))
+            for e in entes
+        ),
+        len(periodos_extras),
     )
 
     contagem_total = {"ok": 0, "sem_dados": 0, "erro": 0}
@@ -553,7 +576,11 @@ def extracao_bbagil_dag() -> None:
        acao de ``transferegov.plano_acao_dado_bancario_minc`` (uma entrada por
        conta distinta; planos da LPG tem duas) e gera a lista de periodos
        mensais a extrair. Quem extrai as contas da API e
-       ``api_plano_acao_dado_bancario_dag`` -- esta DAG so consome.
+       ``api_plano_acao_dado_bancario_dag`` -- esta DAG so consome. As contas
+       de um programa listado na Variable
+       ``bsc_pnab_anos_extras_por_programa`` recebem tambem os meses dos anos
+       dele (e como se pede a LAB 1 de 2020-2022 sem pedir esses anos para
+       todas as contas).
     2. ``extrair_extrato_bbagil`` -- para cada conta x periodo pendente,
        chama o extrato via ``AsyncBscClient``. HTTP 400 "sem lancamentos" e
        "conta corrente invalida" sao registrados como dado de negocio, nao
@@ -602,6 +629,7 @@ def extracao_bbagil_dag() -> None:
         return {
             "entes": _carregar_entes_transferegov(),
             "periodos": gerar_periodos_mensais(),
+            "periodos_extras": periodos_extras_por_programa(),
         }
 
     @task

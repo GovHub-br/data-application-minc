@@ -56,11 +56,11 @@ CONCEITOS: dict[str, tuple[str, list[str]]] = {
         ["%endereco%", "%cep%", "%logradouro%"],
     ),
     "municipio_uf": (
-        "dim_municipio_ibge / Meta 4",
+        "silver_agentes_municipio_ibge / Meta 4",
         ["%municipio%", "%municipios%", "%localidade%", "%cidade%", "%populacao%"],
     ),
     "prestacao_contas": (
-        "fct_pagamento_profissional_rouanet / Meta 3 P1",
+        "silver_sac_pagamento_profissional_rouanet / Meta 3 P1",
         [
             "%prestcontas%",
             "%prestacao%",
@@ -71,15 +71,15 @@ CONCEITOS: dict[str, tuple[str, list[str]]] = {
         ],
     ),
     "projeto_v2": (
-        "dim_projeto_rouanet (cadastro oficial, hoje vindo de view)",
+        "silver_sac_projeto_rouanet (cadastro oficial, hoje vindo de view)",
         ["projetos", "projeto", "%preprojeto%", "situacao", "%tbapiprojeto%"],
     ),
     "ponte_chave": (
-        "map_chave_projeto_rouanet / Meta 4",
+        "silver_sac_chave_projeto_rouanet / Meta 4",
         ["%idprojeto%", "%abrangencia%", "%itenscomprovados%"],
     ),
     "identidade": (
-        "fct_proponente_ano_rouanet / Meta 5",
+        "eixo2_meta5_proponente_ano_rouanet / Meta 5",
         ["%alteracaonome%", "%vinculacao%", "%verificacao%"],
     ),
 }

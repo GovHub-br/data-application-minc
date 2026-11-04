@@ -30,7 +30,9 @@ longo, que o SGS não entrega de uma vez), a forma longa também vale::
         }
     ]
 
-Sem a Variable, a DAG ingere só o IPCA-Serviços. Todas as séries caem na
+Sem a Variable, a DAG ingere o IPCA-Serviços e o IPCA cheio (SGS 433). O
+433 é o deflator dos scripts do Cultura em Números, Eixo 1 (orçamento das
+três esferas a preços de 2024). Todas as séries caem na
 mesma tabela, identificadas por ``serie``/``codigo_serie`` — assim uma série
 nova não exige tabela nova nem source dbt novo.
 
@@ -56,9 +58,9 @@ from schedule_loader import get_dynamic_schedule
 _SCHEMA = "bacen"
 _TABLE = "serie_sgs"
 
-# SGS 10844 — IPCA Serviços (variação % mensal). Só o default: o que vale é
-# a Variable ``bacen_series_sgs``.
-_SERIES_PADRAO = {"ipca_servicos": 10844}
+# SGS 10844 — IPCA Serviços e SGS 433 — IPCA (variação % mensal). Só o
+# default: o que vale é a Variable ``bacen_series_sgs``.
+_SERIES_PADRAO = {"ipca_servicos": 10844, "ipca": 433}
 
 default_args = {
     "owner": "Lucas Bottino",
