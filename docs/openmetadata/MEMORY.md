@@ -48,7 +48,7 @@ vem depois dela.
 
 ## 1. Estado atual
 
-**Última atualização: 2026-10-30 · Claude (F17: lotes do SALIC; as linhas SALIC abaixo descrevem a migração em curso, as outras seguem de 2026-09-03)**
+**Última atualização: 2026-11-03 · Claude (F17 concluída: as linhas SALIC abaixo descrevem o estado final, as outras seguem de 2026-09-03)**
 
 | Item | Situação |
 |---|---|
@@ -68,11 +68,11 @@ vem depois dela.
 | Cidades — testes OM | ✅ 69 testes: `test_governanca_openmetadata.py` (890 linhas) + guarda de recipes (31 linhas); todos passaram nesta sessão |
 | Cidades — `lineage.py` | ❌ não existe |
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
-| SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` só tem 2 `tmp_trino_*`, a apagar na limpeza |
-| SALIC — silvers migradas (F17) | 🟣 `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57 e (parte 2, views) 65: o `sac` inteiro migrou; `dtproperties` fica só na Bronze. Os modelos manuais (core, meta3–5) saíram de `salic_dbt/` para `salic/silver_sac_*` e a gold `eixo2_meta5_proponente_ano_rouanet`. Os defeitos que mudavam número foram corrigidos. Falta a limpeza final, em lotes por assunto (`migrar_lote_salic.py --assunto --tabelas`); todas ganham silver |
-| SALIC — modelos manuais | 🟡 `salic_dbt/core` (7), `meta3`, `meta4`, `meta5`: já leem as silvers do núcleo do `sac`, mas seguem fora da estrutura. Backlog de defeitos (valor aprovado, enquadramento, desempate da ponte, custo da `map_chave`) no diário de 2026-10-29 |
+| SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` e as `tmp_trino_*` foram apagados na limpeza de 2026-11-03 |
+| SALIC — silvers migradas (F17) | ✅ `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57 e (parte 2, views) 65: o `sac` inteiro migrou; `dtproperties` fica só na Bronze. Os modelos manuais (core, meta3–5) saíram de `salic_dbt/` para `salic/silver_sac_*` e a gold `eixo2_meta5_proponente_ano_rouanet`. Os defeitos que mudavam número foram corrigidos. Limpeza final feita em 2026-11-03: `salic_dbt/` e a ingestão v1 saíram |
+| SALIC — modelos manuais | ✅ migrados para `salic/silver_sac_*` e `cultura_em_numeros`; defeitos corrigidos (diário de 2026-10-30) |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
-| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic_dbt/` e `salic/`. A regra publicável-lê-restrito isenta, por leitura, só os 5 modelos de `LEGADOS_LEEM_RESTRITO`, que saem quando migrarem |
+| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic/` |
 
 **Direção do fluxo histórico:** Cidades (`origin/refactor/openmetadata`, 2026-08-18)
 → MinC portou e evoluiu → Cidades recuperou de volta em `fixture/ajustes-conjuntura`.
@@ -388,7 +388,7 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | F14 | Meta 4 — IBGE, capitais, vulnerabilidade e bridge de execução | minc | 🟠 PARCIAL · Codex · 2026-09-03 — bridge entregue como `Disabled`; cobertura de PRONAC é só 4.269 projetos |
 | F15 | Meta 5 — histórico do proponente e golds de primeiro acesso | minc | 🟢 LIVRE — depende de `fct_evento_acesso_rouanet` e da chave HMAC |
 | F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | ✅ FEITO · Claude · 2026-09-02 20:20 -03 |
-| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | 🟣 EM CURSO · Claude + Luiza · 2026-10-29 — feitos `controledeacesso`, `bdcorporativo`, `agentes`, `tabelas`, o `sac` inteiro e os modelos manuais; defeitos corrigidos (valor aprovado, enquadramento, desempate da ponte); próximo: limpeza final · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
+| F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | ✅ FEITO · Claude + Luiza · 2026-11-03 — todos os bancos, os modelos manuais, os defeitos e a limpeza final · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
 
 ### F1 — Credencial (cidades) 🔴
 **Arquivos/refs:** HEAD e histórico de
@@ -1270,6 +1270,36 @@ Mesmas 205.760 linhas; o solicitante mudou em 2.496 vínculos em relação à
 tabela antiga de produção.
 
 **Validação.** 12 modelos em `dev_salic`, 12 testes passaram.
+
+### 2026-11-03 · Claude + Luiza · F17 — limpeza final: a migração fecha
+
+**Banco.** Luiza rodou os scripts de limpeza, um passo por transação, com
+`RESTRICT` e guarda de contagem: saíram as 589 views `salic.<banco>__<tabela>`,
+as 2 `tmp_trino_*` e o schema `salic_bronze`, e as 6 tabelas antigas dos
+modelos manuais (`brg_projeto_proponente_rouanet`, `dim_municipio_ibge`,
+`fct_aprovacao_rouanet`, `fct_captacao_rouanet`, `fct_evento_acesso_rouanet`,
+`fct_proponente_ano_rouanet`). As 10 tabelas novas existem com as contagens
+validadas.
+
+**Repositório.** Sai `salic_dbt/`, que só tinha a source `bronze_sac_legado`
+(schema `bronze`, nenhum leitor). Sai a ingestão v1 (`salic_ingestion`, que
+gravava no schema `bronze`) e os três plugins que só ela usava (`extractor`,
+`relational_database_extractor`, `sql_server_extractor`). O `bronze` não
+recebia escrita desde o último reset de estatística; 465 tabelas, 23 GB. As
+três recipes do OpenMetadata deixam de filtrar `^bronze$`; nenhum modelo dbt
+lia o schema.
+
+**Cosmos.** A `minc_cosmos_dag` ficou vermelha por `relationships` entre
+modelos: o teste rodava na task do primeiro pai, antes do segundo existir.
+Os redundantes saíram (#145) e o resto ganhou task própria com
+`should_detach_multiple_parents_tests` (#147). Execução completa verde em
+2026-11-03, 1h35.
+
+**Fica para depois.** Drop do schema `bronze` e da tabela
+`control.salic_ingestion_log` da v1 (como `dl_airflow`, por script; o schema
+`control` fica, a v2 e o Mapas gravam nele); as dependências `pymssql` e
+`apache-airflow-providers-microsoft-mssql`, que só a v1 usava, saem num PR
+que possa regenerar o lock.
 
 ---
 
