@@ -157,3 +157,81 @@ def test_bbagil_sem_extras_e_como_antes() -> None:
     }
     pendentes = modulo._combinacoes_extrato_pendentes(_BancoFalso([]), [ente], base)
     assert [p for _, p in pendentes] == base
+
+
+class _BancoQueGrava:
+    """Guarda as linhas que cada ``insert_data`` gravaria, por tabela."""
+
+    def __init__(self) -> None:
+        self.gravado: dict[str, list[dict[str, Any]]] = {}
+
+    def insert_data(
+        self, linhas: list[dict[str, Any]], table_name: str, **_: Any
+    ) -> None:
+        self.gravado.setdefault(table_name, []).extend(linhas)
+
+
+def _resultado_extrato(modulo: Any, status: str, dados: Any, mensagem: Any = None) -> Any:
+    ente = {"id_plano_acao": "1", "id_plano_acao_dado_bancario": "10"}
+    periodo = ("2026-10-01", "2026-10-31")
+    return modulo.ResultadoItem((ente, periodo), status, dados, mensagem)
+
+
+def test_bbagil_transactions_nulo_vira_sem_dados_rastreavel() -> None:
+    # Nov/2026: o BSC respondeu 200 com "transactions": null e o achatamento
+    # quebrava sem gravar o lote -- todo retry refazia as mesmas 2.000 chamadas.
+    modulo = _modulo("extracao_bbagil_dag")
+    banco = _BancoQueGrava()
+    resultado = _resultado_extrato(modulo, "ok", {"transactions": None})
+
+    contagem = modulo._persistir_resultados_extrato(banco, [resultado])
+
+    assert contagem == {"ok": 0, "sem_dados": 1, "erro": 0}
+    assert modulo.schemas.TABELA_EXTRATO not in banco.gravado
+    [controle] = banco.gravado[modulo.schemas.TABELA_CONTROLE_EXTRATO]
+    assert controle["status"] == "sem_dados"
+    assert controle["mensagem_erro"] == "HTTP 200 com transactions nulo"
+
+
+def test_bbagil_lote_misto_so_muda_a_resposta_nula() -> None:
+    modulo = _modulo("extracao_bbagil_dag")
+    banco = _BancoQueGrava()
+    sem_lancamentos = '{"error":"Não existem lançamentos para a conta no período"}'
+    resultados = [
+        _resultado_extrato(modulo, "ok", {"transactions": [{"id": "a"}, {"id": "b"}]}),
+        _resultado_extrato(modulo, "ok", {"transactions": None}),
+        _resultado_extrato(modulo, "sem_dados", None, sem_lancamentos),
+        _resultado_extrato(modulo, "erro", None, "Erro HTTP 500 apos 3 tentativas"),
+    ]
+
+    contagem = modulo._persistir_resultados_extrato(banco, resultados)
+
+    assert contagem == {"ok": 1, "sem_dados": 2, "erro": 1}
+    assert [linha["id"] for linha in banco.gravado[modulo.schemas.TABELA_EXTRATO]] == [
+        "a",
+        "b",
+    ]
+    controle = banco.gravado[modulo.schemas.TABELA_CONTROLE_EXTRATO]
+    assert [(c["status"], c["qtd_transacoes"]) for c in controle] == [
+        ("ok", 2),
+        ("sem_dados", 0),
+        ("sem_dados", 0),
+        ("erro", 0),
+    ]
+    assert controle[2]["mensagem_erro"] == sem_lancamentos
+    assert controle[3]["mensagem_erro"] == "Erro HTTP 500 apos 3 tentativas"
+
+
+def test_bbagil_subtransactions_nulo_vira_sem_dados_rastreavel() -> None:
+    modulo = _modulo("extracao_bbagil_dag")
+    banco = _BancoQueGrava()
+    item = {"id_plano_acao": "1", "id_plano_acao_dado_bancario": "10", "id": "a"}
+    resultado = modulo.ResultadoItem(item, "ok", {"subtransactions": None}, None)
+
+    contagem = modulo._persistir_resultados_subtransacao(banco, [resultado])
+
+    assert contagem == {"ok": 0, "sem_dados": 1, "erro": 0}
+    assert modulo.schemas.TABELA_SUBTRANSACAO not in banco.gravado
+    [controle] = banco.gravado[modulo.schemas.TABELA_CONTROLE_SUBTRANSACAO]
+    assert controle["status"] == "sem_dados"
+    assert controle["mensagem_erro"] == "HTTP 200 com subtransactions nulo"
