@@ -17,6 +17,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from tests.governanca import PADROES_PII, POLITICAS_RAG, TAGS_PII
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 # A estrutura do ADR 0010: as silvers migradas moram em models/salic/, pasta
 # plana, documentadas em schema.yml e schema_<banco>.yml. As sources_*.yml da
@@ -38,23 +40,6 @@ def _sem_acento(texto: str) -> str:
 
 DOMINIO_ESPERADO = "Cultura.Incentivo Fiscal"
 DONO_ESPERADO = "minc-data-engineering"
-POLITICAS_RAG = {
-    "prohibited",
-    "eligible_after_security_validation",
-    "determined_per_model",
-}
-
-# Nomes de coluna que nao podem sair sem classificacao de PII. Vem da lista do
-# plano: documento, nome, endereco, contato, conta bancaria, logon e IP -- mais
-# as chaves tecnicas, que identificam pessoa indiretamente e por isso contam.
-PADROES_PII = re.compile(
-    r"(documento|cpf|cnpj|nome_proponente|nome_agente|nome_prestador|nome_fornecedor"
-    r"|endereco|cep|telefone|email|raca|cor|etnia|indigena|deficiencia|pcd"
-    r"|conta|agencia|logon|usuario|_ip$|id_agente|id_solicitante|id_prestador)",
-    re.IGNORECASE,
-)
-
-TAGS_PII = {"PII.Sensitive", "PII.NonSensitive"}
 
 # Um modelo publicavel pode ler uma silver restrita, mas cada coluna pessoal
 # dela que o SQL usa tem de estar declarada em
