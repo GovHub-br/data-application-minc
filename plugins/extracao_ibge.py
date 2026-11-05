@@ -336,6 +336,12 @@ class ClienteIBGE(ClienteBase):
                                 "periodo": periodo,
                                 "valor": valor,
                                 "classificacoes": str(classificacoes) if classificacoes else None,
+                                # A mesma coisa sem nulo, para entrar na chave da
+                                # tabela: agregado sem classificação (o Censo 2022
+                                # na 4709) teria NULL na chave, e o Postgres recusa.
+                                "classificacoes_chave": (
+                                    str(classificacoes) if classificacoes else ""
+                                ),
                             }
                         )
         return linhas
