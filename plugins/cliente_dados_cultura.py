@@ -6,18 +6,54 @@ em Números leem (``SNC.R`` e ``snc_figuras_tabelas.R``). Ela traz estados e
 municípios na mesma aba, uma linha por ente: adesão, lei do sistema, órgão
 gestor, conselho, fundo e plano de cultura, com PIB, IDH e população.
 
-Conferido em 03/11/2026: 5.595 entes (27 UFs e 5.568 municípios), um
+Conferido em 05/11/2026, na versão publicada em 28/05/2026: 5.595 linhas, um
 ``Cod.IBGE`` por linha, 56 colunas, as mesmas da planilha interna dos
 scripts. A versão publicada estava atrasada: a última atualização de ente
 era de 24/02/2026, com 3.749 adesões publicadas, contra 3.945 na planilha
 interna de outubro.
 
-A planilha tem nome e endereço do prefeito e do gestor de cultura. São dados
-públicos de agentes públicos, mas não entram em log.
+**Nem toda linha é um ente, nem todo município está lá.** São 27 UFs, 5.567
+municípios e uma linha que não é ente: ``Cod.IBGE`` "Não cadastrado", UF "Não
+encontrada", situação "Nao possui adesão". A validação de ``registros`` a
+deixa passar, porque o código não é vazio nem repetido, então ela entra nas
+contas por situação (é uma das 1.715 sem adesão). Contra os 5.571 municípios
+do IBGE, faltam Boa Esperança do Norte/MT (5101837), Santa Isabel/GO
+(5219357), Fernando de Noronha/PE (2605459) e Brasília (5300108); o DF vem só
+como UF (53). Percentual de adesão depende de qual denominador se usa.
 
-``RECURSOS`` lista cada planilha pelo id do recurso no CKAN. A URL e a data de
-modificação vêm do ``package_show``: o CKAN troca a URL quando o arquivo é
-republicado.
+**Dados que pedem cuidado.** Além dos indicadores, a planilha traz por ente,
+em colunas que nenhum script do Eixo 1 lê (contagens da versão de 28/05/2026;
+nas outras linhas vem "Não cadastrado"):
+
+- dados bancários, com agência e conta: do órgão gestor de cultura (279
+  linhas) e do fundo de cultura (413);
+- CNPJ: do ente (5.328), do órgão gestor (388) e do fundo de cultura (621);
+- nome do prefeito (5.328) e do gestor de cultura (4.150);
+- endereço, bairro e CEP do cadastro do ente.
+
+São dados que a Plataforma SNC publica sobre órgãos e agentes públicos. Vão
+para o raw, o Parquet e ``seeds`` como vieram, e não entram em log.
+``DADOS_SENSIVEIS`` lista essas colunas: quem modelar, cruzar ou expor a
+tabela começa por ela.
+
+**Nomes cortados no Postgres.** Três colunas passam de 63 caracteres, e o
+Postgres corta o nome sem avisar. No Parquet elas têm o nome inteiro; em
+``seeds``, e portanto no dbt, o nome cortado:
+
+- ``conselho_de_cultura_possui_mesma_lei_do_sistema_municipal_de_cultura``
+  vira ``conselho_de_cultura_possui_mesma_lei_do_sistema_municipal_de_cu``;
+- ``fundo_de_cultura_possui_mesma_lei_do_sistema_municipal_de_cultura``
+  vira ``fundo_de_cultura_possui_mesma_lei_do_sistema_municipal_de_cultu``;
+- ``participou_de_algum_programa_de_formacao_de_gestores_e_conselheiros_culturais``
+  vira ``participou_de_algum_programa_de_formacao_de_gestores_e_conselhe``.
+
+``RECURSOS`` lista cada planilha pelo id do recurso no CKAN. A URL e a versão
+vêm do ``package_show``: o CKAN troca a URL quando o arquivo é republicado, e
+a versão é o dia do ``last_modified`` do recurso. Sem ``last_modified`` a
+carga falha em vez de adivinhar: o ``created`` não muda quando o arquivo é
+substituído, e o ``metadata_modified`` do pacote muda a cada edição de
+metadado (estava em 08/09/2026, com o arquivo de 28/05/2026), o que criaria
+versões que não existem.
 """
 
 import io
@@ -56,6 +92,27 @@ RECURSOS: dict[str, Recurso] = {
 }
 
 
+# Colunas de cada recurso com dado bancário, CNPJ, nome de pessoa ou endereço,
+# pelo nome normalizado. Ficam na tabela como vieram (decisão do PR #148): a
+# lista existe para quem for usar a tabela saber o que ela carrega. O teste com
+# rede confere que todas continuam na planilha publicada.
+DADOS_SENSIVEIS: dict[str, dict[str, tuple[str, ...]]] = {
+    "snc_entes": {
+        "dados bancários (agência e conta)": (
+            "dados_bancarios_do_orgao_gestor_de_cultura",
+            "dados_bancarios_do_fundo_de_cultura",
+        ),
+        "CNPJ": (
+            "cnpj_ente_federado",
+            "cnpj_do_orgao_gestor_de_cultura",
+            "cnpj_do_fundo_de_cultura",
+        ),
+        "nome de pessoa": ("prefeito", "gestor_de_cultura"),
+        "endereço": ("endereco", "bairro", "cep"),
+    },
+}
+
+
 def tabela_seeds(entidade: str) -> str:
     return f"dados_cultura_{entidade}"
 
@@ -84,16 +141,21 @@ def _get(url: str, timeout: int, **kwargs: Any) -> requests.Response:
 
 
 def descrever(recurso: Recurso, timeout: int = 60) -> dict[str, Any]:
-    """URL e data de modificação do recurso, pelo ``package_show`` do conjunto."""
+    """URL e versão do recurso (o dia do ``last_modified``), pelo ``package_show``.
+
+    Falha sem ``last_modified``: ver a docstring do módulo.
+    """
     resposta = _get(f"{URL_CKAN}/package_show", timeout, params={"id": recurso.conjunto})
     pacote = resposta.json()["result"]
     for item in pacote["resources"]:
         if item["id"] == recurso.recurso_id:
-            modificado = item.get("last_modified") or item.get("created") or ""
-            return {
-                "url": item["url"],
-                "versao": modificado[:10] or pacote["metadata_modified"][:10],
-            }
+            modificado = item.get("last_modified")
+            if not modificado:
+                raise ValueError(
+                    f"recurso {recurso.recurso_id} sem last_modified no CKAN: "
+                    "sem ele não há como saber a versão do arquivo"
+                )
+            return {"url": item["url"], "versao": modificado[:10]}
     raise ValueError(f"recurso {recurso.recurso_id} não está mais em {recurso.conjunto}")
 
 

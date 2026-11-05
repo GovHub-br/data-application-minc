@@ -166,6 +166,8 @@ def test_bbagil_sem_extras_e_como_antes() -> None:
 @requer_openmetadata
 def test_dados_cultura_e_mensal_e_declara_a_tabela_do_snc(dags: dict[str, Any]) -> None:
     dag = dags["dados_cultura_dag"]
+    # Sem a Variable dynamic_schedules, vale o padrão da DAG.
+    assert dag.schedule == "@monthly"
     assert dag.params["recursos"] == []
     assert "dados_cultura_snc_entes" in " ".join(_outlets(dag))
 

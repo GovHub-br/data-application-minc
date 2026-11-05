@@ -120,6 +120,36 @@ def test_descrever_acha_o_recurso_pelo_id(monkeypatch: pytest.MonkeyPatch) -> No
     assert portal.descrever(_SNC) == {"url": "https://x/snc.xls", "versao": "2026-05-28"}
 
 
+def test_sem_last_modified_falha_em_vez_de_adivinhar_a_versao(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # O created não muda quando o arquivo é trocado, e o metadata_modified do
+    # pacote muda a cada edição de metadado: nenhum dos dois é a versão.
+    pacote = {
+        "metadata_modified": "2026-09-08T10:00:00",
+        "resources": [
+            {
+                "id": _SNC.recurso_id,
+                "url": "https://x/snc.xls",
+                "created": "2026-05-28T09:00:00",
+                "last_modified": None,
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        portal.requests, "get", lambda url, **kw: _Resposta({"result": pacote})
+    )
+    with pytest.raises(ValueError, match="sem last_modified"):
+        portal.descrever(_SNC)
+
+
+def test_dados_sensiveis_sao_de_recursos_do_catalogo() -> None:
+    assert set(portal.DADOS_SENSIVEIS) <= set(portal.RECURSOS)
+    colunas = [c for grupo in portal.DADOS_SENSIVEIS["snc_entes"].values() for c in grupo]
+    assert len(colunas) == len(set(colunas))
+    assert "dados_bancarios_do_fundo_de_cultura" in colunas
+
+
 def test_erro_500_tenta_de_novo_e_desiste_na_terceira(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -168,3 +198,11 @@ def test_planilha_publicada_tem_a_forma_que_os_scripts_usam() -> None:
         "populacao_2022",
     } <= colunas
     assert sum(1 for r in registros if len(r["cod_ibge"] or "") == 2) == 27
+    # A documentação diz quais colunas têm dado bancário, CNPJ, nome e
+    # endereço; se o portal mudar alguma, o texto tem de mudar junto.
+    sensiveis = {c for g in portal.DADOS_SENSIVEIS["snc_entes"].values() for c in g}
+    assert sensiveis <= colunas
+    # A única linha que não é ente é a "Não cadastrado" (ver o módulo).
+    codigos = {r["cod_ibge"] for r in registros}
+    fora_do_padrao = {c for c in codigos if not (c.isdigit() and len(c) in (2, 7))}
+    assert fora_do_padrao <= {"Não cadastrado"}

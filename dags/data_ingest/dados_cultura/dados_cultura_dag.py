@@ -6,16 +6,25 @@ e plano de cultura (ver ``cliente_dados_cultura``). Recurso novo é uma
 entrada em ``RECURSOS``.
 
 Fonte estática, no caminho de seeds do ADR 0012, com a versão do arquivo
-(a data de modificação no CKAN) como período::
+(o dia do ``last_modified`` do recurso no CKAN) como período::
 
     CKAN ─▶ raw/dados_cultura/<entidade>/versao=AAAA-MM-DD/<run>.xlsx
          ─▶ staging/dados_cultura/<entidade>/versao=AAAA-MM-DD/<run>.parquet
          ─▶ Postgres seeds.dados_cultura_<entidade>
 
-Cada versão publicada fica na tabela, uma ao lado da outra: é o histórico da
-adesão ao SNC, que o portal não guarda. Recarregar a mesma versão a
-substitui, então reexecutar não duplica. A conferência (linhas da planilha,
-do Parquet e do banco) vai para ``seeds.dados_cultura_controle_carga``.
+Cada versão que um run encontra fica na tabela, ao lado das anteriores. O
+portal só mostra a versão atual, então o histórico começa na primeira carga
+e tem só as versões que estavam publicadas no dia de algum run: uma versão
+publicada e substituída entre dois runs não fica registrada, e duas
+publicações no mesmo dia têm a mesma versão (a carga da segunda substitui a
+da primeira). Recarregar a mesma versão a substitui, então reexecutar não
+duplica. A conferência (linhas da planilha, do Parquet e do banco) vai para
+``seeds.dados_cultura_controle_carga``.
+
+A lista do SNC traz dados bancários (agência e conta), CNPJ, nome do
+prefeito e do gestor de cultura e endereço, que vão para o raw, o Parquet e
+``seeds`` como vieram. As colunas estão em
+``cliente_dados_cultura.DADOS_SENSIVEIS``; nenhuma delas entra em log.
 
 Mensal por padrão (Variable ``dynamic_schedules``). O portal republica sem
 data fixa; um run sem versão nova só recarrega a mesma.

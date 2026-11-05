@@ -140,25 +140,40 @@ dominios:
       cada atualização dependia de alguém enviar o arquivo à mão.
     o_que_faz: |
       Lê a mesma lista no portal de dados abertos do MinC, uma linha por
-      ente, e guarda cada versão publicada ao lado das anteriores. O portal só
-      mostra a versão atual; a tabela guarda o histórico da adesão. Ainda não
-      há tabela de uso final: a lista está carregada no schema seeds e espera
-      o modelo que vai tratá-la.
+      ente, todo mês, e guarda cada versão que encontra ao lado das
+      anteriores. O portal só mostra a versão atual, então o histórico começa
+      na primeira carga e tem só as versões que estavam no ar no dia de
+      alguma carga: uma versão publicada e trocada entre duas cargas não fica
+      registrada. Ainda não há tabela de uso final: a lista está carregada no
+      schema seeds e espera o modelo que vai tratá-la.
     perguntas:
       - Quais estados e municípios aderiram ao SNC, e em que situação está cada adesão?
       - Quais têm lei do sistema, órgão gestor, conselho, fundo e plano de cultura?
-      - Como a adesão mudou de uma versão publicada para a seguinte?
+      - Como a adesão mudou de uma versão carregada para a seguinte?
     sistemas: [Portal de dados abertos do MinC]
     armadilhas: |
-      A tabela seeds.dados_cultura_snc_entes guarda todas as versões
-      publicadas da lista, uma ao lado da outra. Por isso o mesmo estado ou
+      A tabela seeds.dados_cultura_snc_entes guarda as versões da lista que a
+      carga encontrou, uma ao lado da outra. Por isso o mesmo estado ou
       município aparece uma vez em cada versão, e o código IBGE só é único
       dentro de uma versão. Contar entes sem escolher a versão conta o mesmo
       ente mais de uma vez. Para o retrato atual, filtre a versão mais
       recente: as linhas em que a coluna versao é a maior da tabela. Ela é a
-      data em que o arquivo mudou no portal, no formato ano-mês-dia. E o
-      portal anda atrás da planilha interna da Plataforma SNC: a lista fica
-      tão atual quanto o portal, não mais.
+      data em que o arquivo mudou no portal, no formato ano-mês-dia. Mesmo
+      dentro de uma versão, nem toda linha é um ente: há uma linha com código
+      IBGE "Não cadastrado" e UF "Não encontrada", que entra na contagem dos
+      que não aderiram se não for retirada. E nem todo município está na
+      lista: na versão de 28/05/2026 faltavam Boa Esperança do Norte (MT),
+      Santa Isabel (GO), Fernando de Noronha (PE) e Brasília, e o Distrito
+      Federal aparece só como unidade da federação. Por isso um percentual de
+      adesão muda conforme o denominador, o total da lista ou o total de
+      municípios do IBGE: diga qual usou. A lista traz ainda dados bancários,
+      com agência e conta, do órgão gestor e do fundo de cultura, além de
+      CNPJs, nomes de prefeitos e de gestores de cultura e endereços. São
+      dados que a Plataforma SNC publica sobre órgãos e agentes públicos e
+      ficam na tabela como vieram, mas nenhum indicador do Eixo 1 usa essas
+      colunas: quem for publicar ou cruzar a tabela decide antes o que fazer
+      com elas. Por fim, o portal anda atrás da planilha interna da
+      Plataforma SNC: a lista fica tão atual quanto o portal, não mais.
 
   - slug: metadata
     rotulo: Metadados do pipeline
