@@ -22,6 +22,7 @@ Closes #
 
 - [ ] MinC (`team:minc`)
 - [ ] Infra (`team:infra`)
+- [ ] OSS (`team:oss`)
 
 ## Impacto em dados
 
