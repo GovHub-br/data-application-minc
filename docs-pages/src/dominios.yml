@@ -128,6 +128,38 @@ dominios:
       escopo por decisão de 20/08/2026), e o BB Ágil só enxerga contas
       administradas pelo Banco do Brasil. O último ano da série é parcial.
 
+  - slug: snc
+    rotulo: Sistema Nacional de Cultura
+    subtitulo: Quais estados e municípios aderiram ao SNC, e com que estrutura
+    sem_modelos: true
+    contexto: |
+      O Eixo 1 do Cultura em Números acompanha a adesão de estados e
+      municípios ao Sistema Nacional de Cultura e se cada um tem lei do
+      sistema, órgão gestor, conselho, fundo e plano de cultura. Os scripts
+      que fazem essas contas liam uma planilha exportada da Plataforma SNC, e
+      cada atualização dependia de alguém enviar o arquivo à mão.
+    o_que_faz: |
+      Lê a mesma lista no portal de dados abertos do MinC, uma linha por
+      ente, e guarda cada versão publicada ao lado das anteriores. O portal só
+      mostra a versão atual; a tabela guarda o histórico da adesão. Ainda não
+      há tabela de uso final: a lista está carregada no schema seeds e espera
+      o modelo que vai tratá-la.
+    perguntas:
+      - Quais estados e municípios aderiram ao SNC, e em que situação está cada adesão?
+      - Quais têm lei do sistema, órgão gestor, conselho, fundo e plano de cultura?
+      - Como a adesão mudou de uma versão publicada para a seguinte?
+    sistemas: [Portal de dados abertos do MinC]
+    armadilhas: |
+      A tabela seeds.dados_cultura_snc_entes guarda todas as versões
+      publicadas da lista, uma ao lado da outra. Por isso o mesmo estado ou
+      município aparece uma vez em cada versão, e o código IBGE só é único
+      dentro de uma versão. Contar entes sem escolher a versão conta o mesmo
+      ente mais de uma vez. Para o retrato atual, filtre a versão mais
+      recente: as linhas em que a coluna versao é a maior da tabela. Ela é a
+      data em que o arquivo mudou no portal, no formato ano-mês-dia. E o
+      portal anda atrás da planilha interna da Plataforma SNC: a lista fica
+      tão atual quanto o portal, não mais.
+
   - slug: metadata
     rotulo: Metadados do pipeline
     subtitulo: O que o próprio pipeline registra sobre sua execução

@@ -17,6 +17,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from tests.governanca import PADROES_PII, POLITICAS_RAG, TAGS_PII
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 # A estrutura do ADR 0010: as silvers migradas moram em models/salic/, pasta
 # plana, documentadas em schema.yml e schema_<banco>.yml. As sources_*.yml da
@@ -38,23 +40,6 @@ def _sem_acento(texto: str) -> str:
 
 DOMINIO_ESPERADO = "Cultura.Incentivo Fiscal"
 DONO_ESPERADO = "minc-data-engineering"
-POLITICAS_RAG = {
-    "prohibited",
-    "eligible_after_security_validation",
-    "determined_per_model",
-}
-
-# Nomes de coluna que nao podem sair sem classificacao de PII. Vem da lista do
-# plano: documento, nome, endereco, contato, conta bancaria, logon e IP -- mais
-# as chaves tecnicas, que identificam pessoa indiretamente e por isso contam.
-PADROES_PII = re.compile(
-    r"(documento|cpf|cnpj|nome_proponente|nome_agente|nome_prestador|nome_fornecedor"
-    r"|endereco|cep|telefone|email|raca|cor|etnia|indigena|deficiencia|pcd"
-    r"|conta|agencia|logon|usuario|_ip$|id_agente|id_solicitante|id_prestador)",
-    re.IGNORECASE,
-)
-
-TAGS_PII = {"PII.Sensitive", "PII.NonSensitive"}
 
 # Um modelo publicavel pode ler uma silver restrita, mas cada coluna pessoal
 # dela que o SQL usa tem de estar declarada em
@@ -268,16 +253,11 @@ def test_silver_le_so_a_bronze_do_salic(caminho: Path) -> None:
 
     Em models/salic/ (ADR 0017) a Bronze e a tabela salic.bronze_<banco>_<tabela>
     que a DAG grava, declarada como source `salic`; a silver le dela e tipa com
-    as macros `bronze_*`. No legado salic_dbt/, as silvers leem os modelos da
-    bronze por ref() e nunca por source().
+    as macros `bronze_*`.
     """
-    sql = caminho.read_text(encoding="utf-8")
-    fontes = RE_SOURCE.findall(sql)
-    if caminho.is_relative_to(SALIC_NOVO_DIR):
-        fora = [f for f in fontes if f[0] != "salic" or not f[1].startswith("bronze_")]
-        assert not fora, f"{caminho.name}: source() fora da Bronze do SALIC {fora}"
-    else:
-        assert "source(" not in sql, f"{caminho.name}: usa source() em vez de ref()"
+    fontes = RE_SOURCE.findall(caminho.read_text(encoding="utf-8"))
+    fora = [f for f in fontes if f[0] != "salic" or not f[1].startswith("bronze_")]
+    assert not fora, f"{caminho.name}: source() fora da Bronze do SALIC {fora}"
 
 
 def _restritos_lidos(caminho: Path) -> list[str]:

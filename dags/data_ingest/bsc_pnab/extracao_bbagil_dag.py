@@ -7,6 +7,7 @@ from airflow.sdk import dag, task
 
 import schemas_minc as schemas
 from agencias_bbagil import (
+    apenas_meses_encerrados,
     gerar_periodos_mensais,
     periodos_da_conta,
     periodos_extras_por_programa,
@@ -58,6 +59,17 @@ CHAVE_CONTROLE_SUBTRANSACAO = [
     "id_plano_acao_dado_bancario",
     "id_transacao_pai",
 ]
+
+# Resposta HTTP 200 sem a lista esperada (``transactions`` ou ``subtransactions``
+# nula ou ausente). Ate out/2026 o BSC respondia periodo sem movimento com 400
+# "Nao existem lancamentos"; em nov/2026 veio 200 com ``"transactions": null``,
+# o achatamento quebrava e o lote inteiro deixava de ser gravado. Entra no
+# checkpoint como sem_dados, e nao como erro: se a API passou a responder assim
+# todo mes sem movimento, ``erro`` repetiria dezenas de milhares de chamadas a
+# cada execucao e alimentaria o bloqueio do BSC. A mensagem propria e o que
+# permite achar essas linhas no controle e pedi-las de novo, se a resposta nula
+# se revelar outra coisa.
+MENSAGEM_LISTA_NULA = "HTTP 200 com {chave} nulo"
 
 default_args = {
     "owner": "Caio Borges",
@@ -322,33 +334,74 @@ def _combinacoes_extrato_pendentes(
     ]
 
 
+def _status_da_resposta(resultado: ResultadoItem, chave: str) -> tuple[str, str | None]:
+    """Status e mensagem que vao para o controle. Resposta ``ok`` sem a lista em
+    ``chave`` vira ``sem_dados`` -- ver ``MENSAGEM_LISTA_NULA``."""
+    if resultado.status == "ok" and (resultado.dados or {}).get(chave) is None:
+        return "sem_dados", MENSAGEM_LISTA_NULA.format(chave=chave)
+    return resultado.status, resultado.mensagem_erro
+
+
+def _avisar_listas_nulas(chave: str, nulas: list[tuple[str, dict[str, Any]]]) -> None:
+    """Um aviso por lote, com um exemplo, para deixar no log a evidencia do que
+    a API mandou. Nunca agencia nem conta: so ids internos, periodo ou
+    transacao-mae, os nomes das chaves da resposta e o erro que ela trouxer."""
+    if not nulas:
+        return
+    descricao, dados = nulas[0]
+    erro_api = dados.get("errors") or dados.get("error")
+    logging.warning(
+        "[extracao_bbagil_dag] %d resposta(s) HTTP 200 com %s nulo neste lote, "
+        "gravada(s) como sem_dados | exemplo: %s | chaves da resposta: %s | "
+        "erro da API: %s",
+        len(nulas),
+        chave,
+        descricao,
+        sorted(dados),
+        str(erro_api)[:200] if erro_api else "-",
+    )
+
+
 def _persistir_resultados_extrato(
     db: ClientPostgresDB, resultados: list[ResultadoItem]
 ) -> dict[str, int]:
     documentos_ok: list[dict[str, Any]] = []
     linhas_controle: list[dict[str, Any]] = []
     contagem = {"ok": 0, "sem_dados": 0, "erro": 0}
+    nulas: list[tuple[str, dict[str, Any]]] = []
 
     for resultado in resultados:
-        contagem[resultado.status] = contagem.get(resultado.status, 0) + 1
         ente, (periodo_inicial, periodo_final) = resultado.item
+        status, mensagem_erro = _status_da_resposta(resultado, "transactions")
+        if status != resultado.status:
+            nulas.append(
+                (
+                    f"id_plano_acao={ente['id_plano_acao']} "
+                    "id_plano_acao_dado_bancario="
+                    f"{ente['id_plano_acao_dado_bancario']} "
+                    f"periodo={periodo_inicial}",
+                    resultado.dados or {},
+                )
+            )
+        contagem[status] = contagem.get(status, 0) + 1
         linha_controle = {
             "id_plano_acao": ente["id_plano_acao"],
             "id_plano_acao_dado_bancario": ente["id_plano_acao_dado_bancario"],
             "periodo_inicial": periodo_inicial,
             "periodo_final": periodo_final,
-            "status": resultado.status,
+            "status": status,
             "qtd_transacoes": 0,
-            "mensagem_erro": resultado.mensagem_erro,
+            "mensagem_erro": mensagem_erro,
         }
 
-        if resultado.status == "ok":
+        if status == "ok":
             documentos_ok.append(resultado.dados)
             transacoes = resultado.dados.get("transactions") or []
             linha_controle["qtd_transacoes"] = len(transacoes)
 
         linhas_controle.append(linha_controle)
 
+    _avisar_listas_nulas("transactions", nulas)
     linhas_raw = flatten_records(documentos_ok, record_key="transactions")
 
     if linhas_raw:
@@ -379,12 +432,22 @@ def _persistir_resultados_extrato(
 
 def _extrair_extrato(agencias_periodos: dict[str, Any]) -> dict[str, int]:
     entes = agencias_periodos["entes"]
-    periodos = [tuple(p) for p in agencias_periodos["periodos"]]
-    # O XCom devolve as tuplas como listas.
+    # O XCom devolve as tuplas como listas. E a lista foi calculada por outra
+    # task: se foi antes da virada do mes (ou com a regra antiga, num retry
+    # depois do deploy), ainda pode trazer mes em andamento, que sai aqui de
+    # novo -- ver ``agencias_bbagil.mes_encerrado``.
+    recebidos = [tuple(p) for p in agencias_periodos["periodos"]]
+    periodos = apenas_meses_encerrados(recebidos)
     periodos_extras = {
-        codigo: [tuple(p) for p in lista]
+        codigo: apenas_meses_encerrados([tuple(p) for p in lista])
         for codigo, lista in agencias_periodos.get("periodos_extras", {}).items()
     }
+    if len(periodos) < len(recebidos):
+        logging.warning(
+            "[extracao_bbagil_dag] %d periodo(s) em andamento descartado(s) da "
+            "lista recebida; so mes encerrado e pedido",
+            len(recebidos) - len(periodos),
+        )
     db = ClientPostgresDB(get_postgres_conn())
 
     pendentes = _combinacoes_extrato_pendentes(db, entes, periodos, periodos_extras)
@@ -480,20 +543,32 @@ def _persistir_resultados_subtransacao(
     documentos_ok: list[dict[str, Any]] = []
     linhas_controle: list[dict[str, Any]] = []
     contagem = {"ok": 0, "sem_dados": 0, "erro": 0}
+    nulas: list[tuple[str, dict[str, Any]]] = []
 
     for resultado in resultados:
-        contagem[resultado.status] = contagem.get(resultado.status, 0) + 1
         item = resultado.item
+        status, mensagem_erro = _status_da_resposta(resultado, "subtransactions")
+        if status != resultado.status:
+            nulas.append(
+                (
+                    f"id_plano_acao={item['id_plano_acao']} "
+                    "id_plano_acao_dado_bancario="
+                    f"{item['id_plano_acao_dado_bancario']} "
+                    f"id_transacao_pai={item['id']}",
+                    resultado.dados or {},
+                )
+            )
+        contagem[status] = contagem.get(status, 0) + 1
         linha_controle = {
             "id_plano_acao": item["id_plano_acao"],
             "id_plano_acao_dado_bancario": item["id_plano_acao_dado_bancario"],
             "id_transacao_pai": item["id"],
-            "status": resultado.status,
+            "status": status,
             "qtd_subtransacoes": 0,
-            "mensagem_erro": resultado.mensagem_erro,
+            "mensagem_erro": mensagem_erro,
         }
 
-        if resultado.status == "ok":
+        if status == "ok":
             documentos_ok.append(resultado.dados)
             linha_controle["qtd_subtransacoes"] = len(
                 resultado.dados.get("subtransactions") or []
@@ -501,6 +576,7 @@ def _persistir_resultados_subtransacao(
 
         linhas_controle.append(linha_controle)
 
+    _avisar_listas_nulas("subtransactions", nulas)
     linhas_raw = flatten_records(documentos_ok, record_key="subtransactions")
 
     if linhas_raw:
@@ -575,7 +651,10 @@ def extracao_bbagil_dag() -> None:
     1. ``carregar_contas_bancarias`` -- le TODAS as contas de cada plano de
        acao de ``transferegov.plano_acao_dado_bancario_minc`` (uma entrada por
        conta distinta; planos da LPG tem duas) e gera a lista de periodos
-       mensais a extrair. Quem extrai as contas da API e
+       mensais a extrair -- so meses encerrados
+       (``agencias_bbagil.mes_encerrado``): o checkpoint nao repete
+       combinacao ja feita, entao um mes pedido em andamento ficaria
+       congelado no dia da consulta. Quem extrai as contas da API e
        ``api_plano_acao_dado_bancario_dag`` -- esta DAG so consome. As contas
        de um programa listado na Variable
        ``bsc_pnab_anos_extras_por_programa`` recebem tambem os meses dos anos
@@ -584,7 +663,9 @@ def extracao_bbagil_dag() -> None:
     2. ``extrair_extrato_bbagil`` -- para cada conta x periodo pendente,
        chama o extrato via ``AsyncBscClient``. HTTP 400 "sem lancamentos" e
        "conta corrente invalida" sao registrados como dado de negocio, nao
-       erro. Toda transacao retornada e persistida, uma linha por transacao,
+       erro; resposta 200 com a lista de transacoes nula tambem, com mensagem
+       propria (``MENSAGEM_LISTA_NULA``). Toda transacao retornada e
+       persistida, uma linha por transacao,
        em ``bbagil.extrato_bbagil`` (upsert por ``id_plano_acao`` +
        ``id_plano_acao_dado_bancario`` + ``id``); toda combinacao tentada
        (ok/sem_dados/erro) vira uma linha em
