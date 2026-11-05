@@ -16,6 +16,14 @@ Closes #
 - [ ] Documentação
 - [ ] Outro: ___
 
+## Revisão
+
+<!-- Adicione a label correspondente ao PR para solicitar revisao automatica. -->
+
+- [ ] MinC (`team:minc`)
+- [ ] Infra (`team:infra`)
+- [ ] OSS (`team:oss`)
+
 ## Impacto em dados
 
 <!-- Preencha sempre que o PR tocar DAG ou modelo dbt. Se não tocar, escreva
