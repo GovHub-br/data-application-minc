@@ -23,10 +23,26 @@ default_args = {
 _IBGE_CONFIG_DEFAULTS: dict[str, Any] = {
     "batch_size": 50,
     "localidades_nivel": "N3",
+    # Agregados cujos valores entram em ibge_sidra.resultados. Exemplo: a
+    # população residente do Censo 2022 por município, que o Eixo 1 do Cultura
+    # em Números usa no per capita e no porte municipal:
+    #   {"resultados_agregados_ids": ["4709"], "resultados_periodos": "2022",
+    #    "resultados_nivel": "N6"}
     "resultados_agregados_ids": [],
     "resultados_periodos": "ultimo",
     "resultados_nivel": "N3",
 }
+
+# Uma linha por agregado, variável, localidade, período e classificação. Sem
+# chave, cada run semanal gravava os mesmos valores de novo.
+CHAVE_RESULTADOS = [
+    "agregado_id",
+    "variavel_id",
+    "nivel",
+    "localidade_id",
+    "periodo",
+    "classificacoes_chave",
+]
 
 
 def _get_config() -> dict[str, Any]:
@@ -204,7 +220,13 @@ def ibge_agregados_dag() -> None:
                 nivel=nivel,
             )
             if dados:
-                db.insert_data(dados, table_name="resultados", schema=SCHEMA)
+                db.insert_data(
+                    dados,
+                    table_name="resultados",
+                    primary_key=CHAVE_RESULTADOS,
+                    conflict_fields=CHAVE_RESULTADOS,
+                    schema=SCHEMA,
+                )
                 total += len(dados)
                 logger.info(
                     "[ibge_dag] resultados: agregado=%s → %s linhas", agregado_id, len(dados)
