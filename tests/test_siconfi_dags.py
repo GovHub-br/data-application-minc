@@ -24,7 +24,7 @@ pytest.importorskip("airflow.sdk", reason="DAGs do Airflow 3: rodam dentro da im
 
 from airflow.dag_processing.dagbag import DagBag  # noqa: E402
 from airflow.sdk import TriggerRule  # noqa: E402
-from siconfi_storage import ContagemDePaginas  # noqa: E402
+from siconfi_storage import VALID_ENDPOINTS, ContagemDePaginas  # noqa: E402
 from airflow.sdk.exceptions import (  # noqa: E402
     AirflowFailException,
     AirflowSkipException,
@@ -158,3 +158,99 @@ def test_conferir_falha_quando_falta_arquivo_no_raw() -> None:
     ):
         with pytest.raises(AirflowFailException, match="inconsistente"):
             dag._conferir()
+
+
+# ── bronze ───────────────────────────────────────────────────────────────
+
+
+def test_bronze_prepara_antes_de_carregar_e_limita_a_concorrencia(
+    dags: dict[str, Any],
+) -> None:
+    dag = dags["siconfi_bronze_dag"]
+    assert "carregar" in dag.get_task("preparar").downstream_task_ids
+    assert dag.max_active_runs == 1
+    assert dag.max_active_tasks == 2
+    assert set(dag.params["endpoints"]) == set(VALID_ENDPOINTS)
+
+
+class _TrinoDaBronze:
+    """Responde as páginas já registradas e guarda o SQL executado."""
+
+    def __init__(self, feitas: list[str]) -> None:
+        self.feitas = feitas
+        self.executados: list[str] = []
+
+    def run(self, sql: str) -> None:
+        self.executados.append(sql)
+
+    def records(self, sql: str) -> list[tuple[str, ...]]:
+        if '"siconfi"."paginas"' in sql:
+            assert "WHERE endpoint = 'rreo'" in sql
+            return [(p,) for p in self.feitas]
+        return [("_pagina_id",), ("_item",)]
+
+
+def _pagina_raw(itens: int) -> str:
+    return (
+        '{"endpoint": "rreo", "request_hash": "h", "request_params": {}, '
+        '"page_offset": 0, "fetched_at": "2026-10-27T10:00:00+00:00", '
+        '"run_id": "r", "payload": {"items": ['
+        + ", ".join('{"conta": "' + str(i) + '"}' for i in range(itens))
+        + "]}}"
+    )
+
+
+def test_bronze_carrega_so_o_que_falta_e_registra_cada_pagina() -> None:
+    dag = _modulo("siconfi_bronze_dag")
+    pasta = "raw/siconfi/rreo/ano=2026/mes=10/dia=27/r"
+    keys = [f"{pasta}/a_0.json", f"{pasta}/b_0_p01de02.json", f"{pasta}/b_0_p02de02.json"]
+    trino = _TrinoDaBronze(feitas=[f"{pasta}/a_0.json"])
+    with (
+        patch.object(dag, "_alvo", return_value=("hml_analytics", "siconfi")),
+        patch.object(dag, "TrinoExecutor", return_value=trino),
+        patch.object(dag, "raw_keys", return_value=keys),
+        patch.object(
+            dag.datalakehouse, "ler_texto", side_effect=lambda k: _pagina_raw(2)
+        ),
+    ):
+        resumo = dag._carregar_endpoint(
+            "rreo", prazo_s=60, paralelo=2, carga_run_id="run-b"
+        )
+
+    assert resumo["pendentes"] == 1
+    assert resumo["carregadas"] == 1
+    assert resumo["itens"] == 4  # duas partes de 2 itens
+    inserts = [
+        s
+        for s in trino.executados
+        if s.startswith('INSERT INTO "hml_analytics"."siconfi"."rreo"')
+    ]
+    assert len(inserts) == 1
+    (registro,) = [
+        s
+        for s in trino.executados
+        if s.startswith('INSERT INTO "hml_analytics"."siconfi"."paginas"')
+    ]
+    # Os itens entram antes da linha da página: se a task cair entre os dois,
+    # a página é carregada de novo, e não registrada sem os itens.
+    assert trino.executados.index(inserts[0]) < trino.executados.index(registro)
+    assert f"'{pasta}/b_0.json', '2', '4', 'rreo'" in registro
+    assert "'run-b'" in registro
+
+
+def test_bronze_para_no_prazo_e_nao_registra_o_que_nao_carregou() -> None:
+    dag = _modulo("siconfi_bronze_dag")
+    keys = [f"raw/siconfi/rreo/x/p{i}_0.json" for i in range(5)]
+    trino = _TrinoDaBronze(feitas=[])
+    with (
+        patch.object(dag, "_alvo", return_value=("hml_analytics", "siconfi")),
+        patch.object(dag, "TrinoExecutor", return_value=trino),
+        patch.object(dag, "raw_keys", return_value=keys),
+        patch.object(
+            dag.datalakehouse, "ler_texto", side_effect=lambda k: _pagina_raw(1)
+        ),
+    ):
+        resumo = dag._carregar_endpoint("rreo", prazo_s=0, paralelo=1, carga_run_id="r")
+    assert resumo["carregadas"] == 0
+    assert resumo["restantes"] == 5
+    assert not [s for s in trino.executados if s.startswith("INSERT")]

@@ -1,0 +1,177 @@
+version: 2
+
+# siconfi, na estrutura do ADR 0010: bronze_<entidade> é a cópia fiel do que a
+# siconfi_bronze_dag grava em siconfi.<entidade> a partir do raw do MinIO, e
+# bronze_siconfi_paginas a do envelope de cada página (ADR 0014). O TransfereGov
+# já tem bronze_anexos_relatorios, e `paginas` é nome genérico demais: esses dois
+# levam a fonte no nome (ADR 0010).
+models:
+  - name: bronze_siconfi_paginas
+    description: >
+      Camada Bronze — cópia fiel de siconfi.paginas, sem cast, filtro nem join
+      (ADR 0010). Envelope de cada página do raw carregada, sem os itens:
+      requisição, run, quando foi buscada e o resto da resposta da API. Uma linha
+      por página; os itens estão nas outras bronze_* do SICONFI, ligados por
+      `pagina_id`. Toda coluna é character varying.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_entes
+    description: >
+      Camada Bronze — cópia fiel de siconfi.entes, sem cast, filtro nem join (ADR
+      0010). Entes da federação do SICONFI (/entes): código IBGE, UF, esfera,
+      região e população do ano da consulta. Toda coluna é character varying.
+      `_pagina_id` e `_item` dizem de que página e de que posição nela o item
+      veio; a requisição e o run estão em bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_siconfi_anexos_relatorios
+    description: >
+      Camada Bronze — cópia fiel de siconfi.anexos_relatorios, sem cast, filtro
+      nem join (ADR 0010). Anexos que cada demonstrativo fiscal tem no SICONFI
+      (/anexos-relatorios). Toda coluna é character varying. `_pagina_id` e
+      `_item` dizem de que página e de que posição nela o item veio; a requisição
+      e o run estão em bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_extrato_entregas
+    description: >
+      Camada Bronze — cópia fiel de siconfi.extrato_entregas, sem cast, filtro nem
+      join (ADR 0010). Extrato de entregas de cada ente (/extrato_entregas): quais
+      declarações foram homologadas, por ano e período. Toda coluna é character
+      varying. `_pagina_id` e `_item` dizem de que página e de que posição nela o
+      item veio; a requisição e o run estão em bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_rreo
+    description: >
+      Camada Bronze — cópia fiel de siconfi.rreo, sem cast, filtro nem join (ADR
+      0010). Relatório Resumido da Execução Orçamentária (/rreo). No recorte do
+      Eixo 1, o Anexo 03 do 6º bimestre, de onde sai a Receita Corrente Líquida.
+      Toda coluna é character varying. `_pagina_id` e `_item` dizem de que página
+      e de que posição nela o item veio; a requisição e o run estão em
+      bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_msc_orcamentaria
+    description: >
+      Camada Bronze — cópia fiel de siconfi.msc_orcamentaria, sem cast, filtro nem
+      join (ADR 0010). Matriz de Saldos Contábeis, classes orçamentárias
+      (/msc_orcamentaria). No recorte do Eixo 1, dezembro, classe 6, saldo final,
+      de onde sai o empenho em cultura (função 13). Toda coluna é character
+      varying. `_pagina_id` e `_item` dizem de que página e de que posição nela o
+      item veio; a requisição e o run estão em bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_dca
+    description: >
+      Camada Bronze — cópia fiel de siconfi.dca, sem cast, filtro nem join (ADR
+      0010). Declaração de Contas Anuais (/dca). Toda coluna é character varying.
+      `_pagina_id` e `_item` dizem de que página e de que posição nela o item
+      veio; a requisição e o run estão em bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_rgf
+    description: >
+      Camada Bronze — cópia fiel de siconfi.rgf, sem cast, filtro nem join (ADR
+      0010). Relatório de Gestão Fiscal (/rgf). Toda coluna é character varying.
+      `_pagina_id` e `_item` dizem de que página e de que posição nela o item
+      veio; a requisição e o run estão em bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_msc_controle
+    description: >
+      Camada Bronze — cópia fiel de siconfi.msc_controle, sem cast, filtro nem
+      join (ADR 0010). Matriz de Saldos Contábeis, classes de controle
+      (/msc_controle). Toda coluna é character varying. `_pagina_id` e `_item`
+      dizem de que página e de que posição nela o item veio; a requisição e o run
+      estão em bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_msc_patrimonial
+    description: >
+      Camada Bronze — cópia fiel de siconfi.msc_patrimonial, sem cast, filtro nem
+      join (ADR 0010). Matriz de Saldos Contábeis, classes patrimoniais
+      (/msc_patrimonial). Toda coluna é character varying. `_pagina_id` e `_item`
+      dizem de que página e de que posição nela o item veio; a requisição e o run
+      estão em bronze_siconfi_paginas.
+    config:
+      tags:
+        - bronze
+        - siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
