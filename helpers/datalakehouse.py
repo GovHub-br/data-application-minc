@@ -661,7 +661,17 @@ def gravar_raw(registros: list[dict[str, Any]], fonte: str, entidade: str) -> st
 
 def ler_json(key: str) -> Any:
     """Conteúdo de um JSON do bucket, com os tipos como foram gravados."""
-    return json.loads(get_hook().read_key(key=key, bucket_name=BUCKET))
+    return json.loads(ler_texto(key))
+
+
+def ler_texto(key: str) -> str:
+    """O arquivo ``key`` como texto, sem interpretar.
+
+    Para quem precisa do número como foi escrito no JSON (``18449.34``, e não o
+    ``float`` que o ``json.loads`` devolveria): a carga da bronze do SICONFI.
+    """
+    texto: str = get_hook().read_key(key=key, bucket_name=BUCKET)
+    return texto
 
 
 def ler_raw(key: str) -> list[dict[str, Any]]:
