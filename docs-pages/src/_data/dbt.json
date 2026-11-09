@@ -791,6 +791,252 @@
       "linhas_sql": 42
     },
     {
+      "nome": "eixo1_orcamento_empenho_cultura",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_empenho_cultura.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento, do Cultura em Números. Gold-base: o empenho de estados e municípios em cultura, linha a linha da Matriz de Saldos Contábeis (MSC) do SICONFI, com a origem do recurso e o valor em reais de 2024.\nGRÃO: uma linha por item da MSC que conta (_pagina_id, _item). UNIVERSO: as linhas de int_bacen_siconfi que passam pela regra abaixo, de estados, DF e municípios (fora o DF na esfera municipal).\nO QUE É EMPENHO: a MSC agregada (MSCC) de dezembro, classe 6, saldo final; natureza credora (C); conta contábil começando com 62213 (crédito empenhado). Valor em módulo, linha a linha (abs, como o R).\nDE ONDE VEIO O RECURSO, pela fonte e nesta ordem: pnab (fonte começando com 1719, 2719, 1720, 2720, 719 ou 720), lpg (1715, 2715, 1716, 2716, 715 ou 716), lab (só estadual, só 2020 e 2021, fonte começando com 17 ou 27 e não com 19 ou 29), emenda (complemento da fonte, com zero à esquerda até 4 dígitos, entre os 13 códigos de emenda parlamentar), proprio (o resto).\nQUEM CONTA COMO CULTURA: a função 13, e, na esfera estadual, a linha da LAB em qualquer função, como o R estadual.\nVALOR REAL: nominal vezes o número-índice médio do IPCA do ano-base (var eixo1_orcamento_ano_base_ipca, padrão 2024) dividido pelo do exercício, como o R. Sem IPCA para o exercício, nulo.\nPARA QUE SERVE: é a base das golds eixo1_orcamento_*. Não responde pergunta sozinha.\nLIMITAÇÕES: a MSC de alguns entes não informa a função em alguns anos (o Ceará em 2019 a 2021); essas linhas não entram, e o ente fica sem empenho em cultura no ano. A LAB 1 municipal não está na MSC: o R a tira do BB Ágil, que ainda não está aqui.\nATUALIZAÇÃO: table, recalculada a cada `dbt build`.",
+      "colunas": [
+        {
+          "nome": "esfera_eixo1",
+          "descricao": "'estadual' (código IBGE de 2 dígitos, estados e DF) ou 'municipal' (7 dígitos)."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente, o do item da MSC."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do ente em silver_entes."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do ente."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Sigla da região do ente (NO, NE, CO, SE, SU)."
+        },
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "origem",
+          "descricao": "De onde veio o recurso: 'proprio', 'emenda', 'lab', 'lpg' ou 'pnab' (regra na description do modelo)."
+        },
+        {
+          "nome": "funcao",
+          "descricao": "Função de governo da linha, como a MSC manda ('13' é Cultura)."
+        },
+        {
+          "nome": "subfuncao",
+          "descricao": "Subfunção de governo."
+        },
+        {
+          "nome": "poder_orgao",
+          "descricao": "Código de poder e órgão."
+        },
+        {
+          "nome": "natureza_despesa",
+          "descricao": "Natureza da despesa."
+        },
+        {
+          "nome": "fonte_recursos",
+          "descricao": "Fonte de recursos, como a MSC manda."
+        },
+        {
+          "nome": "complemento_fonte",
+          "descricao": "Complemento da fonte, como a MSC manda."
+        },
+        {
+          "nome": "conta_contabil",
+          "descricao": "Conta contábil (62213xxxx)."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Valor empenhado, em reais correntes do exercício (módulo do saldo)."
+        },
+        {
+          "nome": "fator_ipca",
+          "descricao": "Índice médio do ano-base dividido pelo do exercício."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "valor_nominal vezes fator_ipca, em reais do ano-base."
+        },
+        {
+          "nome": "ano_base_ipca",
+          "descricao": "Ano-base do valor real (var eixo1_orcamento_ano_base_ipca)."
+        },
+        {
+          "nome": "ipca_meses_ano",
+          "descricao": "Quantos meses do exercício o IPCA tem (12 no ano fechado). Nulo sem IPCA."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "A página do SICONFI de onde o item veio."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Posição do item na página."
+        }
+      ],
+      "colunas_descritas": 21,
+      "testes": 10,
+      "materializacao": "",
+      "depende_de": [
+        "int_bacen_siconfi"
+      ],
+      "sources": [],
+      "linhas_sql": 142
+    },
+    {
+      "nome": "eixo1_orcamento_estadual_fonte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_estadual_fonte.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Figs. 4 e 5 da publicação: o investimento estadual em cultura por exercício e origem do recurso, em reais correntes (Fig. 4) e de 2024, e a participação de cada origem no total do ano (Fig. 5).\nGRÃO: uma linha por (exercicio, origem) com empenho. UNIVERSO: a esfera estadual, sem as emendas parlamentares, que as duas figuras tiram (elas estão em eixo1_orcamento_estadual_uf_fonte).\nA participação é sobre o valor real, como no R; dentro de um ano é a mesma do valor nominal, porque todas as origens levam o mesmo fator.\nCONFERIDO em 09/11/2026 contra os CSVs das Figs. 4 e 5 do repositório do R (cultura-em-numeros-eixo-1, commit d28de40), sobre a MSC estadual de 2019 a 2025 copiada do servidor: os 13 pares (exercício, origem) iguais ao centavo no valor nominal, e a participação igual. Por (exercício, UF, origem), os 332 grupos de eixo1_orcamento_estadual_uf_fonte são iguais ao centavo aos do R rodado sobre o parquet que ele versiona.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "origem",
+          "descricao": "'proprio', 'lab', 'lpg' ou 'pnab'."
+        },
+        {
+          "nome": "fonte_recurso",
+          "descricao": "Rótulo da origem, como na publicação."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Empenho em reais correntes (Fig. 4)."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "Empenho em reais do ano-base do IPCA (2024)."
+        },
+        {
+          "nome": "participacao",
+          "descricao": "Fração do valor real do ano que veio desta origem (Fig. 5), de 0 a 1. Soma 1 em cada exercício."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_estadual_uf_fonte"
+      ],
+      "sources": [],
+      "linhas_sql": 33
+    },
+    {
+      "nome": "eixo1_orcamento_estadual_rcl",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_estadual_rcl.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Fig. 6 da publicação: a participação da cultura no orçamento dos estados, o empenho próprio em cultura (origem 'proprio') como fração da Receita Corrente Líquida, contra a meta de 1,5% do PNC.\nGRÃO: uma linha por (exercicio, cod_ibge) do estado ou DF que tem empenho próprio em cultura ou RCL.\nA RCL é a do RREO, Anexo 03, 6º bimestre, coluna \"TOTAL (ÚLTIMOS 12 MESES)\", conta de código RREO3ReceitaCorrenteLiquida. O R estadual filtra pelo texto \"receita corrente líquida (iii)\" num CSV baixado do SICONFI; nos estados o texto e o código pegam a mesma linha.\nDIFERENTE DO R: onde falta o numerador ou a RCL, o R põe 0% e aqui fica nulo (ADR 0010, regra 1). É o caso do Ceará em 2019 a 2021 e de Roraima em 2022, cuja MSC de dezembro não informa a função em nenhuma linha de empenho: não é que o estado não gastou com cultura, é que a MSC não diz. O R mostra 2019 a 2024; aqui entra todo exercício com MSC ou RCL, e quem consome corta.\nCONFERIDO em 09/11/2026 contra o CSV da Fig. 6 do R (commit d28de40): 157 dos 162 pares (ano, UF) de 2019 a 2024 iguais a menos de 0,00005 p.p. Dos 5 restantes, 4 são os nulos acima, onde o R põe 0%, e 1 é São Paulo em 2020 (-0,00085 p.p.): o CSV que o R lê traz a RCL arredondada (R$ 165,0 bi) e a API, o valor exato (R$ 165,23 bi).",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do estado (2 dígitos)."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF, a sigla_uf de silver_entes."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, por extenso."
+        },
+        {
+          "nome": "valor_proprio_nominal",
+          "descricao": "Empenho de origem 'proprio' em cultura, em reais correntes. Nulo quando o estado não tem nenhuma linha que conte no ano."
+        },
+        {
+          "nome": "rcl",
+          "descricao": "Receita Corrente Líquida dos últimos 12 meses, em reais correntes."
+        },
+        {
+          "nome": "participacao_rcl",
+          "descricao": "valor_proprio_nominal dividido pela RCL, como fração (0.015 é 1,5%). Nulo quando falta um dos dois ou a RCL não é positiva."
+        },
+        {
+          "nome": "atinge_meta_pnc",
+          "descricao": "Verdadeiro quando participacao_rcl é pelo menos 0.015 (a meta de 1,5% do PNC). Nulo quando participacao_rcl é nula."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_estadual_uf_fonte",
+        "silver_entes",
+        "silver_rreo"
+      ],
+      "sources": [],
+      "linhas_sql": 75
+    },
+    {
+      "nome": "eixo1_orcamento_estadual_uf_fonte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_estadual_uf_fonte.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. O empenho estadual em cultura por exercício, UF e origem do recurso, em reais correntes e de 2024, com todas as origens, inclusive as emendas parlamentares. É o estadual_final.csv de gasto_estadual.R.\nGRÃO: uma linha por (exercicio, uf, origem) com empenho. UNIVERSO: a esfera estadual de eixo1_orcamento_empenho_cultura (26 estados e DF).\nPARA QUE SERVE: a tabela por UF da publicação e a consolidação das três esferas (nacional.R). Só agrega a gold-base.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do estado (2 dígitos)."
+        },
+        {
+          "nome": "origem",
+          "descricao": "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        },
+        {
+          "nome": "fonte_recurso",
+          "descricao": "Rótulo da origem, como na publicação: 'Execução direta Estadual (recursos próprios)', 'Emendas Parlamentares', 'Lei Aldir Blanc (LAB)', 'Lei Paulo Gustavo (LPG)', 'Política Nacional Aldir Blanc (PNAB)'."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Empenho em reais correntes."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "Empenho em reais do ano-base do IPCA (2024)."
+        },
+        {
+          "nome": "linhas_msc",
+          "descricao": "Quantas linhas da MSC somam no valor."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_empenho_cultura"
+      ],
+      "sources": [],
+      "linhas_sql": 32
+    },
+    {
       "nome": "eixo2_meta3_cobertura_pagamento",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -1945,6 +2191,62 @@
       ],
       "sources": [],
       "linhas_sql": 29
+    },
+    {
+      "nome": "int_bacen_siconfi",
+      "dominio": "intermediate",
+      "camada": "intermediate",
+      "meta": null,
+      "caminho": "dbt/minc/models/intermediate/int_bacen_siconfi.sql",
+      "descricao": "Camada Intermediate. A Matriz de Saldos Contábeis orçamentária do SICONFI (silver_msc_orcamentaria), linha a linha e sem filtro, com o nome, a UF, a esfera e a região do ente (silver_entes, pelo cod_ibge) e o IPCA do exercício (SGS 433, silver_serie_sgs do BACEN).\nGRÃO: o de silver_msc_orcamentaria, uma linha por item da MSC. UNIVERSO: toda linha da silver, de todo ente, matriz, mês e classe. Nada é descartado aqui.\nO IPCA: ipca_indice_medio_ano é a média, nos meses do exercício, do número-índice que encadeia as variações mensais da série 433 desde o primeiro mês dela. O nível do índice é arbitrário; só a razão entre dois anos tem sentido, e é ela que a Gold usa como deflator, com o ano-base que escolher. ipca_meses_ano diz quantos meses o ano tem na série (12 no ano fechado, menos no ano corrente). Nulo no exercício sem IPCA.\nPARA QUE SERVE: dá à Gold eixo1_orcamento_empenho_cultura, numa tabela só, o empenho e o deflator, que vêm de fontes diferentes (ADR 0010, regra 2). Qual matriz, mês, conta, função e fonte contam é regra de negócio e fica lá.\nATUALIZAÇÃO: view. A linha é a da MSC inteira; materializar duplicaria a silver. A Gold, que filtra, é que é tabela.\nSEM TESTE DE UNICIDADE AQUI, de propósito: numa view, ele refaria a deduplicação da silver inteira a cada build. A chave já é testada em silver_msc_orcamentaria, e os dois joins não multiplicam linha: silver_entes tem cod_ibge único (testado) e o IPCA é agrupado por ano.",
+      "colunas": [
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente, o do item da MSC."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do ente em silver_entes. Nulo se o código não está lá."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do ente: a sigla_uf de silver_entes, não a uf do SICONFI, que é 'BR' nos estados e no DF."
+        },
+        {
+          "nome": "esfera",
+          "descricao": "Esfera do ente em silver_entes: 'E', 'D', 'M' ou 'U'."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Sigla da região do ente em silver_entes."
+        },
+        {
+          "nome": "ipca_indice_medio_ano",
+          "descricao": "Média do número-índice do IPCA nos meses do exercício. Escala arbitrária; use a razão entre dois anos."
+        },
+        {
+          "nome": "ipca_meses_ano",
+          "descricao": "Quantos meses do exercício a série 433 tem."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "A página de onde o item veio."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Posição do item na página."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 0,
+      "materializacao": "view",
+      "depende_de": [
+        "silver_entes",
+        "silver_msc_orcamentaria",
+        "silver_serie_sgs"
+      ],
+      "sources": [],
+      "linhas_sql": 87
     },
     {
       "nome": "silver_agent",
@@ -43036,6 +43338,307 @@
       "linhas_sql": 5
     },
     {
+      "nome": "silver_entes",
+      "dominio": "siconfi",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/siconfi/silver_entes.sql",
+      "descricao": "Camada Silver — entes da federação do SICONFI (/entes), tipados: código IBGE, nome, UF, esfera (U União, E estado, D Distrito Federal, M município), região (NO, NE, CO, SE, SU), capital, CNPJ e população do ano da consulta.\nGRÃO: uma linha por ente (cod_ibge). A /entes não tem parâmetro, então é uma requisição só, baixada a cada run: fica a do run de fetched_at mais recente.\nPARA QUE SERVE: dá UF, esfera e região à MSC, que só traz o código IBGE (int_bacen_siconfi), e região às golds do orçamento.",
+      "colunas": [
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente: 1 a União, 2 dígitos o estado e o DF, 7 dígitos o município. Valor que não é inteiro vira nulo."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do ente, como o SICONFI escreve."
+        },
+        {
+          "nome": "uf",
+          "descricao": "A UF como o SICONFI devolve: a sigla nos municípios e 'BR' na União, nos estados e no DF (a UF a que o ente pertence)."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla da UF do ente, inclusive nos estados e no DF, tirada do código IBGE (o próprio cod_ibge no estado, os dois primeiros dígitos no município). Nula na União. O teste siconfi_entes_sigla_uf_confere confere o mapa contra a uf dos municípios."
+        },
+        {
+          "nome": "esfera",
+          "descricao": "'U' União, 'E' estado, 'D' Distrito Federal, 'M' município."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Sigla da grande região: 'NO', 'NE', 'CO', 'SE', 'SU' (e 'BR' na União)."
+        },
+        {
+          "nome": "capital",
+          "descricao": "Verdadeiro na capital. Valor fora de 0/1 vira nulo, nunca falso."
+        },
+        {
+          "nome": "cnpj",
+          "descricao": "CNPJ do ente, como texto e com o zero à esquerda."
+        },
+        {
+          "nome": "exercicio",
+          "descricao": "Ano a que a população se refere, segundo a API."
+        },
+        {
+          "nome": "populacao",
+          "descricao": "População do ente no ano de exercicio."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "A página de onde o item veio (pagina_id de bronze_siconfi_paginas)."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Posição do item na página, a partir de 1."
+        },
+        {
+          "nome": "request_hash",
+          "descricao": "Hash da requisição (endpoint e parâmetros) da página."
+        },
+        {
+          "nome": "run_id",
+          "descricao": "Run da ingestão que buscou a página, o da tentativa que vale."
+        },
+        {
+          "nome": "fetched_at",
+          "descricao": "Quando a página foi buscada na API, em UTC."
+        }
+      ],
+      "colunas_descritas": 15,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_entes",
+        "bronze_siconfi_paginas"
+      ],
+      "sources": [],
+      "linhas_sql": 104
+    },
+    {
+      "nome": "silver_msc_orcamentaria",
+      "dominio": "siconfi",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/siconfi/silver_msc_orcamentaria.sql",
+      "descricao": "Camada Silver — Matriz de Saldos Contábeis, classes orçamentárias (/msc_orcamentaria), tipada. Uma linha por item da API: ente, exercício, mês, matriz (MSCC agregada, MSCE de encerramento), classe, tipo de valor, conta contábil e as informações complementares, com o valor e a natureza do saldo.\nGRÃO: uma linha por (_pagina_id, _item) da tentativa que vale de cada requisição. A MSC não tem chave natural: duas linhas podem ter a mesma conta e as mesmas informações complementares com valores diferentes.\nOS CÓDIGOS FICAM COMO TEXTO, como a API manda (função '13', fonte '1500', complemento '1001', conta '622130100'): o zero à esquerda é parte do código. A MSC não traz a UF do ente; ela vem de silver_entes, pelo cod_ibge, em int_bacen_siconfi.\nPARA QUE SERVE: a conta 62213 (crédito empenhado), credora, de dezembro, classe 6, saldo final, é o empenho de estados e municípios que eixo1_orcamento_empenho_cultura filtra por função e classifica por fonte.",
+      "colunas": [
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente (2 dígitos o estado e o DF, 7 o município)."
+        },
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "mes_referencia",
+          "descricao": "Mês da matriz (12 é dezembro, o saldo do ano)."
+        },
+        {
+          "nome": "data_referencia",
+          "descricao": "Último dia do mês da matriz."
+        },
+        {
+          "nome": "tipo_matriz",
+          "descricao": "'MSCC' (agregada) ou 'MSCE' (de encerramento)."
+        },
+        {
+          "nome": "classe_conta",
+          "descricao": "Classe do plano de contas (5 e 6 são as orçamentárias)."
+        },
+        {
+          "nome": "tipo_valor",
+          "descricao": "'beginning_balance', 'period_change' ou 'ending_balance'."
+        },
+        {
+          "nome": "conta_contabil",
+          "descricao": "Conta contábil do PCASP, 9 dígitos, como '622130100'."
+        },
+        {
+          "nome": "natureza_conta",
+          "descricao": "Natureza do saldo: 'D' devedora, 'C' credora."
+        },
+        {
+          "nome": "poder_orgao",
+          "descricao": "Código de poder e órgão."
+        },
+        {
+          "nome": "funcao",
+          "descricao": "Função de governo, 2 dígitos ('13' é Cultura). Nula nas contas que não a informam."
+        },
+        {
+          "nome": "subfuncao",
+          "descricao": "Subfunção de governo, 3 dígitos."
+        },
+        {
+          "nome": "educacao_saude",
+          "descricao": "Marcador de despesa com educação e saúde."
+        },
+        {
+          "nome": "natureza_despesa",
+          "descricao": "Natureza da despesa, 8 dígitos."
+        },
+        {
+          "nome": "natureza_receita",
+          "descricao": "Natureza da receita."
+        },
+        {
+          "nome": "ano_fonte_recursos",
+          "descricao": "Indicador do exercício da fonte (1 corrente, 2 anteriores), como a API manda."
+        },
+        {
+          "nome": "fonte_recursos",
+          "descricao": "Fonte de recursos, como a API manda (a codificação muda em 2023)."
+        },
+        {
+          "nome": "complemento_fonte",
+          "descricao": "Complemento da fonte (o de emenda parlamentar começa com 3)."
+        },
+        {
+          "nome": "ano_inscricao",
+          "descricao": "Ano de inscrição em restos a pagar."
+        },
+        {
+          "nome": "entrada_msc",
+          "descricao": "Identificador da entrega da MSC no SICONFI."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor do saldo, em reais. Valor que não é número vira nulo."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "A página de onde o item veio (pagina_id de bronze_siconfi_paginas)."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Posição do item na página, a partir de 1."
+        },
+        {
+          "nome": "request_hash",
+          "descricao": "Hash da requisição (endpoint e parâmetros) da página."
+        },
+        {
+          "nome": "run_id",
+          "descricao": "Run da ingestão que buscou a página, o da tentativa que vale."
+        },
+        {
+          "nome": "fetched_at",
+          "descricao": "Quando a página foi buscada na API, em UTC."
+        }
+      ],
+      "colunas_descritas": 26,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_msc_orcamentaria",
+        "bronze_siconfi_paginas"
+      ],
+      "sources": [],
+      "linhas_sql": 62
+    },
+    {
+      "nome": "silver_rreo",
+      "dominio": "siconfi",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/siconfi/silver_rreo.sql",
+      "descricao": "Camada Silver — Relatório Resumido da Execução Orçamentária (/rreo), tipado. Uma linha por item da API: ente, exercício, período, anexo, coluna e conta (código e texto), com o valor.\nGRÃO: uma linha por (_pagina_id, _item) da tentativa que vale de cada requisição. No recorte do Eixo 1 (Anexo 03, 6º bimestre), uma linha por (ente, exercício, coluna, cod_conta) na maioria das contas.\nPARA QUE SERVE: a Receita Corrente Líquida (cod_conta RREO3ReceitaCorrenteLiquida, coluna \"TOTAL (ÚLTIMOS 12 MESES)\") é o denominador da participação da cultura no orçamento (eixo1_orcamento_estadual_rcl). Filtre pelo código da conta, não pelo texto: \"RECEITA CORRENTE LÍQUIDA\" também casa com as RCL ajustadas.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "periodo",
+          "descricao": "Bimestre (1 a 6) do RREO."
+        },
+        {
+          "nome": "periodicidade",
+          "descricao": "'B' (bimestral), como a API manda."
+        },
+        {
+          "nome": "demonstrativo",
+          "descricao": "'RREO' (ou 'RREO Simplificado')."
+        },
+        {
+          "nome": "anexo",
+          "descricao": "Anexo do RREO, como 'RREO-Anexo 03'."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do ente."
+        },
+        {
+          "nome": "esfera",
+          "descricao": "Esfera do ente, como na silver_entes."
+        },
+        {
+          "nome": "instituicao",
+          "descricao": "Nome da instituição que declarou."
+        },
+        {
+          "nome": "populacao",
+          "descricao": "População do ente informada no relatório."
+        },
+        {
+          "nome": "rotulo",
+          "descricao": "Rótulo da linha no relatório ('Padrão' na maioria)."
+        },
+        {
+          "nome": "coluna",
+          "descricao": "Coluna do anexo, como 'TOTAL (ÚLTIMOS 12 MESES)' ou '<MR-1>'."
+        },
+        {
+          "nome": "cod_conta",
+          "descricao": "Código da conta do anexo, como 'RREO3ReceitaCorrenteLiquida'."
+        },
+        {
+          "nome": "conta",
+          "descricao": "Texto da conta, como 'RECEITA CORRENTE LÍQUIDA (III) = (I - II)'."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor em reais. Valor que não é número vira nulo."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "A página de onde o item veio (pagina_id de bronze_siconfi_paginas)."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Posição do item na página, a partir de 1."
+        },
+        {
+          "nome": "request_hash",
+          "descricao": "Hash da requisição (endpoint e parâmetros) da página."
+        },
+        {
+          "nome": "run_id",
+          "descricao": "Run da ingestão que buscou a página, o da tentativa que vale."
+        },
+        {
+          "nome": "fetched_at",
+          "descricao": "Quando a página foi buscada na API, em UTC."
+        }
+      ],
+      "colunas_descritas": 20,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_rreo",
+        "bronze_siconfi_paginas"
+      ],
+      "sources": [],
+      "linhas_sql": 45
+    },
+    {
       "nome": "bronze_anexos_relatorios",
       "dominio": "transferegov",
       "camada": "bronze",
@@ -44745,10 +45348,10 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 14,
-      "testes": 73,
+      "modelos": 18,
+      "testes": 95,
       "camadas": {
-        "gold": 14
+        "gold": 18
       }
     },
     "ibge_sidra": {
@@ -44760,10 +45363,10 @@
       }
     },
     "intermediate": {
-      "modelos": 2,
+      "modelos": 3,
       "testes": 7,
       "camadas": {
-        "intermediate": 2
+        "intermediate": 3
       }
     },
     "mapas": {
@@ -44795,10 +45398,11 @@
       }
     },
     "siconfi": {
-      "modelos": 10,
-      "testes": 0,
+      "modelos": 13,
+      "testes": 10,
       "camadas": {
-        "bronze": 10
+        "bronze": 10,
+        "silver": 3
       }
     },
     "transferegov": {
@@ -47861,9 +48465,9 @@
     }
   ],
   "totais": {
-    "modelos": 740,
-    "testes": 908,
-    "com_descricao": 739,
+    "modelos": 748,
+    "testes": 940,
+    "com_descricao": 747,
     "sources": 736
   }
 }

@@ -175,3 +175,312 @@ models:
         domain: Cultura.Indicadores
         tier: Tier.Tier3
         owner: minc-data-engineering
+
+  # ── Silver ────────────────────────────────────────────────────────────────
+  # silver_<entidade> lê a bronze da entidade e bronze_siconfi_paginas, fica com
+  # a tentativa que vale de cada requisição (macro siconfi_tentativa_valida, ADR
+  # 0014) e tipa. Não filtra pelo conteúdo: recorte de matriz, mês, conta ou
+  # anexo é da Gold.
+  - name: silver_entes
+    description: >
+      Camada Silver — entes da federação do SICONFI (/entes), tipados: código
+      IBGE, nome, UF, esfera (U União, E estado, D Distrito Federal, M
+      município), região (NO, NE, CO, SE, SU), capital, CNPJ e população do ano
+      da consulta.
+
+      GRÃO: uma linha por ente (cod_ibge). A /entes não tem parâmetro, então
+      é uma requisição só, baixada a cada run: fica a do run de fetched_at mais
+      recente.
+
+      PARA QUE SERVE: dá UF, esfera e região à MSC, que só traz o código IBGE
+      (int_bacen_siconfi), e região às golds do orçamento.
+    config:
+      tags:
+        - silver
+        - siconfi
+      meta:
+        status: Active
+        origem_dados: 'bronze_entes + bronze_siconfi_paginas'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "_pagina_id || '|' || _item"
+    columns:
+      - name: cod_ibge
+        description: >
+          Código IBGE do ente: 1 a União, 2 dígitos o estado e o DF, 7 dígitos o
+          município. Valor que não é inteiro vira nulo.
+        data_type: bigint
+        tests:
+          - not_null
+          - unique
+      - name: ente
+        description: Nome do ente, como o SICONFI escreve.
+        data_type: text
+      - name: uf
+        description: >-
+          A UF como o SICONFI devolve: a sigla nos municípios e 'BR' na União, nos
+          estados e no DF (a UF a que o ente pertence).
+        data_type: text
+      - name: sigla_uf
+        description: >-
+          Sigla da UF do ente, inclusive nos estados e no DF, tirada do código IBGE
+          (o próprio cod_ibge no estado, os dois primeiros dígitos no município).
+          Nula na União. O teste siconfi_entes_sigla_uf_confere confere o mapa
+          contra a uf dos municípios.
+        data_type: text
+      - name: esfera
+        description: "'U' União, 'E' estado, 'D' Distrito Federal, 'M' município."
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['U', 'E', 'D', 'M']
+      - name: regiao
+        description: "Sigla da grande região: 'NO', 'NE', 'CO', 'SE', 'SU' (e 'BR' na União)."
+        data_type: text
+      - name: capital
+        description: >
+          Verdadeiro na capital. Valor fora de 0/1 vira nulo, nunca falso.
+        data_type: boolean
+      - name: cnpj
+        description: CNPJ do ente, como texto e com o zero à esquerda.
+        data_type: text
+      - name: exercicio
+        description: Ano a que a população se refere, segundo a API.
+        data_type: integer
+      - name: populacao
+        description: População do ente no ano de exercicio.
+        data_type: bigint
+      - name: _pagina_id
+        description: A página de onde o item veio (pagina_id de bronze_siconfi_paginas).
+        data_type: text
+      - name: _item
+        description: Posição do item na página, a partir de 1.
+        data_type: integer
+      - name: request_hash
+        description: Hash da requisição (endpoint e parâmetros) da página.
+        data_type: text
+      - name: run_id
+        description: Run da ingestão que buscou a página, o da tentativa que vale.
+        data_type: text
+      - name: fetched_at
+        description: Quando a página foi buscada na API, em UTC.
+        data_type: timestamp
+
+  - name: silver_rreo
+    description: >
+      Camada Silver — Relatório Resumido da Execução Orçamentária (/rreo),
+      tipado. Uma linha por item da API: ente, exercício, período, anexo,
+      coluna e conta (código e texto), com o valor.
+
+      GRÃO: uma linha por (_pagina_id, _item) da tentativa que vale de cada
+      requisição. No recorte do Eixo 1 (Anexo 03, 6º bimestre), uma linha por
+      (ente, exercício, coluna, cod_conta) na maioria das contas.
+
+      PARA QUE SERVE: a Receita Corrente Líquida (cod_conta
+      RREO3ReceitaCorrenteLiquida, coluna "TOTAL (ÚLTIMOS 12 MESES)") é o
+      denominador da participação da cultura no orçamento
+      (eixo1_orcamento_estadual_rcl). Filtre pelo código da conta, não pelo
+      texto: "RECEITA CORRENTE LÍQUIDA" também casa com as RCL ajustadas.
+    config:
+      tags:
+        - silver
+        - siconfi
+      meta:
+        status: Active
+        origem_dados: 'bronze_rreo + bronze_siconfi_paginas'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "_pagina_id || '|' || _item"
+    columns:
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: periodo
+        description: Bimestre (1 a 6) do RREO.
+        data_type: integer
+      - name: periodicidade
+        description: "'B' (bimestral), como a API manda."
+        data_type: text
+      - name: demonstrativo
+        description: "'RREO' (ou 'RREO Simplificado')."
+        data_type: text
+      - name: anexo
+        description: Anexo do RREO, como 'RREO-Anexo 03'.
+        data_type: text
+      - name: cod_ibge
+        description: Código IBGE do ente.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: uf
+        description: Sigla da UF do ente.
+        data_type: text
+      - name: esfera
+        description: Esfera do ente, como na silver_entes.
+        data_type: text
+      - name: instituicao
+        description: Nome da instituição que declarou.
+        data_type: text
+      - name: populacao
+        description: População do ente informada no relatório.
+        data_type: bigint
+      - name: rotulo
+        description: Rótulo da linha no relatório ('Padrão' na maioria).
+        data_type: text
+      - name: coluna
+        description: Coluna do anexo, como 'TOTAL (ÚLTIMOS 12 MESES)' ou '<MR-1>'.
+        data_type: text
+      - name: cod_conta
+        description: Código da conta do anexo, como 'RREO3ReceitaCorrenteLiquida'.
+        data_type: text
+      - name: conta
+        description: Texto da conta, como 'RECEITA CORRENTE LÍQUIDA (III) = (I - II)'.
+        data_type: text
+      - name: valor
+        description: Valor em reais. Valor que não é número vira nulo.
+        data_type: numeric
+      - name: _pagina_id
+        description: A página de onde o item veio (pagina_id de bronze_siconfi_paginas).
+        data_type: text
+      - name: _item
+        description: Posição do item na página, a partir de 1.
+        data_type: integer
+      - name: request_hash
+        description: Hash da requisição (endpoint e parâmetros) da página.
+        data_type: text
+      - name: run_id
+        description: Run da ingestão que buscou a página, o da tentativa que vale.
+        data_type: text
+      - name: fetched_at
+        description: Quando a página foi buscada na API, em UTC.
+        data_type: timestamp
+
+  - name: silver_msc_orcamentaria
+    description: >
+      Camada Silver — Matriz de Saldos Contábeis, classes orçamentárias
+      (/msc_orcamentaria), tipada. Uma linha por item da API: ente, exercício,
+      mês, matriz (MSCC agregada, MSCE de encerramento), classe, tipo de valor,
+      conta contábil e as informações complementares, com o valor e a natureza
+      do saldo.
+
+      GRÃO: uma linha por (_pagina_id, _item) da tentativa que vale de cada
+      requisição. A MSC não tem chave natural: duas linhas podem ter a mesma
+      conta e as mesmas informações complementares com valores diferentes.
+
+      OS CÓDIGOS FICAM COMO TEXTO, como a API manda (função '13', fonte
+      '1500', complemento '1001', conta '622130100'): o zero à esquerda é parte
+      do código. A MSC não traz a UF do ente; ela vem de silver_entes, pelo
+      cod_ibge, em int_bacen_siconfi.
+
+      PARA QUE SERVE: a conta 62213 (crédito empenhado), credora, de dezembro,
+      classe 6, saldo final, é o empenho de estados e municípios que
+      eixo1_orcamento_empenho_cultura filtra por função e classifica por
+      fonte.
+    config:
+      tags:
+        - silver
+        - siconfi
+      meta:
+        status: Active
+        origem_dados: 'bronze_msc_orcamentaria + bronze_siconfi_paginas'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "_pagina_id || '|' || _item"
+    columns:
+      - name: cod_ibge
+        description: Código IBGE do ente (2 dígitos o estado e o DF, 7 o município).
+        data_type: bigint
+        tests:
+          - not_null
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: mes_referencia
+        description: Mês da matriz (12 é dezembro, o saldo do ano).
+        data_type: integer
+      - name: data_referencia
+        description: Último dia do mês da matriz.
+        data_type: date
+      - name: tipo_matriz
+        description: "'MSCC' (agregada) ou 'MSCE' (de encerramento)."
+        data_type: text
+      - name: classe_conta
+        description: Classe do plano de contas (5 e 6 são as orçamentárias).
+        data_type: integer
+      - name: tipo_valor
+        description: "'beginning_balance', 'period_change' ou 'ending_balance'."
+        data_type: text
+      - name: conta_contabil
+        description: Conta contábil do PCASP, 9 dígitos, como '622130100'.
+        data_type: text
+      - name: natureza_conta
+        description: "Natureza do saldo: 'D' devedora, 'C' credora."
+        data_type: text
+      - name: poder_orgao
+        description: Código de poder e órgão.
+        data_type: text
+      - name: funcao
+        description: Função de governo, 2 dígitos ('13' é Cultura). Nula nas contas que não a informam.
+        data_type: text
+      - name: subfuncao
+        description: Subfunção de governo, 3 dígitos.
+        data_type: text
+      - name: educacao_saude
+        description: Marcador de despesa com educação e saúde.
+        data_type: text
+      - name: natureza_despesa
+        description: Natureza da despesa, 8 dígitos.
+        data_type: text
+      - name: natureza_receita
+        description: Natureza da receita.
+        data_type: text
+      - name: ano_fonte_recursos
+        description: Indicador do exercício da fonte (1 corrente, 2 anteriores), como a API manda.
+        data_type: integer
+      - name: fonte_recursos
+        description: Fonte de recursos, como a API manda (a codificação muda em 2023).
+        data_type: text
+      - name: complemento_fonte
+        description: Complemento da fonte (o de emenda parlamentar começa com 3).
+        data_type: text
+      - name: ano_inscricao
+        description: Ano de inscrição em restos a pagar.
+        data_type: integer
+      - name: entrada_msc
+        description: Identificador da entrega da MSC no SICONFI.
+        data_type: bigint
+      - name: valor
+        description: Valor do saldo, em reais. Valor que não é número vira nulo.
+        data_type: numeric
+      - name: _pagina_id
+        description: A página de onde o item veio (pagina_id de bronze_siconfi_paginas).
+        data_type: text
+      - name: _item
+        description: Posição do item na página, a partir de 1.
+        data_type: integer
+      - name: request_hash
+        description: Hash da requisição (endpoint e parâmetros) da página.
+        data_type: text
+      - name: run_id
+        description: Run da ingestão que buscou a página, o da tentativa que vale.
+        data_type: text
+      - name: fetched_at
+        description: Quando a página foi buscada na API, em UTC.
+        data_type: timestamp
