@@ -99,6 +99,31 @@ class Executor(Protocol):
     def records(self, sql: str) -> list[Sequence[Any]]: ...
 
 
+class ConexaoTrino:
+    """``Executor`` sobre uma conexão DBAPI já aberta, para usar dentro de uma thread.
+
+    No Airflow 3 a Connection só se resolve na thread principal da task: um
+    ``TrinoHook`` criado numa thread do pool falha com ``The conn_id
+    'trino_default' isn't defined``. Por isso a DAG abre as conexões na thread
+    principal, como a ``salic_ingestion_trino`` e a ``mapas_ingestion_trino``, e
+    entrega uma a cada thread, que só fala com o Trino por este objeto.
+    """
+
+    def __init__(self, conexao: Any) -> None:
+        self.conexao = conexao
+
+    def run(self, sql: str) -> None:
+        cursor = self.conexao.cursor()
+        cursor.execute(sql)
+        # O Trino só termina o comando (o INSERT, o ALTER) quando o resultado é lido.
+        cursor.fetchall()
+
+    def records(self, sql: str) -> list[Sequence[Any]]:
+        cursor = self.conexao.cursor()
+        cursor.execute(sql)
+        return list(cursor.fetchall())
+
+
 # ── páginas no raw ───────────────────────────────────────────────────────
 
 
@@ -159,9 +184,15 @@ def pagina_id(pagina: str) -> str:
 # ── itens como texto ─────────────────────────────────────────────────────
 
 
+def _ler_parte(texto_json: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """O envelope de um arquivo do raw e os itens dele, com todo número como texto."""
+    envelope: dict[str, Any] = json.loads(texto_json, parse_float=str, parse_int=str)
+    return envelope, itens_do_envelope(envelope)
+
+
 def ler_itens(texto_json: str) -> list[dict[str, Any]]:
     """Os itens de um arquivo do raw, com todo número como o texto do arquivo."""
-    return itens_do_envelope(json.loads(texto_json, parse_float=str, parse_int=str))
+    return _ler_parte(texto_json)[1]
 
 
 def valor_texto(valor: Any) -> str | None:
@@ -201,6 +232,9 @@ class PaginaLida:
     arquivos: list[str]
     envelope: dict[str, Any]
     itens: list[dict[str, Any]]
+    # O que cada arquivo diz da página: ``fetched_at``, ``run_id``,
+    # ``item_count`` e quantos itens ele trouxe (ver ``conferir_pagina``).
+    partes: list[dict[str, str | None]] = field(default_factory=list)
 
     @property
     def id(self) -> str:
@@ -212,13 +246,59 @@ def juntar_partes(pagina: str, arquivos: list[str], textos: list[str]) -> Pagina
 
     O envelope (de onde sai a linha de ``paginas``) é o da primeira parte, lido
     com os tipos normais: ``request_params`` fica como a requisição foi feita.
-    Só os itens são lidos com o número como texto.
+    Só os itens são lidos com o número como texto. De cada parte fica também o
+    que ``conferir_pagina`` compara.
     """
     if not textos:
         raise ValueError(f"{pagina}: página sem arquivo")
+    if len(textos) != len(arquivos):
+        raise ValueError(f"{pagina}: {len(arquivos)} arquivos e {len(textos)} textos")
     envelope: dict[str, Any] = json.loads(textos[0])
-    itens = [item for t in textos for item in ler_itens(t)]
-    return PaginaLida(pagina, arquivos, envelope, itens)
+    lidas = [_ler_parte(t) for t in textos]
+    itens = [item for _, itens_parte in lidas for item in itens_parte]
+    partes = [
+        {
+            "arquivo": arquivo,
+            "fetched_at": valor_texto(env.get("fetched_at")),
+            "run_id": valor_texto(env.get("run_id")),
+            "item_count": valor_texto(env.get("item_count")),
+            "itens": str(len(itens_parte)),
+        }
+        for arquivo, (env, itens_parte) in zip(arquivos, lidas)
+    ]
+    return PaginaLida(pagina, arquivos, envelope, itens, partes)
+
+
+def conferir_pagina(lida: PaginaLida) -> list[str]:
+    """O que impede a página de entrar; lista vazia quando ela está inteira.
+
+    As partes de uma página dividida são gravadas uma a uma
+    (``siconfi_storage.gravar_envelope``), e um retry da ingestão regrava a mesma
+    key com outra tentativa. Se o raw ficou com partes de duas tentativas,
+    juntá-las daria uma página que a API nunca devolveu, registrada como
+    carregada e nunca mais relida. Toda parte repete o envelope da página, então
+    as partes têm de concordar em ``fetched_at``, ``run_id`` e ``item_count``, e a
+    soma dos itens tem de dar o ``item_count``. A página que não passa fica de
+    fora, com aviso, e é tentada de novo no run seguinte, como a que tem parte
+    faltando.
+    """
+    problemas: list[str] = []
+    for campo in ("fetched_at", "run_id", "item_count"):
+        valores = {parte[campo] for parte in lida.partes}
+        if None in valores:
+            problemas.append(f"parte sem {campo}")
+        elif len(valores) > 1:
+            problemas.append(
+                f"partes com {campo} diferente: {sorted(str(v) for v in valores)}"
+            )
+    contagens = {parte["item_count"] for parte in lida.partes}
+    if len(contagens) == 1 and None not in contagens:
+        (esperado,) = contagens
+        if not str(esperado).isdigit() or int(str(esperado)) != len(lida.itens):
+            problemas.append(
+                f"{len(lida.itens)} itens nas partes, e o item_count diz {esperado}"
+            )
+    return problemas
 
 
 def conferir_endpoint(lida: PaginaLida, endpoint: str) -> None:
@@ -391,7 +471,12 @@ def inserts_paginas(
 
 
 class Destino:
-    """A tabela da bronze de um endpoint, com as colunas que ela já tem."""
+    """A tabela da bronze de um endpoint, com as colunas que ela já tem.
+
+    ``executor`` é o da thread principal. Dentro de uma thread do pool, quem
+    chama passa o próprio (``ConexaoTrino``) a ``acrescentar``; as colunas que
+    já existem têm de ter sido lidas antes, na thread principal (``colunas()``).
+    """
 
     def __init__(
         self, executor: Executor, catalogo: str, schema: str, entidade: str
@@ -410,35 +495,40 @@ class Destino:
         )
         self.executor.run(ddl_tabela(self.catalogo, self.schema, self.entidade))
 
-    def colunas(self) -> set[str]:
+    def colunas(self, executor: Executor | None = None) -> set[str]:
         if self._colunas is None:
             self._colunas = {
                 str(linha[0])
-                for linha in self.executor.records(
+                for linha in (executor or self.executor).records(
                     sql_colunas_existentes(self.catalogo, self.schema, self.entidade)
                 )
             }
         return self._colunas
 
-    def acrescentar(self, nomes: Iterable[str]) -> list[str]:
+    def acrescentar(
+        self, nomes: Iterable[str], executor: Executor | None = None
+    ) -> list[str]:
         """Cria as colunas que faltam e devolve as que criou."""
-        novas = [c for c in nomes if c not in self.colunas()]
+        executor = executor or self.executor
+        novas = [c for c in nomes if c not in self.colunas(executor)]
         for coluna in novas:
-            self.executor.run(
-                ddl_coluna(self.catalogo, self.schema, self.entidade, coluna)
-            )
-            self.colunas().add(coluna)
+            executor.run(ddl_coluna(self.catalogo, self.schema, self.entidade, coluna))
+            self.colunas(executor).add(coluna)
         return novas
 
 
-def carregar_pagina(destino: Destino, lida: PaginaLida) -> int:
+def carregar_pagina(
+    destino: Destino, lida: PaginaLida, executor: Executor | None = None
+) -> int:
     """Insere os itens da página na bronze e devolve quantos foram.
 
-    Não registra a página em ``paginas``: quem chama faz isso depois, em lote
+    ``executor`` é o da thread que chama; sem ele, vale o do ``destino``. Não
+    registra a página em ``paginas``: quem chama faz isso depois, em lote
     (``inserts_paginas``).
     """
+    executor = executor or destino.executor
     nomes = campos(lida.itens)
-    destino.acrescentar(nomes)
+    destino.acrescentar(nomes, executor)
     for comando in inserts_da_pagina(destino.nome, lida, nomes):
-        destino.executor.run(comando)
+        executor.run(comando)
     return len(lida.itens)

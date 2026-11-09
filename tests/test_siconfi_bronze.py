@@ -135,6 +135,55 @@ def test_envelope_de_outro_endpoint_falha() -> None:
         bronze.conferir_endpoint(lida, "rreo")
 
 
+def _partes(*envelopes: str) -> bronze.PaginaLida:
+    arquivos = [
+        f"{_PASTA}/h2_0_p{i:02d}de{len(envelopes):02d}.json"
+        for i in range(1, len(envelopes) + 1)
+    ]
+    return bronze.juntar_partes(f"{_PASTA}/h2_0.json", arquivos, list(envelopes))
+
+
+def test_conferir_pagina_aceita_partes_da_mesma_tentativa() -> None:
+    lida = _partes(
+        _envelope([{"v": 1}, {"v": 2}], item_count=3),
+        _envelope([{"v": 3}], item_count=3),
+    )
+    assert bronze.conferir_pagina(lida) == []
+    assert [p["itens"] for p in lida.partes] == ["2", "1"]
+
+
+def test_conferir_pagina_recusa_partes_de_tentativas_diferentes() -> None:
+    lida = _partes(
+        _envelope([{"v": 1}], item_count=2),
+        _envelope(
+            [{"v": 2}],
+            item_count=2,
+            fetched_at="2026-10-28T09:00:00+00:00",
+            run_id="manual__2026-10-28",
+        ),
+    )
+    problemas = bronze.conferir_pagina(lida)
+    assert any("fetched_at" in p for p in problemas)
+    assert any("run_id" in p for p in problemas)
+
+
+def test_conferir_pagina_recusa_contagem_que_nao_fecha() -> None:
+    # Duas tentativas com a mesma data, mas a segunda parte é de uma página menor.
+    lida = _partes(
+        _envelope([{"v": 1}], item_count=3), _envelope([{"v": 2}], item_count=3)
+    )
+    assert bronze.conferir_pagina(lida) == ["2 itens nas partes, e o item_count diz 3"]
+    sem_contagem = json.loads(_envelope([{"v": 1}]))
+    del sem_contagem["item_count"]
+    lida = bronze.juntar_partes(f"{_PASTA}/h2_0.json", ["a"], [json.dumps(sem_contagem)])
+    assert bronze.conferir_pagina(lida) == ["parte sem item_count"]
+
+
+def test_juntar_partes_exige_um_texto_por_arquivo() -> None:
+    with pytest.raises(ValueError, match="2 arquivos e 1 textos"):
+        bronze.juntar_partes(f"{_PASTA}/h2_0.json", ["a", "b"], [_envelope([])])
+
+
 def test_campos_na_ordem_e_nome_fora_do_padrao_falha() -> None:
     assert bronze.campos([{"b": 1, "a": 2}, {"a": 3, "c": 4}]) == ["b", "a", "c"]
     with pytest.raises(ValueError, match="fora do padrão"):
@@ -259,3 +308,45 @@ def test_carregar_pagina_insere_e_devolve_os_itens() -> None:
     destino = bronze.Destino(trino, "hml_analytics", "siconfi", "msc_orcamentaria")
     assert bronze.carregar_pagina(destino, _lida(3)) == 3
     assert [s.split()[0] for s in trino.executados] == ["ALTER", "ALTER", "INSERT"]
+
+
+# ── conexão de cada thread ───────────────────────────────────────────────
+
+
+class _CursorDbapi:
+    def __init__(self, log: list[str]) -> None:
+        self.log = log
+
+    def execute(self, sql: str) -> None:
+        self.log.append(f"execute {sql}")
+
+    def fetchall(self) -> list[tuple[str]]:
+        self.log.append("fetchall")
+        return [("x",)]
+
+
+class _ConexaoDbapi:
+    def __init__(self) -> None:
+        self.log: list[str] = []
+
+    def cursor(self) -> _CursorDbapi:
+        return _CursorDbapi(self.log)
+
+
+def test_conexao_trino_le_o_resultado_de_todo_comando() -> None:
+    conexao = _ConexaoDbapi()
+    trino = bronze.ConexaoTrino(conexao)
+    trino.run("INSERT 1")
+    assert trino.records("SELECT 1") == [("x",)]
+    # Sem ler o resultado, o Trino não termina o INSERT.
+    assert conexao.log == ["execute INSERT 1", "fetchall", "execute SELECT 1", "fetchall"]
+
+
+def test_destino_usa_o_executor_da_thread() -> None:
+    principal = _TrinoFalso([*bronze.COLUNAS_ITEM, "conta"])
+    destino = bronze.Destino(principal, "hml_analytics", "siconfi", "msc_orcamentaria")
+    destino.colunas()  # na thread principal
+    da_thread = _TrinoFalso([])
+    assert bronze.carregar_pagina(destino, _lida(2), da_thread) == 2
+    assert [s.split()[0] for s in da_thread.executados] == ["ALTER", "INSERT"]
+    assert principal.executados == []

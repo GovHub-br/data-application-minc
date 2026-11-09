@@ -661,7 +661,7 @@ def gravar_raw(registros: list[dict[str, Any]], fonte: str, entidade: str) -> st
 
 def ler_json(key: str) -> Any:
     """Conteúdo de um JSON do bucket, com os tipos como foram gravados."""
-    return json.loads(ler_texto(key))
+    return json.loads(get_hook().read_key(key=key, bucket_name=BUCKET))
 
 
 def ler_texto(key: str) -> str:
@@ -669,9 +669,14 @@ def ler_texto(key: str) -> str:
 
     Para quem precisa do número como foi escrito no JSON (``18449.34``, e não o
     ``float`` que o ``json.loads`` devolveria): a carga da bronze do SICONFI.
+
+    Lê pelo client do boto3, que pode ser usado por várias threads, e não pelo
+    ``read_key``, que passa pelo ``resource`` em cache do hook (o boto3 não
+    garante resource entre threads) e faz duas requisições por arquivo.
     """
-    texto: str = get_hook().read_key(key=key, bucket_name=BUCKET)
-    return texto
+    resposta = get_hook().get_conn().get_object(Bucket=BUCKET, Key=key)
+    corpo: bytes = resposta["Body"].read()
+    return corpo.decode("utf-8")
 
 
 def ler_raw(key: str) -> list[dict[str, Any]]:
