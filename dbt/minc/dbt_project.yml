@@ -101,3 +101,13 @@ models:
     bacen:
       +schema: bacen
       +materialized: view
+    # SICONFI: a siconfi_bronze_dag le o raw do MinIO e grava, pelo Trino, os
+    # itens de cada entidade em siconfi.<entidade> e o envelope de cada pagina
+    # em siconfi.paginas (toda coluna varchar). Os bronze_* sao a copia fiel
+    # delas, como no TransfereGov e no Bacen. View: a MSC orcamentaria passa
+    # de 170 milhoes de linhas, e uma table duplicaria tudo a cada dbt run. A
+    # view guarda as colunas que a tabela tinha no dbt run: campo novo que a
+    # DAG criar depois so aparece no bronze_* no dbt run seguinte.
+    siconfi:
+      +schema: siconfi
+      +materialized: view

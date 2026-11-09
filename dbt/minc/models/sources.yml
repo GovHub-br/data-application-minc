@@ -1983,6 +1983,267 @@ sources:
             data_type: text
             tests:
               - not_null   # inferido do perfil do banco
+  # SICONFI/Tesouro: o raw no MinIO (uma página da API por arquivo, ADR 0014)
+  # carregado pela siconfi_bronze_dag, pelo Trino (ADRs 0009 e 0014). Como no raw, a
+  # página e os itens ficam separados: `paginas` tem uma linha por página, com
+  # o envelope, e cada entidade tem uma linha por item, com uma coluna por campo
+  # da API mais `_pagina_id` e `_item`. Tudo character varying, com o valor como
+  # está no raw. Nada é deduplicado aqui: a silver fica com uma linha por
+  # (`_pagina_id`, `_item`) e, por `request_hash`, com a tentativa mais recente.
+  - name: siconfi
+    schema: siconfi
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+    tables:
+      - name: paginas
+        description: >
+          Uma linha por página do raw que a siconfi_bronze_dag carregou, com o
+          envelope dela sem os itens: de qual requisição, de qual run, quando
+          foi buscada e o que mais a API respondeu. Os itens ficam na tabela
+          da entidade, ligados por `pagina_id`. É também o registro do que já
+          foi carregado: a linha entra depois dos itens.
+        columns:
+          - name: pagina_id
+            description: >
+              16 hex do SHA-256 de `pagina`. É o `_pagina_id` dos itens da
+              página.
+            data_type: character varying
+            tests:
+              - not_null
+              - unique
+          - name: pagina
+            description: >
+              Key no raw da página (a que ela teria inteira, mesmo quando
+              está dividida em partes).
+            data_type: character varying
+          - name: arquivos
+            description: >
+              Em quantos arquivos do raw a página estava: 1, ou o número
+              de partes.
+            data_type: character varying
+          - name: itens
+            description: >
+              Quantos itens a carga leu da página, somando as partes.
+            data_type: character varying
+          - name: endpoint
+            description: >
+              Endpoint da API do SICONFI, como está no envelope.
+            data_type: character varying
+          - name: request_hash
+            description: >
+              Hash da requisição (endpoint e parâmetros). A mesma
+              requisição pode aparecer em mais de um run; a silver fica
+              com a de `fetched_at` mais recente (ADR 0014).
+            data_type: character varying
+          - name: request_params
+            description: >
+              Parâmetros da requisição, em JSON.
+            data_type: character varying
+          - name: page_offset
+            description: >
+              Deslocamento da página na paginação da API.
+            data_type: character varying
+          - name: fetched_at
+            description: >
+              Quando a página foi buscada na API (ISO 8601, UTC).
+            data_type: character varying
+          - name: run_id
+            description: >
+              Run da ingestão que buscou a página.
+            data_type: character varying
+          - name: item_count
+            description: >
+              Quantos itens a API devolveu na página, segundo a ingestão.
+              Igual a `itens` quando nenhuma parte se perdeu.
+            data_type: character varying
+          - name: response_headers
+            description: >
+              Cabeçalhos da resposta da API, em JSON.
+            data_type: character varying
+          - name: payload_sem_itens
+            description: >
+              O resto da resposta da API, sem os itens, em JSON
+              (`hasMore`, `count`, `limit`, `offset`, `links`).
+            data_type: character varying
+          - name: migrado_de
+            description: >
+              Preenchido quando a página veio da conversão das tabelas
+              antigas siconfi_bronze.raw_pages_*
+              (siconfi_migracao_raw_pages_dag): a tabela e o raw_page_id
+              de origem.
+            data_type: character varying
+          - name: carga_run_id
+            description: >
+              Run da siconfi_bronze_dag que carregou a página.
+            data_type: character varying
+          - name: carregado_em
+            description: >
+              Quando a página foi carregada (ISO 8601, UTC).
+            data_type: character varying
+      - name: entes
+        description: >
+          Entes da federação do SICONFI (/entes): código IBGE, UF, esfera,
+          região e população do ano da consulta. Um item da API por linha,
+          gravado pela siconfi_bronze_dag a partir do raw em
+          raw/siconfi/entes/. Além das duas colunas abaixo, uma por campo do
+          item, criada quando o campo aparece pela primeira vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
+      - name: anexos_relatorios
+        description: >
+          Anexos que cada demonstrativo fiscal tem no SICONFI
+          (/anexos-relatorios). Um item da API por linha, gravado pela
+          siconfi_bronze_dag a partir do raw em
+          raw/siconfi/anexos_relatorios/. Além das duas colunas abaixo, uma
+          por campo do item, criada quando o campo aparece pela primeira vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
+      - name: extrato_entregas
+        description: >
+          Extrato de entregas de cada ente (/extrato_entregas): quais
+          declarações foram homologadas, por ano e período. Um item da API por
+          linha, gravado pela siconfi_bronze_dag a partir do raw em
+          raw/siconfi/extrato_entregas/. Além das duas colunas abaixo, uma por
+          campo do item, criada quando o campo aparece pela primeira vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
+      - name: rreo
+        description: >
+          Relatório Resumido da Execução Orçamentária (/rreo). No recorte do
+          Eixo 1, o Anexo 03 do 6º bimestre, de onde sai a Receita Corrente
+          Líquida. Um item da API por linha, gravado pela siconfi_bronze_dag a
+          partir do raw em raw/siconfi/rreo/. Além das duas colunas abaixo,
+          uma por campo do item, criada quando o campo aparece pela primeira
+          vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
+      - name: msc_orcamentaria
+        description: >
+          Matriz de Saldos Contábeis, classes orçamentárias
+          (/msc_orcamentaria). No recorte do Eixo 1, dezembro, classe 6, saldo
+          final, de onde sai o empenho em cultura (função 13). Um item da API
+          por linha, gravado pela siconfi_bronze_dag a partir do raw em
+          raw/siconfi/msc_orcamentaria/. Além das duas colunas abaixo, uma por
+          campo do item, criada quando o campo aparece pela primeira vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
+      - name: dca
+        description: >
+          Declaração de Contas Anuais (/dca). Um item da API por linha,
+          gravado pela siconfi_bronze_dag a partir do raw em raw/siconfi/dca/.
+          Além das duas colunas abaixo, uma por campo do item, criada quando o
+          campo aparece pela primeira vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
+      - name: rgf
+        description: >
+          Relatório de Gestão Fiscal (/rgf). Um item da API por linha, gravado
+          pela siconfi_bronze_dag a partir do raw em raw/siconfi/rgf/. Além
+          das duas colunas abaixo, uma por campo do item, criada quando o
+          campo aparece pela primeira vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
+      - name: msc_controle
+        description: >
+          Matriz de Saldos Contábeis, classes de controle (/msc_controle). Um
+          item da API por linha, gravado pela siconfi_bronze_dag a partir do
+          raw em raw/siconfi/msc_controle/. Além das duas colunas abaixo, uma
+          por campo do item, criada quando o campo aparece pela primeira vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
+      - name: msc_patrimonial
+        description: >
+          Matriz de Saldos Contábeis, classes patrimoniais (/msc_patrimonial).
+          Um item da API por linha, gravado pela siconfi_bronze_dag a partir
+          do raw em raw/siconfi/msc_patrimonial/. Além das duas colunas
+          abaixo, uma por campo do item, criada quando o campo aparece pela
+          primeira vez.
+        columns:
+          - name: _pagina_id
+            description: >
+              A página de onde o item veio: `pagina_id` em `paginas`, onde
+              estão a requisição, o run e quando ela foi buscada.
+            data_type: character varying
+          - name: _item
+            description: >
+              Posição do item na página, a partir de 1, contando as partes
+              na ordem. Com `_pagina_id`, identifica o item.
+            data_type: character varying
   - name: bsc_pnab
     schema: bsc_pnab
   # As planilhas dos relatórios de gestão. Antes eram ~15 tabelas, uma por aba
