@@ -23,14 +23,22 @@
       Devolve uma tabela derivada, para usar no `from` (`select ... from
       {{ siconfi_tentativa_valida(...) }}`).
 
-      As páginas válidas saem de uma passada só sobre `paginas`, por funções de
-      janela, numa CTE `materialized`. Não é estilo: os filtros de quem lê a
-      silver (matriz, mês, classe...) descem até os itens e o Postgres passa a
-      estimar uma linha só; com isso escolhe nested loop e, se o lado das
-      páginas for uma subconsulta, a refaz inteira para cada item. Foi o que
-      levou a gold-base do Eixo 1 a 72 minutos em 4 milhões de itens. A CTE
-      materializada é calculada uma vez por consulta, e reler o resultado dela
-      custa uma varredura de poucas centenas de linhas.
+      A forma da consulta não é estilo: é o que evita o nested loop entre itens
+      e páginas, que cresce com itens × páginas. Duas escolhas:
+      - as páginas válidas ficam numa CTE `materialized`, calculada uma vez por
+        consulta. Sem ela, o Postgres refazia a subconsulta das páginas para
+        cada item: a gold-base do Eixo 1 levou 72 minutos em 4 milhões de
+        itens;
+      - o join com os itens fica dentro da subconsulta da janela de
+        (`_pagina_id`, `_item`). Os filtros de quem lê a silver (matriz, mês,
+        anexo...) não descem abaixo da janela, porque não são colunas do
+        `partition by`. O join é planejado sobre a bronze inteira, com as
+        estatísticas dela, e sai hash join. Com o join acima da janela, esses
+        filtros chegavam a ele, o lado dos itens era estimado em uma linha, e
+        o nested loop comparava cada item com cada página: 21 minutos para ler
+        a silver_rreo com 1,2 milhão de itens e 3.679 páginas.
+      Filtrar as páginas antes da janela não muda o resultado dela: a página é
+      parte do `partition by`.
 
       `itens` e `paginas` são os nomes das CTEs do modelo que leem, por
       `{{ ref() }}`, a bronze da entidade e bronze_siconfi_paginas. A `ref()`
@@ -74,26 +82,22 @@
                 where _repeticao_pagina = 1 and run_id = run_valido
             )
 
-        select
-            itens_unicos.*,
-            paginas_validas.request_hash,
-            paginas_validas.run_id,
-            paginas_validas.fetched_at
+        select itens_validos.*
         from
             (
-                select itens_bronze.*
-                from
-                    (
-                        select
-                            bronze_itens.*,
-                            row_number() over (
-                                partition by bronze_itens._pagina_id, bronze_itens._item
-                                order by bronze_itens._item
-                            ) as _repeticao_item
-                        from {{ itens }} as bronze_itens
-                    ) as itens_bronze
-                where itens_bronze._repeticao_item = 1
-            ) as itens_unicos
-        inner join paginas_validas on itens_unicos._pagina_id = paginas_validas.pagina_id
+                select
+                    bronze_itens.*,
+                    paginas_validas.request_hash,
+                    paginas_validas.run_id,
+                    paginas_validas.fetched_at,
+                    row_number() over (
+                        partition by bronze_itens._pagina_id, bronze_itens._item
+                        order by bronze_itens._item
+                    ) as _repeticao_item
+                from {{ itens }} as bronze_itens
+                inner join
+                    paginas_validas on bronze_itens._pagina_id = paginas_validas.pagina_id
+            ) as itens_validos
+        where itens_validos._repeticao_item = 1
     ) as tentativa_valida
 {%- endmacro %}
