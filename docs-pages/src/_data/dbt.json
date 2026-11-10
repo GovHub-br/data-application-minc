@@ -791,6 +791,253 @@
       "linhas_sql": 42
     },
     {
+      "nome": "eixo1_munic_conselho_municipio",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_conselho_municipio.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o perfil dos conselhos municipais de cultura.\nGRÃO: uma linha por município e edição (2014, 2018, 2021). UNIVERSO: os municípios que responderam ter conselho de cultura (2.151 em 2014, 2.352 em 2018 e 2.804 em 2021).\nPARA QUE SERVE: base da paridade (Figura 15) e da competência dos conselhos. Reproduz o df_conselhos_detalhado do MUNIC.R.\nA REGRA: a composição vira 'Paritário', 'Não Paritário' ou 'Sem Informação' pelo texto da resposta; \"não paritário\" é testado antes de \"paritário\" (nenhuma resposta assim em 09/11/2026). A competência vira uma categoria: deliberativo (com ou sem consultivo), apenas consultivo, normativo ou fiscalizador, ou 'Sem Informação'.\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: em 2014, \"Não informado\" na composição conta como 'Não Paritário', porque o padrão procura \"não\"; em 09/11/2026 nenhum dos 2.151 conselhos de 2014 tem essa resposta (1.671 'É paritário', 365 com maior representação da sociedade civil e 115 com maior representação governamental). Na competência, '-' e 'Não informou' viram 'Não' nas quatro perguntas, e o conselho cai em 'Sem Informação': 862 em 2021, nenhum em 2018 e 2014. Em 2021, a composição '-' ou 'Não informou' é 'Sem Informação' (863).",
+      "colunas": [
+        {
+          "nome": "cod_municipio",
+          "descricao": "Código IBGE do município, com 7 dígitos."
+        },
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "cons_paritario",
+          "descricao": "Composição do conselho."
+        },
+        {
+          "nome": "cons_competencia",
+          "descricao": "Competência do conselho."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "silver_munic_2018_cultura",
+        "silver_munic_2021_cultura",
+        "silver_munic_cultura_2014_instancias_participativas"
+      ],
+      "sources": [],
+      "linhas_sql": 109
+    },
+    {
+      "nome": "eixo1_munic_painel_municipio",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_painel_municipio.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o painel histórico da gestão municipal de cultura.\nGRÃO: uma linha por município e edição da MUNIC (2006, 2014, 2018, 2021). UNIVERSO: os municípios de cada edição, 5.564 em 2006 e 5.570 nas outras (22.274 linhas).\nPARA QUE SERVE: é a base dos gráficos da frente MUNIC (tripé de plano, conselho e fundo, perfil do gestor, equipamentos, execução orçamentária). Reproduz o df_painel_historico do MUNIC.R, que grava munic_cultura_painel_historico_06_21.csv.\nA REGRA: qual pergunta de cada edição responde cada variável (em 2021 e 2018, a aba Cultura; em 2014 e 2006, as abas do suplemento de cultura, ligadas pelo código do município); como a resposta vira 'Sim' ou 'Não' (macro eixo1_sim_nao: começa por \"sim\" é 'Sim', qualquer outra resposta preenchida é 'Não'; 'Em elaboração', na pergunta do plano, é 'Não'); e as faixas de idade, raça, escolaridade e execução orçamentária. Toda edição recebe o código e o nome de 2021 pelos 6 primeiros dígitos, porque 2006 não tem o dígito verificador. 2018, 2014 e 2006 não trazem população nem execução orçamentária. Os equipamentos de 2021 passam pela macro; os de 2018, 2014 e 2006 ficam só com 'Sim' e 'Não' exatos (macro eixo1_sim_nao_exato) e o resto vira NULL, que é o que o gráfico 11 do R conta.\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e 'Não disponível' viram 'Não', como no R, para as golds baterem com a publicação. Em 09/11/2026, nas colunas do tripé e do patrimônio (tem_plano, tem_conselho, tem_fundo, tem_lei_patrimonio, tem_cons_patrimonio), são 6, 6, 5, 6 e 6 municípios em 2021; 3, 3, 2, 3 e 3 em 2018; 4, 3, 3, 4 e 3 em 2014; 2, 2, 3, 2 e 2 em 2006. Nos equipamentos de 2021, 39 por equipamento (35 '-', 2 'Recusa' e 2 'Não informou'). Nas perguntas que só se aplicam a parte dos municípios (plano_participacao_soc, sec_*, cons_cap_*), o '-' vira 'Não'; as golds de gráfico que usam essas colunas filtram antes por tem_plano ou tem_conselho.\nDIFERENÇA DO R: resposta ausente fica NULL; o R a transformava em 'Não' ou 'Sem Informação'. Conferido contra o CSV do R em 09/11/2026, com as tabelas de seeds do dbanalytics: as 22.274 linhas e as 36 colunas batem, e das 801.864 células diferem 9.682. São 222 de plano_tem_lei em 2018, os municípios em que a pergunta da lei do plano veio vazia na MUNIC 2018 (todos responderam que não têm plano), e 9.460 dos equipamentos de 2018, 2014 e 2006, em que o R guarda '-', 'Recusa' ou 'Não informou' e aqui é NULL (2.360 por equipamento em 2018, 3 em 2014 e 2 em 2006).",
+      "colunas": [
+        {
+          "nome": "cod_municipio",
+          "descricao": "Código IBGE do município, com 7 dígitos (o de 2021). O teste eixo1_munic_codigo_municipio_com_7_digitos pega o código de 6 dígitos de um município de 2006 que não casasse com o cadastro de 2021."
+        },
+        {
+          "nome": "municipio",
+          "descricao": "Nome do município na MUNIC 2021."
+        },
+        {
+          "nome": "cod_uf",
+          "descricao": "Os 2 primeiros dígitos do código do município."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF, pelo código."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, pelo primeiro dígito do código."
+        },
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "populacao",
+          "descricao": "População do município, só em 2021 (a MUNIC 2021 traz)."
+        },
+        {
+          "nome": "tipo_orgao_gestor",
+          "descricao": "Caracterização do órgão gestor da cultura, como o IBGE respondeu."
+        },
+        {
+          "nome": "tem_plano",
+          "descricao": "O município tem plano municipal de cultura ('Sim' ou 'Não')."
+        },
+        {
+          "nome": "tem_conselho",
+          "descricao": "O município tem conselho municipal de cultura ('Sim' ou 'Não')."
+        },
+        {
+          "nome": "tem_fundo",
+          "descricao": "O município tem fundo municipal de cultura ('Sim' ou 'Não')."
+        },
+        {
+          "nome": "tem_lei_patrimonio",
+          "descricao": "O município tem lei de proteção do patrimônio ('Sim' ou 'Não')."
+        },
+        {
+          "nome": "tem_cons_patrimonio",
+          "descricao": "O município tem conselho de patrimônio ('Sim' ou 'Não')."
+        },
+        {
+          "nome": "equip_biblioteca",
+          "descricao": "Tem biblioteca pública, 'Sim' ou 'Não'. Em 2021, pela regra sim/não do modelo, com a exceção; em 2018, 2014 e 2006, só a resposta 'Sim' ou 'Não' exata, e o resto ('-', 'Recusa', 'Não informou') é NULL."
+        },
+        {
+          "nome": "equip_museu",
+          "descricao": "Tem museu. Mesma regra de equip_biblioteca."
+        },
+        {
+          "nome": "equip_teatro",
+          "descricao": "Tem teatro ou sala de espetáculos. Mesma regra de equip_biblioteca."
+        },
+        {
+          "nome": "equip_cinema",
+          "descricao": "Tem cinema. Mesma regra de equip_biblioteca."
+        },
+        {
+          "nome": "gestor_sexo",
+          "descricao": "Sexo do gestor de cultura, como o IBGE respondeu (2014 em diante)."
+        },
+        {
+          "nome": "gestor_idade",
+          "descricao": "Idade do gestor, como o IBGE respondeu (2014 em diante)."
+        },
+        {
+          "nome": "gestor_cor_raca",
+          "descricao": "Cor ou raça do gestor, como o IBGE respondeu (2018 e 2021)."
+        },
+        {
+          "nome": "gestor_escolaridade",
+          "descricao": "Escolaridade do gestor, como o IBGE respondeu."
+        },
+        {
+          "nome": "gestor_idade_num",
+          "descricao": "gestor_idade como número; NULL quando a resposta não é número."
+        },
+        {
+          "nome": "gestor_faixa_etaria",
+          "descricao": "Faixa de idade do gestor (até 29, 30 a 39, 40 a 49, 50 a 59, 60 ou mais)."
+        },
+        {
+          "nome": "gestor_cor_raca_limpa",
+          "descricao": "gestor_cor_raca só quando é Branca, Preta, Parda, Amarela ou Indígena."
+        },
+        {
+          "nome": "gestor_grupo_raca",
+          "descricao": "Negros (pretos e pardos), brancos, ou amarela e indígena."
+        },
+        {
+          "nome": "gestor_escolaridade_agrupada",
+          "descricao": "Escolaridade em cinco grupos: pós-graduação, ensino superior, médio, fundamental ou 'Sem Informação' (resposta que não é nenhum deles)."
+        },
+        {
+          "nome": "plano_tem_lei",
+          "descricao": "O plano tem lei (a resposta traz o número de uma lei), em 2018 e 2021. NULL quando a pergunta veio vazia."
+        },
+        {
+          "nome": "plano_participacao_soc",
+          "descricao": "O plano foi feito com participação social (2018 e 2021)."
+        },
+        {
+          "nome": "sec_educacao",
+          "descricao": "A secretaria de cultura é conjunta com a educação (2018 e 2021)."
+        },
+        {
+          "nome": "sec_esporte",
+          "descricao": "A secretaria de cultura é conjunta com o esporte (2018 e 2021)."
+        },
+        {
+          "nome": "sec_turismo",
+          "descricao": "A secretaria de cultura é conjunta com o turismo (2018 e 2021)."
+        },
+        {
+          "nome": "cons_qtd_membros",
+          "descricao": "Quantidade de membros do conselho (2018 e 2021)."
+        },
+        {
+          "nome": "cons_cap_continuada",
+          "descricao": "O conselho faz capacitação continuada dos conselheiros (2018 e 2021)."
+        },
+        {
+          "nome": "cons_cap_eventual",
+          "descricao": "O conselho faz capacitação eventual dos conselheiros (2018 e 2021)."
+        },
+        {
+          "nome": "cons_cap_nao_realiza",
+          "descricao": "O conselho não faz capacitação dos conselheiros (2018 e 2021)."
+        },
+        {
+          "nome": "orcamento_perc_executado",
+          "descricao": "Faixa do percentual executado do orçamento da cultura, só em 2021 ('0%', 'Até 10%', faixas de 10 pontos, 'Mais de 90%' ou 'Sem Informação')."
+        }
+      ],
+      "colunas_descritas": 36,
+      "testes": 13,
+      "materializacao": "",
+      "depende_de": [
+        "silver_munic_2018_cultura",
+        "silver_munic_2021_cultura",
+        "silver_munic_cultura_2006_conselhos_municipais",
+        "silver_munic_cultura_2006_equipamentos",
+        "silver_munic_cultura_2006_fundo_municipal",
+        "silver_munic_cultura_2006_instrumentos_de_gestao",
+        "silver_munic_cultura_2006_legislacao",
+        "silver_munic_cultura_2006_orgao_gestor",
+        "silver_munic_cultura_2006_recursos_humanos",
+        "silver_munic_cultura_2014_equipamentos",
+        "silver_munic_cultura_2014_fundo_cultura",
+        "silver_munic_cultura_2014_instancias_participativas",
+        "silver_munic_cultura_2014_legislacao",
+        "silver_munic_cultura_2014_orgao_gestor",
+        "silver_munic_cultura_2014_politicas_culturais",
+        "silver_munic_cultura_2014_recursos_humanos"
+      ],
+      "sources": [],
+      "linhas_sql": 431
+    },
+    {
+      "nome": "eixo1_munic_paridade_conselho",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_paridade_conselho.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. A composição dos conselhos municipais de cultura por edição da MUNIC.\nGRÃO: uma linha por edição e composição ('Paritário' ou 'Não Paritário'). UNIVERSO: os conselhos com composição informada.\nPARA QUE SERVE: é a parte da MUNIC (2014, 2018 e 2021) da Figura 15 da publicação e o gráfico 13 do MUNIC.R. A linha de 2026 da figura vem do painel do SNC, mantida à mão no repositório do Eixo 1, e não está aqui. Conferido em 09/11/2026: as seis contagens são iguais às do CSV publicado da Figura 15. A exceção à regra transversal 1 descrita em eixo1_munic_conselho_municipio não muda a figura hoje: nenhum conselho de 2014 respondeu \"Não informado\" na composição.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "composicao_conselho",
+          "descricao": "'Paritário' ou 'Não Paritário'."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios com essa composição na edição."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de conselhos com composição informada na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_conselho_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 25
+    },
+    {
       "nome": "eixo2_meta3_cobertura_pagamento",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -1555,6 +1802,5042 @@
       ],
       "sources": [],
       "linhas_sql": 98
+    },
+    {
+      "nome": "bronze_munic_2018_cultura",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_2018_cultura.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_2018_cultura, a aba \"Cultura\" da MUNIC 2018 (IBGE, Base_MUNIC_2018_xlsx_20201103.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_2018_cultura"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_munic_2021_cultura",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_2021_cultura.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_2021_cultura, a aba \"Cultura\" da MUNIC 2021 (IBGE, Base_MUNIC_2021_20240425.xlsx), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_2021_cultura"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_munic_cultura_2006_conselhos_municipais",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2006_conselhos_municipais.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_conselhos_municipais, a aba \"Conselhos municipais\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2006_conselhos_municipais"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2006_equipamentos",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2006_equipamentos.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_equipamentos, a aba \"Equipamentos\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2006_equipamentos"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2006_fundo_municipal",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2006_fundo_municipal.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_fundo_municipal, a aba \"Fundo municipal\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2006_fundo_municipal"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2006_instrumentos_de_gestao",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2006_instrumentos_de_gestao.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_instrumentos_de_gestao, a aba \"Instrumentos de gestão\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2006_instrumentos_de_gestao"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2006_legislacao",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2006_legislacao.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_legislacao, a aba \"Legislação\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2006_legislacao"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2006_orgao_gestor",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2006_orgao_gestor.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_orgao_gestor, a aba \"Órgão gestor\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2006_orgao_gestor"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2006_recursos_humanos",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2006_recursos_humanos.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_recursos_humanos, a aba \"Recursos humanos\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2006_recursos_humanos"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2014_equipamentos",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2014_equipamentos.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_equipamentos, a aba \"Equipamentos\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2014_equipamentos"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2014_fundo_cultura",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2014_fundo_cultura.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_fundo_cultura, a aba \"Fundo cultura\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2014_fundo_cultura"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2014_instancias_participativas",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2014_instancias_participativas.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_instancias_participativas, a aba \"Instâncias participativas\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2014_instancias_participativas"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2014_legislacao",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2014_legislacao.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_legislacao, a aba \"Legislação\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2014_legislacao"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2014_orgao_gestor",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2014_orgao_gestor.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_orgao_gestor, a aba \"Órgão gestor\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2014_orgao_gestor"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2014_politicas_culturais",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2014_politicas_culturais.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_politicas_culturais, a aba \"Políticas culturais\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2014_politicas_culturais"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "bronze_munic_cultura_2014_recursos_humanos",
+      "dominio": "ibge",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/bronze_munic_cultura_2014_recursos_humanos.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_recursos_humanos, a aba \"Recursos humanos\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge.munic_cultura_2014_recursos_humanos"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "silver_munic_2018_cultura",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_2018_cultura.sql",
+      "descricao": "Camada Silver — a aba \"Cultura\" da MUNIC 2018 tipada, lida de bronze_munic_2018_cultura. Uma linha por município. 177 colunas, 4 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "cod_uf",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "classe_pop",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "codmun",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "desc_mun",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "teste",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "cod_municipio",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "nome_munic",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "cod_municipio_2",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "mcul01",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul03",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul04",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul05",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul051",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul06",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul10",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul101a",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul101b",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul102",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul11",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1111",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1112",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1113",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1114",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1115",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1116",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul121",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul122",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul13",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul14",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul141",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul15",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul151a",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul151b",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul161",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul162",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul17",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul18",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1811",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1812",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1813",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1814",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul19",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul191a",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul191b",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul192",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul201",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul202",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul203",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul204",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul21",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul22",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul231",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul232",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul233",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul24",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2411",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2412",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2413",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2414",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2415",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2416",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2417",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2418",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul251",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul252",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul253",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul254",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul255",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul256",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul257",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul258",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul259",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2510",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2511",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2512",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul26",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul261a",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul261b",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul262",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul271",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul272",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul273",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul274",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul28",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul29",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul301",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul302",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul303",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul31",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3111",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3112",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3113",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3114",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3115",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3116",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3117",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3118",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3201",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3202",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3203",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3204",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3205",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3206",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3207",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3208",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3209",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3210",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3211",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3212",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul33",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul331",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul34",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul351",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul352",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul353",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul354",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul355",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul356",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul357",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul358",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul359",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3510",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3511",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3512",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul361",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul362",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul363",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul364",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul365",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul366",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul367",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul368",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul369",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul371",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul372",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul373",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul374",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul375",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul376",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul377",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul378",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul379",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul38",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3901",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39011",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3902",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39021",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3903",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39031",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3904",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39041",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3905",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39051",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3906",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39061",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3907",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39071",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3908",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3909",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3910",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3911",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3912",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3913",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3914",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3915",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3916",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3917",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3918",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3919",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3920",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul40",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul401",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul402",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul41",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 177,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_2018_cultura"
+      ],
+      "sources": [],
+      "linhas_sql": 189
+    },
+    {
+      "nome": "silver_munic_2021_cultura",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_2021_cultura.sql",
+      "descricao": "Camada Silver — a aba \"Cultura\" da MUNIC 2021 tipada, lida de bronze_munic_2021_cultura. Uma linha por município. 241 colunas, 3 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "codmun",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "cod_uf",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "mun",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "pop",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "faixa_pop",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul01",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul03",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul04",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul05",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul051",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul06",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul10",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul101a",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul101b",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul102",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul11",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1111",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1112",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1113",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1114",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1115",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul1116",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul121",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul122",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul13",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul14",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul141",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul15",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul151a",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul151b",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul161",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul162",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul19",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul191a",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul191b",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul191c",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul192",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul201",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul202",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul203",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul204",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul21",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul22",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul231",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul232",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul233",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul24",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2411",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2412",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2413",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2414",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2415",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2416",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2417",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2418",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul2419",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul26",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul261a",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul261b",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul261c",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul262",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul271",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul272",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul273",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul274",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul28",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul29",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul301",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul302",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul303",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul31",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3111",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3112",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3113",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3114",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3115",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3116",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3117",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3118",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3119",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul33",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul331",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul34",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul351",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul352",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul353",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul354",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul355",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul356",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul357",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul358",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul359",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3510",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3511",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3512",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3513",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3514",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3515",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3516",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3517",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a1",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a2",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a3",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a4",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a5",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a6",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a7",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a8",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a9",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a10",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a11",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a12",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a13",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a14",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a15",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a16",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul35a17",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul361",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul362",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul363",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul364",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul365",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul366",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul367",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul368",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul369",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3610",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3611",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul371",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul372",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul373",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul374",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul375",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul376",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul377",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul378",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul379",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul38",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3901",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39011",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3902",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39021",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3903",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39031",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3904",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39041",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3905",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39051",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3906",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39061",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3907",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul39071",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3908",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3909",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3910",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3911",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3912",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3913",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3914",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3915",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3916",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3917",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3918",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3919",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul3920",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul40",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul401",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul402",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul41",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul42",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4211",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4212",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4213",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4214",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4215",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4216",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul43",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul441",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul442",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul443",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul444",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul445",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul446",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul447",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul448",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul449",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4410",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul451",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul452",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul453",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul454",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul455",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul456",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul457",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul458",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul46",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4611",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4612",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4613",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4614",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4615",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4616",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4617",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4618",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4619",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul471",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul472",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul473",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul474",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul475",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul476",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul477",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul478",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul479",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4710",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4711",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4712",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4713",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4714",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4715",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4716",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4717",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4718",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4719",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4720",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4721",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul481",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul482",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul483",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul484",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul485",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul486",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul487",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul488",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul489",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4810",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "mcul4811",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 241,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_2021_cultura"
+      ],
+      "sources": [],
+      "linhas_sql": 253
+    },
+    {
+      "nome": "silver_munic_cultura_2006_conselhos_municipais",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2006_conselhos_municipais.sql",
+      "descricao": "Camada Silver — a aba \"Conselhos municipais\" da MUNIC 2006, suplemento de cultura tipada, lida de bronze_munic_cultura_2006_conselhos_municipais. Uma linha por município. 69 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5564 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a130",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a131",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a132",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a133",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a134",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a135",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a136",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a137",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a138",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a139",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a140",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a141",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a142",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a143",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a144",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a145",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a146",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a147",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a148",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a149",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a150",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a151",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a152",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a153",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a154",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a155",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a156",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a157",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a158",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a159",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a160",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a161",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a162",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a163",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a164",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a165",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a166",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a167",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a168",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a169",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a170",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a171",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a172",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a173",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a174",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a175",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a176",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a177",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a178",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a179",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a180",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a181",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a182",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a183",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a184",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a185",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a186",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a187",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a188",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a189",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a190",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a191",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a192",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a193",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a194",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a195",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 69,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2006_conselhos_municipais"
+      ],
+      "sources": [],
+      "linhas_sql": 81
+    },
+    {
+      "nome": "silver_munic_cultura_2006_equipamentos",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2006_equipamentos.sql",
+      "descricao": "Camada Silver — a aba \"Equipamentos\" da MUNIC 2006, suplemento de cultura tipada, lida de bronze_munic_cultura_2006_equipamentos. Uma linha por município. 27 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5564 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a424",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a425",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a426",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a427",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a428",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a429",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a430",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a431",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a432",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a433",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a434",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a435",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a436",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a437",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a438",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a439",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a440",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a441",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a442",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a443",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a444",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a285",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a445",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a446",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 27,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2006_equipamentos"
+      ],
+      "sources": [],
+      "linhas_sql": 39
+    },
+    {
+      "nome": "silver_munic_cultura_2006_fundo_municipal",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2006_fundo_municipal.sql",
+      "descricao": "Camada Silver — a aba \"Fundo municipal\" da MUNIC 2006, suplemento de cultura tipada, lida de bronze_munic_cultura_2006_fundo_municipal. Uma linha por município. 36 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5564 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a196",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a197",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a198",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a199",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a200",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a201",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a202",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a203",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a204",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a205",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a206",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a207",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a208",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a209",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a210",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a211",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a212",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a213",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a214",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a215",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a216",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a217",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a218",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a219",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a220",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a221",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a222",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a223",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a224",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a225",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a226",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a227",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a228",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 36,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2006_fundo_municipal"
+      ],
+      "sources": [],
+      "linhas_sql": 48
+    },
+    {
+      "nome": "silver_munic_cultura_2006_instrumentos_de_gestao",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2006_instrumentos_de_gestao.sql",
+      "descricao": "Camada Silver — a aba \"Instrumentos de gestão\" da MUNIC 2006, suplemento de cultura tipada, lida de bronze_munic_cultura_2006_instrumentos_de_gestao. Uma linha por município. 54 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5564 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a56",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a57",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a58",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a59",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a60",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a61",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a62",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a63",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a64",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a65",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a66",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a67",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a68",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a69",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a70",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a71",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a72",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a73",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a74",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a75",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a76",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a77",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a78",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a79",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a80",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a81",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a82",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a83",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a84",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a85",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a86",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a87",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a88",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a89",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a90",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a91",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a92",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a93",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a94",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a95",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a96",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a97",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a98",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a99",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a100",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a101",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a102",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a103",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a104",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a105",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a106",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 54,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2006_instrumentos_de_gestao"
+      ],
+      "sources": [],
+      "linhas_sql": 66
+    },
+    {
+      "nome": "silver_munic_cultura_2006_legislacao",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2006_legislacao.sql",
+      "descricao": "Camada Silver — a aba \"Legislação\" da MUNIC 2006, suplemento de cultura tipada, lida de bronze_munic_cultura_2006_legislacao. Uma linha por município. 26 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5564 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a107",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a108",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a109",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a110",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a111",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a112",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a113",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a114",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a115",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a116",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a117",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a118",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a119",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a120",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a121",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a122",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a123",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a124",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a125",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a126",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a127",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a128",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a129",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 26,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2006_legislacao"
+      ],
+      "sources": [],
+      "linhas_sql": 38
+    },
+    {
+      "nome": "silver_munic_cultura_2006_orgao_gestor",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2006_orgao_gestor.sql",
+      "descricao": "Camada Silver — a aba \"Órgão gestor\" da MUNIC 2006, suplemento de cultura tipada, lida de bronze_munic_cultura_2006_orgao_gestor. Uma linha por município. 5 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5564 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a2",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a3",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2006_orgao_gestor"
+      ],
+      "sources": [],
+      "linhas_sql": 17
+    },
+    {
+      "nome": "silver_munic_cultura_2006_recursos_humanos",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2006_recursos_humanos.sql",
+      "descricao": "Camada Silver — a aba \"Recursos humanos\" da MUNIC 2006, suplemento de cultura tipada, lida de bronze_munic_cultura_2006_recursos_humanos. Uma linha por município. 47 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5564 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a12",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a13",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a14",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a15",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a16",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a17",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a18",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a19",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a20",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a21",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a22",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a23",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a24",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a25",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a26",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a27",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a28",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a29",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a30",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a31",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a32",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a33",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a34",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a35",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a36",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a37",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a38",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a39",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a40",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a41",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a42",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a43",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a44",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a45",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a46",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a47",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a48",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a49",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a50",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a51",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a52",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a53",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a54",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a55",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 47,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2006_recursos_humanos"
+      ],
+      "sources": [],
+      "linhas_sql": 59
+    },
+    {
+      "nome": "silver_munic_cultura_2014_equipamentos",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2014_equipamentos.sql",
+      "descricao": "Camada Silver — a aba \"Equipamentos\" da MUNIC 2014, suplemento de cultura tipada, lida de bronze_munic_cultura_2014_equipamentos. Uma linha por município. 33 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a413",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a414",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a415",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a416",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a417",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a418",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a419",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a420",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a421",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a422",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a423",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a424",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a425",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a426",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a427",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a428",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a429",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a430",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a431",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a432",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a433",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a434",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a435",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a436",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a437",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a438",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a439",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a440",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a441",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a442",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 33,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2014_equipamentos"
+      ],
+      "sources": [],
+      "linhas_sql": 45
+    },
+    {
+      "nome": "silver_munic_cultura_2014_fundo_cultura",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2014_fundo_cultura.sql",
+      "descricao": "Camada Silver — a aba \"Fundo cultura\" da MUNIC 2014, suplemento de cultura tipada, lida de bronze_munic_cultura_2014_fundo_cultura. Uma linha por município. 35 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a372",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a373",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a374",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a375",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a376",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a377",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a378",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a379",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a380",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a381",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a382",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a383",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a384",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a385",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a386",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a387",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a388",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a389",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a390",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a391",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a392",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a393",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a394",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a395",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a396",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a397",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a398",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a399",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a400",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a401",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a402",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a403",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 35,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2014_fundo_cultura"
+      ],
+      "sources": [],
+      "linhas_sql": 47
+    },
+    {
+      "nome": "silver_munic_cultura_2014_instancias_participativas",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2014_instancias_participativas.sql",
+      "descricao": "Camada Silver — a aba \"Instâncias participativas\" da MUNIC 2014, suplemento de cultura tipada, lida de bronze_munic_cultura_2014_instancias_participativas. Uma linha por município. 70 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a305",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a306",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a307",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a308",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a309",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a310",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a311",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a312",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a313",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a314",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a315",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a316",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a317",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a318",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a319",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a320",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a321",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a322",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a323",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a324",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a325",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a326",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a327",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a328",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a329",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a330",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a331",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a332",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a333",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a334",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a335",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a336",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a337",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a338",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a339",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a340",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a341",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a342",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a343",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a344",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a345",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a346",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a347",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a348",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a349",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a350",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a351",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a352",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a353",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a354",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a355",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a356",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a357",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a358",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a359",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a360",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a361",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a362",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a363",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a364",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a365",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a366",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a367",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a368",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a369",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a370",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a371",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 70,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2014_instancias_participativas"
+      ],
+      "sources": [],
+      "linhas_sql": 82
+    },
+    {
+      "nome": "silver_munic_cultura_2014_legislacao",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2014_legislacao.sql",
+      "descricao": "Camada Silver — a aba \"Legislação\" da MUNIC 2014, suplemento de cultura tipada, lida de bronze_munic_cultura_2014_legislacao. Uma linha por município. 22 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a286",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a287",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a288",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a289",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a290",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a291",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a292",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a293",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a294",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a295",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a296",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a297",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a298",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a299",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a300",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a301",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a302",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a303",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a304",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 22,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2014_legislacao"
+      ],
+      "sources": [],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "silver_munic_cultura_2014_orgao_gestor",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2014_orgao_gestor.sql",
+      "descricao": "Camada Silver — a aba \"Órgão gestor\" da MUNIC 2014, suplemento de cultura tipada, lida de bronze_munic_cultura_2014_orgao_gestor. Uma linha por município. 5 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a2",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a3",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2014_orgao_gestor"
+      ],
+      "sources": [],
+      "linhas_sql": 17
+    },
+    {
+      "nome": "silver_munic_cultura_2014_politicas_culturais",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2014_politicas_culturais.sql",
+      "descricao": "Camada Silver — a aba \"Políticas culturais\" da MUNIC 2014, suplemento de cultura tipada, lida de bronze_munic_cultura_2014_politicas_culturais. Uma linha por município. 214 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a75",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a76",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a77",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a78",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a79",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a80",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a81",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a82",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a83",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a84",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a85",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a86",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a87",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a88",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a89",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a90",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a91",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a92",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a93",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a94",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a95",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a96",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a97",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a98",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a99",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a100",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a101",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a102",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a103",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a104",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a105",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a106",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a107",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a108",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a109",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a110",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a111",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a112",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a113",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a114",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a115",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a116",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a117",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a118",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a119",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a120",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a121",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a122",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a123",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a124",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a125",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a126",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a127",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a128",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a129",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a130",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a131",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a132",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a133",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a134",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a135",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a136",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a137",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a138",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a139",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a140",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a141",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a142",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a143",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a144",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a145",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a146",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a147",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a148",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a149",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a150",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a151",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a152",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a153",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a154",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a155",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a156",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a157",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a158",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a159",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a160",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a161",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a162",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a163",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a164",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a165",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a166",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a167",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a168",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a169",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a170",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a171",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a172",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a173",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a174",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a175",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a176",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a177",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a178",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a179",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a180",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a181",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a182",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a183",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a184",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a185",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a186",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a187",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a188",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a189",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a190",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a191",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a192",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a193",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a194",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a195",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a196",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a197",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a198",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a199",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a200",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a201",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a202",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a203",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a204",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a205",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a206",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a207",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a208",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a209",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a210",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a211",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a212",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a213",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a214",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a215",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a216",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a217",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a218",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a219",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a220",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a221",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a222",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a223",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a224",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a225",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a226",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a227",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a228",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a229",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a230",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a231",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a232",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a233",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a234",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a235",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a236",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a237",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a238",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a239",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a240",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a241",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a242",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a243",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a244",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a245",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a246",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a247",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a248",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a249",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a250",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a251",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a252",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a253",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a254",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a255",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a256",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a257",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a258",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a259",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a260",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a261",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a262",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a263",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a264",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a265",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a266",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a267",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a268",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a269",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a270",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a271",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a272",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a273",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a274",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a275",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a276",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a277",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a278",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a279",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a280",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a281",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a282",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a283",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a284",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a285",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 214,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2014_politicas_culturais"
+      ],
+      "sources": [],
+      "linhas_sql": 226
+    },
+    {
+      "nome": "silver_munic_cultura_2014_recursos_humanos",
+      "dominio": "ibge",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge/silver_munic_cultura_2014_recursos_humanos.sql",
+      "descricao": "Camada Silver — a aba \"Recursos humanos\" da MUNIC 2014, suplemento de cultura tipada, lida de bronze_munic_cultura_2014_recursos_humanos. Uma linha por município. 58 colunas, 1 com cast aplicado; as respostas do questionário continuam como o IBGE publica. O significado de cada código de variável está no dicionário da edição.",
+      "colunas": [
+        {
+          "nome": "a1",
+          "descricao": "Tipagem: 100% dos 5570 valores preenchidos casam com inteiro."
+        },
+        {
+          "nome": "a20",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a21",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a22",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a23",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a24",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a25",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a26",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a27",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a28",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a29",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a30",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a31",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a32",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a33",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a34",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a35",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a36",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a37",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a38",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a39",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a40",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a41",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a42",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a43",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a44",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a45",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a46",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a47",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a48",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a49",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a50",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a51",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a52",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a53",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a54",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a55",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a56",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a57",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a58",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a59",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a60",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a61",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a62",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a63",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a64",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a65",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a66",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a67",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a68",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a69",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a70",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a71",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a72",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a73",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "a74",
+          "descricao": "Tipagem: valores heterogêneos."
+        },
+        {
+          "nome": "edicao",
+          "descricao": "Tipagem: coluna constante."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Tipagem: coluna constante."
+        }
+      ],
+      "colunas_descritas": 58,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_munic_cultura_2014_recursos_humanos"
+      ],
+      "sources": [],
+      "linhas_sql": 70
     },
     {
       "nome": "bronze_agregados_catalogo",
@@ -42897,7 +48180,7 @@
       "sources": [
         "senado.legislacao_detalhe_secoes"
       ],
-      "linhas_sql": 5
+      "linhas_sql": 6
     },
     {
       "nome": "bronze_legislacao_lista",
@@ -44813,10 +50096,18 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 14,
-      "testes": 73,
+      "modelos": 17,
+      "testes": 98,
       "camadas": {
-        "gold": 14
+        "gold": 17
+      }
+    },
+    "ibge": {
+      "modelos": 32,
+      "testes": 0,
+      "camadas": {
+        "bronze": 16,
+        "silver": 16
       }
     },
     "ibge_sidra": {
@@ -47956,12 +53247,83 @@
           "descricao": "Pesquisas do IBGE com tabelas no SIDRA: uma linha por pesquisa, com a lista dos seus agregados em JSON. GET /agregados. Tudo text."
         }
       ]
+    },
+    {
+      "nome": "ibge",
+      "schema": "seeds",
+      "descricao": "",
+      "tabelas": [
+        {
+          "nome": "munic_2021_cultura",
+          "descricao": "Aba \"Cultura\" da MUNIC 2021 (IBGE, Base_MUNIC_2021_20240425.xlsx), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_2018_cultura",
+          "descricao": "Aba \"Cultura\" da MUNIC 2018 (IBGE, Base_MUNIC_2018_xlsx_20201103.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2014_orgao_gestor",
+          "descricao": "Aba \"Órgão gestor\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2014_politicas_culturais",
+          "descricao": "Aba \"Políticas culturais\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2014_instancias_participativas",
+          "descricao": "Aba \"Instâncias participativas\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2014_fundo_cultura",
+          "descricao": "Aba \"Fundo cultura\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2014_recursos_humanos",
+          "descricao": "Aba \"Recursos humanos\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2014_legislacao",
+          "descricao": "Aba \"Legislação\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2014_equipamentos",
+          "descricao": "Aba \"Equipamentos\" da MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2006_orgao_gestor",
+          "descricao": "Aba \"Órgão gestor\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2006_instrumentos_de_gestao",
+          "descricao": "Aba \"Instrumentos de gestão\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2006_conselhos_municipais",
+          "descricao": "Aba \"Conselhos municipais\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2006_fundo_municipal",
+          "descricao": "Aba \"Fundo municipal\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2006_recursos_humanos",
+          "descricao": "Aba \"Recursos humanos\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2006_legislacao",
+          "descricao": "Aba \"Legislação\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        },
+        {
+          "nome": "munic_cultura_2006_equipamentos",
+          "descricao": "Aba \"Equipamentos\" da MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip), uma linha por município, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
+        }
+      ]
     }
   ],
   "totais": {
-    "modelos": 744,
-    "testes": 908,
-    "com_descricao": 743,
-    "sources": 740
+    "modelos": 779,
+    "testes": 933,
+    "com_descricao": 778,
+    "sources": 756
   }
 }

@@ -16,6 +16,20 @@ version: 2
 # eixo2_meta3_pagamento_elegivel (o denominador, 1 linha por pagamento, com as
 # flags e o território). As demais leem delas. Migrado da antiga pasta de cotas sem mudança
 # de número; o que ainda mistura limpeza com regra está dito em cada description.
+#
+# O Eixo 1 (Gestão e Participação Social) não numera metas: a ficha de metadados
+# identifica os indicadores por IND_NNN, e o repositório da SGE se organiza por
+# frente de estudo. No lugar da meta vai a frente: eixo1_<frente>_<nome>, com
+# frente em munic, estadic, snc ou orcamento. As golds reproduzem os scripts do
+# repositório SGE-Subsecretaria-de-Gestao-Estrategica/cultura-em-numeros-eixo-1;
+# onde a regra do R contraria o ADR 0010, a description diz a diferença. Na frente
+# MUNIC, eixo1_munic_painel_municipio e eixo1_munic_conselho_municipio são as
+# golds-base, e as outras leem delas.
+#
+# Exceção à regra transversal 1 do ADR 0010 no Eixo 1: '-', 'Recusa' e 'Não
+# informou' viram 'Não' (macro eixo1_sim_nao), como nos scripts do R, para as
+# golds baterem com a publicação. Resposta ausente continua NULL. A description
+# de cada gold-base diz quantas respostas caem na exceção, por edição.
 models:
   - name: eixo2_meta5_evento_fomento
     description: >
@@ -1616,5 +1630,357 @@ models:
           responde à Meta 5 — contar novos entrantes é somar esta coluna por
           ano.
         data_type: boolean
+        tests:
+          - not_null
+
+  - name: eixo1_munic_painel_municipio
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o
+      painel histórico da gestão municipal de cultura.
+
+      GRÃO: uma linha por município e edição da MUNIC (2006, 2014, 2018, 2021).
+      UNIVERSO: os municípios de cada edição, 5.564 em 2006 e 5.570 nas outras
+      (22.274 linhas).
+
+      PARA QUE SERVE: é a base dos gráficos da frente MUNIC (tripé de plano,
+      conselho e fundo, perfil do gestor, equipamentos, execução orçamentária).
+      Reproduz o df_painel_historico do MUNIC.R, que grava
+      munic_cultura_painel_historico_06_21.csv.
+
+      A REGRA: qual pergunta de cada edição responde cada variável (em 2021 e
+      2018, a aba Cultura; em 2014 e 2006, as abas do suplemento de cultura,
+      ligadas pelo código do município); como a resposta vira 'Sim' ou 'Não'
+      (macro eixo1_sim_nao: começa por "sim" é 'Sim', qualquer outra resposta
+      preenchida é 'Não'; 'Em elaboração', na pergunta do plano, é 'Não'); e as
+      faixas de idade, raça, escolaridade e execução orçamentária. Toda edição
+      recebe o código e o nome de 2021 pelos 6 primeiros dígitos, porque 2006 não
+      tem o dígito verificador. 2018, 2014 e 2006 não trazem população nem
+      execução orçamentária. Os equipamentos de 2021 passam pela macro; os de
+      2018, 2014 e 2006 ficam só com 'Sim' e 'Não' exatos (macro
+      eixo1_sim_nao_exato) e o resto vira NULL, que é o que o gráfico 11 do R
+      conta.
+
+      EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e
+      'Não disponível' viram 'Não', como no R, para as golds baterem com a
+      publicação. Em 09/11/2026, nas colunas do tripé e do patrimônio (tem_plano,
+      tem_conselho, tem_fundo, tem_lei_patrimonio, tem_cons_patrimonio), são 6, 6,
+      5, 6 e 6 municípios em 2021; 3, 3, 2, 3 e 3 em 2018; 4, 3, 3, 4 e 3 em 2014;
+      2, 2, 3, 2 e 2 em 2006. Nos equipamentos de 2021, 39 por equipamento (35
+      '-', 2 'Recusa' e 2 'Não informou'). Nas perguntas que só se aplicam a parte
+      dos municípios (plano_participacao_soc, sec_*, cons_cap_*), o '-' vira
+      'Não'; as golds de gráfico que usam essas colunas filtram antes por
+      tem_plano ou tem_conselho.
+
+      DIFERENÇA DO R: resposta ausente fica NULL; o R a transformava em 'Não' ou
+      'Sem Informação'. Conferido contra o CSV do R em 09/11/2026, com as tabelas
+      de seeds do dbanalytics: as 22.274 linhas e as 36 colunas batem, e das
+      801.864 células diferem 9.682. São 222 de plano_tem_lei em 2018, os
+      municípios em que a pergunta da lei do plano veio vazia na MUNIC 2018 (todos
+      responderam que não têm plano), e 9.460 dos equipamentos de 2018, 2014 e
+      2006, em que o R guarda '-', 'Recusa' ou 'Não informou' e aqui é NULL (2.360
+      por equipamento em 2018, 3 em 2014 e 2 em 2006).
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: cod_municipio
+        description: >
+          Código IBGE do município, com 7 dígitos (o de 2021). O teste
+          eixo1_munic_codigo_municipio_com_7_digitos pega o código de 6 dígitos
+          de um município de 2006 que não casasse com o cadastro de 2021.
+        data_type: text
+        tests:
+          - not_null
+      - name: municipio
+        description: Nome do município na MUNIC 2021.
+        data_type: text
+      - name: cod_uf
+        description: Os 2 primeiros dígitos do código do município.
+        data_type: text
+      - name: uf
+        description: Sigla da UF, pelo código.
+        data_type: text
+      - name: regiao
+        description: Grande região, pelo primeiro dígito do código.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Norte', 'Nordeste', 'Sudeste', 'Sul', 'Centro-Oeste']
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
+      - name: populacao
+        description: População do município, só em 2021 (a MUNIC 2021 traz).
+        data_type: bigint
+      - name: tipo_orgao_gestor
+        description: Caracterização do órgão gestor da cultura, como o IBGE respondeu.
+        data_type: text
+      - name: tem_plano
+        description: O município tem plano municipal de cultura ('Sim' ou 'Não').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_conselho
+        description: O município tem conselho municipal de cultura ('Sim' ou 'Não').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_fundo
+        description: O município tem fundo municipal de cultura ('Sim' ou 'Não').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_lei_patrimonio
+        description: O município tem lei de proteção do patrimônio ('Sim' ou 'Não').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_cons_patrimonio
+        description: O município tem conselho de patrimônio ('Sim' ou 'Não').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: equip_biblioteca
+        description: >
+          Tem biblioteca pública, 'Sim' ou 'Não'. Em 2021, pela regra sim/não do
+          modelo, com a exceção; em 2018, 2014 e 2006, só a resposta 'Sim' ou
+          'Não' exata, e o resto ('-', 'Recusa', 'Não informou') é NULL.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: equip_museu
+        description: Tem museu. Mesma regra de equip_biblioteca.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: equip_teatro
+        description: Tem teatro ou sala de espetáculos. Mesma regra de equip_biblioteca.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: equip_cinema
+        description: Tem cinema. Mesma regra de equip_biblioteca.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: gestor_sexo
+        description: Sexo do gestor de cultura, como o IBGE respondeu (2014 em diante).
+        data_type: text
+      - name: gestor_idade
+        description: Idade do gestor, como o IBGE respondeu (2014 em diante).
+        data_type: text
+      - name: gestor_cor_raca
+        description: Cor ou raça do gestor, como o IBGE respondeu (2018 e 2021).
+        data_type: text
+      - name: gestor_escolaridade
+        description: Escolaridade do gestor, como o IBGE respondeu.
+        data_type: text
+      - name: gestor_idade_num
+        description: gestor_idade como número; NULL quando a resposta não é número.
+        data_type: numeric
+      - name: gestor_faixa_etaria
+        description: Faixa de idade do gestor (até 29, 30 a 39, 40 a 49, 50 a 59, 60 ou mais).
+        data_type: text
+      - name: gestor_cor_raca_limpa
+        description: gestor_cor_raca só quando é Branca, Preta, Parda, Amarela ou Indígena.
+        data_type: text
+      - name: gestor_grupo_raca
+        description: Negros (pretos e pardos), brancos, ou amarela e indígena.
+        data_type: text
+      - name: gestor_escolaridade_agrupada
+        description: >
+          Escolaridade em cinco grupos: pós-graduação, ensino superior, médio,
+          fundamental ou 'Sem Informação' (resposta que não é nenhum deles).
+        data_type: text
+      - name: plano_tem_lei
+        description: >
+          O plano tem lei (a resposta traz o número de uma lei), em 2018 e 2021.
+          NULL quando a pergunta veio vazia.
+        data_type: text
+      - name: plano_participacao_soc
+        description: O plano foi feito com participação social (2018 e 2021).
+        data_type: text
+      - name: sec_educacao
+        description: A secretaria de cultura é conjunta com a educação (2018 e 2021).
+        data_type: text
+      - name: sec_esporte
+        description: A secretaria de cultura é conjunta com o esporte (2018 e 2021).
+        data_type: text
+      - name: sec_turismo
+        description: A secretaria de cultura é conjunta com o turismo (2018 e 2021).
+        data_type: text
+      - name: cons_qtd_membros
+        description: Quantidade de membros do conselho (2018 e 2021).
+        data_type: numeric
+      - name: cons_cap_continuada
+        description: O conselho faz capacitação continuada dos conselheiros (2018 e 2021).
+        data_type: text
+      - name: cons_cap_eventual
+        description: O conselho faz capacitação eventual dos conselheiros (2018 e 2021).
+        data_type: text
+      - name: cons_cap_nao_realiza
+        description: O conselho não faz capacitação dos conselheiros (2018 e 2021).
+        data_type: text
+      - name: orcamento_perc_executado
+        description: >
+          Faixa do percentual executado do orçamento da cultura, só em 2021
+          ('0%', 'Até 10%', faixas de 10 pontos, 'Mais de 90%' ou 'Sem
+          Informação').
+        data_type: text
+
+  - name: eixo1_munic_conselho_municipio
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o
+      perfil dos conselhos municipais de cultura.
+
+      GRÃO: uma linha por município e edição (2014, 2018, 2021). UNIVERSO: os
+      municípios que responderam ter conselho de cultura (2.151 em 2014, 2.352
+      em 2018 e 2.804 em 2021).
+
+      PARA QUE SERVE: base da paridade (Figura 15) e da competência dos
+      conselhos. Reproduz o df_conselhos_detalhado do MUNIC.R.
+
+      A REGRA: a composição vira 'Paritário', 'Não Paritário' ou 'Sem Informação'
+      pelo texto da resposta; "não paritário" é testado antes de "paritário"
+      (nenhuma resposta assim em 09/11/2026). A competência vira uma categoria:
+      deliberativo (com ou sem consultivo), apenas consultivo, normativo ou
+      fiscalizador, ou 'Sem Informação'.
+
+      EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: em 2014, "Não
+      informado" na composição conta como 'Não Paritário', porque o padrão procura
+      "não"; em 09/11/2026 nenhum dos 2.151 conselhos de 2014 tem essa resposta
+      (1.671 'É paritário', 365 com maior representação da sociedade civil e 115
+      com maior representação governamental). Na competência, '-' e 'Não informou'
+      viram 'Não' nas quatro perguntas, e o conselho cai em 'Sem Informação': 862
+      em 2021, nenhum em 2018 e 2014. Em 2021, a composição '-' ou 'Não informou'
+      é 'Sem Informação' (863).
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: cod_municipio
+        description: Código IBGE do município, com 7 dígitos.
+        data_type: text
+        tests:
+          - not_null
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2014, 2018, 2021]
+                quote: false
+      - name: cons_paritario
+        description: Composição do conselho.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Paritário', 'Não Paritário', 'Sem Informação']
+      - name: cons_competencia
+        description: Competência do conselho.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Deliberativo (com ou sem consultivo)'
+                  - 'Apenas Consultivo'
+                  - 'Normativo / Fiscalizador'
+                  - 'Sem Informação'
+
+  - name: eixo1_munic_paridade_conselho
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. A composição
+      dos conselhos municipais de cultura por edição da MUNIC.
+
+      GRÃO: uma linha por edição e composição ('Paritário' ou 'Não
+      Paritário'). UNIVERSO: os conselhos com composição informada.
+
+      PARA QUE SERVE: é a parte da MUNIC (2014, 2018 e 2021) da Figura 15 da
+      publicação e o gráfico 13 do MUNIC.R. A linha de 2026 da figura vem do
+      painel do SNC, mantida à mão no repositório do Eixo 1, e não está aqui.
+      Conferido em 09/11/2026: as seis contagens são iguais às do CSV publicado da
+      Figura 15. A exceção à regra transversal 1 descrita em
+      eixo1_munic_conselho_municipio não muda a figura hoje: nenhum conselho de
+      2014 respondeu "Não informado" na composição.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: composicao_conselho
+        description: "'Paritário' ou 'Não Paritário'."
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Paritário', 'Não Paritário']
+      - name: quantidade_municipios
+        description: Quantidade de municípios com essa composição na edição.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de conselhos com composição informada na edição.
+        data_type: numeric
         tests:
           - not_null
