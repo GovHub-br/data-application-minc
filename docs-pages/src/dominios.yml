@@ -175,6 +175,43 @@ dominios:
       com elas. Por fim, o portal anda atrás da planilha interna da
       Plataforma SNC: a lista fica tão atual quanto o portal, não mais.
 
+  - slug: senado
+    rotulo: Legislação federal
+    subtitulo: As leis, leis complementares e decretos federais, como o Senado os publica
+    contexto: |
+      O Eixo 3 do Cultura em Números levanta a legislação federal sobre
+      patrimônio, arquivos, acervos e memória. Ninguém mantém essa lista
+      pronta: é preciso percorrer todas as normas federais e decidir quais
+      tratam do tema. O script do eixo fazia isso a partir de um cache no
+      computador de quem o rodava, e cada atualização dependia de rodá-lo de
+      novo à mão.
+    o_que_faz: |
+      Todo mês, pede à API de Dados Abertos do Senado a lista de leis, leis
+      complementares e decretos de cada ano, desde 1988, e o detalhe de cada
+      norma que ainda não tinha sido baixada: as publicações, as alterações,
+      os dispositivos, a indexação e a classe temática do Senado. Guarda as
+      respostas como vieram e as põe em tabelas no schema senado, sem escolher
+      nada. Ainda não há tabela de uso final: a seleção das normas do tema é
+      uma regra do Eixo 3 e vai ser feita na etapa seguinte.
+    perguntas:
+      - Que normas federais foram assinadas em cada ano, de cada tipo?
+      - O que diz a ementa, a indexação e a classe temática de cada norma?
+      - Quais normas posteriores alteraram ou revogaram uma norma?
+    sistemas: [API de Dados Abertos do Senado]
+    armadilhas: |
+      Os decretos incluem os que não têm número: atos de nomeação, de
+      declaração de utilidade pública e afins, que se identificam pela data.
+      Contar "decretos" sem separar os dois tipos mistura coisas diferentes.
+      A lista do ano corrente é pedida de novo a cada mês, até abril do ano
+      seguinte, e cada pedido fica guardado: a mesma norma aparece uma vez por
+      pedido. Para contar normas, use só a lista mais recente de cada tipo e
+      ano. O detalhe de cada norma é baixado uma vez só, então as alterações
+      que ela sofrer depois não aparecem nele. Muitas normas vêm sem classe
+      temática: a ausência da classe não quer dizer que a norma não trata de
+      cultura. A legislação estadual não está aqui: o Senado só publica a
+      federal. E a escolha do que é patrimônio, arquivo ou memória não está
+      nestas tabelas: elas trazem todas as normas, do tema ou não.
+
   - slug: metadata
     rotulo: Metadados do pipeline
     subtitulo: O que o próprio pipeline registra sobre sua execução
