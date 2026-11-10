@@ -8,8 +8,12 @@
 -- As golds de paridade e de competência leem daqui.
 --
 -- `~*` e não lower(): o lower() do Postgres depende do locale para letra
--- acentuada. Onde o R procura "é paritário" (resposta "É paritário"), o padrão
--- traz as duas formas da letra.
+-- acentuada. Onde o padrão tem letra acentuada ("é paritário", "não
+-- paritário"), ele traz as duas formas da letra.
+--
+-- Diferença do R que não muda número: "não paritário" é testado antes de
+-- "paritário", que também casaria com ele. Em 09/11/2026 nenhuma edição tem essa
+-- resposta (mcul192 e a307).
 with
 
     conselhos_2021_2018 as (
@@ -41,6 +45,8 @@ with
             cod_municipio,
             ano,
             case
+                when composicao ~* 'n[ãÃ]o ([éÉ] )?parit'
+                then 'Não Paritário'
                 when composicao ~* 'paritá'
                 then 'Paritário'
                 when composicao ~* 'representação|governamental|sociedade civil'
@@ -59,8 +65,11 @@ with
             a1::text as cod_municipio,
             2014 as ano,
             -- Em 2014 o R também conta "Não informado" como não paritário: o
-            -- padrão dele procura "não".
+            -- padrão dele procura "não". É a exceção à regra transversal 1 do
+            -- ADR 0010; em 09/11/2026 nenhum conselho de 2014 tem essa resposta.
             case
+                when a307 ~* 'n[ãÃ]o ([éÉ] )?parit'
+                then 'Não Paritário'
                 when a307 ~* '[éÉ] paritário|^parit|sim|^1$'
                 then 'Paritário'
                 when a307 ~* 'maior representação|governamental|sociedade civil|não|^2$'
