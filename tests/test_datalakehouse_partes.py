@@ -255,6 +255,9 @@ class _MinioFalso:
     def get_conn(self) -> "_MinioFalso":
         return self
 
+    def get_object(self, Bucket: str, Key: str) -> dict[str, Any]:
+        return {"Body": io.BytesIO(self.objetos[Key])}
+
     def get_paginator(self, nome: str) -> "_MinioFalso":
         return self
 
@@ -307,6 +310,17 @@ def test_planilha_grande_e_gravada_em_partes_e_lida_igual(minio: _MinioFalso) ->
     assert datalakehouse.gravar_bytes_em_partes(conteudo, key) == key
     assert len(minio.objetos) == 4
     assert datalakehouse.ler_bytes(key) == conteudo
+
+
+def test_partes_ja_resolvidas_sao_lidas_sem_listar_o_bucket(minio: _MinioFalso) -> None:
+    conteudo = "Lei nº 8.112 — ação, função, vigência ".encode() * 500
+    key = "raw/senado/legislacao_detalhe/ano=1990/id=549988/run.json"
+    datalakehouse.gravar_bytes_em_partes(conteudo, key)
+    completos, problemas = agrupar_partes(minio.objetos)
+    assert not problemas and len(completos[key]) > 1
+
+    with patch.object(minio, "paginate", side_effect=AssertionError("listou")):
+        assert datalakehouse.ler_bytes_das_partes(completos[key]) == conteudo
 
 
 def test_regravar_inteiro_apaga_as_partes_antigas(minio: _MinioFalso) -> None:
