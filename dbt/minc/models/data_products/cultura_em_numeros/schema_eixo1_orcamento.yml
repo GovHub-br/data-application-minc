@@ -385,6 +385,17 @@ models:
       do município com a malha do IBGE e perde o código de quem não casa. E a
       LAB 1, que no R vem do cubo do BB Ágil, ainda não entra (o extrato do BB
       Ágil no banco começa em 2023).
+
+      CONFERIDO em 10/11/2026 contra a municipal_final.csv do R (commit
+      d28de40), sem a LAB 1, nos municípios de AC, RR, AP, SE, SC e MS (MSC
+      de 2019 a 2025 copiada do servidor). De 2019 a 2022, os 1.819 grupos
+      (exercício, município, origem) são iguais ao centavo. Em 2023 e 2024,
+      todos menos um por ano. Em 2025, 1.003 de 1.055: 43 grupos só aqui, 1 só
+      no R e 8 com valor diferente. O que difere é data de extração: pelo
+      extrato de entregas do SICONFI, todo município-ano de 2023 a 2025 cujo
+      último envio da MSC de dezembro foi até 27/04/2026 bate com o R, e
+      todos os que diferem reenviaram a partir de 28/04/2026. O R baixou a
+      MSC por volta dessa data, e o servidor, de 02 a 05/10/2026.
     config:
       tags:
         - gold
@@ -476,6 +487,12 @@ models:
       Sem a LAB 1 enquanto eixo1_orcamento_municipal_municipio_fonte não a
       tiver: a participação de 2020 a 2022 fica maior que a do R nas outras
       origens.
+
+      CONFERIDO em 10/11/2026 no mesmo recorte de
+      eixo1_orcamento_municipal_municipio_fonte: por (exercício, origem),
+      igual ao centavo ao R de 2019 a 2022. Em 2023 (+R$ 403.649,80) e 2024
+      (-R$ 11.750,00) a diferença é a de um município no recurso próprio; em
+      2025, a dos reenvios da MSC posteriores à extração do R.
     config:
       tags:
         - gold
@@ -535,7 +552,9 @@ models:
       empenho próprio em cultura ou RCL.
 
       A RCL é a do RREO, Anexo 03, 6º bimestre, coluna "TOTAL (ÚLTIMOS 12
-      MESES)", conta de código RREO3ReceitaCorrenteLiquida.
+      MESES)", conta de código RREO3ReceitaCorrenteLiquida, do RREO completo
+      ou do simplificado: cerca de 2.200 municípios por ano entregam só o
+      'RREO Simplificado', e nenhum entrega os dois no mesmo ano.
 
       DIFERENTE DO R: o R pega o maior valor entre as linhas cujo texto casa
       com "RECEITA CORRENTE LÍQUIDA", o que inclui as duas RCL ajustadas. Nos
@@ -547,6 +566,16 @@ models:
       1,0% a 2,0% (fechadas em cima) e mais de 2,0%. Só tem faixa quem tem
       empenho próprio e RCL positiva, o mesmo universo do R: município sem
       empenho próprio em cultura não conta como "até 0,5%".
+
+      CONFERIDO em 10/11/2026 contra a RCL dos CSVs que o R lê, com a regra
+      dele, nos municípios de AC, RR, AP, SE, SC e MS: 3.161 faixas iguais, 1
+      diferente (2023, 5003454: o empenho próprio mudou na MSC), 4 só no R e
+      48 só aqui (45 em 2025). As 4 só no R são municípios sem página do RREO
+      Anexo 03 no servidor naquele ano (4209003 e 4219150 em 2019, 4207601 e
+      4219150 em 2020): entregaram, porque o Finbra de 25/03/2026 que o R lê
+      tem a RCL, mas o extrato de entregas baixado em outubro não lista o 6º
+      bimestre deles, e a DAG só pede o que o extrato lista. Antes de aceitar
+      o RREO Simplificado, eram 673 só no R.
     config:
       tags:
         - gold
@@ -638,6 +667,12 @@ models:
       municípios de eixo1_orcamento_municipal_rcl com faixa; a proporção é
       dentro do (exercício, região). Somando as regiões, é o Indicador_3 de
       gasto_municipal.R.
+
+      CONFERIDO em 10/11/2026 no recorte de eixo1_orcamento_municipal_rcl: 93
+      dos 112 grupos (exercício, região, faixa) iguais ao R. Dos 19 restantes,
+      13 são de 2025 e 6 de 2019 a 2024, cada um com 1 ou 2 municípios: os 4
+      sem RREO no servidor, o de 2023 que mudou de faixa e os que só têm faixa
+      aqui.
     config:
       tags:
         - gold

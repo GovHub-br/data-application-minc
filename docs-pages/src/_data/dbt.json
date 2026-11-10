@@ -984,7 +984,7 @@
         "silver_rreo"
       ],
       "sources": [],
-      "linhas_sql": 75
+      "linhas_sql": 64
     },
     {
       "nome": "eixo1_orcamento_estadual_uf_fonte",
@@ -1035,6 +1035,225 @@
       ],
       "sources": [],
       "linhas_sql": 32
+    },
+    {
+      "nome": "eixo1_orcamento_municipal_faixa_rcl",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_faixa_rcl.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Fig. 9 da publicação: o percentual de municípios em cada faixa de destinação da RCL à cultura, por exercício e grande região.\nGRÃO: uma linha por (exercicio, regiao, faixa_rcl) com município. Conta os municípios de eixo1_orcamento_municipal_rcl com faixa; a proporção é dentro do (exercício, região). Somando as regiões, é o Indicador_3 de gasto_municipal.R.\nCONFERIDO em 10/11/2026 no recorte de eixo1_orcamento_municipal_rcl: 93 dos 112 grupos (exercício, região, faixa) iguais ao R. Dos 19 restantes, 13 são de 2025 e 6 de 2019 a 2024, cada um com 1 ou 2 municípios: os 4 sem RREO no servidor, o de 2023 que mudou de faixa e os que só têm faixa aqui.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, por extenso."
+        },
+        {
+          "nome": "faixa_rcl",
+          "descricao": "Faixa do percentual da RCL, como em eixo1_orcamento_municipal_rcl."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantos municípios caem na faixa no ano e na região."
+        },
+        {
+          "nome": "proporcao_municipios",
+          "descricao": "Fração dos municípios da região no ano que caem na faixa, de 0 a 1. Soma 1 em cada (exercício, região)."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_municipal_rcl"
+      ],
+      "sources": [],
+      "linhas_sql": 19
+    },
+    {
+      "nome": "eixo1_orcamento_municipal_fonte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_fonte.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Figs. 7 e 8 da publicação: o investimento municipal em cultura por exercício e origem do recurso, em reais correntes (Fig. 7) e de 2024, e a participação de cada origem no total do ano (Fig. 8).\nGRÃO: uma linha por (exercicio, origem) com empenho. Diferente do estadual, as emendas parlamentares entram, como no R. A participação é sobre o valor real.\nSem a LAB 1 enquanto eixo1_orcamento_municipal_municipio_fonte não a tiver: a participação de 2020 a 2022 fica maior que a do R nas outras origens.\nCONFERIDO em 10/11/2026 no mesmo recorte de eixo1_orcamento_municipal_municipio_fonte: por (exercício, origem), igual ao centavo ao R de 2019 a 2022. Em 2023 (+R$ 403.649,80) e 2024 (-R$ 11.750,00) a diferença é a de um município no recurso próprio; em 2025, a dos reenvios da MSC posteriores à extração do R.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "origem",
+          "descricao": "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        },
+        {
+          "nome": "fonte_recurso",
+          "descricao": "Rótulo da origem, como na publicação."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Empenho em reais correntes (Fig. 7)."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "Empenho em reais do ano-base do IPCA (2024)."
+        },
+        {
+          "nome": "municipios",
+          "descricao": "Quantos municípios têm empenho desta origem no ano."
+        },
+        {
+          "nome": "participacao",
+          "descricao": "Fração do valor real do ano que veio desta origem (Fig. 8), de 0 a 1. Soma 1 em cada exercício."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_municipal_municipio_fonte"
+      ],
+      "sources": [],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "eixo1_orcamento_municipal_municipio_fonte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_municipio_fonte.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. O empenho municipal em cultura por exercício, município e origem do recurso, em reais correntes e de 2024, com a população do Censo 2022 e o porte do município. É a municipal_final.csv de gasto_municipal.R.\nGRÃO: uma linha por (exercicio, cod_ibge, origem) com empenho. Só agrega eixo1_orcamento_empenho_cultura (esfera municipal, DF fora).\nPORTE: faixas da PNAS (macro eixo1_porte_pnas) sobre a população residente do Censo 2022, as mesmas da MUNIC_FINAL.xlsx que o R lê.\nDIFERENTE DO R: o município é o cod_ibge do item da MSC; o R casa o nome do município com a malha do IBGE e perde o código de quem não casa. E a LAB 1, que no R vem do cubo do BB Ágil, ainda não entra (o extrato do BB Ágil no banco começa em 2023).\nCONFERIDO em 10/11/2026 contra a municipal_final.csv do R (commit d28de40), sem a LAB 1, nos municípios de AC, RR, AP, SE, SC e MS (MSC de 2019 a 2025 copiada do servidor). De 2019 a 2022, os 1.819 grupos (exercício, município, origem) são iguais ao centavo. Em 2023 e 2024, todos menos um por ano. Em 2025, 1.003 de 1.055: 43 grupos só aqui, 1 só no R e 8 com valor diferente. O que difere é data de extração: pelo extrato de entregas do SICONFI, todo município-ano de 2023 a 2025 cujo último envio da MSC de dezembro foi até 27/04/2026 bate com o R, e todos os que diferem reenviaram a partir de 28/04/2026. O R baixou a MSC por volta dessa data, e o servidor, de 02 a 05/10/2026.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do município, 7 dígitos."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do município em silver_entes."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do município."
+        },
+        {
+          "nome": "origem",
+          "descricao": "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Empenho em reais correntes."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "Empenho em reais do ano-base do IPCA (2024)."
+        },
+        {
+          "nome": "linhas_msc",
+          "descricao": "Quantas linhas da MSC somaram no grupo."
+        },
+        {
+          "nome": "populacao_censo_2022",
+          "descricao": "População residente do município no Censo 2022."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, por extenso."
+        },
+        {
+          "nome": "fonte_recurso",
+          "descricao": "Rótulo da origem, como na publicação."
+        },
+        {
+          "nome": "porte",
+          "descricao": "Porte do município pela PNAS: 'Pequeno Porte I', 'Pequeno Porte II', 'Médio Porte', 'Grande Porte' ou 'Metrópole'. Nulo sem população do Censo 2022."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 8,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_empenho_cultura",
+        "int_ibge_sidra_siconfi"
+      ],
+      "sources": [],
+      "linhas_sql": 59
+    },
+    {
+      "nome": "eixo1_orcamento_municipal_rcl",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_rcl.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. A participação da cultura no orçamento dos municípios: o empenho próprio em cultura (origem 'proprio') como fração da Receita Corrente Líquida, e a faixa em que o município cai. Base da Fig. 9 e dos Indicadores 1 a 4 de gasto_municipal.R.\nGRÃO: uma linha por (exercicio, cod_ibge) do município (DF fora) que tem empenho próprio em cultura ou RCL.\nA RCL é a do RREO, Anexo 03, 6º bimestre, coluna \"TOTAL (ÚLTIMOS 12 MESES)\", conta de código RREO3ReceitaCorrenteLiquida, do RREO completo ou do simplificado: cerca de 2.200 municípios por ano entregam só o 'RREO Simplificado', e nenhum entrega os dois no mesmo ano.\nDIFERENTE DO R: o R pega o maior valor entre as linhas cujo texto casa com \"RECEITA CORRENTE LÍQUIDA\", o que inclui as duas RCL ajustadas. Nos CSVs de RCL municipal que o R versiona (2018 a 2025), isso muda o valor em 17 de 43.714 pares (ano, município), todos em 2020 e 2021, e nenhum muda de faixa.\nFAIXA: (próprio / RCL) * 100, como o R: até 0,5%, de 0,5% a 1,0%, de 1,0% a 2,0% (fechadas em cima) e mais de 2,0%. Só tem faixa quem tem empenho próprio e RCL positiva, o mesmo universo do R: município sem empenho próprio em cultura não conta como \"até 0,5%\".\nCONFERIDO em 10/11/2026 contra a RCL dos CSVs que o R lê, com a regra dele, nos municípios de AC, RR, AP, SE, SC e MS: 3.161 faixas iguais, 1 diferente (2023, 5003454: o empenho próprio mudou na MSC), 4 só no R e 48 só aqui (45 em 2025). As 4 só no R são municípios sem página do RREO Anexo 03 no servidor naquele ano (4209003 e 4219150 em 2019, 4207601 e 4219150 em 2020): entregaram, porque o Finbra de 25/03/2026 que o R lê tem a RCL, mas o extrato de entregas baixado em outubro não lista o 6º bimestre deles, e a DAG só pede o que o extrato lista. Antes de aceitar o RREO Simplificado, eram 673 só no R.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do município, 7 dígitos."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do município em silver_entes."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do município."
+        },
+        {
+          "nome": "valor_proprio_nominal",
+          "descricao": "Empenho de origem 'proprio' em cultura, em reais correntes. Nulo quando o município não tem nenhuma linha que conte no ano."
+        },
+        {
+          "nome": "rcl",
+          "descricao": "Receita Corrente Líquida dos últimos 12 meses, em reais correntes."
+        },
+        {
+          "nome": "participacao_rcl",
+          "descricao": "valor_proprio_nominal dividido pela RCL, como fração (0.02 é 2%). Nulo quando falta um dos dois ou a RCL não é positiva."
+        },
+        {
+          "nome": "populacao_censo_2022",
+          "descricao": "População residente do município no Censo 2022."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, por extenso."
+        },
+        {
+          "nome": "porte",
+          "descricao": "Porte do município pela PNAS, sobre o Censo 2022."
+        },
+        {
+          "nome": "faixa_rcl",
+          "descricao": "Faixa do percentual da RCL: '1. Até 0,5%', '2. Entre 0,5% e 1,0%', '3. Entre 1,0% e 2,0%' ou '4. Mais de 2,0%'. Nula quando participacao_rcl é nula."
+        },
+        {
+          "nome": "acima_de_2_porcento_rcl",
+          "descricao": "Verdadeiro quando o próprio passa de 2% da RCL (o Indicador_1 do R, \"Meta 2% RCL\"). Nulo quando participacao_rcl é nula."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_municipal_municipio_fonte",
+        "int_ibge_sidra_siconfi",
+        "silver_rreo"
+      ],
+      "sources": [],
+      "linhas_sql": 85
     },
     {
       "nome": "eixo2_meta3_cobertura_pagamento",
@@ -1888,6 +2107,23 @@
       "linhas_sql": 6
     },
     {
+      "nome": "bronze_resultados",
+      "dominio": "ibge_sidra",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge_sidra/bronze_resultados.sql",
+      "descricao": "Camada Bronze — cópia fiel de ibge_sidra.resultados, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem, em text.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge_sidra.resultados"
+      ],
+      "linhas_sql": 7
+    },
+    {
       "nome": "silver_agregados_catalogo",
       "dominio": "ibge_sidra",
       "camada": "silver",
@@ -2078,6 +2314,68 @@
       "linhas_sql": 13
     },
     {
+      "nome": "silver_resultados",
+      "dominio": "ibge_sidra",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge_sidra/silver_resultados.sql",
+      "descricao": "Camada Silver — valores das tabelas do SIDRA, tipados. Uma linha por agregado, variável, nível territorial, localidade, período e classificação, a chave com que a DAG grava.\n\nPARA QUE SERVE no Eixo 1: a população residente do Censo 2022 por município (agregado_id 4709, variavel_id 93, nivel 'N6', periodo '2022'), que dá o porte do município nas golds do orçamento (via int_ibge_sidra_siconfi).\n\nOs símbolos do SIDRA no lugar do número: '-' é zero absoluto e vira 0; '..', '...' e 'X' viram nulo. O texto original fica em valor_original.",
+      "colunas": [
+        {
+          "nome": "agregado_id",
+          "descricao": "Código da tabela (agregado) do SIDRA. 4709 = Censo 2022, população."
+        },
+        {
+          "nome": "variavel_id",
+          "descricao": "Código da variável no agregado. 93 = população residente."
+        },
+        {
+          "nome": "variavel_nome",
+          "descricao": "Nome da variável, como o SIDRA devolve."
+        },
+        {
+          "nome": "unidade",
+          "descricao": "Unidade de medida da variável (por exemplo, 'Pessoas')."
+        },
+        {
+          "nome": "nivel",
+          "descricao": "Nível territorial pedido à API: 'N1' Brasil, 'N2' grande região, 'N3' UF, 'N6' município."
+        },
+        {
+          "nome": "localidade_id",
+          "descricao": "Código da localidade no nível: no N6, o código IBGE de 7 dígitos do município (o mesmo cod_ibge do SICONFI)."
+        },
+        {
+          "nome": "localidade_nome",
+          "descricao": "Nome da localidade, como o SIDRA devolve ('Cidade - UF' no N6)."
+        },
+        {
+          "nome": "periodo",
+          "descricao": "Período do valor, como rótulo ('2022'). Texto, não número."
+        },
+        {
+          "nome": "valor",
+          "descricao": "O valor, numérico. 0 onde o SIDRA põe '-' (zero absoluto); nulo onde põe '..', '...' ou 'X'."
+        },
+        {
+          "nome": "valor_original",
+          "descricao": "O valor como o SIDRA devolve, com os símbolos."
+        },
+        {
+          "nome": "classificacoes",
+          "descricao": "As classificações (e categorias) da linha, como texto do JSON da API. Nulo no agregado sem classificação, como a 4709."
+        }
+      ],
+      "colunas_descritas": 11,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_resultados"
+      ],
+      "sources": [],
+      "linhas_sql": 30
+    },
+    {
       "nome": "int_ancine_bbagil_salic",
       "dominio": "intermediate",
       "camada": "intermediate",
@@ -2247,6 +2545,57 @@
       ],
       "sources": [],
       "linhas_sql": 87
+    },
+    {
+      "nome": "int_ibge_sidra_siconfi",
+      "dominio": "intermediate",
+      "camada": "intermediate",
+      "meta": null,
+      "caminho": "dbt/minc/models/intermediate/int_ibge_sidra_siconfi.sql",
+      "descricao": "Camada Intermediate — os municípios do SICONFI (silver_entes, esfera 'M') com a população residente do Censo 2022 (silver_resultados, agregado 4709, variável 93, nível N6), pelo código IBGE.\n\nCruza as duas fontes e não decide nada: o porte do município (faixas da PNAS) é regra e fica nas golds eixo1_orcamento_municipal_*. Município sem linha no Censo fica com populacao_censo_2022 nula.\n\nGRÃO: uma linha por município de silver_entes (cod_ibge).",
+      "colunas": [
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do município, 7 dígitos."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do município em silver_entes."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla da UF do município."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Sigla da região em silver_entes ('NO', 'NE', 'CO', 'SE', 'SU')."
+        },
+        {
+          "nome": "capital",
+          "descricao": "Se o município é capital de UF."
+        },
+        {
+          "nome": "populacao_siconfi",
+          "descricao": "A população que o SICONFI informa no cadastro de entes (estimativa do ano da consulta, não o Censo)."
+        },
+        {
+          "nome": "exercicio_populacao_siconfi",
+          "descricao": "O exercício do cadastro de entes de onde vem populacao_siconfi."
+        },
+        {
+          "nome": "populacao_censo_2022",
+          "descricao": "População residente no Censo 2022 (SIDRA 4709, variável 93). Nula para município sem linha no Censo."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "silver_entes",
+        "silver_resultados"
+      ],
+      "sources": [],
+      "linhas_sql": 33
     },
     {
       "nome": "silver_agent",
@@ -45348,25 +45697,25 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 18,
-      "testes": 95,
+      "modelos": 22,
+      "testes": 115,
       "camadas": {
-        "gold": 18
+        "gold": 22
       }
     },
     "ibge_sidra": {
-      "modelos": 10,
-      "testes": 5,
+      "modelos": 12,
+      "testes": 11,
       "camadas": {
-        "bronze": 5,
-        "silver": 5
+        "bronze": 6,
+        "silver": 6
       }
     },
     "intermediate": {
-      "modelos": 3,
-      "testes": 7,
+      "modelos": 4,
+      "testes": 10,
       "camadas": {
-        "intermediate": 3
+        "intermediate": 4
       }
     },
     "mapas": {
@@ -48460,14 +48809,18 @@
         {
           "nome": "pesquisas",
           "descricao": "Pesquisas do IBGE com tabelas no SIDRA: uma linha por pesquisa, com a lista dos seus agregados em JSON. GET /agregados. Tudo text."
+        },
+        {
+          "nome": "resultados",
+          "descricao": "Valores das tabelas do SIDRA, para os agregados da Variable ibge_config (resultados_agregados_ids): uma linha por agregado, variável, nível, localidade, período e classificação, que é a chave da tabela (a DAG regrava sem duplicar). GET /agregados/{id}/periodos/{per}/variaveis/{var}, achatado. Tudo text. O Eixo 1 lê a população residente do Censo 2022 (agregado 4709, variável 93, nível N6)."
         }
       ]
     }
   ],
   "totais": {
-    "modelos": 748,
-    "testes": 940,
-    "com_descricao": 747,
-    "sources": 736
+    "modelos": 755,
+    "testes": 969,
+    "com_descricao": 754,
+    "sources": 737
   }
 }

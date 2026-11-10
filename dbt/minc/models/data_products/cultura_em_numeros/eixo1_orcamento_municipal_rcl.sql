@@ -8,7 +8,10 @@
 --
 -- DENOMINADOR: a RCL do RREO, Anexo 03, 6º bimestre, coluna "TOTAL (ÚLTIMOS 12
 -- MESES)", na conta de código RREO3ReceitaCorrenteLiquida ("RECEITA CORRENTE
--- LÍQUIDA (III)").
+-- LÍQUIDA (III)"). Vale o RREO completo e o simplificado: cerca de 2.200
+-- municípios por ano entregam só o 'RREO Simplificado', que traz a RCL na
+-- mesma conta e coluna. Nenhum município entrega os dois no mesmo ano, então a
+-- linha por (exercicio, cod_ibge) continua única (teste no schema).
 -- DIFERENTE DO R: o R pega o MAIOR valor entre as linhas cujo texto casa com
 -- "RECEITA CORRENTE LÍQUIDA", o que inclui as duas RCL ajustadas. Nos RCL
 -- municipais de 2018 a 2025 que o R versiona, isso dá outro valor em 17 de
@@ -34,7 +37,7 @@ with
         from {{ ref("silver_rreo") }}
         where
             cod_ibge between 1000000 and 9999999
-            and demonstrativo = 'RREO'
+            and demonstrativo in ('RREO', 'RREO Simplificado')
             and periodo = 6
             and anexo = 'RREO-Anexo 03'
             and cod_conta = 'RREO3ReceitaCorrenteLiquida'
