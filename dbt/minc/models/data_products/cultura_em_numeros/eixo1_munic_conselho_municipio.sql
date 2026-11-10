@@ -92,6 +92,12 @@ with
         from classificado_2021_2018
     )
 
+-- A competência é uma cascata: a primeira que for 'Sim', na ordem deliberativo,
+-- consultivo, normativo ou fiscalizador. É o resultado do case_when do R, em que
+-- o fix_sim_nao faz da resposta vazia um 'Não'. Aqui a resposta vazia é NULL, e
+-- um "not tem_deliberativo" com NULL levaria o conselho só consultivo para 'Sem
+-- Informação'; a ordem do case já basta. Em 10/11/2026 nenhum conselho tem
+-- pergunta de competência vazia, e nenhum número muda.
 select
     cod_municipio,
     ano,
@@ -99,9 +105,9 @@ select
     case
         when tem_deliberativo
         then 'Deliberativo (com ou sem consultivo)'
-        when not tem_deliberativo and tem_consultivo
+        when tem_consultivo
         then 'Apenas Consultivo'
-        when not tem_deliberativo and not tem_consultivo and tem_norm_fisc
+        when tem_norm_fisc
         then 'Normativo / Fiscalizador'
         else 'Sem Informação'
     end as cons_competencia
