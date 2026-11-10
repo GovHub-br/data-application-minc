@@ -122,5 +122,5 @@ select
     {{ bronze_texto("eppm28") }} as eppm28,
     {{ bronze_texto("eppm281") }} as eppm281,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_estadic_2023_politica_para_mulheres") }}

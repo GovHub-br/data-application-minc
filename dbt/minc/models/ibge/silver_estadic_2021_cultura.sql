@@ -211,5 +211,5 @@ select
     {{ bronze_texto("ecul4810") }} as ecul4810,
     {{ bronze_texto("ecul4811") }} as ecul4811,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_estadic_2021_cultura") }}

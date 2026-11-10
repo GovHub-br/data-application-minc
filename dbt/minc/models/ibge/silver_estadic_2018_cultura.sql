@@ -151,5 +151,5 @@ select
     {{ bronze_texto("ecul378") }} as ecul378,
     {{ bronze_texto("ecul38") }} as ecul38,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_estadic_2018_cultura") }}

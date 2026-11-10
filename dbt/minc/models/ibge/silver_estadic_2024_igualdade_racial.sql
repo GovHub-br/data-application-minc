@@ -415,5 +415,5 @@ select
     {{ bronze_texto("eigr607") }} as eigr607,
     {{ bronze_texto("eigr608") }} as eigr608,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_estadic_2024_igualdade_racial") }}

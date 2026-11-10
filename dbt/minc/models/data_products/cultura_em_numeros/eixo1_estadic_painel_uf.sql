@@ -13,6 +13,14 @@
 -- O R classificava o órgão gestor ausente como 'Setor Subordinado / Outros' e a
 -- escolaridade ausente como 'Sem Informação' nas edições que não perguntam isso
 -- (2012, 2023 e 2024).
+--
+-- Diferença do R: três perguntas vêm de outra variável. O ESTADIC.R lê, para o
+-- plano de 2014, a a93 ("Consulta pública", subpergunta do plano); para o
+-- conselho de 2014, a a305 ("Institutos Históricos e Geográficos locais"); e
+-- para o fundo de 2012, a a94 ("Deliberativo", do conselho). Aqui são a a86
+-- ("Plano Estadual de Cultura - existência"), a a254 ("Conselho Estadual de
+-- Cultural - existência") e a a98 ("Fundo estadual de cultura - existência"),
+-- como diz o dicionário do IBGE de cada edição.
 with
 
     cultura_2021_2018 as (
@@ -71,7 +79,12 @@ with
             gestor_sexo,
             gestor_cor_raca,
             gestor_escolaridade,
+            -- "Não paritário" é testado antes de "paritário", como na MUNIC: o R
+            -- procura "paritá" primeiro e classificaria um "Não paritário" como
+            -- 'Paritário'.
             case
+                when composicao ~* 'n[ãÃ]o ([éÉ] )?parit'
+                then 'Não Paritário'
                 when composicao ~* 'paritá'
                 then 'Paritário'
                 when composicao ~* 'representação|governamental|sociedade civil'
@@ -104,8 +117,9 @@ with
             orgao.a1::text as cod_uf,
             2014 as ano,
             orgao.a2 as tipo_orgao_gestor,
-            {{ eixo1_sim_nao("politicas.a93") }} as tem_plano,
-            {{ eixo1_sim_nao("instancias.a305") }} as tem_conselho,
+            -- a86 e a254, não a a93 e a a305 do R: ver o cabeçalho.
+            {{ eixo1_sim_nao("politicas.a86") }} as tem_plano,
+            {{ eixo1_sim_nao("instancias.a254") }} as tem_conselho,
             {{ eixo1_sim_nao("fundo.a321") }} as tem_fundo,
             {{ eixo1_sim_nao("legislacao.a237") }} as tem_lei_patrimonio,
             null::text as tem_cons_patrimonio,
@@ -146,7 +160,8 @@ with
             null::text as tipo_orgao_gestor,
             null::text as tem_plano,
             {{ eixo1_sim_nao("a90") }} as tem_conselho,
-            {{ eixo1_sim_nao("a94") }} as tem_fundo,
+            -- a98, não a a94 do R: ver o cabeçalho.
+            {{ eixo1_sim_nao("a98") }} as tem_fundo,
             null::text as tem_lei_patrimonio,
             null::text as tem_cons_patrimonio,
             null::text as tem_lei_incentivo,

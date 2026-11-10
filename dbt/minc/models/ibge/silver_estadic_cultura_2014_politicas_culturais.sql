@@ -170,5 +170,5 @@ select
     {{ bronze_texto("a233") }} as a233,
     {{ bronze_texto("a234") }} as a234,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_estadic_cultura_2014_politicas_culturais") }}

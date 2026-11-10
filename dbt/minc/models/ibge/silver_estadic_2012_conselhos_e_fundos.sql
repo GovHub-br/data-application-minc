@@ -128,5 +128,5 @@ select
     {{ bronze_texto("a197") }} as a197,
     {{ bronze_texto("a198") }} as a198,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_estadic_2012_conselhos_e_fundos") }}

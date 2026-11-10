@@ -51,5 +51,5 @@ select
     {{ bronze_texto("epri071a") }} as epri071a,
     {{ bronze_texto("epri071b") }} as epri071b,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_estadic_2023_primeira_infancia") }}

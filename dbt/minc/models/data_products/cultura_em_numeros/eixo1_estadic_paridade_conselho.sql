@@ -4,14 +4,13 @@
 with
 
     contagem as (
-        select
-            ano, trim(cons_paritario) as composicao_conselho, count(*) as quantidade_ufs
+        select ano, cons_paritario as composicao_conselho, count(*) as quantidade_ufs
         from {{ ref("eixo1_estadic_painel_uf") }}
         where
             ano in (2018, 2021)
             and tem_conselho = 'Sim'
-            and trim(cons_paritario) in ('Paritário', 'Não Paritário')
-        group by ano, trim(cons_paritario)
+            and cons_paritario in ('Paritário', 'Não Paritário')
+        group by ano, cons_paritario
     )
 
 select
