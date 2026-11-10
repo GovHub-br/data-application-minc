@@ -104,3 +104,12 @@ models:
     siconfi:
       +schema: siconfi
       +materialized: view
+    # Senado: a senado_legislacao_dag le o raw do MinIO e grava, pelo Trino,
+    # senado.legislacao_lista, senado.legislacao_detalhe,
+    # senado.legislacao_detalhe_secoes e senado.arquivos (toda coluna varchar).
+    # Os bronze_* sao a copia fiel delas, como no SICONFI. View pelo mesmo
+    # motivo: campo novo que a DAG criar so aparece no bronze_* no dbt run
+    # seguinte.
+    senado:
+      +schema: senado
+      +materialized: view
