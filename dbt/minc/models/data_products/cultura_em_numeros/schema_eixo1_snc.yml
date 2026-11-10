@@ -1,0 +1,478 @@
+version: 2
+
+# Eixo 1 do Cultura em Números, frente SNC: as 12 análises do SNC.R do
+# repositório SGE-Subsecretaria-de-Gestao-Estrategica/cultura-em-numeros-eixo-1
+# (commit d28de40) que estão em outputs/ (eda_1 a eda_9, eda_11 e as duas
+# tabelas). eixo1_snc_painel_municipio é a gold-base e as outras leem dela. Nome
+# eixo1_<frente>_<nome>, como na MUNIC: o Eixo 1 não numera metas.
+#
+# O R lê uma planilha interna do MinC (painel de 04/09/2026); aqui a fonte é a
+# lista de entes do SNC no portal de dados abertos, mais atrasada. A lógica foi
+# conferida aplicando a regra do R ao mesmo dado do portal; a diferença para a
+# publicação está na description da gold-base.
+models:
+  - name: eixo1_snc_painel_municipio
+    description: >
+      Camada Gold / Eixo 1, frente SNC, do Cultura em Números. Gold-base: os
+      municípios da lista de entes do Sistema Nacional de Cultura, com as
+      variáveis e as categorias que o SNC.R usa.
+
+      GRÃO: uma linha por município, na versão mais recente do arquivo no
+      portal. UNIVERSO: os códigos IBGE de 7 dígitos, 5.567 na versão de
+      28/05/2026. O R lê a aba "Municipios" da planilha interna; no portal
+      estados, municípios e uma linha que não é ente ('Não cadastrado') vêm na
+      mesma aba, e o código de 7 dígitos é o que separa os municípios.
+
+      A REGRA: aderido é situação 'Publicado no DOU'; tripé completo é
+      conselho, fundo e plano com situação 'Concluída'; as faixas de IDH são as
+      do R (< 0,600, 0,600 a 0,699, 0,700 a 0,799, >= 0,800); os portes 4 e 5
+      juntos em porte_populacional, como na Figura 8; e o perfil dos conselhos
+      (exclusivo, paritário, deliberativo, atuante) com os padrões de texto da
+      seção 10 do R, inclusive o corte de 2025 para "atuante".
+
+      DIFERENÇA DO R (ADR 0010, regra 1): categoria sem valor de origem fica
+      NULL. O R põe 'Não' no tripé completo e 'Sem Informação' na faixa de IDH;
+      as golds de gráfico refazem o rótulo do R onde o gráfico mostra a
+      ausência. Na versão de 28/05/2026 isso não muda nenhum número: as
+      situações do tripé vêm sempre preenchidas.
+
+      CONFERÊNCIA (10/11/2026): as 12 golds de gráfico são iguais, linha a
+      linha, à regra do R reescrita em Python e aplicada aos mesmos 5.567
+      municípios do portal; essa reescrita reproduz os números que o próprio R
+      gravou a partir da planilha interna (Figuras 8 e 9, Tabelas 1.3 e 1.4,
+      rótulos dos PNGs). DIFERENÇA PARA A PUBLICAÇÃO: o portal está atrasado
+      (última atualização de ente em 24/02/2026) e não traz Boa Esperança do
+      Norte/MT, Santa Isabel/GO e Brasília. Adesões: 3.722 municípios contra
+      3.945; as 223 a menos são todas de municípios que a planilha interna
+      atualizou depois de 24/02/2026, e a série de 2012 a 2025 é igual. Tripé:
+      1.556 conselhos 'Concluída' contra 2.247, 1.512 fundos contra 2.155, 689
+      planos contra 1.117. Aqui o atraso não explica tudo: 458 municípios
+      aderidos nos dois têm conselho 'Concluída' na planilha interna e 'Não
+      Possui' no portal sem atualização do ente depois de 24/02/2026. O portal
+      também escreve a ausência de outro jeito ('Não Possui', 'Documento não
+      enviado', 'Não possui plano de conselho', onde a planilha interna tem
+      'Não informado(a)' e 'Nao possui adesão'), o que muda as categorias dos
+      gráficos 5.2, 5.3 e 5.4.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - snc
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: versao
+        description: Versão do arquivo no portal de onde a linha veio (a mais recente).
+        data_type: date
+        tests:
+          - not_null
+      - name: cod_municipio
+        description: Código IBGE do município, com 7 dígitos.
+        data_type: text
+        tests:
+          - not_null
+          - unique
+      - name: municipio
+        description: Nome do município na Plataforma SNC.
+        data_type: text
+      - name: uf
+        description: Sigla da UF.
+        data_type: text
+      - name: regiao
+        description: Grande região, como a Plataforma escreve ('Centro Oeste', sem hífen, como no R).
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Norte', 'Nordeste', 'Sudeste', 'Sul', 'Centro Oeste']
+      - name: faixa_populacional
+        description: Porte do município pela população, nas cinco faixas da Plataforma.
+        data_type: text
+      - name: idh_2021
+        description: IDH do município em 2021.
+        data_type: numeric
+      - name: situacao_adesao
+        description: Situação da adesão ao SNC, como a Plataforma escreve.
+        data_type: text
+      - name: ano_adesao
+        description: Ano da data de adesão. NULL sem data.
+        data_type: integer
+      - name: perfil_orgao_gestor
+        description: Perfil do órgão gestor de cultura, como a Plataforma escreve.
+        data_type: text
+      - name: situacao_lei_sistema
+        description: Situação do documento da lei do sistema de cultura.
+        data_type: text
+      - name: situacao_conselho
+        description: Situação do documento da lei do conselho de política cultural. 'Concluída' é o conselho instituído por lei.
+        data_type: text
+      - name: situacao_fundo
+        description: Situação do documento da lei do fundo de cultura.
+        data_type: text
+      - name: situacao_plano
+        description: Situação do documento do plano de cultura.
+        data_type: text
+      - name: conselho_paritario
+        description: Paridade do conselho, como a Plataforma escreve.
+        data_type: text
+      - name: natureza_conselho
+        description: Natureza do conselho, como a Plataforma escreve.
+        data_type: text
+      - name: possui_metas
+        description: Se o plano de cultura tem metas ('Sim', 'Não').
+        data_type: text
+      - name: ano_ata_ultima_reuniao
+        description: Ano da assinatura da ata da última reunião do conselho.
+        data_type: integer
+      - name: porte_populacional
+        description: >
+          A faixa com os portes 4 e 5 juntos em 'Porte 4 (Grande): acima de 100
+          mil habitantes', como na Figura 8 (seção 5.6 do R).
+        data_type: text
+      - name: categoria_idh
+        description: Faixa de IDH do R. NULL sem IDH (o R põe 'Sem Informação').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Baixo (< 0,600)', 'Médio (0,600 a 0,699)', 'Alto (0,700 a 0,799)', 'Muito Alto (>= 0,800)']
+      - name: adesao_publicada
+        description: Se aderiu ao SNC, isto é, situação 'Publicado no DOU'.
+        data_type: boolean
+      - name: tripe_completo
+        description: >
+          'Sim' quando conselho, fundo e plano estão com situação 'Concluída';
+          'Não' quando algum sabidamente não está; NULL quando falta situação e
+          as conhecidas são 'Concluída'.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: perfil_conselho_exclusivo
+        description: >
+          Conselho exclusivo de cultura, pela regra da seção 10 do R: começa com
+          "sim" é 'Sim', contém "não" é 'Não', o resto é 'Não informado'. NULL
+          sem resposta.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não', 'Não informado']
+      - name: perfil_conselho_paritario
+        description: Conselho paritário, pela mesma regra de perfil_conselho_exclusivo.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não', 'Não informado']
+      - name: perfil_conselho_deliberativo
+        description: >
+          Conselho deliberativo: contém "deliberativo" é 'Sim', contém
+          "consultivo" é 'Não', o resto é 'Não informado'. NULL sem resposta.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não', 'Não informado']
+      - name: perfil_conselho_atuante
+        description: >
+          Conselho atuante: ata da última reunião assinada em 2025 ou depois é
+          'Sim', antes é 'Não'; sem data, resposta com "não" é 'Não' e o resto
+          'Não informado'. NULL sem resposta sobre a ata.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não', 'Não informado']
+
+  - name: eixo1_snc_adesao_regiao
+    description: >
+      Gold / Eixo 1, frente SNC. Situação de adesão ao SNC dos municípios por
+      região (gráfico 5.1 do SNC.R, eda_1_adesao_regiao). GRÃO: região e
+      situação. A proporção é dentro da região.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: regiao
+        data_type: text
+        tests: [not_null]
+      - name: situacao_adesao
+        data_type: text
+        tests: [not_null]
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: proporcao
+        description: quantidade_municipios sobre os municípios da região.
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "regiao || '|' || situacao_adesao"
+
+  - name: eixo1_snc_situacao_tripe
+    description: >
+      Gold / Eixo 1, frente SNC. Situação declarada do conselho, do fundo e do
+      plano de cultura dos municípios (gráfico 5.2 do SNC.R,
+      eda_2_status_tripe). GRÃO: instrumento e situação; situação ausente vira
+      'Não Informado/Em Branco', como no R. A proporção é dentro do instrumento.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: instrumento
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Conselho de Cultura', 'Fundo de Cultura', 'Plano de Cultura']
+      - name: situacao
+        data_type: text
+        tests: [not_null]
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: proporcao
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "instrumento || '|' || situacao"
+
+  - name: eixo1_snc_natureza_paridade_conselho
+    description: >
+      Gold / Eixo 1, frente SNC. Municípios por natureza e paridade do conselho
+      de cultura (gráfico 5.3 do SNC.R, eda_3_natureza_paridade_conselhos).
+      GRÃO: natureza e paridade. Como no R, só sai a paridade igual a 'Não
+      informado', valor que a Plataforma não usa na paridade: a contagem inclui
+      os municípios sem conselho ('Não possui plano de conselho').
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: natureza_conselho
+        data_type: text
+        tests: [not_null]
+      - name: conselho_paritario
+        data_type: text
+        tests: [not_null]
+      - name: quantidade_municipios
+        data_type: bigint
+    tests:
+      - unique:
+          column_name: "natureza_conselho || '|' || conselho_paritario"
+
+  - name: eixo1_snc_orgao_gestor_porte
+    description: >
+      Gold / Eixo 1, frente SNC. Perfil do órgão gestor de cultura por faixa
+      populacional (gráfico 5.4 do SNC.R, eda_4_orgao_gestor_porte), nas cinco
+      faixas. GRÃO: faixa e perfil. A proporção é dentro da faixa.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: faixa_populacional
+        data_type: text
+        tests: [not_null]
+      - name: perfil_orgao_gestor
+        data_type: text
+        tests: [not_null]
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: proporcao
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "faixa_populacional || '|' || perfil_orgao_gestor"
+
+  - name: eixo1_snc_adesao_regiao_total
+    description: >
+      Gold / Eixo 1, frente SNC. Municípios aderidos ao SNC ('Publicado no DOU')
+      por região, em número e em cobertura sobre os municípios da região
+      (gráfico 5.5 do SNC.R, eda_5_adesao_regiao_absoluto). GRÃO: região.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: regiao
+        data_type: text
+        tests: [not_null, unique]
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: adesoes
+        data_type: bigint
+      - name: taxa_cobertura
+        description: adesoes sobre quantidade_municipios.
+        data_type: numeric
+
+  - name: eixo1_snc_adesao_porte
+    description: >
+      Gold / Eixo 1, frente SNC. Taxa de adesão ao SNC por porte do município,
+      com os portes 4 e 5 juntos (gráfico 5.6 do SNC.R,
+      eda_6_adesao_porte_percentual). É a Figura 8 que o SNC.R grava (Figura 10
+      na publicação), com os nomes de coluna do CSV dela. GRÃO: porte.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: porte_populacional
+        data_type: text
+        tests: [not_null, unique]
+      - name: total_municipios
+        data_type: bigint
+      - name: adesoes_validadas
+        data_type: bigint
+      - name: taxa_cobertura
+        data_type: numeric
+
+  - name: eixo1_snc_adesao_idh
+    description: >
+      Gold / Eixo 1, frente SNC. Situação de adesão ao SNC por faixa de IDH 2021
+      (gráfico 6.1 do SNC.R, eda_7_adesao_vs_idh). GRÃO: faixa de IDH e
+      situação; município sem IDH fica de fora, como no R. A proporção é dentro
+      da faixa.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: categoria_idh
+        data_type: text
+        tests: [not_null]
+      - name: situacao_adesao
+        data_type: text
+        tests: [not_null]
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: proporcao
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "categoria_idh || '|' || situacao_adesao"
+
+  - name: eixo1_snc_tripe_completo_porte
+    description: >
+      Gold / Eixo 1, frente SNC. Municípios com e sem o tripé completo
+      (conselho, fundo e plano 'Concluída') por faixa populacional (gráfico 6.2
+      do SNC.R, eda_8_tripe_completo_vs_porte), nas cinco faixas. GRÃO: faixa e
+      tripé completo. A proporção é dentro da faixa.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: faixa_populacional
+        data_type: text
+        tests: [not_null]
+      - name: tripe_completo
+        description: "'Sim' ou 'Não'; NULL quando a gold-base não sabe (ver eixo1_snc_painel_municipio)."
+        data_type: text
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: proporcao
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "faixa_populacional || '|' || coalesce(tripe_completo, '')"
+
+  - name: eixo1_snc_metas_plano_regiao
+    description: >
+      Gold / Eixo 1, frente SNC. Entre os municípios com plano de cultura
+      'Concluída', os que têm metas definidas, por região (gráfico 6.3 do
+      SNC.R, eda_9_metas_plano_vs_regiao). GRÃO: região e resposta ('Sim' ou
+      'Não'). A proporção é dentro da região.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: regiao
+        data_type: text
+        tests: [not_null]
+      - name: possui_metas
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: proporcao
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "regiao || '|' || possui_metas"
+
+  - name: eixo1_snc_evolucao_adesao
+    description: >
+      Gold / Eixo 1, frente SNC. Novas adesões ao SNC por ano e o acumulado,
+      2012 a 2026 (gráfico 7.4 do SNC.R, eda_11_evolucao_geral_snc). É a Figura
+      9 que o SNC.R grava (Figura 11 na publicação), com os nomes de coluna do
+      CSV dela. GRÃO: ano e métrica. Como no R, o acumulado começa no primeiro
+      ano com adesão e ano sem adesão nova não aparece.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: ano_adesao
+        data_type: integer
+        tests: [not_null]
+      - name: tipo_metrica
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Adesões acumuladas', 'Novas adesões no ano']
+      - name: quantidade
+        data_type: bigint
+    tests:
+      - unique:
+          column_name: "ano_adesao || '|' || tipo_metrica"
+
+  - name: eixo1_snc_tripe_regiao
+    description: >
+      Gold / Eixo 1, frente SNC. Municípios com conselho, fundo e plano de
+      cultura 'Concluída', e com os três, por região (tabela da seção 8 do
+      SNC.R, Tabela_SNC_Tripe_Regiao_2026; é também a Tabela 1.3 da
+      publicação). GRÃO: região e componente. A proporção é sobre todos os
+      municípios da região.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: regiao
+        data_type: text
+        tests: [not_null]
+      - name: componente
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Conselho', 'Fundo', 'Plano', 'Tripé completo']
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: total_municipios
+        data_type: bigint
+      - name: proporcao
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "regiao || '|' || componente"
+
+  - name: eixo1_snc_perfil_conselho
+    description: >
+      Gold / Eixo 1, frente SNC. Perfil dos conselhos municipais de cultura
+      instituídos por lei, isto é, com situação 'Concluída' (tabela da seção 10
+      do SNC.R, Tabela_SNC_Perfil_Conselhos; é também a Tabela 1.4 da
+      publicação). GRÃO: característica e resposta, inclusive as de zero.
+      Resposta ausente conta como 'Não informado', como no R.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, snc]
+    columns:
+      - name: caracteristica
+        data_type: text
+        tests: [not_null]
+      - name: resposta
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não', 'Não informado']
+      - name: total_conselhos
+        description: Conselhos instituídos por lei, o denominador da proporção.
+        data_type: bigint
+      - name: quantidade_municipios
+        data_type: bigint
+      - name: proporcao
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "caracteristica || '|' || resposta"

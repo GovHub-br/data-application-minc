@@ -1,0 +1,247 @@
+version: 2
+
+# dados_cultura, na estrutura do ADR 0010: bronze_<entidade> é a cópia fiel do que
+# a dados_cultura_dag grava em seeds.dados_cultura_<entidade>; silver_<entidade>
+# tipa. A silver do SNC não carrega as colunas de
+# cliente_dados_cultura.DADOS_SENSIVEIS.
+models:
+  - name: bronze_snc_entes
+    description: >
+      Camada Bronze — cópia fiel de seeds.dados_cultura_snc_entes, sem cast,
+      filtro nem join (ADR 0010): todas as colunas e todas as versões, como a
+      dados_cultura_dag grava. Inclui dados bancários, CNPJ, nome do prefeito e
+      do gestor de cultura e endereço (cliente_dados_cultura.DADOS_SENSIVEIS),
+      que não passam para a silver.
+    config:
+      tags:
+        - bronze
+        - dados_cultura
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: silver_snc_entes
+    description: >
+      Lista de entes do Sistema Nacional de Cultura publicada no portal de
+      dados abertos do MinC, tipada. Uma linha por ente e versão do arquivo
+      (`cod_ibge` + `versao`). Estados e municípios vêm juntos, com uma linha a
+      mais que não é ente ('Não cadastrado'): na versão de 28/05/2026, 27 UFs,
+      5.567 municípios e essa linha, 5.595 no total. Faltam Boa Esperança do
+      Norte/MT, Santa Isabel/GO e Brasília (o DF vem só como UF). Ficam de fora
+      as 10 colunas com dado bancário, CNPJ, nome de pessoa e endereço. Datas
+      'dd/mm/aaaa' viram date pela data_texto; o texto de ausência ('Nao possui
+      adesão', 'Não informado') nas colunas tipadas vira nulo e, nas de texto,
+      fica como a Plataforma escreve. Lida de bronze_snc_entes.
+    config:
+      tags:
+        - silver
+        - dados_cultura
+      meta:
+        status: Active
+        origem_dados: 'bronze_snc_entes'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "cod_ibge || '|' || versao"
+    columns:
+      - name: ente_federado
+        description: >
+          Nome do ente: o município, ou a UF por extenso. Na linha que não é ente, 'Não cadastrado'.
+        data_type: text
+      - name: uf
+        description: >
+          Sigla da UF. Na linha que não é ente, 'Não encontrada'.
+        data_type: text
+      - name: regiao
+        description: >
+          Grande região, como a Plataforma escreve ('Centro Oeste', sem hífen). Na linha que não é ente, 'Não encontrada'.
+        data_type: text
+      - name: cod_ibge
+        description: >
+          Código IBGE do ente: 7 dígitos no município, 2 na UF. Texto, porque a linha que não é ente traz 'Não cadastrado'. Com versao, identifica a linha.
+        data_type: text
+        tests:
+          - not_null
+      - name: pib_2016
+        description: >
+          PIB do ente em 2016, como a Plataforma publica. Valor que não é número vira nulo.
+        data_type: numeric
+      - name: idh_2021
+        description: >
+          IDH do ente em 2021. Valor que não é número vira nulo.
+        data_type: numeric
+      - name: populacao_2022
+        description: >
+          População do ente no Censo 2022.
+        data_type: bigint
+      - name: faixa_populacional
+        description: >
+          Porte do ente pela população, em cinco faixas ('Porte 1 (Pequeno I): até 20 mil habitantes' a 'Porte 5 (Grande II): acima de 900 mil habitantes').
+        data_type: text
+      - name: situacao
+        description: >
+          Situação da adesão ao SNC: 'Publicado no DOU' (aderido), 'Aguardando publicação no DOU', 'Diligência Documental' ou 'Nao possui adesão'.
+        data_type: text
+      - name: situacao_da_lei_do_sistema_de_cultura
+        description: >
+          Situação do documento da lei do sistema de cultura do ente na Plataforma ('Concluída', 'Não Possui', 'Documento não enviado', 'Arquivo incorreto'...).
+        data_type: text
+      - name: data_da_lei_do_sistema_de_cultura
+        description: >
+          Data da lei do sistema de cultura. Texto que não é data 'dd/mm/aaaa' de calendário vira nulo (macro data_texto).
+        data_type: date
+      - name: data_adesao
+        description: >
+          Data da adesão ao SNC. Texto que não é data 'dd/mm/aaaa' de calendário ('Nao possui adesão') vira nulo.
+        data_type: date
+      - name: situacao_do_orgao_gestor
+        description: >
+          Situação do documento do órgão gestor de cultura na Plataforma.
+        data_type: text
+      - name: data_da_lei_do_orgao_gestor
+        description: >
+          Data da lei de criação do órgão gestor. Texto que não é data vira nulo.
+        data_type: date
+      - name: perfil_do_orgao_gestor
+        description: >
+          Perfil do órgão gestor de cultura ('Secretaria exclusiva de cultura', 'Secretaria em conjunto com outras políticas', 'Não informado'...).
+        data_type: text
+      - name: orgao_gestor_de_cultura_possui_cnpj
+        description: >
+          Se o órgão gestor tem CNPJ ('Sim', 'Não', 'Não informado'). O CNPJ fica só em seeds.
+        data_type: text
+      - name: situacao_do_comprovante_do_cnpj_do_orgao_gestor_de_cultura
+        description: >
+          Situação do comprovante de CNPJ do órgão gestor na Plataforma.
+        data_type: text
+      - name: situacao_da_ata_do_conselho_de_politica_cultural
+        description: >
+          Situação do documento da ata do conselho de política cultural na Plataforma.
+        data_type: text
+      - name: situacao_da_lei_do_conselho_de_politica_cultural
+        description: >
+          Situação do documento da lei do conselho de política cultural ('Concluída', 'Não Possui'...). 'Concluída' é o conselho instituído por lei.
+        data_type: text
+      - name: conselho_de_cultura_possui_mesma_lei_do_sistema_municipal_de_cu
+        description: >
+          Se o conselho foi criado pela mesma lei do sistema de cultura. Nome cortado pelo Postgres em 63 caracteres (cliente_dados_cultura).
+        data_type: text
+      - name: data_da_lei_do_conselho_de_politica_cultural
+        description: >
+          Data da lei do conselho. Texto que não é data vira nulo.
+        data_type: date
+      - name: possui_ata_da_ultima_reuniao_do_conselho
+        description: >
+          Se o conselho tem ata da última reunião ('Sim', 'Não', 'Não possui plano de conselho').
+        data_type: text
+      - name: data_da_assinatura_da_ata_da_ultima_reuniao
+        description: >
+          Data de assinatura da ata da última reunião do conselho. Texto que não é data vira nulo.
+        data_type: date
+      - name: conselho_exclusivo_de_cultura
+        description: >
+          Se o conselho é exclusivo de cultura ('Sim', 'Não', 'Não possui plano de conselho').
+        data_type: text
+      - name: conselho_paritario
+        description: >
+          Se o conselho é paritário entre poder público e sociedade civil ('Sim', 'Não', 'Não possui plano de conselho').
+        data_type: text
+      - name: natureza_do_conselho
+        description: >
+          Natureza do conselho ('Deliberativo', 'Consultivo', 'Não informado', 'Não possui plano de conselho').
+        data_type: text
+      - name: fundo_de_cultura_possui_mesma_lei_do_sistema_municipal_de_cultu
+        description: >
+          Se o fundo foi criado pela mesma lei do sistema de cultura. Nome cortado pelo Postgres em 63 caracteres.
+        data_type: text
+      - name: fundo_de_cultura_possui_cnpj
+        description: >
+          Se o fundo de cultura tem CNPJ ('Sim', 'Não', 'Não informado'). O CNPJ fica só em seeds.
+        data_type: text
+      - name: situacao_do_comprovante_do_cnpj_do_fundo_de_cultura
+        description: >
+          Situação do comprovante de CNPJ do fundo de cultura na Plataforma.
+        data_type: text
+      - name: situacao_da_lei_do_fundo_de_cultura
+        description: >
+          Situação do documento da lei do fundo de cultura ('Concluída', 'Não Possui'...).
+        data_type: text
+      - name: data_da_lei_do_fundo_de_cultura
+        description: >
+          Data da lei do fundo de cultura. Texto que não é data vira nulo.
+        data_type: date
+      - name: situacao_do_plano_de_cultura
+        description: >
+          Situação do documento do plano de cultura ('Concluída', 'Não Possui'...).
+        data_type: text
+      - name: data_do_plano_de_cultura
+        description: >
+          Data do plano de cultura. Texto que não é data vira nulo.
+        data_type: date
+      - name: plano_exclusivo_de_cultura
+        description: >
+          Se o plano é exclusivo de cultura ('Sim', 'Não').
+        data_type: text
+      - name: lei_do_plano_de_cultura_possui_anexo
+        description: >
+          Se a lei do plano tem anexo ('Sim', 'Não').
+        data_type: text
+      - name: anexo_consta_no_mesmo_arquivo_da_lei
+        description: >
+          Se o anexo do plano está no mesmo arquivo da lei ('Sim', 'Não').
+        data_type: text
+      - name: ultimo_ano_de_vigencia_do_plano_de_cultura
+        description: >
+          Último ano de vigência do plano. 'Não informado' vira nulo.
+        data_type: integer
+      - name: periocidade_do_plano_de_cultura
+        description: >
+          Periodicidade do plano ('Decenal (10 anos)', 'Quadrienal (4 anos)'...). O nome da coluna repete a grafia do cabeçalho do portal.
+        data_type: text
+      - name: possui_metas
+        description: >
+          Se o plano de cultura tem metas ('Sim', 'Não').
+        data_type: text
+      - name: situacao_das_metas
+        description: >
+          Situação do documento das metas do plano na Plataforma.
+        data_type: text
+      - name: plano_monitorado
+        description: >
+          Se o plano é monitorado: 'Não', ou 'Sim. Local de monitoramento: ...' em texto livre.
+        data_type: text
+      - name: participou_de_algum_programa_de_formacao_de_gestores_e_conselhe
+        description: >
+          Se o ente participou de programa de formação de gestores e conselheiros culturais ('Sim', 'Não'). Nome cortado pelo Postgres em 63 caracteres.
+        data_type: text
+      - name: participou_da_conferencia_nacional
+        description: >
+          Se o ente participou da Conferência Nacional de Cultura ('Sim', 'Não').
+        data_type: text
+      - name: oficio_indicacao_cadastrador
+        description: >
+          Se há ofício de indicação do cadastrador ('sim', 'Não'). O nome e o contato do cadastrador não estão no portal.
+        data_type: text
+      - name: num_processo_sei
+        description: >
+          Número do processo SEI de adesão do ente.
+        data_type: text
+      - name: ultima_atualizacao
+        description: >
+          Última atualização do cadastro do ente na Plataforma, em texto 'dd/mm/aaaa às hh:mm:ss'.
+        data_type: text
+      - name: versao
+        description: >
+          Versão do arquivo no portal: o dia do last_modified do recurso no CKAN. Cada versão que a DAG encontrou fica na tabela.
+        data_type: date
+        tests:
+          - not_null
+      - name: dt_ingest
+        description: >
+          Momento da carga pela dados_cultura_dag, em texto.
+        data_type: text
