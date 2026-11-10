@@ -7,9 +7,11 @@
 -- 'Sim' ou 'Não' (macro eixo1_sim_nao) e as faixas de idade, raça, escolaridade e
 -- execução orçamentária. As silvers do ibge só tipam.
 --
--- Diferença do R: resposta ausente fica NULL (ADR 0010, regra transversal 1).
--- O R a transformava em 'Não' ou 'Sem Informação'. Só acontece quando a aba de
--- 2006 ou 2014 não tem o município.
+-- Exceção à regra transversal 1 do ADR 0010, para bater com a publicação: '-',
+-- 'Recusa' e 'Não informou' viram 'Não' na macro eixo1_sim_nao, como no R (as
+-- contagens estão no schema.yml). Resposta ausente fica NULL; o R a transformava
+-- em 'Não' ou 'Sem Informação'. Só acontece quando a aba de 2006 ou 2014 não tem
+-- o município.
 with
 
     munic_2021 as (
@@ -79,8 +81,9 @@ with
         from {{ ref("silver_munic_2021_cultura") }}
     ),
 
-    -- Em 2018 o R não traz população, nome nem execução orçamentária, e os
-    -- equipamentos vão como o IBGE respondeu, sem passar pelo sim/não.
+    -- Em 2018 o R não traz população, nome nem execução orçamentária. Os
+    -- equipamentos de 2018, 2014 e 2006 o R guarda crus e o gráfico 11 conta só
+    -- 'Sim' e 'Não'; aqui o resto ('-', 'Recusa', 'Não informou') já vira NULL.
     munic_2018 as (
         select
             codmun::text as cod_municipio,
@@ -93,10 +96,10 @@ with
             {{ eixo1_sim_nao("mcul33") }} as tem_fundo,
             {{ eixo1_sim_nao("mcul15") }} as tem_lei_patrimonio,
             {{ eixo1_sim_nao("mcul26") }} as tem_cons_patrimonio,
-            mcul362 as equip_biblioteca,
-            mcul361 as equip_museu,
-            mcul365 as equip_teatro,
-            mcul364 as equip_cinema,
+            {{ eixo1_sim_nao_exato("mcul362") }} as equip_biblioteca,
+            {{ eixo1_sim_nao_exato("mcul361") }} as equip_museu,
+            {{ eixo1_sim_nao_exato("mcul365") }} as equip_teatro,
+            {{ eixo1_sim_nao_exato("mcul364") }} as equip_cinema,
             mcul03 as gestor_sexo,
             mcul04 as gestor_idade,
             mcul05 as gestor_cor_raca,
@@ -136,10 +139,10 @@ with
             {{ eixo1_sim_nao("fundo.a372") }} as tem_fundo,
             {{ eixo1_sim_nao("legislacao.a288") }} as tem_lei_patrimonio,
             {{ eixo1_sim_nao("instancias.a339") }} as tem_cons_patrimonio,
-            equipamentos.a413 as equip_biblioteca,
-            equipamentos.a415 as equip_museu,
-            equipamentos.a417 as equip_teatro,
-            equipamentos.a427 as equip_cinema,
+            {{ eixo1_sim_nao_exato("equipamentos.a413") }} as equip_biblioteca,
+            {{ eixo1_sim_nao_exato("equipamentos.a415") }} as equip_museu,
+            {{ eixo1_sim_nao_exato("equipamentos.a417") }} as equip_teatro,
+            {{ eixo1_sim_nao_exato("equipamentos.a427") }} as equip_cinema,
             rh.a22 as gestor_sexo,
             rh.a23 as gestor_idade,
             null::text as gestor_cor_raca,
@@ -187,10 +190,10 @@ with
             {{ eixo1_sim_nao("fundo.a196") }} as tem_fundo,
             {{ eixo1_sim_nao("legislacao.a120") }} as tem_lei_patrimonio,
             {{ eixo1_sim_nao("conselhos.a164") }} as tem_cons_patrimonio,
-            equipamentos.a424 as equip_biblioteca,
-            equipamentos.a427 as equip_museu,
-            equipamentos.a430 as equip_teatro,
-            equipamentos.a439 as equip_cinema,
+            {{ eixo1_sim_nao_exato("equipamentos.a424") }} as equip_biblioteca,
+            {{ eixo1_sim_nao_exato("equipamentos.a427") }} as equip_museu,
+            {{ eixo1_sim_nao_exato("equipamentos.a430") }} as equip_teatro,
+            {{ eixo1_sim_nao_exato("equipamentos.a439") }} as equip_cinema,
             null::text as gestor_sexo,
             null::text as gestor_idade,
             null::text as gestor_cor_raca,
