@@ -25,6 +25,11 @@ version: 2
 # onde a regra do R contraria o ADR 0010, a description diz a diferença. Na frente
 # MUNIC, eixo1_munic_painel_municipio e eixo1_munic_conselho_municipio são as
 # golds-base, e as outras leem delas.
+#
+# Exceção à regra transversal 1 do ADR 0010 no Eixo 1: '-', 'Recusa' e 'Não
+# informou' viram 'Não' (macro eixo1_sim_nao), como nos scripts do R, para as
+# golds baterem com a publicação. Resposta ausente continua NULL. A description
+# de cada gold-base diz quantas respostas caem na exceção, por edição.
 models:
   - name: eixo2_meta5_evento_fomento
     description: >
@@ -1645,20 +1650,35 @@ models:
       A REGRA: qual pergunta de cada edição responde cada variável (em 2021 e
       2018, a aba Cultura; em 2014 e 2006, as abas do suplemento de cultura,
       ligadas pelo código do município); como a resposta vira 'Sim' ou 'Não'
-      (macro eixo1_sim_nao: contém "sim" é 'Sim', qualquer outra resposta
-      preenchida, inclusive '-' e 'Recusa', é 'Não'); e as faixas de idade,
-      raça, escolaridade e execução orçamentária. Toda edição recebe o código e
-      o nome de 2021 pelos 6 primeiros dígitos, porque 2006 não tem o dígito
-      verificador. 2018, 2014 e 2006 não trazem população; 2018, 2014 e 2006
-      não trazem execução orçamentária; os equipamentos de 2018, 2014 e 2006
-      vão como o IBGE respondeu, como no R.
+      (macro eixo1_sim_nao: começa por "sim" é 'Sim', qualquer outra resposta
+      preenchida é 'Não'; 'Em elaboração', na pergunta do plano, é 'Não'); e as
+      faixas de idade, raça, escolaridade e execução orçamentária. Toda edição
+      recebe o código e o nome de 2021 pelos 6 primeiros dígitos, porque 2006 não
+      tem o dígito verificador. 2018, 2014 e 2006 não trazem população nem
+      execução orçamentária. Os equipamentos de 2021 passam pela macro; os de
+      2018, 2014 e 2006 ficam só com 'Sim' e 'Não' exatos (macro
+      eixo1_sim_nao_exato) e o resto vira NULL, que é o que o gráfico 11 do R
+      conta.
 
-      DIFERENÇA DO R: resposta ausente fica NULL (ADR 0010, regra transversal
-      1); o R a transformava em 'Não' ou 'Sem Informação'. Conferido contra o
-      CSV do R em 09/11/2026, com as tabelas de seeds do dbanalytics: as 22.274
-      linhas e as 36 colunas batem, e das 801.864 células só diferem as 222 de
-      plano_tem_lei em 2018, os municípios em que a pergunta da lei do plano
-      veio vazia na MUNIC 2018 (todos responderam que não têm plano).
+      EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e
+      'Não disponível' viram 'Não', como no R, para as golds baterem com a
+      publicação. Em 09/11/2026, nas colunas do tripé e do patrimônio (tem_plano,
+      tem_conselho, tem_fundo, tem_lei_patrimonio, tem_cons_patrimonio), são 6, 6,
+      5, 6 e 6 municípios em 2021; 3, 3, 2, 3 e 3 em 2018; 4, 3, 3, 4 e 3 em 2014;
+      2, 2, 3, 2 e 2 em 2006. Nos equipamentos de 2021, 39 por equipamento (35
+      '-', 2 'Recusa' e 2 'Não informou'). Nas perguntas que só se aplicam a parte
+      dos municípios (plano_participacao_soc, sec_*, cons_cap_*), o '-' vira
+      'Não'; as golds de gráfico que usam essas colunas filtram antes por
+      tem_plano ou tem_conselho.
+
+      DIFERENÇA DO R: resposta ausente fica NULL; o R a transformava em 'Não' ou
+      'Sem Informação'. Conferido contra o CSV do R em 09/11/2026, com as tabelas
+      de seeds do dbanalytics: as 22.274 linhas e as 36 colunas batem, e das
+      801.864 células diferem 9.682. São 222 de plano_tem_lei em 2018, os
+      municípios em que a pergunta da lei do plano veio vazia na MUNIC 2018 (todos
+      responderam que não têm plano), e 9.460 dos equipamentos de 2018, 2014 e
+      2006, em que o R guarda '-', 'Recusa' ou 'Não informou' e aqui é NULL (2.360
+      por equipamento em 2018, 3 em 2014 e 2 em 2006).
     config:
       tags:
         - gold
@@ -1672,7 +1692,10 @@ models:
           owner: minc-data-engineering
     columns:
       - name: cod_municipio
-        description: Código IBGE do município, com 7 dígitos (o de 2021).
+        description: >
+          Código IBGE do município, com 7 dígitos (o de 2021). O teste
+          eixo1_munic_codigo_municipio_com_7_digitos pega o código de 6 dígitos
+          de um município de 2006 que não casasse com o cadastro de 2021.
         data_type: text
         tests:
           - not_null
@@ -1690,15 +1713,17 @@ models:
         data_type: text
         tests:
           - accepted_values:
-              values: ['Norte', 'Nordeste', 'Sudeste', 'Sul', 'Centro-Oeste']
+              arguments:
+                values: ['Norte', 'Nordeste', 'Sudeste', 'Sul', 'Centro-Oeste']
       - name: ano
         description: Edição da MUNIC.
         data_type: integer
         tests:
           - not_null
           - accepted_values:
-              values: [2006, 2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
       - name: populacao
         description: População do município, só em 2021 (a MUNIC 2021 traz).
         data_type: bigint
@@ -1708,32 +1733,69 @@ models:
       - name: tem_plano
         description: O município tem plano municipal de cultura ('Sim' ou 'Não').
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: tem_conselho
         description: O município tem conselho municipal de cultura ('Sim' ou 'Não').
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: tem_fundo
         description: O município tem fundo municipal de cultura ('Sim' ou 'Não').
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: tem_lei_patrimonio
         description: O município tem lei de proteção do patrimônio ('Sim' ou 'Não').
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: tem_cons_patrimonio
         description: O município tem conselho de patrimônio ('Sim' ou 'Não').
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: equip_biblioteca
         description: >
-          Tem biblioteca pública. Em 2021, 'Sim' ou 'Não'; nas outras edições, a
-          resposta do IBGE.
+          Tem biblioteca pública, 'Sim' ou 'Não'. Em 2021, pela regra sim/não do
+          modelo, com a exceção; em 2018, 2014 e 2006, só a resposta 'Sim' ou
+          'Não' exata, e o resto ('-', 'Recusa', 'Não informou') é NULL.
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: equip_museu
         description: Tem museu. Mesma regra de equip_biblioteca.
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: equip_teatro
         description: Tem teatro ou sala de espetáculos. Mesma regra de equip_biblioteca.
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: equip_cinema
         description: Tem cinema. Mesma regra de equip_biblioteca.
         data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: gestor_sexo
         description: Sexo do gestor de cultura, como o IBGE respondeu (2014 em diante).
         data_type: text
@@ -1811,11 +1873,20 @@ models:
       PARA QUE SERVE: base da paridade (Figura 15) e da competência dos
       conselhos. Reproduz o df_conselhos_detalhado do MUNIC.R.
 
-      A REGRA: a composição vira 'Paritário', 'Não Paritário' ou 'Sem
-      Informação' pelo texto da resposta. Em 2014, como no R, "Não informado"
-      conta como não paritário, porque o padrão procura "não". A competência
-      vira uma categoria: deliberativo (com ou sem consultivo), apenas
-      consultivo, normativo ou fiscalizador, ou 'Sem Informação'.
+      A REGRA: a composição vira 'Paritário', 'Não Paritário' ou 'Sem Informação'
+      pelo texto da resposta; "não paritário" é testado antes de "paritário"
+      (nenhuma resposta assim em 09/11/2026). A competência vira uma categoria:
+      deliberativo (com ou sem consultivo), apenas consultivo, normativo ou
+      fiscalizador, ou 'Sem Informação'.
+
+      EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: em 2014, "Não
+      informado" na composição conta como 'Não Paritário', porque o padrão procura
+      "não"; em 09/11/2026 nenhum dos 2.151 conselhos de 2014 tem essa resposta
+      (1.671 'É paritário', 365 com maior representação da sociedade civil e 115
+      com maior representação governamental). Na competência, '-' e 'Não informou'
+      viram 'Não' nas quatro perguntas, e o conselho cai em 'Sem Informação': 862
+      em 2021, nenhum em 2018 e 2014. Em 2021, a composição '-' ou 'Não informou'
+      é 'Sem Informação' (863).
     config:
       tags:
         - gold
@@ -1839,26 +1910,29 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2014, 2018, 2021]
+                quote: false
       - name: cons_paritario
         description: Composição do conselho.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values: ['Paritário', 'Não Paritário', 'Sem Informação']
+              arguments:
+                values: ['Paritário', 'Não Paritário', 'Sem Informação']
       - name: cons_competencia
         description: Competência do conselho.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Deliberativo (com ou sem consultivo)'
-                - 'Apenas Consultivo'
-                - 'Normativo / Fiscalizador'
-                - 'Sem Informação'
+              arguments:
+                values:
+                  - 'Deliberativo (com ou sem consultivo)'
+                  - 'Apenas Consultivo'
+                  - 'Normativo / Fiscalizador'
+                  - 'Sem Informação'
 
   - name: eixo1_munic_tripe
     description: >
@@ -1866,8 +1940,10 @@ models:
       plano, conselho e fundo municipal de cultura, os três instrumentos do tripé
       do SNC, por edição.
 
-      GRÃO: uma linha por edição e instrumento. UNIVERSO: os municípios que
-      responderam 'Sim' ou 'Não' à pergunta do instrumento.
+      GRÃO: uma linha por edição e instrumento. UNIVERSO: os municípios com 'Sim' ou
+      'Não' no painel. Pela exceção à regra transversal 1 descrita em
+      eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como
+      'Não', como no R: de 2 a 6 municípios por instrumento e edição.
 
       PARA QUE SERVE: o gráfico 1 do MUNIC.R. Conferido em 09/11/2026: igual ao
       mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
@@ -1890,15 +1966,17 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2006, 2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
       - name: instrumento
         description: O instrumento do tripé.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values: ['Plano de Cultura', 'Conselho de Cultura', 'Fundo de Cultura']
+              arguments:
+                values: ['Plano de Cultura', 'Conselho de Cultura', 'Fundo de Cultura']
       - name: quantidade_municipios_sim
         description: Municípios que responderam 'Sim' para o instrumento.
         data_type: bigint
@@ -1944,15 +2022,17 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2014, 2018, 2021]
+                quote: false
       - name: gestor_sexo
         description: Sexo do gestor.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values: ['Feminino', 'Masculino']
+              arguments:
+                values: ['Feminino', 'Masculino']
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -1994,18 +2074,19 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values:
-                - '0%'
-                - 'Até 10%'
-                - '11% a 20%'
-                - '21% a 30%'
-                - '31% a 40%'
-                - '41% a 50%'
-                - '51% a 60%'
-                - '61% a 70%'
-                - '71% a 80%'
-                - '81% a 90%'
-                - 'Mais de 90%'
+              arguments:
+                values:
+                  - '0%'
+                  - 'Até 10%'
+                  - '11% a 20%'
+                  - '21% a 30%'
+                  - '31% a 40%'
+                  - '41% a 50%'
+                  - '51% a 60%'
+                  - '61% a 70%'
+                  - '71% a 80%'
+                  - '81% a 90%'
+                  - 'Mais de 90%'
       - name: ordem_faixa
         description: Posição da faixa no eixo, de 1 ('0%') a 11 ('Mais de 90%').
         data_type: integer
@@ -2053,18 +2134,20 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2006, 2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
       - name: tipo_orgao_gestor
         description: Grupo do órgão gestor.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Secretaria Exclusiva / Fundação'
-                - 'Secretaria em Conjunto (Ex: Educação e Cultura)'
-                - 'Setor Subordinado / Outros'
+              arguments:
+                values:
+                  - 'Secretaria Exclusiva / Fundação'
+                  - 'Secretaria em Conjunto (Ex: Educação e Cultura)'
+                  - 'Setor Subordinado / Outros'
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2084,10 +2167,12 @@ models:
       GRÃO: uma linha por grupo de tripé e escolaridade. UNIVERSO: os municípios
       da MUNIC 2021 com escolaridade do gestor num dos quatro grupos.
 
-      PARA QUE SERVE: o gráfico 5 do MUNIC.R. A proporção é dentro de cada grupo
-      de tripé. Tripé completo é 'Sim' para plano, conselho e fundo. Conferido em
-      09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o
-      repositório do Eixo 1 versiona.
+      PARA QUE SERVE: o gráfico 5 do MUNIC.R. A proporção é dentro de cada grupo de
+      tripé. Tripé completo é 'Sim' para plano, conselho e fundo. Pela exceção à
+      regra transversal 1 descrita em eixo1_munic_painel_municipio, quem tem '-',
+      'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé,
+      como no R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o
+      painel que o repositório do Eixo 1 versiona.
     config:
       tags:
         - gold
@@ -2106,18 +2191,20 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Com Tripé Completo', 'Sem Tripé Completo']
+              arguments:
+                values: ['Com Tripé Completo', 'Sem Tripé Completo']
       - name: gestor_escolaridade_agrupada
         description: Escolaridade do gestor, em quatro grupos.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Ensino Fundamental'
-                - 'Ensino Médio'
-                - 'Ensino Superior'
-                - 'Pós-Graduação'
+              arguments:
+                values:
+                  - 'Ensino Fundamental'
+                  - 'Ensino Médio'
+                  - 'Ensino Superior'
+                  - 'Pós-Graduação'
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2159,15 +2246,17 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2018, 2021]
-              quote: false
+              arguments:
+                values: [2018, 2021]
+                quote: false
       - name: gestor_cor_raca
         description: Cor ou raça do gestor.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values: ['Amarela', 'Branca', 'Indígena', 'Parda', 'Preta']
+              arguments:
+                values: ['Amarela', 'Branca', 'Indígena', 'Parda', 'Preta']
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2209,13 +2298,14 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Feminino - Amarela / Indígena'
-                - 'Feminino - Brancos'
-                - 'Feminino - Negros (Pretos e Pardos)'
-                - 'Masculino - Amarela / Indígena'
-                - 'Masculino - Brancos'
-                - 'Masculino - Negros (Pretos e Pardos)'
+              arguments:
+                values:
+                  - 'Feminino - Amarela / Indígena'
+                  - 'Feminino - Brancos'
+                  - 'Feminino - Negros (Pretos e Pardos)'
+                  - 'Masculino - Amarela / Indígena'
+                  - 'Masculino - Brancos'
+                  - 'Masculino - Negros (Pretos e Pardos)'
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2256,19 +2346,21 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2006, 2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
       - name: gestor_escolaridade_agrupada
         description: Escolaridade do gestor, em quatro grupos.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Ensino Fundamental'
-                - 'Ensino Médio'
-                - 'Ensino Superior'
-                - 'Pós-Graduação'
+              arguments:
+                values:
+                  - 'Ensino Fundamental'
+                  - 'Ensino Médio'
+                  - 'Ensino Superior'
+                  - 'Pós-Graduação'
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2309,20 +2401,22 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2014, 2018, 2021]
+                quote: false
       - name: gestor_faixa_etaria
         description: Faixa de idade do gestor.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Até 29 anos'
-                - '30 a 39 anos'
-                - '40 a 49 anos'
-                - '50 a 59 anos'
-                - '60 anos ou mais'
+              arguments:
+                values:
+                  - 'Até 29 anos'
+                  - '30 a 39 anos'
+                  - '40 a 49 anos'
+                  - '50 a 59 anos'
+                  - '60 anos ou mais'
       - name: ordem_faixa
         description: Posição da faixa no eixo, de 1 ('Até 29 anos') a 5 ('60 anos ou mais').
         data_type: integer
@@ -2348,9 +2442,11 @@ models:
 
       PARA QUE SERVE: o gráfico 10 do MUNIC.R. Como no R, o total conta todos os
       municípios da UF, e a proporção deixa de fora quem tem resposta ausente num
-      dos três instrumentos (em 2021 não há nenhum). Conferido em 09/11/2026:
-      igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
-      versiona.
+      dos três instrumentos (em 2021 não há nenhum). Pela exceção à regra
+      transversal 1 descrita em eixo1_munic_painel_municipio, quem tem '-', 'Recusa'
+      ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R.
+      Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que
+      o repositório do Eixo 1 versiona.
     config:
       tags:
         - gold
@@ -2369,7 +2465,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Centro-Oeste', 'Nordeste', 'Norte', 'Sudeste', 'Sul']
+              arguments:
+                values: ['Centro-Oeste', 'Nordeste', 'Norte', 'Sudeste', 'Sul']
       - name: uf
         description: Sigla da UF.
         data_type: text
@@ -2397,8 +2494,11 @@ models:
       Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a presença de
       biblioteca pública, museu, teatro e cinema no município.
 
-      GRÃO: uma linha por edição e equipamento. UNIVERSO: os municípios que
-      responderam 'Sim' ou 'Não' à pergunta do equipamento.
+      GRÃO: uma linha por edição e equipamento. UNIVERSO: os municípios com 'Sim' ou
+      'Não' no painel. Em 2021, pela exceção à regra transversal 1 descrita em
+      eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como
+      'Não', como no R: 39 municípios por equipamento. Em 2018, 2014 e 2006 essas
+      respostas ficam NULL e saem do universo, como no gráfico 11 do R.
 
       PARA QUE SERVE: o gráfico 11 do MUNIC.R. Conferido em 09/11/2026: igual ao
       mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
@@ -2421,19 +2521,21 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2006, 2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
       - name: equipamento
         description: O equipamento cultural.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Biblioteca Pública'
-                - 'Museu'
-                - 'Teatro / Casa de Espetáculos'
-                - 'Cinema / Sala de Exibição'
+              arguments:
+                values:
+                  - 'Biblioteca Pública'
+                  - 'Museu'
+                  - 'Teatro / Casa de Espetáculos'
+                  - 'Cinema / Sala de Exibição'
       - name: quantidade_municipios_sim
         description: Municípios que responderam 'Sim' para o equipamento.
         data_type: bigint
@@ -2455,8 +2557,10 @@ models:
       Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a presença de lei
       e de conselho municipal de patrimônio cultural.
 
-      GRÃO: uma linha por edição e instrumento. UNIVERSO: os municípios que
-      responderam 'Sim' ou 'Não' à pergunta do instrumento.
+      GRÃO: uma linha por edição e instrumento. UNIVERSO: os municípios com 'Sim' ou
+      'Não' no painel. Pela exceção à regra transversal 1 descrita em
+      eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como
+      'Não', como no R: de 2 a 6 municípios por instrumento e edição.
 
       PARA QUE SERVE: o gráfico 12 do MUNIC.R. Conferido em 09/11/2026: igual ao
       mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
@@ -2479,17 +2583,19 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2006, 2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
       - name: instrumento
         description: O instrumento de patrimônio.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Legislação Específica de Patrimônio'
-                - 'Conselho de Patrimônio Cultural'
+              arguments:
+                values:
+                  - 'Legislação Específica de Patrimônio'
+                  - 'Conselho de Patrimônio Cultural'
       - name: quantidade_municipios_sim
         description: Municípios que responderam 'Sim' para o instrumento.
         data_type: bigint
@@ -2536,18 +2642,20 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2014, 2018, 2021]
-              quote: false
+              arguments:
+                values: [2014, 2018, 2021]
+                quote: false
       - name: cons_competencia
         description: Competência do conselho.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Deliberativo (com ou sem consultivo)'
-                - 'Apenas Consultivo'
-                - 'Normativo / Fiscalizador'
+              arguments:
+                values:
+                  - 'Deliberativo (com ou sem consultivo)'
+                  - 'Apenas Consultivo'
+                  - 'Normativo / Fiscalizador'
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2568,9 +2676,11 @@ models:
       MUNIC 2021 com população informada.
 
       PARA QUE SERVE: o gráfico 15 do MUNIC.R. A população é a da própria MUNIC
-      2021. A proporção é dentro de cada porte; ordem_porte dá a ordem do eixo.
-      Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel
-      que o repositório do Eixo 1 versiona.
+      2021. A proporção é dentro de cada porte; ordem_porte dá a ordem do eixo. Pela
+      exceção à regra transversal 1 descrita em eixo1_munic_painel_municipio, quem
+      tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem
+      tripé, como no R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R
+      sobre o painel que o repositório do Eixo 1 versiona.
     config:
       tags:
         - gold
@@ -2589,11 +2699,12 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Até 20 mil hab.'
-                - '20.001 a 50 mil hab.'
-                - '50.001 a 100 mil hab.'
-                - 'Mais de 100 mil hab.'
+              arguments:
+                values:
+                  - 'Até 20 mil hab.'
+                  - '20.001 a 50 mil hab.'
+                  - '50.001 a 100 mil hab.'
+                  - 'Mais de 100 mil hab.'
       - name: ordem_porte
         description: Posição do porte no eixo, de 1 ('Até 20 mil hab.') a 4.
         data_type: integer
@@ -2605,7 +2716,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Tripé Completo', 'Incompleto / Nenhum']
+              arguments:
+                values: ['Tripé Completo', 'Incompleto / Nenhum']
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2647,18 +2759,20 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2018, 2021]
-              quote: false
+              arguments:
+                values: [2018, 2021]
+                quote: false
       - name: status_lei
         description: Se o plano foi instituído por lei.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Possui Instrumento Legal'
-                - 'Sem Instrumento Legal'
-                - 'Sem Informação'
+              arguments:
+                values:
+                  - 'Possui Instrumento Legal'
+                  - 'Sem Instrumento Legal'
+                  - 'Sem Informação'
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2700,15 +2814,17 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2018, 2021]
-              quote: false
+              arguments:
+                values: [2018, 2021]
+                quote: false
       - name: status_participacao
         description: Se o plano teve participação social.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values: ['Com Participação Social', 'Sem Participação', 'Sem Informação']
+              arguments:
+                values: ['Com Participação Social', 'Sem Participação', 'Sem Informação']
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2750,18 +2866,20 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [2018, 2021]
-              quote: false
+              arguments:
+                values: [2018, 2021]
+                quote: false
       - name: capacitacao
         description: Tipo de capacitação dos conselheiros.
         data_type: text
         tests:
           - not_null
           - accepted_values:
-              values:
-                - 'Capacitação Continuada'
-                - 'Capacitação Eventual'
-                - 'Não Realiza Capacitação'
+              arguments:
+                values:
+                  - 'Capacitação Continuada'
+                  - 'Capacitação Eventual'
+                  - 'Não Realiza Capacitação'
       - name: quantidade_municipios
         description: Quantidade de municípios na categoria.
         data_type: bigint
@@ -2803,7 +2921,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Centro-Oeste', 'Nordeste', 'Norte', 'Sudeste', 'Sul']
+              arguments:
+                values: ['Centro-Oeste', 'Nordeste', 'Norte', 'Sudeste', 'Sul']
       - name: quantidade_municipios
         description: Conselhos da região que entram na média.
         data_type: bigint
@@ -2826,8 +2945,10 @@ models:
       PARA QUE SERVE: é a parte da MUNIC (2014, 2018 e 2021) da Figura 15 da
       publicação e o gráfico 13 do MUNIC.R. A linha de 2026 da figura vem do
       painel do SNC, mantida à mão no repositório do Eixo 1, e não está aqui.
-      Conferido em 09/11/2026: as seis contagens são iguais às do CSV
-      publicado da Figura 15.
+      Conferido em 09/11/2026: as seis contagens são iguais às do CSV publicado da
+      Figura 15. A exceção à regra transversal 1 descrita em
+      eixo1_munic_conselho_municipio não muda a figura hoje: nenhum conselho de
+      2014 respondeu "Não informado" na composição.
     config:
       tags:
         - gold
@@ -2851,7 +2972,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Paritário', 'Não Paritário']
+              arguments:
+                values: ['Paritário', 'Não Paritário']
       - name: quantidade_municipios
         description: Quantidade de municípios com essa composição na edição.
         data_type: bigint
