@@ -11,7 +11,8 @@ models:
       filtro nem join (ADR 0010): todas as colunas e todas as versões, como a
       dados_cultura_dag grava. Inclui dados bancários, CNPJ, nome do prefeito e
       do gestor de cultura e endereço (cliente_dados_cultura.DADOS_SENSIVEIS),
-      que não passam para a silver.
+      que não passam para a silver. Só essas 10 colunas estão declaradas aqui,
+      com a tag PII.Sensitive; as outras vêm pelo select *, como em seeds.
     config:
       tags:
         - bronze
@@ -21,6 +22,87 @@ models:
         domain: Cultura.Indicadores
         tier: Tier.Tier3
         owner: minc-data-engineering
+    columns:
+      - name: cnpj_ente_federado
+        description: >
+          CNPJ do ente federado.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cnpj_do_orgao_gestor_de_cultura
+        description: >
+          CNPJ do órgão gestor de cultura do ente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dados_bancarios_do_orgao_gestor_de_cultura
+        description: >
+          Agência e conta do órgão gestor de cultura.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cnpj_do_fundo_de_cultura
+        description: >
+          CNPJ do fundo de cultura do ente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: dados_bancarios_do_fundo_de_cultura
+        description: >
+          Agência e conta do fundo de cultura.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: endereco
+        description: >
+          Endereço do cadastro do ente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: bairro
+        description: >
+          Bairro do endereço do cadastro do ente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: cep
+        description: >
+          CEP do endereço do cadastro do ente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: prefeito
+        description: >
+          Nome do prefeito.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: gestor_de_cultura
+        description: >
+          Nome do gestor de cultura do ente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
 
   - name: silver_snc_entes
     description: >

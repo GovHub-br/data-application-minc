@@ -796,9 +796,50 @@
       "camada": "bronze",
       "meta": null,
       "caminho": "dbt/minc/models/dados_cultura/bronze_snc_entes.sql",
-      "descricao": "Camada Bronze — cópia fiel de seeds.dados_cultura_snc_entes, sem cast, filtro nem join (ADR 0010): todas as colunas e todas as versões, como a dados_cultura_dag grava. Inclui dados bancários, CNPJ, nome do prefeito e do gestor de cultura e endereço (cliente_dados_cultura.DADOS_SENSIVEIS), que não passam para a silver.",
-      "colunas": [],
-      "colunas_descritas": 0,
+      "descricao": "Camada Bronze — cópia fiel de seeds.dados_cultura_snc_entes, sem cast, filtro nem join (ADR 0010): todas as colunas e todas as versões, como a dados_cultura_dag grava. Inclui dados bancários, CNPJ, nome do prefeito e do gestor de cultura e endereço (cliente_dados_cultura.DADOS_SENSIVEIS), que não passam para a silver. Só essas 10 colunas estão declaradas aqui, com a tag PII.Sensitive; as outras vêm pelo select *, como em seeds.",
+      "colunas": [
+        {
+          "nome": "cnpj_ente_federado",
+          "descricao": "CNPJ do ente federado."
+        },
+        {
+          "nome": "cnpj_do_orgao_gestor_de_cultura",
+          "descricao": "CNPJ do órgão gestor de cultura do ente."
+        },
+        {
+          "nome": "dados_bancarios_do_orgao_gestor_de_cultura",
+          "descricao": "Agência e conta do órgão gestor de cultura."
+        },
+        {
+          "nome": "cnpj_do_fundo_de_cultura",
+          "descricao": "CNPJ do fundo de cultura do ente."
+        },
+        {
+          "nome": "dados_bancarios_do_fundo_de_cultura",
+          "descricao": "Agência e conta do fundo de cultura."
+        },
+        {
+          "nome": "endereco",
+          "descricao": "Endereço do cadastro do ente."
+        },
+        {
+          "nome": "bairro",
+          "descricao": "Bairro do endereço do cadastro do ente."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP do endereço do cadastro do ente."
+        },
+        {
+          "nome": "prefeito",
+          "descricao": "Nome do prefeito."
+        },
+        {
+          "nome": "gestor_de_cultura",
+          "descricao": "Nome do gestor de cultura do ente."
+        }
+      ],
+      "colunas_descritas": 10,
       "testes": 0,
       "materializacao": "",
       "depende_de": [],
@@ -54102,7 +54143,7 @@
       "tabelas": [
         {
           "nome": "snc_entes",
-          "descricao": "\"Lista de municípios que compõem o SNC\", o export da Plataforma do Sistema Nacional de Cultura publicado no portal: estados e municípios na mesma aba, uma linha por ente e versão, com adesão, órgão gestor, conselho, fundo e plano de cultura. Traz também dados bancários, CNPJ, nome do prefeito e do gestor de cultura e endereço (lista em cliente_dados_cultura.DADOS_SENSIVEIS), que ficam só aqui e na bronze: a silver não os carrega."
+          "descricao": "\"Lista de municípios que compõem o SNC\", o export da Plataforma do Sistema Nacional de Cultura publicado no portal: estados e municípios na mesma aba, uma linha por ente e versão, com adesão, órgão gestor, conselho, fundo e plano de cultura. Traz também dados bancários, CNPJ, nome do prefeito e do gestor de cultura e endereço (lista em cliente_dados_cultura.DADOS_SENSIVEIS), que ficam só aqui e na bronze: a silver não os carrega. As 10 colunas levam a tag PII.Sensitive."
         }
       ]
     },
