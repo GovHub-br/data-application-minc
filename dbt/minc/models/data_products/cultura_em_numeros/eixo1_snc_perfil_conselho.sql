@@ -2,7 +2,16 @@
 -- instituídos por lei, isto é, com situação 'Concluída' (tabela da seção 10 do
 -- SNC.R, Tabela_SNC_Perfil_Conselhos). Uma linha por característica e resposta,
 -- inclusive as que têm zero, como na tabela do R. Resposta ausente na planilha
--- conta como 'Não informado', a coluna que a tabela do R tem para isso.
+-- conta como 'Não informado', a coluna que a tabela do R tem para isso. Os anos
+-- do "atuante" vêm das vars eixo1_snc_atuante_desde e eixo1_snc_ultimo_ano
+-- (2025 e 2026, como no R).
+{% set rotulo_atuante = (
+    "Realizou reunião entre "
+    ~ var("eixo1_snc_atuante_desde", 2025)
+    ~ "–"
+    ~ var("eixo1_snc_ultimo_ano", 2026)
+    ~ " (atuante)?"
+) %}
 with
 
     conselhos as (
@@ -31,8 +40,7 @@ with
         from conselhos
         union all
         select
-            'Realizou reunião entre 2025–2026 (atuante)?' as caracteristica,
-            perfil_conselho_atuante as resposta
+            '{{ rotulo_atuante }}' as caracteristica, perfil_conselho_atuante as resposta
         from conselhos
     ),
 

@@ -1362,7 +1362,7 @@
         "eixo1_orcamento_federal_empenho_cultura"
       ],
       "sources": [],
-      "linhas_sql": 13
+      "linhas_sql": 12
     },
     {
       "nome": "eixo1_snc_adesao_idh",
@@ -1506,7 +1506,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_evolucao_adesao.sql",
-      "descricao": "Gold / Eixo 1, frente SNC. Novas adesões ao SNC por ano e o acumulado, 2012 a 2026 (gráfico 7.4 do SNC.R, eda_11_evolucao_geral_snc). É a Figura 9 que o SNC.R grava (Figura 11 na publicação), com os nomes de coluna do CSV dela. GRÃO: ano e métrica. Como no R, o acumulado começa no primeiro ano com adesão e ano sem adesão nova não aparece.",
+      "descricao": "Gold / Eixo 1, frente SNC. Novas adesões ao SNC por ano e o acumulado, 2012 a 2026 (gráfico 7.4 do SNC.R, eda_11_evolucao_geral_snc). É a Figura 9 que o SNC.R grava (Figura 11 na publicação), com os nomes de coluna do CSV dela. GRÃO: ano e métrica. Como no R, o acumulado começa no primeiro ano com adesão e ano sem adesão nova não aparece. Os anos do corte são as vars eixo1_snc_evolucao_primeiro_ano e eixo1_snc_ultimo_ano.",
       "colunas": [
         {
           "nome": "ano_adesao",
@@ -1528,7 +1528,7 @@
         "eixo1_snc_painel_municipio"
       ],
       "sources": [],
-      "linhas_sql": 34
+      "linhas_sql": 37
     },
     {
       "nome": "eixo1_snc_metas_plano_regiao",
@@ -1634,7 +1634,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_painel_municipio.sql",
-      "descricao": "Camada Gold / Eixo 1, frente SNC, do Cultura em Números. Gold-base: os municípios da lista de entes do Sistema Nacional de Cultura, com as variáveis e as categorias que o SNC.R usa.\nGRÃO: uma linha por município, na versão mais recente do arquivo no portal. UNIVERSO: os códigos IBGE de 7 dígitos, 5.567 na versão de 28/05/2026. O R lê a aba \"Municipios\" da planilha interna; no portal estados, municípios e uma linha que não é ente ('Não cadastrado') vêm na mesma aba, e o código de 7 dígitos é o que separa os municípios.\nA REGRA: aderido é situação 'Publicado no DOU'; tripé completo é conselho, fundo e plano com situação 'Concluída'; as faixas de IDH são as do R (< 0,600, 0,600 a 0,699, 0,700 a 0,799, >= 0,800); os portes 4 e 5 juntos em porte_populacional, como na Figura 8; e o perfil dos conselhos (exclusivo, paritário, deliberativo, atuante) com os padrões de texto da seção 10 do R, inclusive o corte de 2025 para \"atuante\".\nDIFERENÇA DO R (ADR 0010, regra 1): categoria sem valor de origem fica NULL. O R põe 'Não' no tripé completo e 'Sem Informação' na faixa de IDH; as golds de gráfico refazem o rótulo do R onde o gráfico mostra a ausência. Na versão de 28/05/2026 isso não muda nenhum número: as situações do tripé vêm sempre preenchidas.\nCONFERÊNCIA (10/11/2026): as 12 golds de gráfico são iguais, linha a linha, à regra do R reescrita em Python e aplicada aos mesmos 5.567 municípios do portal; essa reescrita reproduz os números que o próprio R gravou a partir da planilha interna (Figuras 8 e 9, Tabelas 1.3 e 1.4, rótulos dos PNGs). DIFERENÇA PARA A PUBLICAÇÃO: o portal está atrasado (última atualização de ente em 24/02/2026) e não traz Boa Esperança do Norte/MT, Santa Isabel/GO e Brasília. Adesões: 3.722 municípios contra 3.945; as 223 a menos são todas de municípios que a planilha interna atualizou depois de 24/02/2026, e a série de 2012 a 2025 é igual. Tripé: 1.556 conselhos 'Concluída' contra 2.247, 1.512 fundos contra 2.155, 689 planos contra 1.117. Aqui o atraso não explica tudo: 458 municípios aderidos nos dois têm conselho 'Concluída' na planilha interna e 'Não Possui' no portal sem atualização do ente depois de 24/02/2026. O portal também escreve a ausência de outro jeito ('Não Possui', 'Documento não enviado', 'Não possui plano de conselho', onde a planilha interna tem 'Não informado(a)' e 'Nao possui adesão'), o que muda as categorias dos gráficos 5.2, 5.3 e 5.4.",
+      "descricao": "Camada Gold / Eixo 1, frente SNC, do Cultura em Números. Gold-base: os municípios da lista de entes do Sistema Nacional de Cultura, com as variáveis e as categorias que o SNC.R usa.\nGRÃO: uma linha por município, na versão mais recente do arquivo no portal. UNIVERSO: os códigos IBGE de 7 dígitos, 5.567 na versão de 28/05/2026. O R lê a aba \"Municipios\" da planilha interna; no portal estados, municípios e uma linha que não é ente ('Não cadastrado') vêm na mesma aba, e o código de 7 dígitos é o que separa os municípios.\nA REGRA: aderido é situação 'Publicado no DOU'; tripé completo é conselho, fundo e plano com situação 'Concluída'; as faixas de IDH são as do R (< 0,600, 0,600 a 0,699, 0,700 a 0,799, >= 0,800); os portes 4 e 5 juntos em porte_populacional, como na Figura 8; e o perfil dos conselhos (exclusivo, paritário, deliberativo, atuante) com os padrões de texto da seção 10 do R, inclusive o corte de 2025 para \"atuante\" (var eixo1_snc_atuante_desde).\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: no perfil dos conselhos, o padrão do \"não\" pega qualquer texto que o contenha, então uma resposta 'Não informado(a)' em conselho exclusivo, conselho paritário ou na ata da última reunião sem data contaria como 'Não', e não como 'Não informado'. Em 11/11/2026 nenhuma resposta cai na exceção: entre os 1.556 conselhos 'Concluída' do portal, as três perguntas só têm 'Sim' e 'Não', e na planilha que o R publicou (2.247 conselhos) também. 'Não informado(a)' só aparece na natureza do conselho (555 no portal, 719 na planilha do R), que a regra classifica por \"deliberativo\" e \"consultivo\", e por isso fica em 'Não informado'.\nDIFERENÇA DO R (ADR 0010, regra 1): categoria sem valor de origem fica NULL. O R põe 'Não' no tripé completo e 'Sem Informação' na faixa de IDH; as golds de gráfico refazem o rótulo do R onde o gráfico mostra a ausência. Na versão de 28/05/2026 isso não muda nenhum número: as situações do tripé vêm sempre preenchidas.\nCONFERÊNCIA (10/11/2026): as 12 golds de gráfico são iguais, linha a linha, à regra do R reescrita em Python e aplicada aos mesmos 5.567 municípios do portal; essa reescrita reproduz os números que o próprio R gravou a partir da planilha interna (Figuras 8 e 9, Tabelas 1.3 e 1.4, rótulos dos PNGs). DIFERENÇA PARA A PUBLICAÇÃO: o portal está atrasado (última atualização de ente em 24/02/2026) e não traz Boa Esperança do Norte/MT, Santa Isabel/GO e Brasília. Adesões: 3.722 municípios contra 3.945; as 223 a menos são todas de municípios que a planilha interna atualizou depois de 24/02/2026, e a série de 2012 a 2025 é igual. Tripé: 1.556 conselhos 'Concluída' contra 2.247, 1.512 fundos contra 2.155, 689 planos contra 1.117. Aqui o atraso não explica tudo: 458 municípios aderidos nos dois têm conselho 'Concluída' na planilha interna e 'Não Possui' no portal sem atualização do ente depois de 24/02/2026. O portal também escreve a ausência de outro jeito ('Não Possui', 'Documento não enviado', 'Não possui plano de conselho', onde a planilha interna tem 'Não informado(a)' e 'Nao possui adesão'), o que muda as categorias dos gráficos 5.2, 5.3 e 5.4.",
       "colunas": [
         {
           "nome": "versao",
@@ -1658,11 +1658,11 @@
         },
         {
           "nome": "faixa_populacional",
-          "descricao": "Porte do município pela população, nas cinco faixas da Plataforma."
+          "descricao": "Porte do município pela população, nas cinco faixas da Plataforma. Nenhum município sem faixa na versão de 28/05/2026; o teste avisa com mais de 10 e falha com mais de 56 (1% dos municípios), para a gold de gráfico não esvaziar sem aviso se a Plataforma mudar a coluna."
         },
         {
           "nome": "idh_2021",
-          "descricao": "IDH do município em 2021."
+          "descricao": "IDH do município em 2021. 5 municípios sem IDH na versão de 28/05/2026; o teste avisa com mais de 10 e falha com mais de 56 (1% dos municípios). Se a Plataforma publicar o IDH com vírgula, a silver não o lê e a coluna fica toda NULL: é o que o teste pega antes de eixo1_snc_adesao_idh sair vazia."
         },
         {
           "nome": "situacao_adesao",
@@ -1726,7 +1726,7 @@
         },
         {
           "nome": "perfil_conselho_exclusivo",
-          "descricao": "Conselho exclusivo de cultura, pela regra da seção 10 do R: começa com \"sim\" é 'Sim', contém \"não\" é 'Não', o resto é 'Não informado'. NULL sem resposta."
+          "descricao": "Conselho exclusivo de cultura, pela regra da seção 10 do R: começa com \"sim\" é 'Sim', contém \"não\" é 'Não' (inclusive 'Não informado(a)', a exceção descrita no modelo), o resto é 'Não informado'. NULL sem resposta."
         },
         {
           "nome": "perfil_conselho_paritario",
@@ -1738,17 +1738,17 @@
         },
         {
           "nome": "perfil_conselho_atuante",
-          "descricao": "Conselho atuante: ata da última reunião assinada em 2025 ou depois é 'Sim', antes é 'Não'; sem data, resposta com \"não\" é 'Não' e o resto 'Não informado'. NULL sem resposta sobre a ata."
+          "descricao": "Conselho atuante: ata da última reunião assinada no ano da var eixo1_snc_atuante_desde (2025) ou depois é 'Sim', antes é 'Não'; sem data, resposta com \"não\" é 'Não' e o resto 'Não informado'. NULL sem resposta sobre a ata."
         }
       ],
       "colunas_descritas": 26,
-      "testes": 10,
+      "testes": 12,
       "materializacao": "",
       "depende_de": [
         "silver_snc_entes"
       ],
       "sources": [],
-      "linhas_sql": 131
+      "linhas_sql": 134
     },
     {
       "nome": "eixo1_snc_perfil_conselho",
@@ -1756,7 +1756,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_perfil_conselho.sql",
-      "descricao": "Gold / Eixo 1, frente SNC. Perfil dos conselhos municipais de cultura instituídos por lei, isto é, com situação 'Concluída' (tabela da seção 10 do SNC.R, Tabela_SNC_Perfil_Conselhos; é também a Tabela 1.4 da publicação). GRÃO: característica e resposta, inclusive as de zero. Resposta ausente conta como 'Não informado', como no R.",
+      "descricao": "Gold / Eixo 1, frente SNC. Perfil dos conselhos municipais de cultura instituídos por lei, isto é, com situação 'Concluída' (tabela da seção 10 do SNC.R, Tabela_SNC_Perfil_Conselhos; é também a Tabela 1.4 da publicação). GRÃO: característica e resposta, inclusive as de zero. Resposta ausente conta como 'Não informado', como no R. O rótulo do \"atuante\" sai das vars eixo1_snc_atuante_desde e eixo1_snc_ultimo_ano ('Realizou reunião entre 2025–2026 (atuante)?' com o padrão).",
       "colunas": [
         {
           "nome": "caracteristica",
@@ -1786,7 +1786,7 @@
         "eixo1_snc_painel_municipio"
       ],
       "sources": [],
-      "linhas_sql": 75
+      "linhas_sql": 83
     },
     {
       "nome": "eixo1_snc_situacao_tripe",
@@ -1836,7 +1836,7 @@
         },
         {
           "nome": "tripe_completo",
-          "descricao": "'Sim' ou 'Não'; NULL quando a gold-base não sabe (ver eixo1_snc_painel_municipio)."
+          "descricao": "'Sim' ou 'Não'. O NULL da gold-base (falta situação e as conhecidas são 'Concluída') entra como 'Não', como no R."
         },
         {
           "nome": "quantidade_municipios",
@@ -1848,13 +1848,13 @@
         }
       ],
       "colunas_descritas": 1,
-      "testes": 2,
+      "testes": 4,
       "materializacao": "",
       "depende_de": [
         "eixo1_snc_painel_municipio"
       ],
       "sources": [],
-      "linhas_sql": 21
+      "linhas_sql": 25
     },
     {
       "nome": "eixo1_snc_tripe_regiao",
@@ -51061,7 +51061,7 @@
     },
     "cultura_em_numeros": {
       "modelos": 32,
-      "testes": 149,
+      "testes": 153,
       "camadas": {
         "gold": 32
       }
@@ -54316,7 +54316,7 @@
   ],
   "totais": {
     "modelos": 798,
-    "testes": 993,
+    "testes": 997,
     "com_descricao": 797,
     "sources": 758
   }

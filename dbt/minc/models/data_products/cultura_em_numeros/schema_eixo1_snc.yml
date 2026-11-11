@@ -28,7 +28,19 @@ models:
       do R (< 0,600, 0,600 a 0,699, 0,700 a 0,799, >= 0,800); os portes 4 e 5
       juntos em porte_populacional, como na Figura 8; e o perfil dos conselhos
       (exclusivo, paritário, deliberativo, atuante) com os padrões de texto da
-      seção 10 do R, inclusive o corte de 2025 para "atuante".
+      seção 10 do R, inclusive o corte de 2025 para "atuante" (var
+      eixo1_snc_atuante_desde).
+
+      EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: no perfil dos
+      conselhos, o padrão do "não" pega qualquer texto que o contenha, então
+      uma resposta 'Não informado(a)' em conselho exclusivo, conselho paritário
+      ou na ata da última reunião sem data contaria como 'Não', e não como 'Não
+      informado'. Em 11/11/2026 nenhuma resposta cai na exceção: entre os 1.556
+      conselhos 'Concluída' do portal, as três perguntas só têm 'Sim' e 'Não',
+      e na planilha que o R publicou (2.247 conselhos) também. 'Não
+      informado(a)' só aparece na natureza do conselho (555 no portal, 719 na
+      planilha do R), que a regra classifica por "deliberativo" e "consultivo",
+      e por isso fica em 'Não informado'.
 
       DIFERENÇA DO R (ADR 0010, regra 1): categoria sem valor de origem fica
       NULL. O R põe 'Não' no tripé completo e 'Sem Informação' na faixa de IDH;
@@ -90,11 +102,30 @@ models:
               arguments:
                 values: ['Norte', 'Nordeste', 'Sudeste', 'Sul', 'Centro Oeste']
       - name: faixa_populacional
-        description: Porte do município pela população, nas cinco faixas da Plataforma.
+        description: >
+          Porte do município pela população, nas cinco faixas da Plataforma.
+          Nenhum município sem faixa na versão de 28/05/2026; o teste avisa com
+          mais de 10 e falha com mais de 56 (1% dos municípios), para a gold de
+          gráfico não esvaziar sem aviso se a Plataforma mudar a coluna.
         data_type: text
+        tests:
+          - not_null:
+              config:
+                warn_if: ">10"
+                error_if: ">56"
       - name: idh_2021
-        description: IDH do município em 2021.
+        description: >
+          IDH do município em 2021. 5 municípios sem IDH na versão de
+          28/05/2026; o teste avisa com mais de 10 e falha com mais de 56 (1% dos
+          municípios). Se a Plataforma publicar o IDH com vírgula, a silver não o
+          lê e a coluna fica toda NULL: é o que o teste pega antes de
+          eixo1_snc_adesao_idh sair vazia.
         data_type: numeric
+        tests:
+          - not_null:
+              config:
+                warn_if: ">10"
+                error_if: ">56"
       - name: situacao_adesao
         description: Situação da adesão ao SNC, como a Plataforma escreve.
         data_type: text
@@ -156,8 +187,9 @@ models:
       - name: perfil_conselho_exclusivo
         description: >
           Conselho exclusivo de cultura, pela regra da seção 10 do R: começa com
-          "sim" é 'Sim', contém "não" é 'Não', o resto é 'Não informado'. NULL
-          sem resposta.
+          "sim" é 'Sim', contém "não" é 'Não' (inclusive 'Não informado(a)', a
+          exceção descrita no modelo), o resto é 'Não informado'. NULL sem
+          resposta.
         data_type: text
         tests:
           - accepted_values:
@@ -181,9 +213,10 @@ models:
                 values: ['Sim', 'Não', 'Não informado']
       - name: perfil_conselho_atuante
         description: >
-          Conselho atuante: ata da última reunião assinada em 2025 ou depois é
-          'Sim', antes é 'Não'; sem data, resposta com "não" é 'Não' e o resto
-          'Não informado'. NULL sem resposta sobre a ata.
+          Conselho atuante: ata da última reunião assinada no ano da var
+          eixo1_snc_atuante_desde (2025) ou depois é 'Sim', antes é 'Não'; sem
+          data, resposta com "não" é 'Não' e o resto 'Não informado'. NULL sem
+          resposta sobre a ata.
         data_type: text
         tests:
           - accepted_values:
@@ -357,15 +390,22 @@ models:
         data_type: text
         tests: [not_null]
       - name: tripe_completo
-        description: "'Sim' ou 'Não'; NULL quando a gold-base não sabe (ver eixo1_snc_painel_municipio)."
+        description: >
+          'Sim' ou 'Não'. O NULL da gold-base (falta situação e as conhecidas são
+          'Concluída') entra como 'Não', como no R.
         data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
       - name: quantidade_municipios
         data_type: bigint
       - name: proporcao
         data_type: numeric
     tests:
       - unique:
-          column_name: "faixa_populacional || '|' || coalesce(tripe_completo, '')"
+          column_name: "faixa_populacional || '|' || tripe_completo"
 
   - name: eixo1_snc_metas_plano_regiao
     description: >
@@ -399,7 +439,8 @@ models:
       2012 a 2026 (gráfico 7.4 do SNC.R, eda_11_evolucao_geral_snc). É a Figura
       9 que o SNC.R grava (Figura 11 na publicação), com os nomes de coluna do
       CSV dela. GRÃO: ano e métrica. Como no R, o acumulado começa no primeiro
-      ano com adesão e ano sem adesão nova não aparece.
+      ano com adesão e ano sem adesão nova não aparece. Os anos do corte são as
+      vars eixo1_snc_evolucao_primeiro_ano e eixo1_snc_ultimo_ano.
     config:
       tags: [gold, cultura_em_numeros, eixo1, snc]
     columns:
@@ -453,7 +494,9 @@ models:
       instituídos por lei, isto é, com situação 'Concluída' (tabela da seção 10
       do SNC.R, Tabela_SNC_Perfil_Conselhos; é também a Tabela 1.4 da
       publicação). GRÃO: característica e resposta, inclusive as de zero.
-      Resposta ausente conta como 'Não informado', como no R.
+      Resposta ausente conta como 'Não informado', como no R. O rótulo do
+      "atuante" sai das vars eixo1_snc_atuante_desde e eixo1_snc_ultimo_ano
+      ('Realizou reunião entre 2025–2026 (atuante)?' com o padrão).
     config:
       tags: [gold, cultura_em_numeros, eixo1, snc]
     columns:

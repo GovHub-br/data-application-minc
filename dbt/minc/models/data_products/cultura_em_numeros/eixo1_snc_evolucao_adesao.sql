@@ -3,8 +3,11 @@
 -- grava (Figura 11 na publicação); as colunas têm os nomes do CSV dela.
 --
 -- Como no R: conta o município 'Publicado no DOU' com data de adesão, acumula
--- desde o primeiro ano e só depois corta em 2012–2026, e ano sem adesão nova
--- não aparece.
+-- desde o primeiro ano e só depois corta entre as vars
+-- eixo1_snc_evolucao_primeiro_ano e eixo1_snc_ultimo_ano (2012 e 2026, como no
+-- R), e ano sem adesão nova não aparece.
+{% set primeiro_ano = var("eixo1_snc_evolucao_primeiro_ano", 2012) %}
+{% set ultimo_ano = var("eixo1_snc_ultimo_ano", 2026) %}
 with
 
     novas as (
@@ -26,8 +29,8 @@ with
 
 select ano_adesao, 'Adesões acumuladas' as tipo_metrica, adesoes_acumuladas as quantidade
 from acumuladas
-where ano_adesao between 2012 and 2026
+where ano_adesao between {{ primeiro_ano }} and {{ ultimo_ano }}
 union all
 select ano_adesao, 'Novas adesões no ano' as tipo_metrica, novas_adesoes as quantidade
 from acumuladas
-where ano_adesao between 2012 and 2026
+where ano_adesao between {{ primeiro_ano }} and {{ ultimo_ano }}

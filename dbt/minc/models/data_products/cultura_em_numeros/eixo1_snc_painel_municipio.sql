@@ -86,7 +86,9 @@ select
     end as tripe_completo,
     -- Perfil dos conselhos (seção 10 do R). Os padrões são os do R sobre o texto
     -- em minúsculas; aqui com as maiúsculas escritas, porque o ~* do Postgres
-    -- depende do locale para letra acentuada.
+    -- depende do locale para letra acentuada. Como no R, o padrão do "não" pega
+    -- qualquer texto que o contenha, e 'Não informado(a)' contaria como 'Não':
+    -- exceção à regra transversal 1 do ADR 0010, descrita no schema.
     case
         when conselho_exclusivo_de_cultura is null
         then null
@@ -114,14 +116,15 @@ select
         then 'Não'
         else 'Não informado'
     end as perfil_conselho_deliberativo,
-    -- Atuante: assinou a ata da última reunião em 2025 ou depois. O ano de corte
-    -- é o do R ("reunião entre 2025–2026").
+    -- Atuante: assinou a ata da última reunião no ano da var
+    -- eixo1_snc_atuante_desde ou depois. O padrão, 2025, é o do R ("reunião entre
+    -- 2025–2026").
     case
         when possui_ata_da_ultima_reuniao_do_conselho is null
         then null
-        when ano_ata >= 2025
+        when ano_ata >= {{ var("eixo1_snc_atuante_desde", 2025) }}
         then 'Sim'
-        when ano_ata < 2025
+        when ano_ata < {{ var("eixo1_snc_atuante_desde", 2025) }}
         then 'Não'
         when possui_ata_da_ultima_reuniao_do_conselho ~ '[nN][ãaÃA][oO]'
         then 'Não'
