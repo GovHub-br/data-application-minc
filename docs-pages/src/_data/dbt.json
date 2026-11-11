@@ -54568,6 +54568,74 @@
       "linhas_sql": 29
     },
     {
+      "nome": "bronze_legislacao_detalhe",
+      "dominio": "senado",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/senado/bronze_legislacao_detalhe.sql",
+      "descricao": "Camada Bronze — cópia fiel de senado.legislacao_detalhe, sem cast, filtro nem join (ADR 0010). Detalhe de cada norma listada: a identificação achatada em identificacao__<campo>, a ementa e a observação. As seções do detalhe (publicações, alterações, dispositivos, indexação, classe temática) estão em bronze_legislacao_detalhe_secoes. Cada norma é baixada uma vez, então as alterações que ela sofrer depois não aparecem. Toda coluna é character varying.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "senado.legislacao_detalhe"
+      ],
+      "linhas_sql": 5
+    },
+    {
+      "nome": "bronze_legislacao_detalhe_secoes",
+      "dominio": "senado",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/senado/bronze_legislacao_detalhe_secoes.sql",
+      "descricao": "Camada Bronze — cópia fiel de senado.legislacao_detalhe_secoes, sem cast, filtro nem join (ADR 0010). Um elemento de seção do detalhe por linha: publicacoes, vides (alterações posteriores), edivs (normas anteriores relacionadas), disps (dispositivos), catalogo e indexacao (frases de indexação) e classes (classe temática do Senado). `valor` é texto nas frases e na classe, e JSON nos demais. Seção vazia não tem linha. Toda coluna é character varying.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "senado.legislacao_detalhe_secoes"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "bronze_legislacao_lista",
+      "dominio": "senado",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/senado/bronze_legislacao_lista.sql",
+      "descricao": "Camada Bronze — cópia fiel de senado.legislacao_lista, sem cast, filtro nem join (ADR 0010). Leis, leis complementares e decretos federais (com e sem número) listados por tipo e ano de assinatura na API de Dados Abertos do Senado, com a ementa. Uma linha por documento de cada listagem carregada: o ano corrente é listado de novo a cada run, até fechar, então a mesma norma aparece uma vez por listagem. Para o retrato atual, use a listagem mais recente de cada tipo e ano (bronze_senado_arquivos). Toda coluna é character varying.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "senado.legislacao_lista"
+      ],
+      "linhas_sql": 5
+    },
+    {
+      "nome": "bronze_senado_arquivos",
+      "dominio": "senado",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/senado/bronze_senado_arquivos.sql",
+      "descricao": "Camada Bronze — cópia fiel de senado.arquivos, sem cast, filtro nem join (ADR 0010). Uma linha por arquivo do raw que a senado_legislacao_dag carregou: de que requisição veio, quando foi buscado, quantos documentos a API devolveu e quantas linhas entraram. É o registro do que já foi carregado. Toda coluna é character varying.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "senado.arquivos"
+      ],
+      "linhas_sql": 5
+    },
+    {
       "nome": "bronze_dca",
       "dominio": "siconfi",
       "camada": "bronze",
@@ -56502,6 +56570,13 @@
       "testes": 662,
       "camadas": {
         "silver": 595
+      }
+    },
+    "senado": {
+      "modelos": 4,
+      "testes": 0,
+      "camadas": {
+        "bronze": 4
       }
     },
     "siconfi": {
@@ -59468,6 +59543,29 @@
       ]
     },
     {
+      "nome": "senado",
+      "schema": "senado",
+      "descricao": "Legislação federal da API de Dados Abertos do Senado (legis.senado.leg.br/dadosabertos), que a senado_legislacao_dag grava pelo Trino a partir do raw do MinIO (raw/senado/legislacao_lista/ e raw/senado/legislacao_detalhe/). Toda coluna é varchar: a bronze não tipa.",
+      "tabelas": [
+        {
+          "nome": "legislacao_lista",
+          "descricao": "Um documento de /legislacao/lista por linha, como veio, com os campos em minúsculas. A listagem é por tipo (LEI, LCP, DEC) e ano de assinatura; tipo=DEC traz decretos com número (DEC-n) e sem número (DEC-sn). Cada listagem carregada entra inteira, então a mesma norma se repete uma vez por listagem do mesmo tipo e ano."
+        },
+        {
+          "nome": "legislacao_detalhe",
+          "descricao": "Um detalhe de /legislacao/{id} por linha: a identificação achatada em identificacao__<campo>, a ementa e a observação. As seções do detalhe estão em legislacao_detalhe_secoes, ligadas por _arquivo e id."
+        },
+        {
+          "nome": "legislacao_detalhe_secoes",
+          "descricao": "Um elemento de seção do detalhe por linha. A API manda cada seção como \"\" (sem elemento), como um objeto (um elemento) ou como lista (vários); aqui é sempre uma linha por elemento, na ordem da resposta."
+        },
+        {
+          "nome": "arquivos",
+          "descricao": "Um arquivo do raw carregado por linha. É o registro do que já entrou na bronze: a linha entra depois das linhas do arquivo."
+        }
+      ]
+    },
+    {
       "nome": "bsc_pnab",
       "schema": "bsc_pnab",
       "descricao": "",
@@ -59690,9 +59788,9 @@
     }
   ],
   "totais": {
-    "modelos": 809,
+    "modelos": 813,
     "testes": 974,
-    "com_descricao": 808,
-    "sources": 764
+    "com_descricao": 812,
+    "sources": 768
   }
 }
