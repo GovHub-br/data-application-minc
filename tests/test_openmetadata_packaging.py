@@ -134,6 +134,30 @@ def test_scoped_recipes_share_the_same_schema_filter(recipe_name: str) -> None:
     ), f"{recipe_name} filtra {sorted(sobrando)}, que o projeto dbt nao conhece mais."
 
 
+def _schema_excludes(recipe_name: str) -> set[str]:
+    config = _load_recipe(recipe_name)["source"]["sourceConfig"]["config"]
+    return set(config["schemaFilterPattern"].get("excludes") or [])
+
+
+def test_profiler_skips_only_the_raw_seeds_copy() -> None:
+    """O profiler nao mede o seeds; o metadata continua catalogando tudo.
+
+    O seeds e a copia crua de planilhas (108 tabelas em 10/11/2026). O dbt usa
+    16, que a bronze `ibge` copia sem mudar nada, e o profiler ja mede a bronze.
+    """
+    assert _schema_excludes("postgres_profiler.yaml") == {"^seeds$"}
+    assert not _schema_excludes("postgres_metadata.yaml"), (
+        "postgres_metadata ingere tudo dos schemas do projeto, por decisao: o "
+        "catalogo mostra o estado real."
+    )
+    for recipe_name in SCOPED_RECIPES:
+        config = _load_recipe(recipe_name)["source"]["sourceConfig"]["config"]
+        includes = set(config["schemaFilterPattern"]["includes"])
+        assert (
+            _schema_excludes(recipe_name) <= includes
+        ), f"{recipe_name} exclui schema que nao inclui; o exclude nao faz nada."
+
+
 def test_recipes_do_not_carry_hardcoded_credentials() -> None:
     """Toda credencial entra por replacement, nunca literal no YAML."""
     for recipe_path in sorted(RECIPES_DIR.glob("*.yaml")):

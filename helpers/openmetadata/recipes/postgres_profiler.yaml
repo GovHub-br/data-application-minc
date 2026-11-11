@@ -41,6 +41,14 @@ source:
           - '^seeds$'
           - '^siconfi$'
           - '^transferegov$'
+        # O seeds fica nos includes porque as tres recipes tem de ter a mesma
+        # lista (o teste acima), mas o profiler nao mede ele: e a copia crua de
+        # planilhas, 108 tabelas em 10/11/2026, e o dbt usa 16, que a bronze
+        # `ibge` copia sem mudar nada. Medir a bronze ja mede o que o projeto le.
+        # Com includes e excludes juntos, o OpenMetadata tira o que casar com
+        # qualquer exclude.
+        excludes:
+          - '^seeds$'
 processor:
   type: orm-profiler
   config: {}
