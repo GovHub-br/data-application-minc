@@ -791,12 +791,80 @@
       "linhas_sql": 42
     },
     {
+      "nome": "eixo1_munic_capacitacao_conselho",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_capacitacao_conselho.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a capacitação dos conselheiros municipais de cultura.\nGRÃO: uma linha por edição (2018, 2021) e tipo de capacitação. UNIVERSO: os municípios com conselho que responderam 'Sim' a uma das três perguntas.\nPARA QUE SERVE: o gráfico 17 do MUNIC.R. Cada conselho cai na primeira categoria com 'Sim', na ordem do R: continuada, eventual, não realiza. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "capacitacao",
+          "descricao": "Tipo de capacitação dos conselheiros."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de conselhos classificados na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 36
+    },
+    {
+      "nome": "eixo1_munic_competencia_conselho",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_competencia_conselho.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a competência dos conselhos municipais de cultura.\nGRÃO: uma linha por edição (2014, 2018, 2021) e competência. UNIVERSO: os conselhos de eixo1_munic_conselho_municipio com competência informada.\nPARA QUE SERVE: o gráfico 14 do MUNIC.R. Conferido contra a regra do df_conselhos_detalhado aplicada às abas originais, porque o R não salva essa tabela. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "cons_competencia",
+          "descricao": "Competência do conselho."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de conselhos com competência informada na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_conselho_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 20
+    },
+    {
       "nome": "eixo1_munic_conselho_municipio",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_conselho_municipio.sql",
-      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o perfil dos conselhos municipais de cultura.\nGRÃO: uma linha por município e edição (2014, 2018, 2021). UNIVERSO: os municípios que responderam ter conselho de cultura (2.151 em 2014, 2.352 em 2018 e 2.804 em 2021).\nPARA QUE SERVE: base da paridade (Figura 15) e da competência dos conselhos. Reproduz o df_conselhos_detalhado do MUNIC.R.\nA REGRA: a composição vira 'Paritário', 'Não Paritário' ou 'Sem Informação' pelo texto da resposta; \"não paritário\" é testado antes de \"paritário\" (nenhuma resposta assim em 09/11/2026). A competência vira uma categoria: deliberativo (com ou sem consultivo), apenas consultivo, normativo ou fiscalizador, ou 'Sem Informação'.\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: em 2014, \"Não informado\" na composição conta como 'Não Paritário', porque o padrão procura \"não\"; em 09/11/2026 nenhum dos 2.151 conselhos de 2014 tem essa resposta (1.671 'É paritário', 365 com maior representação da sociedade civil e 115 com maior representação governamental). Na competência, '-' e 'Não informou' viram 'Não' nas quatro perguntas, e o conselho cai em 'Sem Informação': 862 em 2021, nenhum em 2018 e 2014. Em 2021, a composição '-' ou 'Não informou' é 'Sem Informação' (863).",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o perfil dos conselhos municipais de cultura.\nGRÃO: uma linha por município e edição (2014, 2018, 2021). UNIVERSO: os municípios que responderam ter conselho de cultura (2.151 em 2014, 2.352 em 2018 e 2.804 em 2021).\nPARA QUE SERVE: base da paridade (Figura 15) e da competência dos conselhos. Reproduz o df_conselhos_detalhado do MUNIC.R.\nA REGRA: a composição vira 'Paritário', 'Não Paritário' ou 'Sem Informação' pelo texto da resposta; \"não paritário\" é testado antes de \"paritário\" (nenhuma resposta assim em 09/11/2026). A competência vira uma categoria em cascata: a primeira com 'Sim', na ordem deliberativo (com ou sem consultivo), consultivo, normativo ou fiscalizador; sem nenhum 'Sim', é 'Sem Informação'. Resposta vazia numa das perguntas não interrompe a cascata, como no R (nenhuma em 10/11/2026).\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: em 2014, \"Não informado\" na composição conta como 'Não Paritário', porque o padrão procura \"não\"; em 09/11/2026 nenhum dos 2.151 conselhos de 2014 tem essa resposta (1.671 'É paritário', 365 com maior representação da sociedade civil e 115 com maior representação governamental). Na competência, '-' e 'Não informou' viram 'Não' nas quatro perguntas, e o conselho cai em 'Sem Informação': 862 em 2021, nenhum em 2018 e 2014. Em 2021, a composição '-' ou 'Não informou' é 'Sem Informação' (863).",
       "colunas": [
         {
           "nome": "cod_municipio",
@@ -824,7 +892,253 @@
         "silver_munic_cultura_2014_instancias_participativas"
       ],
       "sources": [],
-      "linhas_sql": 109
+      "linhas_sql": 115
+    },
+    {
+      "nome": "eixo1_munic_equipamento",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_equipamento.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a presença de biblioteca pública, museu, teatro e cinema no município.\nGRÃO: uma linha por edição e equipamento. UNIVERSO: os municípios com 'Sim' ou 'Não' no painel. Em 2021, pela exceção à regra transversal 1 descrita em eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como 'Não', como no R: 39 municípios por equipamento. Em 2018, 2014 e 2006 essas respostas ficam NULL e saem do universo, como no gráfico 11 do R.\nPARA QUE SERVE: o gráfico 11 do MUNIC.R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "equipamento",
+          "descricao": "O equipamento cultural."
+        },
+        {
+          "nome": "quantidade_municipios_sim",
+          "descricao": "Municípios que responderam 'Sim' para o equipamento."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Municípios que responderam 'Sim' ou 'Não'."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "quantidade_municipios_sim dividido por quantidade_municipios."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 30
+    },
+    {
+      "nome": "eixo1_munic_escolaridade_gestor",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_escolaridade_gestor.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a escolaridade do gestor municipal de cultura.\nGRÃO: uma linha por edição e escolaridade. UNIVERSO: os gestores com escolaridade num dos quatro grupos; fora a resposta que não cabe em nenhum.\nPARA QUE SERVE: o gráfico 8 do MUNIC.R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "gestor_escolaridade_agrupada",
+          "descricao": "Escolaridade do gestor, em quatro grupos."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de gestores com escolaridade informada na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 22
+    },
+    {
+      "nome": "eixo1_munic_escolaridade_tripe",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_escolaridade_tripe.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a escolaridade do gestor de cultura nos municípios com e sem o tripé completo, em 2021.\nGRÃO: uma linha por grupo de tripé e escolaridade. UNIVERSO: os municípios da MUNIC 2021 com escolaridade do gestor num dos quatro grupos e tripé conhecido.\nPARA QUE SERVE: o gráfico 5 do MUNIC.R. A proporção é dentro de cada grupo de tripé. O tripé é o tem_tripe_completo de eixo1_munic_painel_municipio. Pela exceção à regra transversal 1 descrita lá, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R.\nDIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora da contagem e do total do grupo; o R o contaria como sem tripé. Em 11/11/2026 nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "tripe_completo",
+          "descricao": "Se o município tem os três instrumentos do tripé."
+        },
+        {
+          "nome": "gestor_escolaridade_agrupada",
+          "descricao": "Escolaridade do gestor, em quatro grupos."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de municípios do mesmo grupo de tripé."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 40
+    },
+    {
+      "nome": "eixo1_munic_execucao_orcamentaria",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_execucao_orcamentaria.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a faixa do percentual executado do orçamento municipal da cultura em 2021, que o MUNIC.R associa à Lei Aldir Blanc.\nGRÃO: uma linha por faixa. UNIVERSO: os municípios com faixa informada na MUNIC 2021; fora 'Sem Informação'.\nPARA QUE SERVE: o gráfico 3 do MUNIC.R. ordem_faixa dá a ordem do eixo do gráfico, de '0%' a 'Mais de 90%'. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "orcamento_perc_executado",
+          "descricao": "Faixa do percentual executado, como o IBGE publica."
+        },
+        {
+          "nome": "ordem_faixa",
+          "descricao": "Posição da faixa no eixo, de 1 ('0%') a 11 ('Mais de 90%')."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de municípios com faixa informada."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 49
+    },
+    {
+      "nome": "eixo1_munic_faixa_etaria_gestor",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_faixa_etaria_gestor.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a faixa de idade do gestor municipal de cultura.\nGRÃO: uma linha por edição (2014, 2018, 2021) e faixa. UNIVERSO: os gestores com idade informada; 2006 não pergunta.\nPARA QUE SERVE: o gráfico 9 do MUNIC.R. ordem_faixa dá a ordem do eixo do gráfico. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "gestor_faixa_etaria",
+          "descricao": "Faixa de idade do gestor."
+        },
+        {
+          "nome": "ordem_faixa",
+          "descricao": "Posição da faixa no eixo, de 1 ('Até 29 anos') a 5 ('60 anos ou mais')."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de gestores com idade informada na edição."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 36
+    },
+    {
+      "nome": "eixo1_munic_lei_plano",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_lei_plano.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: nos municípios com plano de cultura, quantos o instituíram por lei.\nGRÃO: uma linha por edição (2018, 2021) e situação. UNIVERSO: os municípios com plano de cultura (654 em 2018 e 847 em 2021).\nPARA QUE SERVE: o gráfico 16A do MUNIC.R. Resposta ausente vira 'Sem Informação'; nas duas edições não há nenhuma entre quem tem plano. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "status_lei",
+          "descricao": "Se o plano foi instituído por lei."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de municípios com plano na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 28
+    },
+    {
+      "nome": "eixo1_munic_orgao_gestor",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_orgao_gestor.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o tipo de órgão gestor da cultura no município, em três grupos.\nGRÃO: uma linha por edição e grupo. UNIVERSO: os municípios com tipo de órgão informado; fora 'Recusa'.\nPARA QUE SERVE: o gráfico 4 do MUNIC.R. O grupo sai do texto da resposta, como no R: 'exclusiva' ou 'fundação' é secretaria exclusiva ou fundação; 'conjunto' é secretaria em conjunto; o resto é setor subordinado ou outro. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.\nDIFERENÇA DA ESTADIC, que vem dos scripts R: o ESTADIC.R agrupa no painel, põe \"indireta\" no grupo exclusivo e chama o segundo grupo de 'Secretaria Conjunta'. O MUNIC.R agrupa no gráfico e deixa 'Órgão da administração indireta' em setor subordinado ou outro (119 municípios em 2014, 114 em 2018 e 114 em 2021, em 11/11/2026). Cada frente segue o seu script.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "tipo_orgao_gestor",
+          "descricao": "Grupo do órgão gestor."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de municípios com órgão informado na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 43
     },
     {
       "nome": "eixo1_munic_painel_municipio",
@@ -832,7 +1146,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_painel_municipio.sql",
-      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o painel histórico da gestão municipal de cultura.\nGRÃO: uma linha por município e edição da MUNIC (2006, 2014, 2018, 2021). UNIVERSO: os municípios de cada edição, 5.564 em 2006 e 5.570 nas outras (22.274 linhas).\nPARA QUE SERVE: é a base dos gráficos da frente MUNIC (tripé de plano, conselho e fundo, perfil do gestor, equipamentos, execução orçamentária). Reproduz o df_painel_historico do MUNIC.R, que grava munic_cultura_painel_historico_06_21.csv.\nA REGRA: qual pergunta de cada edição responde cada variável (em 2021 e 2018, a aba Cultura; em 2014 e 2006, as abas do suplemento de cultura, ligadas pelo código do município); como a resposta vira 'Sim' ou 'Não' (macro eixo1_sim_nao: começa por \"sim\" é 'Sim', qualquer outra resposta preenchida é 'Não'; 'Em elaboração', na pergunta do plano, é 'Não'); e as faixas de idade, raça, escolaridade e execução orçamentária. Toda edição recebe o código e o nome de 2021 pelos 6 primeiros dígitos, porque 2006 não tem o dígito verificador. 2018, 2014 e 2006 não trazem população nem execução orçamentária. Os equipamentos de 2021 passam pela macro; os de 2018, 2014 e 2006 ficam só com 'Sim' e 'Não' exatos (macro eixo1_sim_nao_exato) e o resto vira NULL, que é o que o gráfico 11 do R conta.\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e 'Não disponível' viram 'Não', como no R, para as golds baterem com a publicação. Em 09/11/2026, nas colunas do tripé e do patrimônio (tem_plano, tem_conselho, tem_fundo, tem_lei_patrimonio, tem_cons_patrimonio), são 6, 6, 5, 6 e 6 municípios em 2021; 3, 3, 2, 3 e 3 em 2018; 4, 3, 3, 4 e 3 em 2014; 2, 2, 3, 2 e 2 em 2006. Nos equipamentos de 2021, 39 por equipamento (35 '-', 2 'Recusa' e 2 'Não informou'). Nas perguntas que só se aplicam a parte dos municípios (plano_participacao_soc, sec_*, cons_cap_*), o '-' vira 'Não'; as golds de gráfico que usam essas colunas filtram antes por tem_plano ou tem_conselho.\nDIFERENÇA DO R: resposta ausente fica NULL; o R a transformava em 'Não' ou 'Sem Informação'. Conferido contra o CSV do R em 09/11/2026, com as tabelas de seeds do dbanalytics: as 22.274 linhas e as 36 colunas batem, e das 801.864 células diferem 9.682. São 222 de plano_tem_lei em 2018, os municípios em que a pergunta da lei do plano veio vazia na MUNIC 2018 (todos responderam que não têm plano), e 9.460 dos equipamentos de 2018, 2014 e 2006, em que o R guarda '-', 'Recusa' ou 'Não informou' e aqui é NULL (2.360 por equipamento em 2018, 3 em 2014 e 2 em 2006).",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o painel histórico da gestão municipal de cultura.\nGRÃO: uma linha por município e edição da MUNIC (2006, 2014, 2018, 2021). UNIVERSO: os municípios de cada edição, 5.564 em 2006 e 5.570 nas outras (22.274 linhas).\nPARA QUE SERVE: é a base dos gráficos da frente MUNIC (tripé de plano, conselho e fundo, perfil do gestor, equipamentos, execução orçamentária). Reproduz o df_painel_historico do MUNIC.R, que grava munic_cultura_painel_historico_06_21.csv.\nA REGRA: qual pergunta de cada edição responde cada variável (em 2021 e 2018, a aba Cultura; em 2014 e 2006, as abas do suplemento de cultura, ligadas pelo código do município); como a resposta vira 'Sim' ou 'Não' (macro eixo1_sim_nao: começa por \"sim\" é 'Sim', qualquer outra resposta preenchida é 'Não'; 'Em elaboração', na pergunta do plano, é 'Não'); e as faixas de idade, raça, escolaridade e execução orçamentária. Toda edição recebe o código e o nome de 2021 pelos 6 primeiros dígitos, porque 2006 não tem o dígito verificador. 2018, 2014 e 2006 não trazem população nem execução orçamentária. Os equipamentos de 2021 passam pela macro; os de 2018, 2014 e 2006 ficam só com 'Sim' e 'Não' exatos (macro eixo1_sim_nao_exato) e o resto vira NULL, que é o que o gráfico 11 do R conta. O tripé completo (tem_tripe_completo) sai daqui, uma vez, para as golds dos gráficos 5, 10 e 15.\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e 'Não disponível' viram 'Não', como no R, para as golds baterem com a publicação. Em 09/11/2026, nas colunas do tripé e do patrimônio (tem_plano, tem_conselho, tem_fundo, tem_lei_patrimonio, tem_cons_patrimonio), são 6, 6, 5, 6 e 6 municípios em 2021; 3, 3, 2, 3 e 3 em 2018; 4, 3, 3, 4 e 3 em 2014; 2, 2, 3, 2 e 2 em 2006. Nos equipamentos de 2021, 39 por equipamento (35 '-', 2 'Recusa' e 2 'Não informou'). Nas perguntas que só se aplicam a parte dos municípios (plano_participacao_soc, sec_*, cons_cap_*), o '-' vira 'Não'; as golds de gráfico que usam essas colunas filtram antes por tem_plano ou tem_conselho.\nDIFERENÇA DO R: resposta ausente fica NULL; o R a transformava em 'Não' ou 'Sem Informação'. Conferido contra o CSV do R em 09/11/2026, com as tabelas de seeds do dbanalytics: as 22.274 linhas e as 36 colunas batem, e das 801.864 células diferem 9.682. São 222 de plano_tem_lei em 2018, os municípios em que a pergunta da lei do plano veio vazia na MUNIC 2018 (todos responderam que não têm plano), e 9.460 dos equipamentos de 2018, 2014 e 2006, em que o R guarda '-', 'Recusa' ou 'Não informou' e aqui é NULL (2.360 por equipamento em 2018, 3 em 2014 e 2 em 2006). A coluna tem_tripe_completo não existe no CSV do R, que calcula o tripé em cada gráfico. Com um item do tripé vazio e nenhum 'Não', ela fica NULL, e o R contaria o município como sem tripé. Em 11/11/2026 nenhum município tem item do tripé vazio, em nenhuma edição.",
       "colunas": [
         {
           "nome": "cod_municipio",
@@ -877,6 +1191,10 @@
         {
           "nome": "tem_fundo",
           "descricao": "O município tem fundo municipal de cultura ('Sim' ou 'Não')."
+        },
+        {
+          "nome": "tem_tripe_completo",
+          "descricao": "O município tem o tripé do SNC: 'Sim' com plano, conselho e fundo; 'Não' com algum 'Não'. NULL quando algum dos três é vazio e nenhum é 'Não', porque aí não dá para saber."
         },
         {
           "nome": "tem_lei_patrimonio",
@@ -979,8 +1297,8 @@
           "descricao": "Faixa do percentual executado do orçamento da cultura, só em 2021 ('0%', 'Até 10%', faixas de 10 pontos, 'Mais de 90%' ou 'Sem Informação')."
         }
       ],
-      "colunas_descritas": 36,
-      "testes": 13,
+      "colunas_descritas": 37,
+      "testes": 14,
       "materializacao": "",
       "depende_de": [
         "silver_munic_2018_cultura",
@@ -1001,7 +1319,7 @@
         "silver_munic_cultura_2014_recursos_humanos"
       ],
       "sources": [],
-      "linhas_sql": 431
+      "linhas_sql": 442
     },
     {
       "nome": "eixo1_munic_paridade_conselho",
@@ -1036,6 +1354,320 @@
       ],
       "sources": [],
       "linhas_sql": 25
+    },
+    {
+      "nome": "eixo1_munic_participacao_plano",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_participacao_plano.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: nos municípios com plano de cultura, quantos o elaboraram com participação social.\nGRÃO: uma linha por edição (2018, 2021) e situação. UNIVERSO: os municípios com plano de cultura (654 em 2018 e 847 em 2021).\nPARA QUE SERVE: o gráfico 16B do MUNIC.R. Resposta ausente vira 'Sem Informação'; nas duas edições não há nenhuma entre quem tem plano. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "status_participacao",
+          "descricao": "Se o plano teve participação social."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de municípios com plano na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 28
+    },
+    {
+      "nome": "eixo1_munic_patrimonio",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_patrimonio.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a presença de lei e de conselho municipal de patrimônio cultural.\nGRÃO: uma linha por edição e instrumento. UNIVERSO: os municípios com 'Sim' ou 'Não' no painel. Pela exceção à regra transversal 1 descrita em eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como 'Não', como no R: de 2 a 6 municípios por instrumento e edição.\nPARA QUE SERVE: o gráfico 12 do MUNIC.R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "instrumento",
+          "descricao": "O instrumento de patrimônio."
+        },
+        {
+          "nome": "quantidade_municipios_sim",
+          "descricao": "Municípios que responderam 'Sim' para o instrumento."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Municípios que responderam 'Sim' ou 'Não'."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "quantidade_municipios_sim dividido por quantidade_municipios."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 29
+    },
+    {
+      "nome": "eixo1_munic_porte_tripe",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_porte_tripe.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o tripé completo por porte populacional do município em 2021.\nGRÃO: uma linha por porte e situação do tripé. UNIVERSO: os municípios da MUNIC 2021 com população informada e tripé conhecido.\nPARA QUE SERVE: o gráfico 15 do MUNIC.R. A população é a da própria MUNIC 2021. A proporção é dentro de cada porte; ordem_porte dá a ordem do eixo. O tripé é o tem_tripe_completo de eixo1_munic_painel_municipio. Pela exceção à regra transversal 1 descrita lá, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R.\nDIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora da contagem e do total do porte; o R o contaria como incompleto. Em 11/11/2026 nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "porte_populacional",
+          "descricao": "Faixa de população do município."
+        },
+        {
+          "nome": "ordem_porte",
+          "descricao": "Posição do porte no eixo, de 1 ('Até 20 mil hab.') a 4."
+        },
+        {
+          "nome": "status_tripe",
+          "descricao": "Se o município tem plano, conselho e fundo."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de municípios do mesmo porte."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 58
+    },
+    {
+      "nome": "eixo1_munic_raca_gestor",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_raca_gestor.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a cor ou raça do gestor municipal de cultura.\nGRÃO: uma linha por edição (2018, 2021) e cor ou raça. UNIVERSO: os gestores com cor ou raça numa das cinco categorias do IBGE; 2006 e 2014 não perguntam.\nPARA QUE SERVE: o gráfico 6 do MUNIC.R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "gestor_cor_raca",
+          "descricao": "Cor ou raça do gestor."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de gestores com cor ou raça informada na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 22
+    },
+    {
+      "nome": "eixo1_munic_sexo_gestor",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_sexo_gestor.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o sexo do gestor municipal de cultura.\nGRÃO: uma linha por edição (2014, 2018, 2021) e sexo. UNIVERSO: os gestores com sexo 'Feminino' ou 'Masculino'; a MUNIC 2006 não pergunta.\nPARA QUE SERVE: o gráfico 2 do MUNIC.R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "gestor_sexo",
+          "descricao": "Sexo do gestor."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de gestores com sexo informado na edição."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 19
+    },
+    {
+      "nome": "eixo1_munic_sexo_raca_gestor",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_sexo_raca_gestor.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o perfil do gestor municipal de cultura por sexo e grupo de raça em 2021.\nGRÃO: uma linha por perfil. UNIVERSO: os gestores da MUNIC 2021 com sexo e grupo de raça informados.\nPARA QUE SERVE: o gráfico 7 do MUNIC.R. Os grupos de raça são os do R: negros (pretos e pardos), brancos, amarela ou indígena. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "perfil",
+          "descricao": "Sexo e grupo de raça, no rótulo do R."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantidade de municípios na categoria."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "A quantidade dividida pelo total de gestores com sexo e raça informados."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 22
+    },
+    {
+      "nome": "eixo1_munic_tamanho_conselho",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_tamanho_conselho.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o número médio de membros dos conselhos municipais de cultura por região em 2021.\nGRÃO: uma linha por região. UNIVERSO: os conselhos da MUNIC 2021 com quantidade de membros entre 1 e 149, o corte do R.\nPARA QUE SERVE: o gráfico 18 do MUNIC.R. A média sai sem arredondar; o gráfico do R mostra uma casa decimal. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": "Região do município."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Conselhos da região que entram na média."
+        },
+        {
+          "nome": "media_membros",
+          "descricao": "Média de membros por conselho."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 13
+    },
+    {
+      "nome": "eixo1_munic_tripe",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_tripe.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a presença de plano, conselho e fundo municipal de cultura, os três instrumentos do tripé do SNC, por edição.\nGRÃO: uma linha por edição e instrumento. UNIVERSO: os municípios com 'Sim' ou 'Não' no painel. Pela exceção à regra transversal 1 descrita em eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como 'Não', como no R: de 2 a 6 municípios por instrumento e edição.\nPARA QUE SERVE: o gráfico 1 do MUNIC.R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Edição da MUNIC."
+        },
+        {
+          "nome": "instrumento",
+          "descricao": "O instrumento do tripé."
+        },
+        {
+          "nome": "quantidade_municipios_sim",
+          "descricao": "Municípios que responderam 'Sim' para o instrumento."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Municípios que responderam 'Sim' ou 'Não'."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "quantidade_municipios_sim dividido por quantidade_municipios."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 26
+    },
+    {
+      "nome": "eixo1_munic_tripe_uf",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_tripe_uf.sql",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a proporção de municípios com o tripé completo por UF em 2021.\nGRÃO: uma linha por UF. UNIVERSO: os municípios da MUNIC 2021 com tripé conhecido.\nPARA QUE SERVE: o gráfico 10 do MUNIC.R. O tripé é o tem_tripe_completo de eixo1_munic_painel_municipio, e as duas contagens e a proporção contam os mesmos municípios: quantidade_municipios_tripe / quantidade_municipios é a proporcao (o teste eixo1_munic_tripe_uf_proporcao_bate_com_contagem confere). Pela exceção à regra transversal 1 descrita no painel, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R.\nDIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora das duas contagens e da proporção; o R o contaria como sem tripé. Em 11/11/2026 nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": "Região da UF."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF."
+        },
+        {
+          "nome": "quantidade_municipios_tripe",
+          "descricao": "Municípios da UF com plano, conselho e fundo."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Municípios da UF na MUNIC 2021 com tripé conhecido."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "Média do tripé completo (1 ou 0) entre os municípios da UF com tripé conhecido."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 17
     },
     {
       "nome": "eixo2_meta3_cobertura_pagamento",
@@ -50096,10 +50728,10 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 17,
-      "testes": 98,
+      "modelos": 35,
+      "testes": 208,
       "camadas": {
-        "gold": 17
+        "gold": 35
       }
     },
     "ibge": {
@@ -53321,9 +53953,9 @@
     }
   ],
   "totais": {
-    "modelos": 779,
-    "testes": 933,
-    "com_descricao": 778,
+    "modelos": 797,
+    "testes": 1043,
+    "com_descricao": 796,
     "sources": 756
   }
 }
