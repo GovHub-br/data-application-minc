@@ -3666,6 +3666,22 @@ sources:
             tests:
               - not_null   # inferido do perfil do banco
               - unique   # inferido do perfil do banco
+
+      - name: resultados
+        description: >
+          Valores das tabelas do SIDRA, para os agregados da Variable
+          ibge_config (resultados_agregados_ids): uma linha por agregado,
+          variável, nível, localidade, período e classificação, que é a chave
+          da tabela (a DAG regrava sem duplicar). GET
+          /agregados/{id}/periodos/{per}/variaveis/{var}, achatado. Tudo text.
+          O Eixo 1 lê a população residente do Censo 2022 (agregado 4709,
+          variável 93, nível N6).
+        meta:
+          openmetadata:
+            domain: Cultura.Indicadores
+            tier: Tier.Tier4
+            owner: minc-data-engineering
+
   # IBGE, perfis dos municípios (MUNIC) e dos estados (ESTADIC): a ibge_perfil_dag
   # baixa cada edição do FTP do IBGE e grava cada aba em seeds.ibge_<edicao>_<aba>,
   # toda coluna em texto, com edicao e dt_ingest (ADR 0012). O dicionário de cada

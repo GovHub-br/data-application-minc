@@ -245,3 +245,134 @@ models:
           Verdadeiro quando o documento está na lista de contemplados da PNAB
           (ciclo 1). Nulo quando não está.
         data_type: boolean
+
+  - name: int_bacen_siconfi
+    description: >
+      Camada Intermediate. A Matriz de Saldos Contábeis orçamentária do
+      SICONFI (silver_msc_orcamentaria), linha a linha e sem filtro, com o
+      nome, a UF, a esfera e a região do ente (silver_entes, pelo cod_ibge) e
+      o IPCA do exercício (SGS 433, silver_serie_sgs do BACEN).
+
+      GRÃO: o de silver_msc_orcamentaria, uma linha por item da MSC. UNIVERSO:
+      toda linha da silver, de todo ente, matriz, mês e classe. Nada é
+      descartado aqui.
+
+      O IPCA: ipca_indice_medio_ano é a média, nos meses do exercício, do
+      número-índice que encadeia as variações mensais da série 433 desde o
+      primeiro mês dela. O nível do índice é arbitrário; só a razão entre dois
+      anos tem sentido, e é ela que a Gold usa como deflator, com o ano-base
+      que escolher. ipca_meses_ano diz quantos meses o ano tem na série (12
+      no ano fechado, menos no ano corrente). Nulo no exercício sem IPCA.
+
+      PARA QUE SERVE: dá à Gold eixo1_orcamento_empenho_cultura, numa tabela
+      só, o empenho e o deflator, que vêm de fontes diferentes (ADR 0010,
+      regra 2). Qual matriz, mês, conta, função e fonte contam é regra de
+      negócio e fica lá.
+
+      ATUALIZAÇÃO: view. A linha é a da MSC inteira; materializar duplicaria
+      a silver. A Gold, que filtra, é que é tabela.
+
+      SEM TESTE DE UNICIDADE AQUI, de propósito: numa view, ele refaria a
+      deduplicação da silver inteira a cada build. A chave já é testada em
+      silver_msc_orcamentaria, e os dois joins não multiplicam linha:
+      silver_entes tem cod_ibge único (testado) e o IPCA é agrupado por ano.
+    config:
+      tags: [intermediate, bacen, siconfi]
+      meta:
+        status: Active
+        meta_objetivo: 'Eixo 1 — orçamento: o empenho da MSC com o ente e o IPCA, numa forma só'
+        origem_dados: 'silver_msc_orcamentaria + silver_entes + silver_serie_sgs'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: cod_ibge
+        description: Código IBGE do ente, o do item da MSC.
+        data_type: bigint
+      - name: ente
+        description: Nome do ente em silver_entes. Nulo se o código não está lá.
+        data_type: text
+      - name: uf
+        description: >-
+          Sigla da UF do ente: a sigla_uf de silver_entes, não a uf do SICONFI,
+          que é 'BR' nos estados e no DF.
+        data_type: text
+      - name: esfera
+        description: "Esfera do ente em silver_entes: 'E', 'D', 'M' ou 'U'."
+        data_type: text
+      - name: regiao
+        description: Sigla da região do ente em silver_entes.
+        data_type: text
+      - name: ipca_indice_medio_ano
+        description: >
+          Média do número-índice do IPCA nos meses do exercício. Escala
+          arbitrária; use a razão entre dois anos.
+        data_type: numeric
+      - name: ipca_meses_ano
+        description: Quantos meses do exercício a série 433 tem.
+        data_type: bigint
+      - name: _pagina_id
+        description: A página de onde o item veio.
+        data_type: text
+      - name: _item
+        description: Posição do item na página.
+        data_type: integer
+
+  - name: int_ibge_sidra_siconfi
+    description: >
+      Camada Intermediate — os municípios do SICONFI (silver_entes, esfera 'M')
+      com a população residente do Censo 2022 (silver_resultados, agregado 4709,
+      variável 93, nível N6), pelo código IBGE.
+
+
+      Cruza as duas fontes e não decide nada: o porte do município (faixas da
+      PNAS) é regra e fica nas golds eixo1_orcamento_municipal_*. Município sem
+      linha no Censo fica com populacao_censo_2022 nula.
+
+
+      GRÃO: uma linha por município de silver_entes (cod_ibge).
+    config:
+      tags:
+        - intermediate
+        - siconfi
+        - ibge_sidra
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier2
+        owner: minc-data-engineering
+    columns:
+      - name: cod_ibge
+        description: Código IBGE do município, 7 dígitos.
+        data_type: bigint
+        tests:
+          - not_null
+          - unique
+      - name: ente
+        description: Nome do município em silver_entes.
+        data_type: text
+      - name: sigla_uf
+        description: Sigla da UF do município.
+        data_type: text
+        tests:
+          - not_null
+      - name: regiao
+        description: Sigla da região em silver_entes ('NO', 'NE', 'CO', 'SE', 'SU').
+        data_type: text
+      - name: capital
+        description: Se o município é capital de UF.
+        data_type: boolean
+      - name: populacao_siconfi
+        description: >
+          A população que o SICONFI informa no cadastro de entes (estimativa do
+          ano da consulta, não o Censo).
+        data_type: bigint
+      - name: exercicio_populacao_siconfi
+        description: O exercício do cadastro de entes de onde vem populacao_siconfi.
+        data_type: integer
+      - name: populacao_censo_2022
+        description: >
+          População residente no Censo 2022 (SIDRA 4709, variável 93). Nula para
+          município sem linha no Censo.
+        data_type: numeric

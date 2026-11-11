@@ -1,0 +1,713 @@
+version: 2
+
+# Cultura em Números — Eixo 1, frente orçamento (eixo1_orcamento_*).
+#
+# Separado do schema.yml da pasta para não disputar o arquivo com as outras
+# frentes do Eixo 1; o coletor do site lê schema.yml e schema_*.yml.
+#
+# Reproduz eixo1/orcamento/scripts/estadual/gasto_estadual.R e
+# scripts/municipal/gasto_municipal.R do repositório
+# SGE-Subsecretaria-de-Gestao-Estrategica/cultura-em-numeros-eixo-1 (commit
+# d28de40): Figs. 4 a 9 da publicação. A regra fica toda na gold-base
+# eixo1_orcamento_empenho_cultura (quem conta, de onde veio o recurso, o
+# deflator); as outras só agregam. Onde a regra do R contraria o ADR 0010, a
+# description diz a diferença.
+models:
+  - name: eixo1_orcamento_empenho_cultura
+    description: >
+      Camada Gold / Eixo 1, frente orçamento, do Cultura em Números. Gold-base:
+      o empenho de estados e municípios em cultura, linha a linha da Matriz de
+      Saldos Contábeis (MSC) do SICONFI, com a origem do recurso e o valor em
+      reais de 2024.
+
+      GRÃO: uma linha por item da MSC que conta (_pagina_id, _item).
+      UNIVERSO: as linhas de int_bacen_siconfi que passam pela regra abaixo,
+      de estados, DF e municípios (fora o DF na esfera municipal).
+
+      O QUE É EMPENHO: a MSC agregada (MSCC) de dezembro, classe 6, saldo
+      final; natureza credora (C); conta contábil começando com 62213 (crédito
+      empenhado). Valor em módulo, linha a linha (abs, como o R).
+
+      DE ONDE VEIO O RECURSO, pela fonte e nesta ordem: pnab (fonte começando
+      com 1719, 2719, 1720, 2720, 719 ou 720), lpg (1715, 2715, 1716, 2716, 715
+      ou 716), lab (só estadual, só 2020 e 2021, fonte começando com 17 ou 27 e
+      não com 19 ou 29), emenda (complemento da fonte, com zero à esquerda até
+      4 dígitos, entre os 13 códigos de emenda parlamentar), proprio (o resto).
+
+      QUEM CONTA COMO CULTURA: a função 13, e, na esfera estadual, a linha da
+      LAB em qualquer função, como o R estadual.
+
+      VALOR REAL: nominal vezes o número-índice médio do IPCA do ano-base (var
+      eixo1_orcamento_ano_base_ipca, padrão 2024) dividido pelo do exercício,
+      como o R. Sem IPCA para o exercício, nulo.
+
+      PARA QUE SERVE: é a base das golds eixo1_orcamento_*. Não responde
+      pergunta sozinha.
+
+      LIMITAÇÕES: a MSC de alguns entes não informa a função em alguns anos
+      (o Ceará em 2019 a 2021); essas linhas não entram, e o ente fica sem
+      empenho em cultura no ano. A LAB 1 municipal não está na MSC: o R a tira
+      do BB Ágil, que ainda não está aqui.
+
+      ATUALIZAÇÃO: table, recalculada a cada `dbt build`.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'int_bacen_siconfi'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "_pagina_id || '|' || _item"
+    columns:
+      - name: esfera_eixo1
+        description: "'estadual' (código IBGE de 2 dígitos, estados e DF) ou 'municipal' (7 dígitos)."
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['estadual', 'municipal']
+      - name: cod_ibge
+        description: Código IBGE do ente, o do item da MSC.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: ente
+        description: Nome do ente em silver_entes.
+        data_type: text
+      - name: uf
+        description: Sigla da UF do ente.
+        data_type: text
+        tests:
+          - not_null
+      - name: regiao
+        description: Sigla da região do ente (NO, NE, CO, SE, SU).
+        data_type: text
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: origem
+        description: >
+          De onde veio o recurso: 'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'
+          (regra na description do modelo).
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['proprio', 'emenda', 'lab', 'lpg', 'pnab']
+      - name: funcao
+        description: Função de governo da linha, como a MSC manda ('13' é Cultura).
+        data_type: text
+      - name: subfuncao
+        description: Subfunção de governo.
+        data_type: text
+      - name: poder_orgao
+        description: Código de poder e órgão.
+        data_type: text
+      - name: natureza_despesa
+        description: Natureza da despesa.
+        data_type: text
+      - name: fonte_recursos
+        description: Fonte de recursos, como a MSC manda.
+        data_type: text
+      - name: complemento_fonte
+        description: Complemento da fonte, como a MSC manda.
+        data_type: text
+      - name: conta_contabil
+        description: Conta contábil (62213xxxx).
+        data_type: text
+      - name: valor_nominal
+        description: Valor empenhado, em reais correntes do exercício (módulo do saldo).
+        data_type: numeric
+        tests:
+          - not_null
+      - name: fator_ipca
+        description: Índice médio do ano-base dividido pelo do exercício.
+        data_type: numeric
+      - name: valor_real
+        description: valor_nominal vezes fator_ipca, em reais do ano-base.
+        data_type: numeric
+        tests:
+          - not_null:
+              config:
+                where: "ipca_meses_ano is not null"
+      - name: ano_base_ipca
+        description: Ano-base do valor real (var eixo1_orcamento_ano_base_ipca).
+        data_type: integer
+      - name: ipca_meses_ano
+        description: Quantos meses do exercício o IPCA tem (12 no ano fechado). Nulo sem IPCA.
+        data_type: bigint
+      - name: _pagina_id
+        description: A página do SICONFI de onde o item veio.
+        data_type: text
+      - name: _item
+        description: Posição do item na página.
+        data_type: integer
+
+  - name: eixo1_orcamento_estadual_uf_fonte
+    description: >
+      Camada Gold / Eixo 1, frente orçamento. O empenho estadual em cultura
+      por exercício, UF e origem do recurso, em reais correntes e de 2024,
+      com todas as origens, inclusive as emendas parlamentares. É o
+      estadual_final.csv de gasto_estadual.R.
+
+      GRÃO: uma linha por (exercicio, uf, origem) com empenho. UNIVERSO: a
+      esfera estadual de eixo1_orcamento_empenho_cultura (26 estados e DF).
+
+      PARA QUE SERVE: a tabela por UF da publicação e a consolidação das três
+      esferas (nacional.R). Só agrega a gold-base.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_empenho_cultura'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "exercicio || '|' || uf || '|' || origem"
+    columns:
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: uf
+        description: Sigla da UF.
+        data_type: text
+        tests:
+          - not_null
+      - name: cod_ibge
+        description: Código IBGE do estado (2 dígitos).
+        data_type: bigint
+      - name: origem
+        description: "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        data_type: text
+      - name: fonte_recurso
+        description: >
+          Rótulo da origem, como na publicação: 'Execução direta Estadual
+          (recursos próprios)', 'Emendas Parlamentares', 'Lei Aldir Blanc
+          (LAB)', 'Lei Paulo Gustavo (LPG)', 'Política Nacional Aldir Blanc
+          (PNAB)'.
+        data_type: text
+        tests:
+          - not_null
+      - name: valor_nominal
+        description: Empenho em reais correntes.
+        data_type: numeric
+      - name: valor_real
+        description: Empenho em reais do ano-base do IPCA (2024).
+        data_type: numeric
+      - name: linhas_msc
+        description: Quantas linhas da MSC somam no valor.
+        data_type: bigint
+
+  - name: eixo1_orcamento_estadual_fonte
+    description: >
+      Camada Gold / Eixo 1, frente orçamento. Figs. 4 e 5 da publicação: o
+      investimento estadual em cultura por exercício e origem do recurso, em
+      reais correntes (Fig. 4) e de 2024, e a participação de cada origem no
+      total do ano (Fig. 5).
+
+      GRÃO: uma linha por (exercicio, origem) com empenho. UNIVERSO: a
+      esfera estadual, sem as emendas parlamentares, que as duas figuras
+      tiram (elas estão em eixo1_orcamento_estadual_uf_fonte).
+
+      A participação é sobre o valor real, como no R; dentro de um ano é a
+      mesma do valor nominal, porque todas as origens levam o mesmo fator.
+
+      CONFERIDO em 09/11/2026 contra os CSVs das Figs. 4 e 5 do repositório
+      do R (cultura-em-numeros-eixo-1, commit d28de40), sobre a MSC estadual
+      de 2019 a 2025 copiada do servidor: os 13 pares (exercício, origem)
+      iguais ao centavo no valor nominal, e a participação igual. Por
+      (exercício, UF, origem), os 332 grupos de eixo1_orcamento_estadual_uf_fonte
+      são iguais ao centavo aos do R rodado sobre o parquet que ele versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_estadual_uf_fonte'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "exercicio || '|' || origem"
+    columns:
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: origem
+        description: "'proprio', 'lab', 'lpg' ou 'pnab'."
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['proprio', 'lab', 'lpg', 'pnab']
+      - name: fonte_recurso
+        description: Rótulo da origem, como na publicação.
+        data_type: text
+      - name: valor_nominal
+        description: Empenho em reais correntes (Fig. 4).
+        data_type: numeric
+      - name: valor_real
+        description: Empenho em reais do ano-base do IPCA (2024).
+        data_type: numeric
+      - name: participacao
+        description: >
+          Fração do valor real do ano que veio desta origem (Fig. 5), de 0 a
+          1. Soma 1 em cada exercício.
+        data_type: numeric
+
+  - name: eixo1_orcamento_estadual_rcl
+    description: >
+      Camada Gold / Eixo 1, frente orçamento. Fig. 6 da publicação: a
+      participação da cultura no orçamento dos estados, o empenho próprio em
+      cultura (origem 'proprio') como fração da Receita Corrente Líquida,
+      contra a meta de 1,5% do PNC.
+
+      GRÃO: uma linha por (exercicio, cod_ibge) do estado ou DF que tem
+      empenho próprio em cultura ou RCL.
+
+      A RCL é a do RREO, Anexo 03, 6º bimestre, coluna "TOTAL (ÚLTIMOS 12
+      MESES)", conta de código RREO3ReceitaCorrenteLiquida. O R estadual filtra
+      pelo texto "receita corrente líquida (iii)" num CSV baixado do SICONFI;
+      nos estados o texto e o código pegam a mesma linha.
+
+      DIFERENTE DO R: onde falta o numerador ou a RCL, o R põe 0% e aqui fica
+      nulo (ADR 0010, regra 1). É o caso do Ceará em 2019 a 2021 e de Roraima
+      em 2022, cuja MSC de dezembro não informa a função em nenhuma linha de
+      empenho: não é que o estado não gastou com cultura, é que a MSC não diz.
+      O R mostra 2019 a 2024; aqui entra todo exercício com MSC ou RCL, e quem
+      consome corta.
+
+      CONFERIDO em 09/11/2026 contra o CSV da Fig. 6 do R (commit d28de40):
+      157 dos 162 pares (ano, UF) de 2019 a 2024 iguais a menos de 0,00005
+      p.p. Dos 5 restantes, 4 são os nulos acima, onde o R põe 0%, e 1 é São
+      Paulo em 2020 (-0,00085 p.p.): o CSV que o R lê traz a RCL arredondada
+      (R$ 165,0 bi) e a API, o valor exato (R$ 165,23 bi).
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_estadual_uf_fonte + silver_rreo + silver_entes'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "exercicio || '|' || cod_ibge"
+    columns:
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: cod_ibge
+        description: Código IBGE do estado (2 dígitos).
+        data_type: bigint
+        tests:
+          - not_null
+      - name: uf
+        description: Sigla da UF, a sigla_uf de silver_entes.
+        data_type: text
+        tests:
+          - not_null
+      - name: regiao
+        description: Grande região, por extenso.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
+      - name: valor_proprio_nominal
+        description: >
+          Empenho de origem 'proprio' em cultura, em reais correntes. Nulo
+          quando o estado não tem nenhuma linha que conte no ano.
+        data_type: numeric
+      - name: rcl
+        description: Receita Corrente Líquida dos últimos 12 meses, em reais correntes.
+        data_type: numeric
+      - name: participacao_rcl
+        description: >
+          valor_proprio_nominal dividido pela RCL, como fração (0.015 é 1,5%).
+          Nulo quando falta um dos dois ou a RCL não é positiva.
+        data_type: numeric
+      - name: atinge_meta_pnc
+        description: >
+          Verdadeiro quando participacao_rcl é pelo menos 0.015 (a meta de 1,5%
+          do PNC). Nulo quando participacao_rcl é nula.
+        data_type: boolean
+
+  - name: eixo1_orcamento_municipal_municipio_fonte
+    description: >
+      Camada Gold / Eixo 1, frente orçamento. O empenho municipal em cultura
+      por exercício, município e origem do recurso, em reais correntes e de
+      2024, com a população do Censo 2022 e o porte do município. É a
+      municipal_final.csv de gasto_municipal.R.
+
+      GRÃO: uma linha por (exercicio, cod_ibge, origem) com empenho. Só
+      agrega eixo1_orcamento_empenho_cultura (esfera municipal, DF fora).
+
+      PORTE: faixas da PNAS (macro eixo1_porte_pnas) sobre a população
+      residente do Censo 2022, as mesmas da MUNIC_FINAL.xlsx que o R lê.
+
+      DIFERENTE DO R: o município é o cod_ibge do item da MSC; o R casa o nome
+      do município com a malha do IBGE e perde o código de quem não casa. E a
+      LAB 1, que no R vem do cubo do BB Ágil, ainda não entra (o extrato do BB
+      Ágil no banco começa em 2023).
+
+      CONFERIDO em 10/11/2026 contra a municipal_final.csv do R (commit
+      d28de40), sem a LAB 1, nos municípios de AC, RR, AP, SE, SC e MS (MSC
+      de 2019 a 2025 copiada do servidor). De 2019 a 2022, os 1.819 grupos
+      (exercício, município, origem) são iguais ao centavo. Em 2023 e 2024,
+      todos menos um por ano. Em 2025, 1.003 de 1.055: 43 grupos só aqui, 1 só
+      no R e 8 com valor diferente. O que difere é data de extração: pelo
+      extrato de entregas do SICONFI, todo município-ano de 2023 a 2025 cujo
+      último envio da MSC de dezembro foi até 27/04/2026 bate com o R, e
+      todos os que diferem reenviaram a partir de 28/04/2026. O R baixou a
+      MSC por volta dessa data, e o servidor, de 02 a 05/10/2026.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_empenho_cultura + int_ibge_sidra_siconfi'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "exercicio || '|' || cod_ibge || '|' || origem"
+    columns:
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: cod_ibge
+        description: Código IBGE do município, 7 dígitos.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: ente
+        description: Nome do município em silver_entes.
+        data_type: text
+      - name: uf
+        description: Sigla da UF do município.
+        data_type: text
+      - name: origem
+        description: "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['proprio', 'emenda', 'lab', 'lpg', 'pnab']
+      - name: valor_nominal
+        description: Empenho em reais correntes.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: valor_real
+        description: Empenho em reais do ano-base do IPCA (2024).
+        data_type: numeric
+      - name: linhas_msc
+        description: Quantas linhas da MSC somaram no grupo.
+        data_type: bigint
+      - name: populacao_censo_2022
+        description: População residente do município no Censo 2022.
+        data_type: numeric
+      - name: regiao
+        description: Grande região, por extenso.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
+      - name: fonte_recurso
+        description: Rótulo da origem, como na publicação.
+        data_type: text
+      - name: porte
+        description: >
+          Porte do município pela PNAS: 'Pequeno Porte I', 'Pequeno Porte II',
+          'Médio Porte', 'Grande Porte' ou 'Metrópole'. Nulo sem população do
+          Censo 2022.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  ['Pequeno Porte I', 'Pequeno Porte II', 'Médio Porte', 'Grande Porte', 'Metrópole']
+
+  - name: eixo1_orcamento_municipal_fonte
+    description: >
+      Camada Gold / Eixo 1, frente orçamento. Figs. 7 e 8 da publicação: o
+      investimento municipal em cultura por exercício e origem do recurso, em
+      reais correntes (Fig. 7) e de 2024, e a participação de cada origem no
+      total do ano (Fig. 8).
+
+      GRÃO: uma linha por (exercicio, origem) com empenho. Diferente do
+      estadual, as emendas parlamentares entram, como no R. A participação é
+      sobre o valor real.
+
+      Sem a LAB 1 enquanto eixo1_orcamento_municipal_municipio_fonte não a
+      tiver: a participação de 2020 a 2022 fica maior que a do R nas outras
+      origens.
+
+      CONFERIDO em 10/11/2026 no mesmo recorte de
+      eixo1_orcamento_municipal_municipio_fonte: por (exercício, origem),
+      igual ao centavo ao R de 2019 a 2022. Em 2023 (+R$ 403.649,80) e 2024
+      (-R$ 11.750,00) a diferença é a de um município no recurso próprio; em
+      2025, a dos reenvios da MSC posteriores à extração do R.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_municipal_municipio_fonte'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "exercicio || '|' || origem"
+    columns:
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: origem
+        description: "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['proprio', 'emenda', 'lab', 'lpg', 'pnab']
+      - name: fonte_recurso
+        description: Rótulo da origem, como na publicação.
+        data_type: text
+      - name: valor_nominal
+        description: Empenho em reais correntes (Fig. 7).
+        data_type: numeric
+      - name: valor_real
+        description: Empenho em reais do ano-base do IPCA (2024).
+        data_type: numeric
+      - name: municipios
+        description: Quantos municípios têm empenho desta origem no ano.
+        data_type: bigint
+      - name: participacao
+        description: >
+          Fração do valor real do ano que veio desta origem (Fig. 8), de 0 a
+          1. Soma 1 em cada exercício.
+        data_type: numeric
+
+  - name: eixo1_orcamento_municipal_rcl
+    description: >
+      Camada Gold / Eixo 1, frente orçamento. A participação da cultura no
+      orçamento dos municípios: o empenho próprio em cultura (origem
+      'proprio') como fração da Receita Corrente Líquida, e a faixa em que o
+      município cai. Base da Fig. 9 e dos Indicadores 1 a 4 de
+      gasto_municipal.R.
+
+      GRÃO: uma linha por (exercicio, cod_ibge) do município (DF fora) que tem
+      empenho próprio em cultura ou RCL.
+
+      A RCL é a do RREO, Anexo 03, 6º bimestre, coluna "TOTAL (ÚLTIMOS 12
+      MESES)", conta de código RREO3ReceitaCorrenteLiquida, do RREO completo
+      ou do simplificado: cerca de 2.200 municípios por ano entregam só o
+      'RREO Simplificado', e nenhum entrega os dois no mesmo ano.
+
+      DIFERENTE DO R: o R pega o maior valor entre as linhas cujo texto casa
+      com "RECEITA CORRENTE LÍQUIDA", o que inclui as duas RCL ajustadas. Nos
+      CSVs de RCL municipal que o R versiona (2018 a 2025), isso muda o valor
+      em 17 de 43.714 pares (ano, município), todos em 2020 e 2021, e nenhum
+      muda de faixa.
+
+      FAIXA: (próprio / RCL) * 100, como o R: até 0,5%, de 0,5% a 1,0%, de
+      1,0% a 2,0% (fechadas em cima) e mais de 2,0%. Só tem faixa quem tem
+      empenho próprio e RCL positiva, o mesmo universo do R: município sem
+      empenho próprio em cultura não conta como "até 0,5%".
+
+      CONFERIDO em 10/11/2026 contra a RCL dos CSVs que o R lê, com a regra
+      dele, nos municípios de AC, RR, AP, SE, SC e MS: 3.161 faixas iguais, 1
+      diferente (2023, 5003454: o empenho próprio mudou na MSC), 4 só no R e
+      48 só aqui (45 em 2025). As 4 só no R são municípios sem página do RREO
+      Anexo 03 no servidor naquele ano (4209003 e 4219150 em 2019, 4207601 e
+      4219150 em 2020): entregaram, porque o Finbra de 25/03/2026 que o R lê
+      tem a RCL, mas o extrato de entregas baixado em outubro não lista o 6º
+      bimestre deles, e a DAG só pede o que o extrato lista. Antes de aceitar
+      o RREO Simplificado, eram 673 só no R.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_municipal_municipio_fonte + silver_rreo + int_ibge_sidra_siconfi'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "exercicio || '|' || cod_ibge"
+    columns:
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: cod_ibge
+        description: Código IBGE do município, 7 dígitos.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: ente
+        description: Nome do município em silver_entes.
+        data_type: text
+      - name: uf
+        description: Sigla da UF do município.
+        data_type: text
+      - name: valor_proprio_nominal
+        description: >
+          Empenho de origem 'proprio' em cultura, em reais correntes. Nulo
+          quando o município não tem nenhuma linha que conte no ano.
+        data_type: numeric
+      - name: rcl
+        description: Receita Corrente Líquida dos últimos 12 meses, em reais correntes.
+        data_type: numeric
+      - name: participacao_rcl
+        description: >
+          valor_proprio_nominal dividido pela RCL, como fração (0.02 é 2%).
+          Nulo quando falta um dos dois ou a RCL não é positiva.
+        data_type: numeric
+      - name: populacao_censo_2022
+        description: População residente do município no Censo 2022.
+        data_type: numeric
+      - name: regiao
+        description: Grande região, por extenso.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
+      - name: porte
+        description: Porte do município pela PNAS, sobre o Censo 2022.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  ['Pequeno Porte I', 'Pequeno Porte II', 'Médio Porte', 'Grande Porte', 'Metrópole']
+      - name: faixa_rcl
+        description: >
+          Faixa do percentual da RCL: '1. Até 0,5%', '2. Entre 0,5% e 1,0%',
+          '3. Entre 1,0% e 2,0%' ou '4. Mais de 2,0%'. Nula quando
+          participacao_rcl é nula.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  ['1. Até 0,5%', '2. Entre 0,5% e 1,0%', '3. Entre 1,0% e 2,0%', '4. Mais de 2,0%']
+      - name: acima_de_2_porcento_rcl
+        description: >
+          Verdadeiro quando o próprio passa de 2% da RCL (o Indicador_1 do R,
+          "Meta 2% RCL"). Nulo quando participacao_rcl é nula.
+        data_type: boolean
+
+  - name: eixo1_orcamento_municipal_faixa_rcl
+    description: >
+      Camada Gold / Eixo 1, frente orçamento. Fig. 9 da publicação: o
+      percentual de municípios em cada faixa de destinação da RCL à cultura,
+      por exercício e grande região.
+
+      GRÃO: uma linha por (exercicio, regiao, faixa_rcl) com município. Conta os
+      municípios de eixo1_orcamento_municipal_rcl com faixa; a proporção é
+      dentro do (exercício, região). Somando as regiões, é o Indicador_3 de
+      gasto_municipal.R.
+
+      CONFERIDO em 10/11/2026 no recorte de eixo1_orcamento_municipal_rcl: 93
+      dos 112 grupos (exercício, região, faixa) iguais ao R. Dos 19 restantes,
+      13 são de 2025 e 6 de 2019 a 2024, cada um com 1 ou 2 municípios: os 4
+      sem RREO no servidor, o de 2023 que mudou de faixa e os que só têm faixa
+      aqui.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_municipal_rcl'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "exercicio || '|' || coalesce(regiao, '') || '|' || faixa_rcl"
+    columns:
+      - name: exercicio
+        description: Ano do exercício.
+        data_type: integer
+        tests:
+          - not_null
+      - name: regiao
+        description: Grande região, por extenso.
+        data_type: text
+      - name: faixa_rcl
+        description: Faixa do percentual da RCL, como em eixo1_orcamento_municipal_rcl.
+        data_type: text
+        tests:
+          - not_null
+      - name: quantidade_municipios
+        description: Quantos municípios caem na faixa no ano e na região.
+        data_type: bigint
+      - name: proporcao_municipios
+        description: >
+          Fração dos municípios da região no ano que caem na faixa, de 0 a 1.
+          Soma 1 em cada (exercício, região).
+        data_type: numeric
