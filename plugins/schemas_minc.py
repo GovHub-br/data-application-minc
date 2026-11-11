@@ -67,6 +67,16 @@ FONTE_TESOURO_TRANSPARENTE = "tesouro_transparente"
 FONTE_DADOS_CULTURA = "dados_cultura"
 
 # ---------------------------------------------------------------------------
+# senado (senado_legislacao_dag)
+# ---------------------------------------------------------------------------
+# Legislacao federal da API de Dados Abertos do Senado: raw/senado/<entidade>/
+# no MinIO e a bronze no schema senado, gravada pelo Trino (ADRs 0009 e 0010).
+FONTE_SENADO = "senado"
+SCHEMA_SENADO = "senado"
+ENTIDADE_LEGISLACAO_LISTA = "legislacao_lista"
+ENTIDADE_LEGISLACAO_DETALHE = "legislacao_detalhe"
+
+# ---------------------------------------------------------------------------
 # bbagil (secao 7.2)
 # ---------------------------------------------------------------------------
 TABELA_EXTRATO = "extrato_bbagil"

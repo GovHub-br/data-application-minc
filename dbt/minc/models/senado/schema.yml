@@ -1,0 +1,81 @@
+version: 2
+
+# senado, na estrutura do ADR 0010: bronze_<entidade> é a cópia fiel do que a
+# senado_legislacao_dag grava em senado.<entidade> a partir do raw do MinIO.
+# `arquivos` é nome genérico demais, então leva a fonte no nome
+# (bronze_senado_arquivos), como bronze_siconfi_paginas.
+models:
+  - name: bronze_legislacao_lista
+    description: >
+      Camada Bronze — cópia fiel de senado.legislacao_lista, sem cast, filtro
+      nem join (ADR 0010). Leis, leis complementares e decretos federais (com e
+      sem número) listados por tipo e ano de assinatura na API de Dados Abertos
+      do Senado, com a ementa. Uma linha por documento de cada listagem
+      carregada: o ano corrente é listado de novo a cada run, até fechar, então
+      a mesma norma aparece uma vez por listagem. Para o retrato atual, use a
+      listagem mais recente de cada tipo e ano (bronze_senado_arquivos).
+      Toda coluna é character varying.
+    config:
+      tags:
+        - bronze
+        - senado
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_legislacao_detalhe
+    description: >
+      Camada Bronze — cópia fiel de senado.legislacao_detalhe, sem cast, filtro
+      nem join (ADR 0010). Detalhe de cada norma listada: a identificação
+      achatada em identificacao__<campo>, a ementa e a observação. As seções do
+      detalhe (publicações, alterações, dispositivos, indexação, classe
+      temática) estão em bronze_legislacao_detalhe_secoes. Cada norma é baixada
+      uma vez, então as alterações que ela sofrer depois não aparecem. Toda
+      coluna é character varying.
+    config:
+      tags:
+        - bronze
+        - senado
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_legislacao_detalhe_secoes
+    description: >
+      Camada Bronze — cópia fiel de senado.legislacao_detalhe_secoes, sem cast,
+      filtro nem join (ADR 0010). Um elemento de seção do detalhe por linha:
+      publicacoes, vides (alterações posteriores), edivs (normas anteriores
+      relacionadas), disps (dispositivos), catalogo e indexacao (frases de
+      indexação) e classes (classe temática do Senado). `valor` é texto nas
+      frases e na classe, e JSON nos demais. Seção vazia não tem linha. Toda
+      coluna é character varying.
+    config:
+      tags:
+        - bronze
+        - senado
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: bronze_senado_arquivos
+    description: >
+      Camada Bronze — cópia fiel de senado.arquivos, sem cast, filtro nem join
+      (ADR 0010). Uma linha por arquivo do raw que a senado_legislacao_dag
+      carregou: de que requisição veio, quando foi buscado, quantos documentos
+      a API devolveu e quantas linhas entraram. É o registro do que já foi
+      carregado. Toda coluna é character varying.
+    config:
+      tags:
+        - bronze
+        - senado
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
