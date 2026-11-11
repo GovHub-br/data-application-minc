@@ -43,5 +43,5 @@ select
     {{ bronze_texto("a227") }} as a227,
     {{ bronze_texto("a228") }} as a228,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_munic_cultura_2006_fundo_municipal") }}
