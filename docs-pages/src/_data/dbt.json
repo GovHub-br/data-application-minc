@@ -1043,19 +1043,23 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_empenho_cultura.sql",
-      "descricao": "Camada Gold / Eixo 1, frente orçamento, do Cultura em Números. Gold-base: o empenho de estados e municípios em cultura, linha a linha da Matriz de Saldos Contábeis (MSC) do SICONFI, com a origem do recurso e o valor em reais de 2024.\nGRÃO: uma linha por item da MSC que conta (_pagina_id, _item). UNIVERSO: as linhas de int_bacen_siconfi que passam pela regra abaixo, de estados, DF e municípios (fora o DF na esfera municipal).\nO QUE É EMPENHO: a MSC agregada (MSCC) de dezembro, classe 6, saldo final; natureza credora (C); conta contábil começando com 62213 (crédito empenhado). Valor em módulo, linha a linha (abs, como o R).\nDE ONDE VEIO O RECURSO, pela fonte e nesta ordem: pnab (fonte começando com 1719, 2719, 1720, 2720, 719 ou 720), lpg (1715, 2715, 1716, 2716, 715 ou 716), lab (só estadual, só 2020 e 2021, fonte começando com 17 ou 27 e não com 19 ou 29), emenda (complemento da fonte, com zero à esquerda até 4 dígitos, entre os 13 códigos de emenda parlamentar), proprio (o resto).\nQUEM CONTA COMO CULTURA: a função 13, e, na esfera estadual, a linha da LAB em qualquer função, como o R estadual.\nVALOR REAL: nominal vezes o número-índice médio do IPCA do ano-base (var eixo1_orcamento_ano_base_ipca, padrão 2024) dividido pelo do exercício, como o R. Sem IPCA para o exercício, nulo.\nPARA QUE SERVE: é a base das golds eixo1_orcamento_*. Não responde pergunta sozinha.\nLIMITAÇÕES: a MSC de alguns entes não informa a função em alguns anos (o Ceará em 2019 a 2021); essas linhas não entram, e o ente fica sem empenho em cultura no ano. A LAB 1 municipal não está na MSC: o R a tira do BB Ágil, que ainda não está aqui.\nATUALIZAÇÃO: table, recalculada a cada `dbt build`.",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento, do Cultura em Números. Gold-base: o gasto de estados e municípios em cultura, linha a linha, com a origem do recurso e o valor em reais de 2024. O empenho vem da Matriz de Saldos Contábeis (MSC) do SICONFI; a LAB 1 municipal, do extrato do BB Ágil.\nGRÃO: uma linha por item da MSC que conta (_pagina_id, _item) ou por lançamento da LAB 1 que conta (id_plano_acao, id_plano_acao_dado_bancario, id_transacao). base_origem diz qual. UNIVERSO: as linhas de int_bacen_bbagil_siconfi que passam pela regra abaixo, de estados, DF e municípios (na MSC, fora o DF na esfera municipal).\nO QUE É EMPENHO: a MSC agregada (MSCC) de dezembro, classe 6, saldo final; natureza credora (C); conta contábil começando com 62213 (crédito empenhado). Valor em módulo, linha a linha (abs, como o R).\nA LAB 1 MUNICIPAL: a MSC não separa a LAB 1 na fonte do município, e o R a tira do cubo do BB Ágil. Aqui ela vem do extrato das mesmas contas: programa 30882120200002 (Aldir Blanc dos municípios); todo lançamento que não é crédito (indicador diferente de 'C', o nulo incluído), como o R; menos os movimentos de aplicação financeira, que não são gasto e o cubo do R não tem: 271 (\"BB-APLIC C.PRZ-APL.AUT\"), 345 (\"Aplicação em BB Fix\") e 248 (\"Estorno Resgate Automático\"). O exercício é o ano da data do lançamento (bookingdate), só no ano fechado (os 12 meses do IPCA), porque o R lê o IPCA até dez/2025 e descarta a linha sem deflator. O valor é o value do extrato, sem módulo. O DF recebe com o código da UF (53) e aqui vira Brasília (5300108), na esfera municipal, como no R. Origem 'lab'.\nDE ONDE VEIO O RECURSO, na MSC, pela fonte e nesta ordem: pnab (fonte começando com 1719, 2719, 1720, 2720, 719 ou 720), lpg (1715, 2715, 1716, 2716, 715 ou 716), lab (na MSC, só estadual, só 2020 e 2021, fonte começando com 17 ou 27 e não com 19 ou 29), emenda (complemento da fonte, com zero à esquerda até 4 dígitos, entre os 13 códigos de emenda parlamentar), proprio (o resto).\nQUEM CONTA COMO CULTURA: na MSC, a função 13, e, na esfera estadual, a linha da LAB em qualquer função, como o R estadual. A LAB 1 municipal é cultura pelo programa.\nVALOR REAL: nominal vezes o número-índice médio do IPCA do ano-base (var eixo1_orcamento_ano_base_ipca, padrão 2024) dividido pelo do exercício, como o R. Sem IPCA para o exercício, nulo.\nPARA QUE SERVE: é a base das golds eixo1_orcamento_*. Não responde pergunta sozinha.\nLIMITAÇÕES: a MSC de alguns entes não informa a função em alguns anos (o Ceará em 2019 a 2021); essas linhas não entram, e o ente fica sem empenho em cultura no ano. A LAB 1 só enxerga as contas que o Banco do Brasil administra e que a extração do BB Ágil alcançou (combinações de conta e mês com erro na API ficam de fora até a DAG repetir). E, como no R, o estorno não é pareado: conta o débito que depois voltou como crédito (TED devolvida, ordem bancária cancelada, estorno de débito). Em 2020 esses créditos somam R$ 91,9 mi no programa, contra R$ 989,4 mi de LAB 1. Descontá-los afasta do R (800 de 2.791 municípios iguais em 2020, contra 2.534), porque o cubo do R conta o débito estornado. Parear o estorno é decisão do indicador (ADR 0015, decisão 3) e fica em aberto.\nATUALIZAÇÃO: table, recalculada a cada `dbt build`.",
       "colunas": [
         {
+          "nome": "base_origem",
+          "descricao": "De onde a linha veio: 'siconfi_msc' (o empenho da MSC) ou 'bbagil_extrato' (a LAB 1 municipal, do extrato do BB Ágil)."
+        },
+        {
           "nome": "esfera_eixo1",
-          "descricao": "'estadual' (código IBGE de 2 dígitos, estados e DF) ou 'municipal' (7 dígitos)."
+          "descricao": "'estadual' (código IBGE de 2 dígitos, estados e DF) ou 'municipal' (7 dígitos). A LAB 1 é toda municipal, o DF incluído."
         },
         {
           "nome": "cod_ibge",
-          "descricao": "Código IBGE do ente, o do item da MSC."
+          "descricao": "Código IBGE do ente: o do item da MSC, ou o da conta do BB Ágil na LAB 1, com o 53 do DF trocado pelo 5300108 de Brasília."
         },
         {
           "nome": "ente",
-          "descricao": "Nome do ente em silver_entes."
+          "descricao": "Nome do ente em silver_entes, pelo código de origem (na LAB 1 do DF, 'Distrito Federal')."
         },
         {
           "nome": "uf",
@@ -1075,7 +1079,7 @@
         },
         {
           "nome": "funcao",
-          "descricao": "Função de governo da linha, como a MSC manda ('13' é Cultura)."
+          "descricao": "Função de governo da linha, como a MSC manda ('13' é Cultura). Nula na LAB 1, como as outras colunas da MSC abaixo."
         },
         {
           "nome": "subfuncao",
@@ -1103,7 +1107,7 @@
         },
         {
           "nome": "valor_nominal",
-          "descricao": "Valor empenhado, em reais correntes do exercício (módulo do saldo)."
+          "descricao": "Em reais correntes do exercício: o valor empenhado (módulo do saldo da MSC), ou o value do lançamento da LAB 1."
         },
         {
           "nome": "fator_ipca",
@@ -1123,21 +1127,41 @@
         },
         {
           "nome": "_pagina_id",
-          "descricao": "A página do SICONFI de onde o item veio."
+          "descricao": "Só na MSC. A página do SICONFI de onde o item veio."
         },
         {
           "nome": "_item",
-          "descricao": "Posição do item na página."
+          "descricao": "Só na MSC. Posição do item na página."
+        },
+        {
+          "nome": "id_plano_acao",
+          "descricao": "Só na LAB 1. Plano de ação do TransfereGov dono da conta."
+        },
+        {
+          "nome": "id_plano_acao_dado_bancario",
+          "descricao": "Só na LAB 1. A conta bancária do plano de ação."
+        },
+        {
+          "nome": "id_transacao",
+          "descricao": "Só na LAB 1. O id do lançamento no extrato do BB Ágil."
+        },
+        {
+          "nome": "data_lancamento",
+          "descricao": "Só na LAB 1. A data do lançamento (bookingdate)."
+        },
+        {
+          "nome": "descriptioncode",
+          "descricao": "Só na LAB 1. Código do tipo de lançamento do BB."
         }
       ],
-      "colunas_descritas": 21,
-      "testes": 10,
+      "colunas_descritas": 27,
+      "testes": 13,
       "materializacao": "",
       "depende_de": [
-        "int_bacen_siconfi"
+        "int_bacen_bbagil_siconfi"
       ],
       "sources": [],
-      "linhas_sql": 142
+      "linhas_sql": 254
     },
     {
       "nome": "eixo1_orcamento_estadual_fonte",
@@ -1327,7 +1351,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_fonte.sql",
-      "descricao": "Camada Gold / Eixo 1, frente orçamento. Figs. 7 e 8 da publicação: o investimento municipal em cultura por exercício e origem do recurso, em reais correntes (Fig. 7) e de 2024, e a participação de cada origem no total do ano (Fig. 8).\nGRÃO: uma linha por (exercicio, origem) com empenho. Diferente do estadual, as emendas parlamentares entram, como no R. A participação é sobre o valor real.\nSem a LAB 1 enquanto eixo1_orcamento_municipal_municipio_fonte não a tiver: a participação de 2020 a 2022 fica maior que a do R nas outras origens.\nCONFERIDO em 10/11/2026 no mesmo recorte de eixo1_orcamento_municipal_municipio_fonte: por (exercício, origem), igual ao centavo ao R de 2019 a 2022. Em 2023 (+R$ 403.649,80) e 2024 (-R$ 11.750,00) a diferença é a de um município no recurso próprio; em 2025, a dos reenvios da MSC posteriores à extração do R.",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Figs. 7 e 8 da publicação: o investimento municipal em cultura por exercício e origem do recurso, em reais correntes (Fig. 7) e de 2024, e a participação de cada origem no total do ano (Fig. 8).\nGRÃO: uma linha por (exercicio, origem) com empenho. Diferente do estadual, as emendas parlamentares entram, como no R. A participação é sobre o valor real.\nA LAB 1 ('lab') é a do extrato do BB Ágil, acima da Fig. 7 pela cobertura do cubo do R (ver eixo1_orcamento_municipal_municipio_fonte): R$ 989.400.811,65 contra 930.658.307,98 em 2020, 481.308.380,15 contra 440.324.208,13 em 2021, 74.813.895,40 contra 73.462.851,26 em 2022, 14.415.752,22 contra 13.593.567,67 em 2023, 3.228.041,89 contra 3.195.730,40 em 2024 e 2.007.483,58 contra 1.823.432,60 em 2025. A participação das outras origens de 2020 a 2022 fica, por isso, um pouco menor que a do R.\nCONFERIDO em 10/11/2026 no mesmo recorte de eixo1_orcamento_municipal_municipio_fonte: por (exercício, origem), igual ao centavo ao R de 2019 a 2022. Em 2023 (+R$ 403.649,80) e 2024 (-R$ 11.750,00) a diferença é a de um município no recurso próprio; em 2025, a dos reenvios da MSC posteriores à extração do R.",
       "colunas": [
         {
           "nome": "exercicio",
@@ -1373,7 +1397,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_municipio_fonte.sql",
-      "descricao": "Camada Gold / Eixo 1, frente orçamento. O empenho municipal em cultura por exercício, município e origem do recurso, em reais correntes e de 2024, com a população do Censo 2022 e o porte do município. É a municipal_final.csv de gasto_municipal.R.\nGRÃO: uma linha por (exercicio, cod_ibge, origem) com empenho. Só agrega eixo1_orcamento_empenho_cultura (esfera municipal, DF fora).\nPORTE: faixas da PNAS (macro eixo1_porte_pnas) sobre a população residente do Censo 2022, as mesmas da MUNIC_FINAL.xlsx que o R lê.\nDIFERENTE DO R: o município é o cod_ibge do item da MSC; o R casa o nome do município com a malha do IBGE e perde o código de quem não casa. E a LAB 1, que no R vem do cubo do BB Ágil, ainda não entra (o extrato do BB Ágil no banco começa em 2023).\nCONFERIDO em 10/11/2026 contra a municipal_final.csv do R (commit d28de40), sem a LAB 1, nos municípios de AC, RR, AP, SE, SC e MS (MSC de 2019 a 2025 copiada do servidor). De 2019 a 2022, os 1.819 grupos (exercício, município, origem) são iguais ao centavo. Em 2023 e 2024, todos menos um por ano. Em 2025, 1.003 de 1.055: 43 grupos só aqui, 1 só no R e 8 com valor diferente. O que difere é data de extração: pelo extrato de entregas do SICONFI, todo município-ano de 2023 a 2025 cujo último envio da MSC de dezembro foi até 27/04/2026 bate com o R, e todos os que diferem reenviaram a partir de 28/04/2026. O R baixou a MSC por volta dessa data, e o servidor, de 02 a 05/10/2026.",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. O empenho municipal em cultura por exercício, município e origem do recurso, em reais correntes e de 2024, com a população do Censo 2022 e o porte do município. É a municipal_final.csv de gasto_municipal.R.\nGRÃO: uma linha por (exercicio, cod_ibge, origem) com empenho. Só agrega eixo1_orcamento_empenho_cultura (esfera municipal: na MSC, DF fora; na LAB 1, o DF entra como Brasília, 5300108, como no R).\nPORTE: faixas da PNAS (macro eixo1_porte_pnas) sobre a população residente do Censo 2022, as mesmas da MUNIC_FINAL.xlsx que o R lê.\nDIFERENTE DO R: o município é o cod_ibge do item da MSC ou o da conta do BB Ágil; o R casa o nome do município da MSC com a malha do IBGE e perde o código de quem não casa.\nA LAB 1 E O CUBO DO R: o R lê a LAB 1 de um cubo do BB Ágil (cubo_execucao_lab1_municipios), e aqui ela vem do extrato das mesmas contas, pela mesma regra. A diferença entre os dois é de cobertura do cubo, não erro: o extrato nunca fica abaixo do cubo, e todo município que o R tem, o extrato também tem. O que sobra é de dois tipos. Lançamentos que o cubo não tem em alguns municípios: em 357 dos 618 pares (exercício, município) acima do R, a diferença é a soma inteira de um ou dois tipos de lançamento, o mais comum 132 (Emissão de Ordem Bancária), depois 470, 393, 500 e 490. E municípios que o cubo não identifica: o R tem uma linha sem código IBGE ('NA') de R$ 361,0 mi em 2020, 159,1 mi em 2021 e 2,5 mi em 2022, e aqui os municípios dela aparecem com o próprio código. Por isso a LAB 1 daqui fica acima da Fig. 7: R$ 989,4 mi contra 930,7 mi em 2020, 481,3 mi contra 440,3 mi em 2021 e 74,8 mi contra 73,5 mi em 2022.\nCONFERIDO em 11/11/2026, LAB 1, por (exercício, município), contra a municipal_final.csv do R (commit d28de40), sobre o extrato do programa 30882120200002 copiado do servidor (extração de 2020 a 2022 concluída em 11/11/2026). Municípios do R iguais ao centavo: 2.534 de 2.791 em 2020, 2.164 de 2.476 em 2021, 2.302 de 2.340 em 2022, 380 de 390 em 2023, 112 de 112 em 2024 e 69 de 70 em 2025. Os demais ficam acima do R, nenhum abaixo. Só aqui: 203 municípios em 2020, 330 em 2021, 52 em 2022, 29 em 2023, 9 em 2024 e 3 em 2025. O DF entra como Brasília (5300108) de 2020 a 2022; o R só o identifica em 2022, com R$ 73.206,03 contra 146.412,06 aqui: as duas ordens bancárias do ano voltaram (uma cancelada, outra estornada), o pagamento saiu por autoatendimento, e o cubo só tem o pagamento.\nCONFERIDO em 10/11/2026 contra a municipal_final.csv do R (commit d28de40), sem a LAB 1, nos municípios de AC, RR, AP, SE, SC e MS (MSC de 2019 a 2025 copiada do servidor). De 2019 a 2022, os 1.819 grupos (exercício, município, origem) são iguais ao centavo. Em 2023 e 2024, todos menos um por ano. Em 2025, 1.003 de 1.055: 43 grupos só aqui, 1 só no R e 8 com valor diferente. O que difere é data de extração: pelo extrato de entregas do SICONFI, todo município-ano de 2023 a 2025 cujo último envio da MSC de dezembro foi até 27/04/2026 bate com o R, e todos os que diferem reenviaram a partir de 28/04/2026. O R baixou a MSC por volta dessa data, e o servidor, de 02 a 05/10/2026.",
       "colunas": [
         {
           "nome": "exercicio",
@@ -1404,8 +1428,8 @@
           "descricao": "Empenho em reais do ano-base do IPCA (2024)."
         },
         {
-          "nome": "linhas_msc",
-          "descricao": "Quantas linhas da MSC somaram no grupo."
+          "nome": "linhas",
+          "descricao": "Quantas linhas somaram no grupo: itens da MSC, ou, na LAB 1, lançamentos do extrato do BB Ágil."
         },
         {
           "nome": "populacao_censo_2022",
@@ -7774,16 +7798,20 @@
       "linhas_sql": 29
     },
     {
-      "nome": "int_bacen_siconfi",
+      "nome": "int_bacen_bbagil_siconfi",
       "dominio": "intermediate",
       "camada": "intermediate",
       "meta": null,
-      "caminho": "dbt/minc/models/intermediate/int_bacen_siconfi.sql",
-      "descricao": "Camada Intermediate. A Matriz de Saldos Contábeis orçamentária do SICONFI (silver_msc_orcamentaria), linha a linha e sem filtro, com o nome, a UF, a esfera e a região do ente (silver_entes, pelo cod_ibge) e o IPCA do exercício (SGS 433, silver_serie_sgs do BACEN).\nGRÃO: o de silver_msc_orcamentaria, uma linha por item da MSC. UNIVERSO: toda linha da silver, de todo ente, matriz, mês e classe. Nada é descartado aqui.\nO IPCA: ipca_indice_medio_ano é a média, nos meses do exercício, do número-índice que encadeia as variações mensais da série 433 desde o primeiro mês dela. O nível do índice é arbitrário; só a razão entre dois anos tem sentido, e é ela que a Gold usa como deflator, com o ano-base que escolher. ipca_meses_ano diz quantos meses o ano tem na série (12 no ano fechado, menos no ano corrente). Nulo no exercício sem IPCA.\nPARA QUE SERVE: dá à Gold eixo1_orcamento_empenho_cultura, numa tabela só, o empenho e o deflator, que vêm de fontes diferentes (ADR 0010, regra 2). Qual matriz, mês, conta, função e fonte contam é regra de negócio e fica lá.\nATUALIZAÇÃO: view. A linha é a da MSC inteira; materializar duplicaria a silver. A Gold, que filtra, é que é tabela.\nSEM TESTE DE UNICIDADE AQUI, de propósito: numa view, ele refaria a deduplicação da silver inteira a cada build. A chave já é testada em silver_msc_orcamentaria, e os dois joins não multiplicam linha: silver_entes tem cod_ibge único (testado) e o IPCA é agrupado por ano.",
+      "caminho": "dbt/minc/models/intermediate/int_bacen_bbagil_siconfi.sql",
+      "descricao": "Camada Intermediate. O gasto dos entes numa forma só: a Matriz de Saldos Contábeis orçamentária do SICONFI (silver_msc_orcamentaria) e o extrato bancário do BB Ágil (silver_extrato_bbagil), empilhados linha a linha e sem filtro, com o nome, a UF, a esfera e a região do ente (silver_entes, pelo cod_ibge) e o IPCA do exercício (SGS 433, silver_serie_sgs do BACEN).\nGRÃO: uma linha por item da MSC (base_origem 'siconfi_msc') ou por lançamento do extrato (base_origem 'bbagil_extrato'). UNIVERSO: toda linha das duas silvers, de todo ente, matriz, mês, classe, programa e indicador de débito e crédito. Nada é descartado aqui.\nUMA FORMA SÓ: as colunas da MSC ficam nulas na linha do extrato, e as do extrato na linha da MSC. Do extrato não vem nenhuma coluna do beneficiário (nome, documento, agência, conta).\nO EXERCÍCIO do lançamento do extrato é o ano da data do lançamento (bookingdate, dd/mm/aaaa, pela macro data_texto). Nulo quando a data não é data de calendário.\nO IPCA: ipca_indice_medio_ano é a média, nos meses do exercício, do número-índice que encadeia as variações mensais da série 433 desde o primeiro mês dela. O nível do índice é arbitrário; só a razão entre dois anos tem sentido, e é ela que a Gold usa como deflator, com o ano-base que escolher. ipca_meses_ano diz quantos meses o ano tem na série (12 no ano fechado, menos no ano corrente). Nulo no exercício sem IPCA.\nPARA QUE SERVE: dá à Gold eixo1_orcamento_empenho_cultura, numa tabela só, o empenho da MSC, a LAB 1 municipal do BB Ágil e o deflator, que vêm de fontes diferentes (ADR 0010, regra 2). Qual matriz, mês, conta, função, fonte, programa e lançamento contam é regra de negócio e fica lá.\nATUALIZAÇÃO: view. A linha é a da MSC inteira mais o extrato inteiro; materializar duplicaria as silvers. A Gold, que filtra, é que é tabela. O filtro da Gold em base_origem vira constante em cada ramo do union all, e o Postgres não lê o ramo que não serve.\nSEM TESTE DE UNICIDADE AQUI, de propósito: numa view, ele refaria a deduplicação da silver inteira a cada build. A chave da MSC é testada em silver_msc_orcamentaria, a do lançamento na Gold, e os dois joins não multiplicam linha: silver_entes tem cod_ibge único (testado) e o IPCA é agrupado por ano.",
       "colunas": [
         {
+          "nome": "base_origem",
+          "descricao": "De qual silver a linha veio: 'siconfi_msc' (silver_msc_orcamentaria) ou 'bbagil_extrato' (silver_extrato_bbagil). Constante em cada ramo do union all; sem teste aqui pelo mesmo motivo da unicidade."
+        },
+        {
           "nome": "cod_ibge",
-          "descricao": "Código IBGE do ente, o do item da MSC."
+          "descricao": "Código IBGE do ente: o do item da MSC, ou o da conta do BB Ágil. No extrato, o DF vem com o código da UF (53)."
         },
         {
           "nome": "ente",
@@ -7802,6 +7830,46 @@
           "descricao": "Sigla da região do ente em silver_entes."
         },
         {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício: o da MSC, ou o ano da data do lançamento do extrato."
+        },
+        {
+          "nome": "codigo_programa",
+          "descricao": "Só no extrato: código do programa do TransfereGov da conta (30882120200002 é a Aldir Blanc dos municípios)."
+        },
+        {
+          "nome": "id_plano_acao",
+          "descricao": "Só no extrato. Plano de ação do TransfereGov dono da conta."
+        },
+        {
+          "nome": "id_plano_acao_dado_bancario",
+          "descricao": "Só no extrato. A conta bancária do plano de ação."
+        },
+        {
+          "nome": "id_transacao",
+          "descricao": "Só no extrato. O id do lançamento no BB Ágil (o id de silver_extrato_bbagil); a chave é (id_plano_acao, id_plano_acao_dado_bancario, id_transacao)."
+        },
+        {
+          "nome": "data_lancamento",
+          "descricao": "Só no extrato. A data do lançamento (bookingdate), como date. Nula quando o texto não é data de calendário."
+        },
+        {
+          "nome": "creditdebitindicator",
+          "descricao": "Só no extrato. 'C' é crédito; 'D', débito."
+        },
+        {
+          "nome": "descriptioncode",
+          "descricao": "Só no extrato. Código do tipo de lançamento do BB (271, 345 e 248 são movimentos de aplicação financeira)."
+        },
+        {
+          "nome": "descriptionname",
+          "descricao": "Só no extrato. Nome do tipo de lançamento."
+        },
+        {
+          "nome": "valor",
+          "descricao": "O valor da MSC (saldo, com sinal), ou o value do lançamento do extrato."
+        },
+        {
           "nome": "ipca_indice_medio_ano",
           "descricao": "Média do número-índice do IPCA nos meses do exercício. Escala arbitrária; use a razão entre dois anos."
         },
@@ -7811,23 +7879,24 @@
         },
         {
           "nome": "_pagina_id",
-          "descricao": "A página de onde o item veio."
+          "descricao": "Só na MSC. A página de onde o item veio."
         },
         {
           "nome": "_item",
-          "descricao": "Posição do item na página."
+          "descricao": "Só na MSC. Posição do item na página."
         }
       ],
-      "colunas_descritas": 9,
+      "colunas_descritas": 20,
       "testes": 0,
       "materializacao": "view",
       "depende_de": [
         "silver_entes",
+        "silver_extrato_bbagil",
         "silver_msc_orcamentaria",
         "silver_serie_sgs"
       ],
       "sources": [],
-      "linhas_sql": 87
+      "linhas_sql": 197
     },
     {
       "nome": "int_ibge_sidra_siconfi",
@@ -49043,7 +49112,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/siconfi/silver_entes.sql",
-      "descricao": "Camada Silver — entes da federação do SICONFI (/entes), tipados: código IBGE, nome, UF, esfera (U União, E estado, D Distrito Federal, M município), região (NO, NE, CO, SE, SU), capital, CNPJ e população do ano da consulta.\nGRÃO: uma linha por ente (cod_ibge). A /entes não tem parâmetro, então é uma requisição só, baixada a cada run: fica a do run de fetched_at mais recente.\nPARA QUE SERVE: dá UF, esfera e região à MSC, que só traz o código IBGE (int_bacen_siconfi), e região às golds do orçamento.",
+      "descricao": "Camada Silver — entes da federação do SICONFI (/entes), tipados: código IBGE, nome, UF, esfera (U União, E estado, D Distrito Federal, M município), região (NO, NE, CO, SE, SU), capital, CNPJ e população do ano da consulta.\nGRÃO: uma linha por ente (cod_ibge). A /entes não tem parâmetro, então é uma requisição só, baixada a cada run: fica a do run de fetched_at mais recente.\nPARA QUE SERVE: dá UF, esfera e região à MSC, que só traz o código IBGE (int_bacen_bbagil_siconfi), e região às golds do orçamento.",
       "colunas": [
         {
           "nome": "cod_ibge",
@@ -49122,7 +49191,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/siconfi/silver_msc_orcamentaria.sql",
-      "descricao": "Camada Silver — Matriz de Saldos Contábeis, classes orçamentárias (/msc_orcamentaria), tipada. Uma linha por item da API: ente, exercício, mês, matriz (MSCC agregada, MSCE de encerramento), classe, tipo de valor, conta contábil e as informações complementares, com o valor e a natureza do saldo.\nGRÃO: uma linha por (_pagina_id, _item) da tentativa que vale de cada requisição. A MSC não tem chave natural: duas linhas podem ter a mesma conta e as mesmas informações complementares com valores diferentes.\nOS CÓDIGOS FICAM COMO TEXTO, como a API manda (função '13', fonte '1500', complemento '1001', conta '622130100'): o zero à esquerda é parte do código. A MSC não traz a UF do ente; ela vem de silver_entes, pelo cod_ibge, em int_bacen_siconfi.\nPARA QUE SERVE: a conta 62213 (crédito empenhado), credora, de dezembro, classe 6, saldo final, é o empenho de estados e municípios que eixo1_orcamento_empenho_cultura filtra por função e classifica por fonte.",
+      "descricao": "Camada Silver — Matriz de Saldos Contábeis, classes orçamentárias (/msc_orcamentaria), tipada. Uma linha por item da API: ente, exercício, mês, matriz (MSCC agregada, MSCE de encerramento), classe, tipo de valor, conta contábil e as informações complementares, com o valor e a natureza do saldo.\nGRÃO: uma linha por (_pagina_id, _item) da tentativa que vale de cada requisição. A MSC não tem chave natural: duas linhas podem ter a mesma conta e as mesmas informações complementares com valores diferentes.\nOS CÓDIGOS FICAM COMO TEXTO, como a API manda (função '13', fonte '1500', complemento '1001', conta '622130100'): o zero à esquerda é parte do código. A MSC não traz a UF do ente; ela vem de silver_entes, pelo cod_ibge, em int_bacen_bbagil_siconfi.\nPARA QUE SERVE: a conta 62213 (crédito empenhado), credora, de dezembro, classe 6, saldo final, é o empenho de estados e municípios que eixo1_orcamento_empenho_cultura filtra por função e classifica por fonte.",
       "colunas": [
         {
           "nome": "cod_ibge",
@@ -51049,7 +51118,7 @@
     },
     "cultura_em_numeros": {
       "modelos": 25,
-      "testes": 140,
+      "testes": 143,
       "camadas": {
         "gold": 25
       }
@@ -54279,7 +54348,7 @@
   ],
   "totais": {
     "modelos": 794,
-    "testes": 994,
+    "testes": 997,
     "com_descricao": 793,
     "sources": 757
   }
