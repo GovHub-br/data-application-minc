@@ -246,16 +246,27 @@ models:
           (ciclo 1). Nulo quando não está.
         data_type: boolean
 
-  - name: int_bacen_siconfi
+  - name: int_bacen_bbagil_siconfi
     description: >
-      Camada Intermediate. A Matriz de Saldos Contábeis orçamentária do
-      SICONFI (silver_msc_orcamentaria), linha a linha e sem filtro, com o
-      nome, a UF, a esfera e a região do ente (silver_entes, pelo cod_ibge) e
-      o IPCA do exercício (SGS 433, silver_serie_sgs do BACEN).
+      Camada Intermediate. O gasto dos entes numa forma só: a Matriz de Saldos
+      Contábeis orçamentária do SICONFI (silver_msc_orcamentaria) e o extrato
+      bancário do BB Ágil (silver_extrato_bbagil), empilhados linha a linha e
+      sem filtro, com o nome, a UF, a esfera e a região do ente (silver_entes,
+      pelo cod_ibge) e o IPCA do exercício (SGS 433, silver_serie_sgs do
+      BACEN).
 
-      GRÃO: o de silver_msc_orcamentaria, uma linha por item da MSC. UNIVERSO:
-      toda linha da silver, de todo ente, matriz, mês e classe. Nada é
-      descartado aqui.
+      GRÃO: uma linha por item da MSC (base_origem 'siconfi_msc') ou por
+      lançamento do extrato (base_origem 'bbagil_extrato'). UNIVERSO: toda
+      linha das duas silvers, de todo ente, matriz, mês, classe, programa e
+      indicador de débito e crédito. Nada é descartado aqui.
+
+      UMA FORMA SÓ: as colunas da MSC ficam nulas na linha do extrato, e as
+      do extrato na linha da MSC. Do extrato não vem nenhuma coluna do
+      beneficiário (nome, documento, agência, conta).
+
+      O EXERCÍCIO do lançamento do extrato é o ano da data do lançamento
+      (bookingdate, dd/mm/aaaa, pela macro data_texto). Nulo quando a data
+      não é data de calendário.
 
       O IPCA: ipca_indice_medio_ano é a média, nos meses do exercício, do
       número-índice que encadeia as variações mensais da série 433 desde o
@@ -265,30 +276,42 @@ models:
       no ano fechado, menos no ano corrente). Nulo no exercício sem IPCA.
 
       PARA QUE SERVE: dá à Gold eixo1_orcamento_empenho_cultura, numa tabela
-      só, o empenho e o deflator, que vêm de fontes diferentes (ADR 0010,
-      regra 2). Qual matriz, mês, conta, função e fonte contam é regra de
-      negócio e fica lá.
+      só, o empenho da MSC, a LAB 1 municipal do BB Ágil e o deflator, que vêm
+      de fontes diferentes (ADR 0010, regra 2). Qual matriz, mês, conta,
+      função, fonte, programa e lançamento contam é regra de negócio e fica
+      lá.
 
-      ATUALIZAÇÃO: view. A linha é a da MSC inteira; materializar duplicaria
-      a silver. A Gold, que filtra, é que é tabela.
+      ATUALIZAÇÃO: view. A linha é a da MSC inteira mais o extrato inteiro;
+      materializar duplicaria as silvers. A Gold, que filtra, é que é tabela.
+      O filtro da Gold em base_origem vira constante em cada ramo do union
+      all, e o Postgres não lê o ramo que não serve.
 
       SEM TESTE DE UNICIDADE AQUI, de propósito: numa view, ele refaria a
-      deduplicação da silver inteira a cada build. A chave já é testada em
-      silver_msc_orcamentaria, e os dois joins não multiplicam linha:
-      silver_entes tem cod_ibge único (testado) e o IPCA é agrupado por ano.
+      deduplicação da silver inteira a cada build. A chave da MSC é testada em
+      silver_msc_orcamentaria, a do lançamento na Gold, e os dois joins não
+      multiplicam linha: silver_entes tem cod_ibge único (testado) e o IPCA é
+      agrupado por ano.
     config:
-      tags: [intermediate, bacen, siconfi]
+      tags: [intermediate, bacen, bbagil, siconfi]
       meta:
         status: Active
-        meta_objetivo: 'Eixo 1 — orçamento: o empenho da MSC com o ente e o IPCA, numa forma só'
-        origem_dados: 'silver_msc_orcamentaria + silver_entes + silver_serie_sgs'
+        meta_objetivo: 'Eixo 1 — orçamento: o empenho da MSC e o extrato do BB Ágil com o ente e o IPCA, numa forma só'
+        origem_dados: 'silver_msc_orcamentaria + silver_extrato_bbagil + silver_entes + silver_serie_sgs'
         openmetadata:
           domain: Cultura.Indicadores
           tier: Tier.Tier2
           owner: minc-data-engineering
     columns:
+      - name: base_origem
+        description: >-
+          De qual silver a linha veio: 'siconfi_msc' (silver_msc_orcamentaria)
+          ou 'bbagil_extrato' (silver_extrato_bbagil). Constante em cada ramo
+          do union all; sem teste aqui pelo mesmo motivo da unicidade.
+        data_type: text
       - name: cod_ibge
-        description: Código IBGE do ente, o do item da MSC.
+        description: >-
+          Código IBGE do ente: o do item da MSC, ou o da conta do BB Ágil. No
+          extrato, o DF vem com o código da UF (53).
         data_type: bigint
       - name: ente
         description: Nome do ente em silver_entes. Nulo se o código não está lá.
@@ -304,6 +327,49 @@ models:
       - name: regiao
         description: Sigla da região do ente em silver_entes.
         data_type: text
+      - name: exercicio
+        description: >-
+          Ano do exercício: o da MSC, ou o ano da data do lançamento do
+          extrato.
+        data_type: integer
+      - name: codigo_programa
+        description: >-
+          Só no extrato: código do programa do TransfereGov da conta
+          (30882120200002 é a Aldir Blanc dos municípios).
+        data_type: bigint
+      - name: id_plano_acao
+        description: Só no extrato. Plano de ação do TransfereGov dono da conta.
+        data_type: integer
+      - name: id_plano_acao_dado_bancario
+        description: Só no extrato. A conta bancária do plano de ação.
+        data_type: integer
+      - name: id_transacao
+        description: >-
+          Só no extrato. O id do lançamento no BB Ágil (o id de
+          silver_extrato_bbagil); a chave é (id_plano_acao,
+          id_plano_acao_dado_bancario, id_transacao).
+        data_type: bigint
+      - name: data_lancamento
+        description: >-
+          Só no extrato. A data do lançamento (bookingdate), como date. Nula
+          quando o texto não é data de calendário.
+        data_type: date
+      - name: creditdebitindicator
+        description: "Só no extrato. 'C' é crédito; 'D', débito."
+        data_type: text
+      - name: descriptioncode
+        description: >-
+          Só no extrato. Código do tipo de lançamento do BB (271, 345 e 248 são
+          movimentos de aplicação financeira).
+        data_type: integer
+      - name: descriptionname
+        description: Só no extrato. Nome do tipo de lançamento.
+        data_type: text
+      - name: valor
+        description: >-
+          O valor da MSC (saldo, com sinal), ou o value do lançamento do
+          extrato.
+        data_type: numeric
       - name: ipca_indice_medio_ano
         description: >
           Média do número-índice do IPCA nos meses do exercício. Escala
@@ -313,10 +379,10 @@ models:
         description: Quantos meses do exercício a série 433 tem.
         data_type: bigint
       - name: _pagina_id
-        description: A página de onde o item veio.
+        description: Só na MSC. A página de onde o item veio.
         data_type: text
       - name: _item
-        description: Posição do item na página.
+        description: Só na MSC. Posição do item na página.
         data_type: integer
 
   - name: int_ibge_sidra_siconfi
