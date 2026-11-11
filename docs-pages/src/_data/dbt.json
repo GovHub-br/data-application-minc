@@ -972,7 +972,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_escolaridade_tripe.sql",
-      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a escolaridade do gestor de cultura nos municípios com e sem o tripé completo, em 2021.\nGRÃO: uma linha por grupo de tripé e escolaridade. UNIVERSO: os municípios da MUNIC 2021 com escolaridade do gestor num dos quatro grupos.\nPARA QUE SERVE: o gráfico 5 do MUNIC.R. A proporção é dentro de cada grupo de tripé. Tripé completo é 'Sim' para plano, conselho e fundo. Pela exceção à regra transversal 1 descrita em eixo1_munic_painel_municipio, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a escolaridade do gestor de cultura nos municípios com e sem o tripé completo, em 2021.\nGRÃO: uma linha por grupo de tripé e escolaridade. UNIVERSO: os municípios da MUNIC 2021 com escolaridade do gestor num dos quatro grupos e tripé conhecido.\nPARA QUE SERVE: o gráfico 5 do MUNIC.R. A proporção é dentro de cada grupo de tripé. O tripé é o tem_tripe_completo de eixo1_munic_painel_municipio. Pela exceção à regra transversal 1 descrita lá, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R.\nDIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora da contagem e do total do grupo; o R o contaria como sem tripé. Em 11/11/2026 nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
       "colunas": [
         {
           "nome": "tripe_completo",
@@ -1112,7 +1112,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_orgao_gestor.sql",
-      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o tipo de órgão gestor da cultura no município, em três grupos.\nGRÃO: uma linha por edição e grupo. UNIVERSO: os municípios com tipo de órgão informado; fora 'Recusa'.\nPARA QUE SERVE: o gráfico 4 do MUNIC.R. O grupo sai do texto da resposta, como no R: 'exclusiva' ou 'fundação' é secretaria exclusiva ou fundação; 'conjunto' é secretaria em conjunto; o resto é setor subordinado ou outro. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o tipo de órgão gestor da cultura no município, em três grupos.\nGRÃO: uma linha por edição e grupo. UNIVERSO: os municípios com tipo de órgão informado; fora 'Recusa'.\nPARA QUE SERVE: o gráfico 4 do MUNIC.R. O grupo sai do texto da resposta, como no R: 'exclusiva' ou 'fundação' é secretaria exclusiva ou fundação; 'conjunto' é secretaria em conjunto; o resto é setor subordinado ou outro. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.\nDIFERENÇA DA ESTADIC, que vem dos scripts R: o ESTADIC.R agrupa no painel, põe \"indireta\" no grupo exclusivo e chama o segundo grupo de 'Secretaria Conjunta'. O MUNIC.R agrupa no gráfico e deixa 'Órgão da administração indireta' em setor subordinado ou outro (119 municípios em 2014, 114 em 2018 e 114 em 2021, em 11/11/2026). Cada frente segue o seu script.",
       "colunas": [
         {
           "nome": "ano",
@@ -1138,7 +1138,7 @@
         "eixo1_munic_painel_municipio"
       ],
       "sources": [],
-      "linhas_sql": 34
+      "linhas_sql": 43
     },
     {
       "nome": "eixo1_munic_painel_municipio",
@@ -1146,7 +1146,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_painel_municipio.sql",
-      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o painel histórico da gestão municipal de cultura.\nGRÃO: uma linha por município e edição da MUNIC (2006, 2014, 2018, 2021). UNIVERSO: os municípios de cada edição, 5.564 em 2006 e 5.570 nas outras (22.274 linhas).\nPARA QUE SERVE: é a base dos gráficos da frente MUNIC (tripé de plano, conselho e fundo, perfil do gestor, equipamentos, execução orçamentária). Reproduz o df_painel_historico do MUNIC.R, que grava munic_cultura_painel_historico_06_21.csv.\nA REGRA: qual pergunta de cada edição responde cada variável (em 2021 e 2018, a aba Cultura; em 2014 e 2006, as abas do suplemento de cultura, ligadas pelo código do município); como a resposta vira 'Sim' ou 'Não' (macro eixo1_sim_nao: começa por \"sim\" é 'Sim', qualquer outra resposta preenchida é 'Não'; 'Em elaboração', na pergunta do plano, é 'Não'); e as faixas de idade, raça, escolaridade e execução orçamentária. Toda edição recebe o código e o nome de 2021 pelos 6 primeiros dígitos, porque 2006 não tem o dígito verificador. 2018, 2014 e 2006 não trazem população nem execução orçamentária. Os equipamentos de 2021 passam pela macro; os de 2018, 2014 e 2006 ficam só com 'Sim' e 'Não' exatos (macro eixo1_sim_nao_exato) e o resto vira NULL, que é o que o gráfico 11 do R conta.\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e 'Não disponível' viram 'Não', como no R, para as golds baterem com a publicação. Em 09/11/2026, nas colunas do tripé e do patrimônio (tem_plano, tem_conselho, tem_fundo, tem_lei_patrimonio, tem_cons_patrimonio), são 6, 6, 5, 6 e 6 municípios em 2021; 3, 3, 2, 3 e 3 em 2018; 4, 3, 3, 4 e 3 em 2014; 2, 2, 3, 2 e 2 em 2006. Nos equipamentos de 2021, 39 por equipamento (35 '-', 2 'Recusa' e 2 'Não informou'). Nas perguntas que só se aplicam a parte dos municípios (plano_participacao_soc, sec_*, cons_cap_*), o '-' vira 'Não'; as golds de gráfico que usam essas colunas filtram antes por tem_plano ou tem_conselho.\nDIFERENÇA DO R: resposta ausente fica NULL; o R a transformava em 'Não' ou 'Sem Informação'. Conferido contra o CSV do R em 09/11/2026, com as tabelas de seeds do dbanalytics: as 22.274 linhas e as 36 colunas batem, e das 801.864 células diferem 9.682. São 222 de plano_tem_lei em 2018, os municípios em que a pergunta da lei do plano veio vazia na MUNIC 2018 (todos responderam que não têm plano), e 9.460 dos equipamentos de 2018, 2014 e 2006, em que o R guarda '-', 'Recusa' ou 'Não informou' e aqui é NULL (2.360 por equipamento em 2018, 3 em 2014 e 2 em 2006).",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números. Gold-base: o painel histórico da gestão municipal de cultura.\nGRÃO: uma linha por município e edição da MUNIC (2006, 2014, 2018, 2021). UNIVERSO: os municípios de cada edição, 5.564 em 2006 e 5.570 nas outras (22.274 linhas).\nPARA QUE SERVE: é a base dos gráficos da frente MUNIC (tripé de plano, conselho e fundo, perfil do gestor, equipamentos, execução orçamentária). Reproduz o df_painel_historico do MUNIC.R, que grava munic_cultura_painel_historico_06_21.csv.\nA REGRA: qual pergunta de cada edição responde cada variável (em 2021 e 2018, a aba Cultura; em 2014 e 2006, as abas do suplemento de cultura, ligadas pelo código do município); como a resposta vira 'Sim' ou 'Não' (macro eixo1_sim_nao: começa por \"sim\" é 'Sim', qualquer outra resposta preenchida é 'Não'; 'Em elaboração', na pergunta do plano, é 'Não'); e as faixas de idade, raça, escolaridade e execução orçamentária. Toda edição recebe o código e o nome de 2021 pelos 6 primeiros dígitos, porque 2006 não tem o dígito verificador. 2018, 2014 e 2006 não trazem população nem execução orçamentária. Os equipamentos de 2021 passam pela macro; os de 2018, 2014 e 2006 ficam só com 'Sim' e 'Não' exatos (macro eixo1_sim_nao_exato) e o resto vira NULL, que é o que o gráfico 11 do R conta. O tripé completo (tem_tripe_completo) sai daqui, uma vez, para as golds dos gráficos 5, 10 e 15.\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e 'Não disponível' viram 'Não', como no R, para as golds baterem com a publicação. Em 09/11/2026, nas colunas do tripé e do patrimônio (tem_plano, tem_conselho, tem_fundo, tem_lei_patrimonio, tem_cons_patrimonio), são 6, 6, 5, 6 e 6 municípios em 2021; 3, 3, 2, 3 e 3 em 2018; 4, 3, 3, 4 e 3 em 2014; 2, 2, 3, 2 e 2 em 2006. Nos equipamentos de 2021, 39 por equipamento (35 '-', 2 'Recusa' e 2 'Não informou'). Nas perguntas que só se aplicam a parte dos municípios (plano_participacao_soc, sec_*, cons_cap_*), o '-' vira 'Não'; as golds de gráfico que usam essas colunas filtram antes por tem_plano ou tem_conselho.\nDIFERENÇA DO R: resposta ausente fica NULL; o R a transformava em 'Não' ou 'Sem Informação'. Conferido contra o CSV do R em 09/11/2026, com as tabelas de seeds do dbanalytics: as 22.274 linhas e as 36 colunas batem, e das 801.864 células diferem 9.682. São 222 de plano_tem_lei em 2018, os municípios em que a pergunta da lei do plano veio vazia na MUNIC 2018 (todos responderam que não têm plano), e 9.460 dos equipamentos de 2018, 2014 e 2006, em que o R guarda '-', 'Recusa' ou 'Não informou' e aqui é NULL (2.360 por equipamento em 2018, 3 em 2014 e 2 em 2006). A coluna tem_tripe_completo não existe no CSV do R, que calcula o tripé em cada gráfico. Com um item do tripé vazio e nenhum 'Não', ela fica NULL, e o R contaria o município como sem tripé. Em 11/11/2026 nenhum município tem item do tripé vazio, em nenhuma edição.",
       "colunas": [
         {
           "nome": "cod_municipio",
@@ -1191,6 +1191,10 @@
         {
           "nome": "tem_fundo",
           "descricao": "O município tem fundo municipal de cultura ('Sim' ou 'Não')."
+        },
+        {
+          "nome": "tem_tripe_completo",
+          "descricao": "O município tem o tripé do SNC: 'Sim' com plano, conselho e fundo; 'Não' com algum 'Não'. NULL quando algum dos três é vazio e nenhum é 'Não', porque aí não dá para saber."
         },
         {
           "nome": "tem_lei_patrimonio",
@@ -1293,8 +1297,8 @@
           "descricao": "Faixa do percentual executado do orçamento da cultura, só em 2021 ('0%', 'Até 10%', faixas de 10 pontos, 'Mais de 90%' ou 'Sem Informação')."
         }
       ],
-      "colunas_descritas": 36,
-      "testes": 13,
+      "colunas_descritas": 37,
+      "testes": 14,
       "materializacao": "",
       "depende_de": [
         "silver_munic_2018_cultura",
@@ -1315,7 +1319,7 @@
         "silver_munic_cultura_2014_recursos_humanos"
       ],
       "sources": [],
-      "linhas_sql": 431
+      "linhas_sql": 442
     },
     {
       "nome": "eixo1_munic_paridade_conselho",
@@ -1429,7 +1433,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_porte_tripe.sql",
-      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o tripé completo por porte populacional do município em 2021.\nGRÃO: uma linha por porte e situação do tripé. UNIVERSO: os municípios da MUNIC 2021 com população informada.\nPARA QUE SERVE: o gráfico 15 do MUNIC.R. A população é a da própria MUNIC 2021. A proporção é dentro de cada porte; ordem_porte dá a ordem do eixo. Pela exceção à regra transversal 1 descrita em eixo1_munic_painel_municipio, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o tripé completo por porte populacional do município em 2021.\nGRÃO: uma linha por porte e situação do tripé. UNIVERSO: os municípios da MUNIC 2021 com população informada e tripé conhecido.\nPARA QUE SERVE: o gráfico 15 do MUNIC.R. A população é a da própria MUNIC 2021. A proporção é dentro de cada porte; ordem_porte dá a ordem do eixo. O tripé é o tem_tripe_completo de eixo1_munic_painel_municipio. Pela exceção à regra transversal 1 descrita lá, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R.\nDIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora da contagem e do total do porte; o R o contaria como incompleto. Em 11/11/2026 nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
       "colunas": [
         {
           "nome": "porte_populacional",
@@ -1459,7 +1463,7 @@
         "eixo1_munic_painel_municipio"
       ],
       "sources": [],
-      "linhas_sql": 57
+      "linhas_sql": 58
     },
     {
       "nome": "eixo1_munic_raca_gestor",
@@ -1633,7 +1637,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_munic_tripe_uf.sql",
-      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a proporção de municípios com o tripé completo por UF em 2021.\nGRÃO: uma linha por UF. UNIVERSO: os municípios da MUNIC 2021.\nPARA QUE SERVE: o gráfico 10 do MUNIC.R. Como no R, o total conta todos os municípios da UF, e a proporção deixa de fora quem tem resposta ausente num dos três instrumentos (em 2021 não há nenhum). Pela exceção à regra transversal 1 descrita em eixo1_munic_painel_municipio, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
+      "descricao": "Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a proporção de municípios com o tripé completo por UF em 2021.\nGRÃO: uma linha por UF. UNIVERSO: os municípios da MUNIC 2021 com tripé conhecido.\nPARA QUE SERVE: o gráfico 10 do MUNIC.R. O tripé é o tem_tripe_completo de eixo1_munic_painel_municipio, e as duas contagens e a proporção contam os mesmos municípios: quantidade_municipios_tripe / quantidade_municipios é a proporcao (o teste eixo1_munic_tripe_uf_proporcao_bate_com_contagem confere). Pela exceção à regra transversal 1 descrita no painel, quem tem '-', 'Recusa' ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R.\nDIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora das duas contagens e da proporção; o R o contaria como sem tripé. Em 11/11/2026 nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.",
       "colunas": [
         {
           "nome": "regiao",
@@ -1649,11 +1653,11 @@
         },
         {
           "nome": "quantidade_municipios",
-          "descricao": "Municípios da UF na MUNIC 2021."
+          "descricao": "Municípios da UF na MUNIC 2021 com tripé conhecido."
         },
         {
           "nome": "proporcao",
-          "descricao": "Média do tripé completo (1 ou 0) entre os municípios da UF com as três respostas."
+          "descricao": "Média do tripé completo (1 ou 0) entre os municípios da UF com tripé conhecido."
         }
       ],
       "colunas_descritas": 5,
@@ -1663,7 +1667,7 @@
         "eixo1_munic_painel_municipio"
       ],
       "sources": [],
-      "linhas_sql": 34
+      "linhas_sql": 17
     },
     {
       "nome": "eixo2_meta3_cobertura_pagamento",
@@ -50725,7 +50729,7 @@
     },
     "cultura_em_numeros": {
       "modelos": 35,
-      "testes": 207,
+      "testes": 208,
       "camadas": {
         "gold": 35
       }
@@ -53950,7 +53954,7 @@
   ],
   "totais": {
     "modelos": 797,
-    "testes": 1042,
+    "testes": 1043,
     "com_descricao": 796,
     "sources": 756
   }
