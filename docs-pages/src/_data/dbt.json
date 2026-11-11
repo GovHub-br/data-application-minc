@@ -791,6 +791,274 @@
       "linhas_sql": 42
     },
     {
+      "nome": "bronze_snc_entes",
+      "dominio": "dados_cultura",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/dados_cultura/bronze_snc_entes.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.dados_cultura_snc_entes, sem cast, filtro nem join (ADR 0010): todas as colunas e todas as versões, como a dados_cultura_dag grava. Inclui dados bancários, CNPJ, nome do prefeito e do gestor de cultura e endereço (cliente_dados_cultura.DADOS_SENSIVEIS), que não passam para a silver. Só essas 10 colunas estão declaradas aqui, com a tag PII.Sensitive; as outras vêm pelo select *, como em seeds.",
+      "colunas": [
+        {
+          "nome": "cnpj_ente_federado",
+          "descricao": "CNPJ do ente federado."
+        },
+        {
+          "nome": "cnpj_do_orgao_gestor_de_cultura",
+          "descricao": "CNPJ do órgão gestor de cultura do ente."
+        },
+        {
+          "nome": "dados_bancarios_do_orgao_gestor_de_cultura",
+          "descricao": "Agência e conta do órgão gestor de cultura."
+        },
+        {
+          "nome": "cnpj_do_fundo_de_cultura",
+          "descricao": "CNPJ do fundo de cultura do ente."
+        },
+        {
+          "nome": "dados_bancarios_do_fundo_de_cultura",
+          "descricao": "Agência e conta do fundo de cultura."
+        },
+        {
+          "nome": "endereco",
+          "descricao": "Endereço do cadastro do ente."
+        },
+        {
+          "nome": "bairro",
+          "descricao": "Bairro do endereço do cadastro do ente."
+        },
+        {
+          "nome": "cep",
+          "descricao": "CEP do endereço do cadastro do ente."
+        },
+        {
+          "nome": "prefeito",
+          "descricao": "Nome do prefeito."
+        },
+        {
+          "nome": "gestor_de_cultura",
+          "descricao": "Nome do gestor de cultura do ente."
+        }
+      ],
+      "colunas_descritas": 10,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "dados_cultura.snc_entes"
+      ],
+      "linhas_sql": 8
+    },
+    {
+      "nome": "silver_snc_entes",
+      "dominio": "dados_cultura",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/dados_cultura/silver_snc_entes.sql",
+      "descricao": "Lista de entes do Sistema Nacional de Cultura publicada no portal de dados abertos do MinC, tipada. Uma linha por ente e versão do arquivo (`cod_ibge` + `versao`). Estados e municípios vêm juntos, com uma linha a mais que não é ente ('Não cadastrado'): na versão de 28/05/2026, 27 UFs, 5.567 municípios e essa linha, 5.595 no total. Faltam Boa Esperança do Norte/MT, Santa Isabel/GO e Brasília (o DF vem só como UF). Ficam de fora as 10 colunas com dado bancário, CNPJ, nome de pessoa e endereço. Datas 'dd/mm/aaaa' viram date pela data_texto; o texto de ausência ('Nao possui adesão', 'Não informado') nas colunas tipadas vira nulo e, nas de texto, fica como a Plataforma escreve. Lida de bronze_snc_entes.",
+      "colunas": [
+        {
+          "nome": "ente_federado",
+          "descricao": "Nome do ente: o município, ou a UF por extenso. Na linha que não é ente, 'Não cadastrado'."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF. Na linha que não é ente, 'Não encontrada'."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, como a Plataforma escreve ('Centro Oeste', sem hífen). Na linha que não é ente, 'Não encontrada'."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente: 7 dígitos no município, 2 na UF. Texto, porque a linha que não é ente traz 'Não cadastrado'. Com versao, identifica a linha."
+        },
+        {
+          "nome": "pib_2016",
+          "descricao": "PIB do ente em 2016, como a Plataforma publica. Valor que não é número vira nulo."
+        },
+        {
+          "nome": "idh_2021",
+          "descricao": "IDH do ente em 2021. Valor que não é número vira nulo."
+        },
+        {
+          "nome": "populacao_2022",
+          "descricao": "População do ente no Censo 2022."
+        },
+        {
+          "nome": "faixa_populacional",
+          "descricao": "Porte do ente pela população, em cinco faixas ('Porte 1 (Pequeno I): até 20 mil habitantes' a 'Porte 5 (Grande II): acima de 900 mil habitantes')."
+        },
+        {
+          "nome": "situacao",
+          "descricao": "Situação da adesão ao SNC: 'Publicado no DOU' (aderido), 'Aguardando publicação no DOU', 'Diligência Documental' ou 'Nao possui adesão'."
+        },
+        {
+          "nome": "situacao_da_lei_do_sistema_de_cultura",
+          "descricao": "Situação do documento da lei do sistema de cultura do ente na Plataforma ('Concluída', 'Não Possui', 'Documento não enviado', 'Arquivo incorreto'...)."
+        },
+        {
+          "nome": "data_da_lei_do_sistema_de_cultura",
+          "descricao": "Data da lei do sistema de cultura. Texto que não é data 'dd/mm/aaaa' de calendário vira nulo (macro data_texto)."
+        },
+        {
+          "nome": "data_adesao",
+          "descricao": "Data da adesão ao SNC. Texto que não é data 'dd/mm/aaaa' de calendário ('Nao possui adesão') vira nulo."
+        },
+        {
+          "nome": "situacao_do_orgao_gestor",
+          "descricao": "Situação do documento do órgão gestor de cultura na Plataforma."
+        },
+        {
+          "nome": "data_da_lei_do_orgao_gestor",
+          "descricao": "Data da lei de criação do órgão gestor. Texto que não é data vira nulo."
+        },
+        {
+          "nome": "perfil_do_orgao_gestor",
+          "descricao": "Perfil do órgão gestor de cultura ('Secretaria exclusiva de cultura', 'Secretaria em conjunto com outras políticas', 'Não informado'...)."
+        },
+        {
+          "nome": "orgao_gestor_de_cultura_possui_cnpj",
+          "descricao": "Se o órgão gestor tem CNPJ ('Sim', 'Não', 'Não informado'). O CNPJ fica só em seeds."
+        },
+        {
+          "nome": "situacao_do_comprovante_do_cnpj_do_orgao_gestor_de_cultura",
+          "descricao": "Situação do comprovante de CNPJ do órgão gestor na Plataforma."
+        },
+        {
+          "nome": "situacao_da_ata_do_conselho_de_politica_cultural",
+          "descricao": "Situação do documento da ata do conselho de política cultural na Plataforma."
+        },
+        {
+          "nome": "situacao_da_lei_do_conselho_de_politica_cultural",
+          "descricao": "Situação do documento da lei do conselho de política cultural ('Concluída', 'Não Possui'...). 'Concluída' é o conselho instituído por lei."
+        },
+        {
+          "nome": "conselho_de_cultura_possui_mesma_lei_do_sistema_municipal_de_cu",
+          "descricao": "Se o conselho foi criado pela mesma lei do sistema de cultura. Nome cortado pelo Postgres em 63 caracteres (cliente_dados_cultura)."
+        },
+        {
+          "nome": "data_da_lei_do_conselho_de_politica_cultural",
+          "descricao": "Data da lei do conselho. Texto que não é data vira nulo."
+        },
+        {
+          "nome": "possui_ata_da_ultima_reuniao_do_conselho",
+          "descricao": "Se o conselho tem ata da última reunião ('Sim', 'Não', 'Não possui plano de conselho')."
+        },
+        {
+          "nome": "data_da_assinatura_da_ata_da_ultima_reuniao",
+          "descricao": "Data de assinatura da ata da última reunião do conselho. Texto que não é data vira nulo."
+        },
+        {
+          "nome": "conselho_exclusivo_de_cultura",
+          "descricao": "Se o conselho é exclusivo de cultura ('Sim', 'Não', 'Não possui plano de conselho')."
+        },
+        {
+          "nome": "conselho_paritario",
+          "descricao": "Se o conselho é paritário entre poder público e sociedade civil ('Sim', 'Não', 'Não possui plano de conselho')."
+        },
+        {
+          "nome": "natureza_do_conselho",
+          "descricao": "Natureza do conselho ('Deliberativo', 'Consultivo', 'Não informado', 'Não possui plano de conselho')."
+        },
+        {
+          "nome": "fundo_de_cultura_possui_mesma_lei_do_sistema_municipal_de_cultu",
+          "descricao": "Se o fundo foi criado pela mesma lei do sistema de cultura. Nome cortado pelo Postgres em 63 caracteres."
+        },
+        {
+          "nome": "fundo_de_cultura_possui_cnpj",
+          "descricao": "Se o fundo de cultura tem CNPJ ('Sim', 'Não', 'Não informado'). O CNPJ fica só em seeds."
+        },
+        {
+          "nome": "situacao_do_comprovante_do_cnpj_do_fundo_de_cultura",
+          "descricao": "Situação do comprovante de CNPJ do fundo de cultura na Plataforma."
+        },
+        {
+          "nome": "situacao_da_lei_do_fundo_de_cultura",
+          "descricao": "Situação do documento da lei do fundo de cultura ('Concluída', 'Não Possui'...)."
+        },
+        {
+          "nome": "data_da_lei_do_fundo_de_cultura",
+          "descricao": "Data da lei do fundo de cultura. Texto que não é data vira nulo."
+        },
+        {
+          "nome": "situacao_do_plano_de_cultura",
+          "descricao": "Situação do documento do plano de cultura ('Concluída', 'Não Possui'...)."
+        },
+        {
+          "nome": "data_do_plano_de_cultura",
+          "descricao": "Data do plano de cultura. Texto que não é data vira nulo."
+        },
+        {
+          "nome": "plano_exclusivo_de_cultura",
+          "descricao": "Se o plano é exclusivo de cultura ('Sim', 'Não')."
+        },
+        {
+          "nome": "lei_do_plano_de_cultura_possui_anexo",
+          "descricao": "Se a lei do plano tem anexo ('Sim', 'Não')."
+        },
+        {
+          "nome": "anexo_consta_no_mesmo_arquivo_da_lei",
+          "descricao": "Se o anexo do plano está no mesmo arquivo da lei ('Sim', 'Não')."
+        },
+        {
+          "nome": "ultimo_ano_de_vigencia_do_plano_de_cultura",
+          "descricao": "Último ano de vigência do plano. 'Não informado' vira nulo."
+        },
+        {
+          "nome": "periocidade_do_plano_de_cultura",
+          "descricao": "Periodicidade do plano ('Decenal (10 anos)', 'Quadrienal (4 anos)'...). O nome da coluna repete a grafia do cabeçalho do portal."
+        },
+        {
+          "nome": "possui_metas",
+          "descricao": "Se o plano de cultura tem metas ('Sim', 'Não')."
+        },
+        {
+          "nome": "situacao_das_metas",
+          "descricao": "Situação do documento das metas do plano na Plataforma."
+        },
+        {
+          "nome": "plano_monitorado",
+          "descricao": "Se o plano é monitorado: 'Não', ou 'Sim. Local de monitoramento: ...' em texto livre."
+        },
+        {
+          "nome": "participou_de_algum_programa_de_formacao_de_gestores_e_conselhe",
+          "descricao": "Se o ente participou de programa de formação de gestores e conselheiros culturais ('Sim', 'Não'). Nome cortado pelo Postgres em 63 caracteres."
+        },
+        {
+          "nome": "participou_da_conferencia_nacional",
+          "descricao": "Se o ente participou da Conferência Nacional de Cultura ('Sim', 'Não')."
+        },
+        {
+          "nome": "oficio_indicacao_cadastrador",
+          "descricao": "Se há ofício de indicação do cadastrador ('sim', 'Não'). O nome e o contato do cadastrador não estão no portal."
+        },
+        {
+          "nome": "num_processo_sei",
+          "descricao": "Número do processo SEI de adesão do ente."
+        },
+        {
+          "nome": "ultima_atualizacao",
+          "descricao": "Última atualização do cadastro do ente na Plataforma, em texto 'dd/mm/aaaa às hh:mm:ss'."
+        },
+        {
+          "nome": "versao",
+          "descricao": "Versão do arquivo no portal: o dia do last_modified do recurso no CKAN. Cada versão que a DAG encontrou fica na tabela."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Momento da carga pela dados_cultura_dag, em texto."
+        }
+      ],
+      "colunas_descritas": 48,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_snc_entes"
+      ],
+      "sources": [],
+      "linhas_sql": 86
+    },
+    {
       "nome": "eixo1_munic_conselho_municipio",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -1036,6 +1304,636 @@
       ],
       "sources": [],
       "linhas_sql": 25
+    },
+    {
+      "nome": "eixo1_orcamento_federal_empenho_cultura",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_federal_empenho_cultura.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento, esfera federal, do Cultura em Números. Gold-base: as linhas da execução da LOA (SIOP) que o gasto_federal.R conta como gasto direto da União em cultura, com a origem do recurso.\nGRÃO: uma linha por exercício, órgão, unidade orçamentária, função e resultado primário, como na silver. UNIVERSO: 2003 a 2025, 1.184 linhas na carga de 09/11/2026.\nA REGRA: o filtro_fases_cultura do R. Em 2019, o órgão 42000 (MinC), ou a função 13 (Cultura) do órgão 55000 (Cidadania), ou a função 28 dele fora da UO 55901; nos exercícios com o órgão 42000, só ele; nos sem, a função 13, ou a 28 fora da UO 55901, dos órgãos 54000 (Turismo) e 55000. Em todos, as UOs 73120 (PNAB), 74912 (Fundo Setorial do Audiovisual) e 73117 (LAB até 2021, LPG a partir de 2022). O R tira 2026, exercício em execução; aqui o último exercício é a var eixo1_orcamento_federal_ultimo_ano (2025).\nCONFERÊNCIA (10/11/2026): eixo1_orcamento_federal_origem_direto é igual, ao centavo e nas 49 linhas, à mesma regra do R aplicada ao SIOP do banco e à aplicada à planilha do Painel do Orçamento que o R leu (funcoes_orgaos_unidades_rp_20260402_v2.xlsx); as 46 linhas com valor positivo são as do SIOP na Figura 1 da publicação.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Exercício da LOA."
+        },
+        {
+          "nome": "orgao_cod",
+          "descricao": "Código do órgão orçamentário."
+        },
+        {
+          "nome": "orgao_nome",
+          "descricao": ""
+        },
+        {
+          "nome": "uo_cod",
+          "descricao": "Código da unidade orçamentária."
+        },
+        {
+          "nome": "uo_nome",
+          "descricao": ""
+        },
+        {
+          "nome": "funcao_cod",
+          "descricao": "Código da função de governo."
+        },
+        {
+          "nome": "funcao_nome",
+          "descricao": ""
+        },
+        {
+          "nome": "rp_cod",
+          "descricao": "Código do resultado primário."
+        },
+        {
+          "nome": "rp_nome",
+          "descricao": ""
+        },
+        {
+          "nome": "empenhado",
+          "descricao": "Valor empenhado, em reais nominais. É o que o R soma."
+        },
+        {
+          "nome": "liquidado",
+          "descricao": "Valor liquidado, em reais nominais."
+        },
+        {
+          "nome": "pago",
+          "descricao": "Valor pago, em reais nominais."
+        },
+        {
+          "nome": "categoria_origem",
+          "descricao": "Origem do recurso, pelo categoria_origem do R: PNAB, Fundo Setorial do Audiovisual, LAB ou LPG pela UO; senão execução direta do MinC (órgão 42000) ou de Cidadania/Turismo."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "silver_execucao_orcamentaria"
+      ],
+      "sources": [],
+      "linhas_sql": 90
+    },
+    {
+      "nome": "eixo1_orcamento_federal_origem_direto",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_federal_origem_direto.sql",
+      "descricao": "Gold / Eixo 1, frente orçamento, esfera federal. Gasto federal direto em cultura por exercício e origem do recurso, empenhado nominal (gráfico I do gasto_federal.R, grafico_origem_direto). GRÃO: exercício e origem, inclusive a origem que somou zero no exercício (2014 FSA, 2019 MinC, 2023 LPG), como no R. A Figura 1 da publicação parte destes valores, mas leva a LPG de 2022 para 2023 e soma a renúncia fiscal, que não está aqui.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": ""
+        },
+        {
+          "nome": "categoria_origem",
+          "descricao": ""
+        },
+        {
+          "nome": "valor_empenhado",
+          "descricao": "Soma do empenhado, em reais nominais."
+        }
+      ],
+      "colunas_descritas": 1,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_federal_empenho_cultura"
+      ],
+      "sources": [],
+      "linhas_sql": 12
+    },
+    {
+      "nome": "eixo1_snc_adesao_idh",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_adesao_idh.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Situação de adesão ao SNC por faixa de IDH 2021 (gráfico 6.1 do SNC.R, eda_7_adesao_vs_idh). GRÃO: faixa de IDH e situação; município sem IDH fica de fora, como no R. A proporção é dentro da faixa.",
+      "colunas": [
+        {
+          "nome": "categoria_idh",
+          "descricao": ""
+        },
+        {
+          "nome": "situacao_adesao",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 0,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 20
+    },
+    {
+      "nome": "eixo1_snc_adesao_porte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_adesao_porte.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Taxa de adesão ao SNC por porte do município, com os portes 4 e 5 juntos (gráfico 5.6 do SNC.R, eda_6_adesao_porte_percentual). É a Figura 8 que o SNC.R grava (Figura 10 na publicação), com os nomes de coluna do CSV dela. GRÃO: porte.",
+      "colunas": [
+        {
+          "nome": "porte_populacional",
+          "descricao": ""
+        },
+        {
+          "nome": "total_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "adesoes_validadas",
+          "descricao": ""
+        },
+        {
+          "nome": "taxa_cobertura",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 0,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 13
+    },
+    {
+      "nome": "eixo1_snc_adesao_regiao",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_adesao_regiao.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Situação de adesão ao SNC dos municípios por região (gráfico 5.1 do SNC.R, eda_1_adesao_regiao). GRÃO: região e situação. A proporção é dentro da região.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": ""
+        },
+        {
+          "nome": "situacao_adesao",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "quantidade_municipios sobre os municípios da região."
+        }
+      ],
+      "colunas_descritas": 1,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 20
+    },
+    {
+      "nome": "eixo1_snc_adesao_regiao_total",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_adesao_regiao_total.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Municípios aderidos ao SNC ('Publicado no DOU') por região, em número e em cobertura sobre os municípios da região (gráfico 5.5 do SNC.R, eda_5_adesao_regiao_absoluto). GRÃO: região.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "adesoes",
+          "descricao": ""
+        },
+        {
+          "nome": "taxa_cobertura",
+          "descricao": "adesoes sobre quantidade_municipios."
+        }
+      ],
+      "colunas_descritas": 1,
+      "testes": 2,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 12
+    },
+    {
+      "nome": "eixo1_snc_evolucao_adesao",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_evolucao_adesao.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Novas adesões ao SNC por ano e o acumulado, 2012 a 2026 (gráfico 7.4 do SNC.R, eda_11_evolucao_geral_snc). É a Figura 9 que o SNC.R grava (Figura 11 na publicação), com os nomes de coluna do CSV dela. GRÃO: ano e métrica. Como no R, o acumulado começa no primeiro ano com adesão e ano sem adesão nova não aparece. Os anos do corte são as vars eixo1_snc_evolucao_primeiro_ano e eixo1_snc_ultimo_ano.",
+      "colunas": [
+        {
+          "nome": "ano_adesao",
+          "descricao": ""
+        },
+        {
+          "nome": "tipo_metrica",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 0,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 37
+    },
+    {
+      "nome": "eixo1_snc_metas_plano_regiao",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_metas_plano_regiao.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Entre os municípios com plano de cultura 'Concluída', os que têm metas definidas, por região (gráfico 6.3 do SNC.R, eda_9_metas_plano_vs_regiao). GRÃO: região e resposta ('Sim' ou 'Não'). A proporção é dentro da região.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": ""
+        },
+        {
+          "nome": "possui_metas",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 0,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 20
+    },
+    {
+      "nome": "eixo1_snc_natureza_paridade_conselho",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_natureza_paridade_conselho.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Municípios por natureza e paridade do conselho de cultura (gráfico 5.3 do SNC.R, eda_3_natureza_paridade_conselhos). GRÃO: natureza e paridade. Como no R, só sai a paridade igual a 'Não informado', valor que a Plataforma não usa na paridade: a contagem inclui os municípios sem conselho ('Não possui plano de conselho').",
+      "colunas": [
+        {
+          "nome": "natureza_conselho",
+          "descricao": ""
+        },
+        {
+          "nome": "conselho_paritario",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 0,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 14
+    },
+    {
+      "nome": "eixo1_snc_orgao_gestor_porte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_orgao_gestor_porte.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Perfil do órgão gestor de cultura por faixa populacional (gráfico 5.4 do SNC.R, eda_4_orgao_gestor_porte), nas cinco faixas. GRÃO: faixa e perfil. A proporção é dentro da faixa.",
+      "colunas": [
+        {
+          "nome": "faixa_populacional",
+          "descricao": ""
+        },
+        {
+          "nome": "perfil_orgao_gestor",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 0,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 20
+    },
+    {
+      "nome": "eixo1_snc_painel_municipio",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_painel_municipio.sql",
+      "descricao": "Camada Gold / Eixo 1, frente SNC, do Cultura em Números. Gold-base: os municípios da lista de entes do Sistema Nacional de Cultura, com as variáveis e as categorias que o SNC.R usa.\nGRÃO: uma linha por município, na versão mais recente do arquivo no portal. UNIVERSO: os códigos IBGE de 7 dígitos, 5.567 na versão de 28/05/2026. O R lê a aba \"Municipios\" da planilha interna; no portal estados, municípios e uma linha que não é ente ('Não cadastrado') vêm na mesma aba, e o código de 7 dígitos é o que separa os municípios.\nA REGRA: aderido é situação 'Publicado no DOU'; tripé completo é conselho, fundo e plano com situação 'Concluída'; as faixas de IDH são as do R (< 0,600, 0,600 a 0,699, 0,700 a 0,799, >= 0,800); os portes 4 e 5 juntos em porte_populacional, como na Figura 8; e o perfil dos conselhos (exclusivo, paritário, deliberativo, atuante) com os padrões de texto da seção 10 do R, inclusive o corte de 2025 para \"atuante\" (var eixo1_snc_atuante_desde).\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: no perfil dos conselhos, o padrão do \"não\" pega qualquer texto que o contenha, então uma resposta 'Não informado(a)' em conselho exclusivo, conselho paritário ou na ata da última reunião sem data contaria como 'Não', e não como 'Não informado'. Em 11/11/2026 nenhuma resposta cai na exceção: entre os 1.556 conselhos 'Concluída' do portal, as três perguntas só têm 'Sim' e 'Não', e na planilha que o R publicou (2.247 conselhos) também. 'Não informado(a)' só aparece na natureza do conselho (555 no portal, 719 na planilha do R), que a regra classifica por \"deliberativo\" e \"consultivo\", e por isso fica em 'Não informado'.\nDIFERENÇA DO R (ADR 0010, regra 1): categoria sem valor de origem fica NULL. O R põe 'Não' no tripé completo e 'Sem Informação' na faixa de IDH; as golds de gráfico refazem o rótulo do R onde o gráfico mostra a ausência. Na versão de 28/05/2026 isso não muda nenhum número: as situações do tripé vêm sempre preenchidas.\nCONFERÊNCIA (10/11/2026): as 12 golds de gráfico são iguais, linha a linha, à regra do R reescrita em Python e aplicada aos mesmos 5.567 municípios do portal; essa reescrita reproduz os números que o próprio R gravou a partir da planilha interna (Figuras 8 e 9, Tabelas 1.3 e 1.4, rótulos dos PNGs). DIFERENÇA PARA A PUBLICAÇÃO: o portal está atrasado (última atualização de ente em 24/02/2026) e não traz Boa Esperança do Norte/MT, Santa Isabel/GO e Brasília. Adesões: 3.722 municípios contra 3.945; as 223 a menos são todas de municípios que a planilha interna atualizou depois de 24/02/2026, e a série de 2012 a 2025 é igual. Tripé: 1.556 conselhos 'Concluída' contra 2.247, 1.512 fundos contra 2.155, 689 planos contra 1.117. Aqui o atraso não explica tudo: 458 municípios aderidos nos dois têm conselho 'Concluída' na planilha interna e 'Não Possui' no portal sem atualização do ente depois de 24/02/2026. O portal também escreve a ausência de outro jeito ('Não Possui', 'Documento não enviado', 'Não possui plano de conselho', onde a planilha interna tem 'Não informado(a)' e 'Nao possui adesão'), o que muda as categorias dos gráficos 5.2, 5.3 e 5.4.",
+      "colunas": [
+        {
+          "nome": "versao",
+          "descricao": "Versão do arquivo no portal de onde a linha veio (a mais recente)."
+        },
+        {
+          "nome": "cod_municipio",
+          "descricao": "Código IBGE do município, com 7 dígitos."
+        },
+        {
+          "nome": "municipio",
+          "descricao": "Nome do município na Plataforma SNC."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, como a Plataforma escreve ('Centro Oeste', sem hífen, como no R)."
+        },
+        {
+          "nome": "faixa_populacional",
+          "descricao": "Porte do município pela população, nas cinco faixas da Plataforma. Nenhum município sem faixa na versão de 28/05/2026; o teste avisa com mais de 10 e falha com mais de 56 (1% dos municípios), para a gold de gráfico não esvaziar sem aviso se a Plataforma mudar a coluna."
+        },
+        {
+          "nome": "idh_2021",
+          "descricao": "IDH do município em 2021. 5 municípios sem IDH na versão de 28/05/2026; o teste avisa com mais de 10 e falha com mais de 56 (1% dos municípios). Se a Plataforma publicar o IDH com vírgula, a silver não o lê e a coluna fica toda NULL: é o que o teste pega antes de eixo1_snc_adesao_idh sair vazia."
+        },
+        {
+          "nome": "situacao_adesao",
+          "descricao": "Situação da adesão ao SNC, como a Plataforma escreve."
+        },
+        {
+          "nome": "ano_adesao",
+          "descricao": "Ano da data de adesão. NULL sem data."
+        },
+        {
+          "nome": "perfil_orgao_gestor",
+          "descricao": "Perfil do órgão gestor de cultura, como a Plataforma escreve."
+        },
+        {
+          "nome": "situacao_lei_sistema",
+          "descricao": "Situação do documento da lei do sistema de cultura."
+        },
+        {
+          "nome": "situacao_conselho",
+          "descricao": "Situação do documento da lei do conselho de política cultural. 'Concluída' é o conselho instituído por lei."
+        },
+        {
+          "nome": "situacao_fundo",
+          "descricao": "Situação do documento da lei do fundo de cultura."
+        },
+        {
+          "nome": "situacao_plano",
+          "descricao": "Situação do documento do plano de cultura."
+        },
+        {
+          "nome": "conselho_paritario",
+          "descricao": "Paridade do conselho, como a Plataforma escreve."
+        },
+        {
+          "nome": "natureza_conselho",
+          "descricao": "Natureza do conselho, como a Plataforma escreve."
+        },
+        {
+          "nome": "possui_metas",
+          "descricao": "Se o plano de cultura tem metas ('Sim', 'Não')."
+        },
+        {
+          "nome": "ano_ata_ultima_reuniao",
+          "descricao": "Ano da assinatura da ata da última reunião do conselho."
+        },
+        {
+          "nome": "porte_populacional",
+          "descricao": "A faixa com os portes 4 e 5 juntos em 'Porte 4 (Grande): acima de 100 mil habitantes', como na Figura 8 (seção 5.6 do R)."
+        },
+        {
+          "nome": "categoria_idh",
+          "descricao": "Faixa de IDH do R. NULL sem IDH (o R põe 'Sem Informação')."
+        },
+        {
+          "nome": "adesao_publicada",
+          "descricao": "Se aderiu ao SNC, isto é, situação 'Publicado no DOU'."
+        },
+        {
+          "nome": "tripe_completo",
+          "descricao": "'Sim' quando conselho, fundo e plano estão com situação 'Concluída'; 'Não' quando algum sabidamente não está; NULL quando falta situação e as conhecidas são 'Concluída'."
+        },
+        {
+          "nome": "perfil_conselho_exclusivo",
+          "descricao": "Conselho exclusivo de cultura, pela regra da seção 10 do R: começa com \"sim\" é 'Sim', contém \"não\" é 'Não' (inclusive 'Não informado(a)', a exceção descrita no modelo), o resto é 'Não informado'. NULL sem resposta."
+        },
+        {
+          "nome": "perfil_conselho_paritario",
+          "descricao": "Conselho paritário, pela mesma regra de perfil_conselho_exclusivo."
+        },
+        {
+          "nome": "perfil_conselho_deliberativo",
+          "descricao": "Conselho deliberativo: contém \"deliberativo\" é 'Sim', contém \"consultivo\" é 'Não', o resto é 'Não informado'. NULL sem resposta."
+        },
+        {
+          "nome": "perfil_conselho_atuante",
+          "descricao": "Conselho atuante: ata da última reunião assinada no ano da var eixo1_snc_atuante_desde (2025) ou depois é 'Sim', antes é 'Não'; sem data, resposta com \"não\" é 'Não' e o resto 'Não informado'. NULL sem resposta sobre a ata."
+        }
+      ],
+      "colunas_descritas": 26,
+      "testes": 12,
+      "materializacao": "",
+      "depende_de": [
+        "silver_snc_entes"
+      ],
+      "sources": [],
+      "linhas_sql": 134
+    },
+    {
+      "nome": "eixo1_snc_perfil_conselho",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_perfil_conselho.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Perfil dos conselhos municipais de cultura instituídos por lei, isto é, com situação 'Concluída' (tabela da seção 10 do SNC.R, Tabela_SNC_Perfil_Conselhos; é também a Tabela 1.4 da publicação). GRÃO: característica e resposta, inclusive as de zero. Resposta ausente conta como 'Não informado', como no R. O rótulo do \"atuante\" sai das vars eixo1_snc_atuante_desde e eixo1_snc_ultimo_ano ('Realizou reunião entre 2025–2026 (atuante)?' com o padrão).",
+      "colunas": [
+        {
+          "nome": "caracteristica",
+          "descricao": ""
+        },
+        {
+          "nome": "resposta",
+          "descricao": ""
+        },
+        {
+          "nome": "total_conselhos",
+          "descricao": "Conselhos instituídos por lei, o denominador da proporção."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 1,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 83
+    },
+    {
+      "nome": "eixo1_snc_situacao_tripe",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_situacao_tripe.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Situação declarada do conselho, do fundo e do plano de cultura dos municípios (gráfico 5.2 do SNC.R, eda_2_status_tripe). GRÃO: instrumento e situação; situação ausente vira 'Não Informado/Em Branco', como no R. A proporção é dentro do instrumento.",
+      "colunas": [
+        {
+          "nome": "instrumento",
+          "descricao": ""
+        },
+        {
+          "nome": "situacao",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 0,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "eixo1_snc_tripe_completo_porte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_tripe_completo_porte.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Municípios com e sem o tripé completo (conselho, fundo e plano 'Concluída') por faixa populacional (gráfico 6.2 do SNC.R, eda_8_tripe_completo_vs_porte), nas cinco faixas. GRÃO: faixa e tripé completo. A proporção é dentro da faixa.",
+      "colunas": [
+        {
+          "nome": "faixa_populacional",
+          "descricao": ""
+        },
+        {
+          "nome": "tripe_completo",
+          "descricao": "'Sim' ou 'Não'. O NULL da gold-base (falta situação e as conhecidas são 'Concluída') entra como 'Não', como no R."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 1,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 25
+    },
+    {
+      "nome": "eixo1_snc_tripe_regiao",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_tripe_regiao.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Municípios com conselho, fundo e plano de cultura 'Concluída', e com os três, por região (tabela da seção 8 do SNC.R, Tabela_SNC_Tripe_Regiao_2026; é também a Tabela 1.3 da publicação). GRÃO: região e componente. A proporção é sobre todos os municípios da região.",
+      "colunas": [
+        {
+          "nome": "regiao",
+          "descricao": ""
+        },
+        {
+          "nome": "componente",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "total_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 0,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_painel_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 30
     },
     {
       "nome": "eixo2_meta3_cobertura_pagamento",
@@ -48387,6 +49285,105 @@
       "linhas_sql": 5
     },
     {
+      "nome": "bronze_execucao_orcamentaria",
+      "dominio": "siop",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/siop/bronze_execucao_orcamentaria.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.siop_execucao_orcamentaria, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "siop.execucao_orcamentaria"
+      ],
+      "linhas_sql": 6
+    },
+    {
+      "nome": "silver_execucao_orcamentaria",
+      "dominio": "siop",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/siop/silver_execucao_orcamentaria.sql",
+      "descricao": "Execução orçamentária federal (LOA) por exercício, do SPARQL público do SIOP, tipada. Uma linha por exercício, órgão, unidade orçamentária, função e resultado primário, com os valores do projeto de lei ao pago, em reais. 2003 a 2026, 49.138 linhas na carga de 09/11/2026; inclui as combinações com valor zero, que a planilha do Painel do Orçamento omite. Os códigos ficam texto, como o SIOP os escreve. Lida de bronze_execucao_orcamentaria.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Exercício da LOA."
+        },
+        {
+          "nome": "orgao_cod",
+          "descricao": "Código do órgão orçamentário, com 5 dígitos (42000 = Ministério da Cultura)."
+        },
+        {
+          "nome": "orgao_nome",
+          "descricao": "Nome do órgão orçamentário no exercício."
+        },
+        {
+          "nome": "funcao_cod",
+          "descricao": "Código da função de governo, com 2 dígitos (13 = Cultura, 28 = Encargos Especiais)."
+        },
+        {
+          "nome": "funcao_nome",
+          "descricao": "Nome da função de governo."
+        },
+        {
+          "nome": "uo_cod",
+          "descricao": "Código da unidade orçamentária, com 5 dígitos. Texto: tem zero à esquerda ('01101')."
+        },
+        {
+          "nome": "uo_nome",
+          "descricao": "Nome da unidade orçamentária no exercício."
+        },
+        {
+          "nome": "rp_cod",
+          "descricao": "Código do resultado primário."
+        },
+        {
+          "nome": "rp_nome",
+          "descricao": "Descrição do resultado primário."
+        },
+        {
+          "nome": "projeto_lei",
+          "descricao": "Valor do projeto de lei, em reais."
+        },
+        {
+          "nome": "dotacao_inicial",
+          "descricao": "Dotação inicial, em reais."
+        },
+        {
+          "nome": "dotacao_atual",
+          "descricao": "Dotação atual (lei mais créditos), em reais."
+        },
+        {
+          "nome": "empenhado",
+          "descricao": "Valor empenhado, em reais. É o que o gasto_federal.R soma."
+        },
+        {
+          "nome": "liquidado",
+          "descricao": "Valor liquidado, em reais."
+        },
+        {
+          "nome": "pago",
+          "descricao": "Valor pago, em reais."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Momento da carga do exercício pela siop_execucao_dag, em texto."
+        }
+      ],
+      "colunas_descritas": 16,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_execucao_orcamentaria"
+      ],
+      "sources": [],
+      "linhas_sql": 25
+    },
+    {
       "nome": "bronze_anexos_relatorios",
       "dominio": "transferegov",
       "camada": "bronze",
@@ -50095,11 +51092,19 @@
         "silver": 7
       }
     },
-    "cultura_em_numeros": {
-      "modelos": 17,
-      "testes": 98,
+    "dados_cultura": {
+      "modelos": 2,
+      "testes": 3,
       "camadas": {
-        "gold": 17
+        "bronze": 1,
+        "silver": 1
+      }
+    },
+    "cultura_em_numeros": {
+      "modelos": 32,
+      "testes": 153,
+      "camadas": {
+        "gold": 32
       }
     },
     "ibge": {
@@ -50165,6 +51170,14 @@
       "testes": 0,
       "camadas": {
         "bronze": 10
+      }
+    },
+    "siop": {
+      "modelos": 2,
+      "testes": 6,
+      "camadas": {
+        "bronze": 1,
+        "silver": 1
       }
     },
     "transferegov": {
@@ -53124,6 +54137,28 @@
       ]
     },
     {
+      "nome": "dados_cultura",
+      "schema": "seeds",
+      "descricao": "",
+      "tabelas": [
+        {
+          "nome": "snc_entes",
+          "descricao": "\"Lista de municípios que compõem o SNC\", o export da Plataforma do Sistema Nacional de Cultura publicado no portal: estados e municípios na mesma aba, uma linha por ente e versão, com adesão, órgão gestor, conselho, fundo e plano de cultura. Traz também dados bancários, CNPJ, nome do prefeito e do gestor de cultura e endereço (lista em cliente_dados_cultura.DADOS_SENSIVEIS), que ficam só aqui e na bronze: a silver não os carrega. As 10 colunas levam a tag PII.Sensitive."
+        }
+      ]
+    },
+    {
+      "nome": "siop",
+      "schema": "seeds",
+      "descricao": "",
+      "tabelas": [
+        {
+          "nome": "execucao_orcamentaria",
+          "descricao": "Execução orçamentária federal por exercício, agregada por órgão, unidade orçamentária, função e resultado primário, do projeto de lei ao pago. É o recorte da planilha funcoes_orgaos_unidades_rp do Painel do Orçamento que o gasto_federal.R do Eixo 1 lê."
+        }
+      ]
+    },
+    {
       "nome": "senado",
       "schema": "senado",
       "descricao": "Legislação federal da API de Dados Abertos do Senado (legis.senado.leg.br/dadosabertos), que a senado_legislacao_dag grava pelo Trino a partir do raw do MinIO (raw/senado/legislacao_lista/ e raw/senado/legislacao_detalhe/). Toda coluna é varchar: a bronze não tipa.",
@@ -53321,9 +54356,9 @@
     }
   ],
   "totais": {
-    "modelos": 779,
-    "testes": 933,
-    "com_descricao": 778,
-    "sources": 756
+    "modelos": 798,
+    "testes": 997,
+    "com_descricao": 797,
+    "sources": 758
   }
 }

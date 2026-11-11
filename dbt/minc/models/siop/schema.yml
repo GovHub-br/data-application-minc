@@ -1,0 +1,117 @@
+version: 2
+
+# siop, na estrutura do ADR 0010: bronze_<entidade> é a cópia fiel do que a
+# siop_execucao_dag grava em seeds.siop_<entidade>; silver_<entidade> tipa.
+models:
+  - name: bronze_execucao_orcamentaria
+    description: >
+      Camada Bronze — cópia fiel de seeds.siop_execucao_orcamentaria, sem cast,
+      filtro nem join (ADR 0010). Todas as colunas chegam como texto.
+    config:
+      tags:
+        - bronze
+        - siop
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: silver_execucao_orcamentaria
+    description: >
+      Execução orçamentária federal (LOA) por exercício, do SPARQL público do
+      SIOP, tipada. Uma linha por exercício, órgão, unidade orçamentária,
+      função e resultado primário, com os valores do projeto de lei ao pago, em
+      reais. 2003 a 2026, 49.138 linhas na carga de 09/11/2026; inclui as
+      combinações com valor zero, que a planilha do Painel do Orçamento omite.
+      Os códigos ficam texto, como o SIOP os escreve. Lida de
+      bronze_execucao_orcamentaria.
+    config:
+      tags:
+        - silver
+        - siop
+      meta:
+        status: Active
+        origem_dados: 'bronze_execucao_orcamentaria'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "ano || '|' || orgao_cod || '|' || uo_cod || '|' || funcao_cod || '|' || rp_cod"
+    columns:
+      - name: ano
+        description: >
+          Exercício da LOA.
+        data_type: integer
+        tests:
+          - not_null
+      - name: orgao_cod
+        description: >
+          Código do órgão orçamentário, com 5 dígitos (42000 = Ministério da Cultura).
+        data_type: text
+        tests:
+          - not_null
+      - name: orgao_nome
+        description: >
+          Nome do órgão orçamentário no exercício.
+        data_type: text
+      - name: funcao_cod
+        description: >
+          Código da função de governo, com 2 dígitos (13 = Cultura, 28 = Encargos Especiais).
+        data_type: text
+        tests:
+          - not_null
+      - name: funcao_nome
+        description: >
+          Nome da função de governo.
+        data_type: text
+      - name: uo_cod
+        description: >
+          Código da unidade orçamentária, com 5 dígitos. Texto: tem zero à esquerda ('01101').
+        data_type: text
+        tests:
+          - not_null
+      - name: uo_nome
+        description: >
+          Nome da unidade orçamentária no exercício.
+        data_type: text
+      - name: rp_cod
+        description: >
+          Código do resultado primário.
+        data_type: text
+        tests:
+          - not_null
+      - name: rp_nome
+        description: >
+          Descrição do resultado primário.
+        data_type: text
+      - name: projeto_lei
+        description: >
+          Valor do projeto de lei, em reais.
+        data_type: numeric
+      - name: dotacao_inicial
+        description: >
+          Dotação inicial, em reais.
+        data_type: numeric
+      - name: dotacao_atual
+        description: >
+          Dotação atual (lei mais créditos), em reais.
+        data_type: numeric
+      - name: empenhado
+        description: >
+          Valor empenhado, em reais. É o que o gasto_federal.R soma.
+        data_type: numeric
+      - name: liquidado
+        description: >
+          Valor liquidado, em reais.
+        data_type: numeric
+      - name: pago
+        description: >
+          Valor pago, em reais.
+        data_type: numeric
+      - name: dt_ingest
+        description: >
+          Momento da carga do exercício pela siop_execucao_dag, em texto.
+        data_type: text
