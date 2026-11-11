@@ -1,0 +1,5031 @@
+version: 2
+
+# ibge, na estrutura do ADR 0010: a ibge_perfil_dag carrega cada aba das bases da
+# MUNIC e da ESTADIC em seeds.ibge_<edicao>_<aba> (ADR 0012), toda coluna em texto,
+# e cada uma vira um par aqui: bronze_<edicao>_<aba>, cópia fiel, e
+# silver_<edicao>_<aba>, tipada com as macros bronze_* pelo padrão medido no dado.
+# Só as abas que o Cultura em Números usa; o dicionário de cada edição está em
+# seeds.ibge_<edicao>_dicionario.
+models:
+  - name: bronze_munic_2021_cultura
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_2021_cultura, a aba "Cultura"
+      da MUNIC 2021 (IBGE, Base_MUNIC_2021_20240425.xlsx), sem cast, filtro nem
+      join (ADR 0010). Uma linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_2021_cultura
+    description: >
+      Camada Silver — a aba "Cultura" da MUNIC 2021 tipada, lida de
+      bronze_munic_2021_cultura. Uma linha por município. 241 colunas, 3 com cast
+      aplicado; as respostas do questionário continuam como o IBGE publica. O
+      significado de cada código de variável está no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: codmun
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: uf
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: cod_uf
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: mun
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: pop
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: faixa_pop
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: regiao
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul01
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul03
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul04
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul05
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul051
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul06
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul10
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul101a
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul101b
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul102
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul11
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1111
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1112
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1113
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1114
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1115
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1116
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul121
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul122
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul13
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul14
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul141
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul15
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul151a
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul151b
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul161
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul162
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul19
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul191a
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul191b
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul191c
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul192
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul201
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul202
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul203
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul204
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul21
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul22
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul231
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul232
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul233
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul24
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2411
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2412
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2413
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2414
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2415
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2416
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2417
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2418
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2419
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul26
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul261a
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul261b
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul261c
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul262
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul271
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul272
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul273
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul274
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul28
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul29
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul301
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul302
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul303
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul31
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3111
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3112
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3113
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3114
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3115
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3116
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3117
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3118
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3119
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul33
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul331
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul34
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul351
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul352
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul353
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul354
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul355
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul356
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul357
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul358
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul359
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3510
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3511
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3512
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3513
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3514
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3515
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3516
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3517
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a1
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a2
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a3
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a4
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a5
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a6
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a7
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a8
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a9
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a10
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a11
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a12
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a13
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a14
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a15
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a16
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul35a17
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul361
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul362
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul363
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul364
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul365
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul366
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul367
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul368
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul369
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3610
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3611
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul371
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul372
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul373
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul374
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul375
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul376
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul377
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul378
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul379
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul38
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3901
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39011
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3902
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39021
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3903
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39031
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3904
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39041
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3905
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39051
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3906
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39061
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3907
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39071
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3908
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3909
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3910
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3911
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3912
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3913
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3914
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3915
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3916
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3917
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3918
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3919
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3920
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul40
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul401
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul402
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul41
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul42
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4211
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4212
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4213
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4214
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4215
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4216
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul43
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul441
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul442
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul443
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul444
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul445
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul446
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul447
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul448
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul449
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4410
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul451
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul452
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul453
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul454
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul455
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul456
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul457
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul458
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul46
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4611
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4612
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4613
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4614
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4615
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4616
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4617
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4618
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4619
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul471
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul472
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul473
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul474
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul475
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul476
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul477
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul478
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul479
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4710
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4711
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4712
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4713
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4714
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4715
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4716
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4717
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4718
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4719
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4720
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4721
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul481
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul482
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul483
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul484
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul485
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul486
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul487
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul488
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul489
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4810
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul4811
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_2018_cultura
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_2018_cultura, a aba "Cultura"
+      da MUNIC 2018 (IBGE, Base_MUNIC_2018_xlsx_20201103.zip), sem cast, filtro
+      nem join (ADR 0010). Uma linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_2018_cultura
+    description: >
+      Camada Silver — a aba "Cultura" da MUNIC 2018 tipada, lida de
+      bronze_munic_2018_cultura. Uma linha por município. 177 colunas, 4 com cast
+      aplicado; as respostas do questionário continuam como o IBGE publica. O
+      significado de cada código de variável está no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: regiao
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: cod_uf
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: classe_pop
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: codmun
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: desc_mun
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: teste
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: cod_municipio
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: nome_munic
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: cod_municipio_2
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: mcul01
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul03
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul04
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul05
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul051
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul06
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul10
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul101a
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul101b
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul102
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul11
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1111
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1112
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1113
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1114
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1115
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1116
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul121
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul122
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul13
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul14
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul141
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul15
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul151a
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul151b
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul161
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul162
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul17
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul18
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1811
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1812
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1813
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul1814
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul19
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul191a
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul191b
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul192
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul201
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul202
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul203
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul204
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul21
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul22
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul231
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul232
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul233
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul24
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2411
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2412
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2413
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2414
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2415
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2416
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2417
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2418
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul251
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul252
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul253
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul254
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul255
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul256
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul257
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul258
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul259
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2510
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2511
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul2512
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul26
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul261a
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul261b
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul262
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul271
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul272
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul273
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul274
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul28
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul29
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul301
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul302
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul303
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul31
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3111
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3112
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3113
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3114
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3115
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3116
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3117
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3118
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3201
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3202
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3203
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3204
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3205
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3206
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3207
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3208
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3209
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3210
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3211
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3212
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul33
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul331
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul34
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul351
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul352
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul353
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul354
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul355
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul356
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul357
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul358
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul359
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3510
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3511
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3512
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul361
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul362
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul363
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul364
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul365
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul366
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul367
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul368
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul369
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul371
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul372
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul373
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul374
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul375
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul376
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul377
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul378
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul379
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul38
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3901
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39011
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3902
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39021
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3903
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39031
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3904
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39041
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3905
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39051
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3906
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39061
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3907
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul39071
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3908
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3909
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3910
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3911
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3912
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3913
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3914
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3915
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3916
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3917
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3918
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3919
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul3920
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul40
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul401
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul402
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: mcul41
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2014_orgao_gestor
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_orgao_gestor, a
+      aba "Órgão gestor" da MUNIC 2014, suplemento de cultura (IBGE,
+      base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2014_orgao_gestor
+    description: >
+      Camada Silver — a aba "Órgão gestor" da MUNIC 2014, suplemento de cultura
+      tipada, lida de bronze_munic_cultura_2014_orgao_gestor. Uma linha por
+      município. 5 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a2
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a3
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2014_politicas_culturais
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.ibge_munic_cultura_2014_politicas_culturais, a aba "Políticas
+      culturais" da MUNIC 2014, suplemento de cultura (IBGE,
+      base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2014_politicas_culturais
+    description: >
+      Camada Silver — a aba "Políticas culturais" da MUNIC 2014, suplemento de
+      cultura tipada, lida de bronze_munic_cultura_2014_politicas_culturais. Uma
+      linha por município. 214 colunas, 1 com cast aplicado; as respostas do
+      questionário continuam como o IBGE publica. O significado de cada código de
+      variável está no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a75
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a76
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a77
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a78
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a79
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a80
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a81
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a82
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a83
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a84
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a85
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a86
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a87
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a88
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a89
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a90
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a91
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a92
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a93
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a94
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a95
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a96
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a97
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a98
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a99
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a100
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a101
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a102
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a103
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a104
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a105
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a106
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a107
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a108
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a109
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a110
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a111
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a112
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a113
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a114
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a115
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a116
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a117
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a118
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a119
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a120
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a121
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a122
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a123
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a124
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a125
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a126
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a127
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a128
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a129
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a130
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a131
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a132
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a133
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a134
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a135
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a136
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a137
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a138
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a139
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a140
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a141
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a142
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a143
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a144
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a145
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a146
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a147
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a148
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a149
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a150
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a151
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a152
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a153
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a154
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a155
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a156
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a157
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a158
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a159
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a160
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a161
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a162
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a163
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a164
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a165
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a166
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a167
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a168
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a169
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a170
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a171
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a172
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a173
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a174
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a175
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a176
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a177
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a178
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a179
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a180
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a181
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a182
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a183
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a184
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a185
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a186
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a187
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a188
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a189
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a190
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a191
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a192
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a193
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a194
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a195
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a196
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a197
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a198
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a199
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a200
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a201
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a202
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a203
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a204
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a205
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a206
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a207
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a208
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a209
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a210
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a211
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a212
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a213
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a214
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a215
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a216
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a217
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a218
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a219
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a220
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a221
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a222
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a223
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a224
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a225
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a226
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a227
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a228
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a229
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a230
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a231
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a232
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a233
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a234
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a235
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a236
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a237
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a238
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a239
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a240
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a241
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a242
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a243
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a244
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a245
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a246
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a247
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a248
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a249
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a250
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a251
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a252
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a253
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a254
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a255
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a256
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a257
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a258
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a259
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a260
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a261
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a262
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a263
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a264
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a265
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a266
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a267
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a268
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a269
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a270
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a271
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a272
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a273
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a274
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a275
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a276
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a277
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a278
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a279
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a280
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a281
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a282
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a283
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a284
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a285
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2014_instancias_participativas
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.ibge_munic_cultura_2014_instancias_participativas, a aba "Instâncias
+      participativas" da MUNIC 2014, suplemento de cultura (IBGE,
+      base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2014_instancias_participativas
+    description: >
+      Camada Silver — a aba "Instâncias participativas" da MUNIC 2014, suplemento
+      de cultura tipada, lida de
+      bronze_munic_cultura_2014_instancias_participativas. Uma linha por
+      município. 70 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a305
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a306
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a307
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a308
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a309
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a310
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a311
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a312
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a313
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a314
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a315
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a316
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a317
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a318
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a319
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a320
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a321
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a322
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a323
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a324
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a325
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a326
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a327
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a328
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a329
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a330
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a331
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a332
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a333
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a334
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a335
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a336
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a337
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a338
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a339
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a340
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a341
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a342
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a343
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a344
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a345
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a346
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a347
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a348
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a349
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a350
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a351
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a352
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a353
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a354
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a355
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a356
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a357
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a358
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a359
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a360
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a361
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a362
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a363
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a364
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a365
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a366
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a367
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a368
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a369
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a370
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a371
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2014_fundo_cultura
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_fundo_cultura, a
+      aba "Fundo cultura" da MUNIC 2014, suplemento de cultura (IBGE,
+      base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2014_fundo_cultura
+    description: >
+      Camada Silver — a aba "Fundo cultura" da MUNIC 2014, suplemento de cultura
+      tipada, lida de bronze_munic_cultura_2014_fundo_cultura. Uma linha por
+      município. 35 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a372
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a373
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a374
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a375
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a376
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a377
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a378
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a379
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a380
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a381
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a382
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a383
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a384
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a385
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a386
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a387
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a388
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a389
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a390
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a391
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a392
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a393
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a394
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a395
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a396
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a397
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a398
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a399
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a400
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a401
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a402
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a403
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2014_recursos_humanos
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.ibge_munic_cultura_2014_recursos_humanos, a aba "Recursos humanos" da
+      MUNIC 2014, suplemento de cultura (IBGE, base_cultura_MUNIC_xls_2014.zip),
+      sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna
+      chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2014_recursos_humanos
+    description: >
+      Camada Silver — a aba "Recursos humanos" da MUNIC 2014, suplemento de
+      cultura tipada, lida de bronze_munic_cultura_2014_recursos_humanos. Uma
+      linha por município. 58 colunas, 1 com cast aplicado; as respostas do
+      questionário continuam como o IBGE publica. O significado de cada código de
+      variável está no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a20
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a21
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a22
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a23
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a24
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a25
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a26
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a27
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a28
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a29
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a30
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a31
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a32
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a33
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a34
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a35
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a36
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a37
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a38
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a39
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a40
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a41
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a42
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a43
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a44
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a45
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a46
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a47
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a48
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a49
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a50
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a51
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a52
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a53
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a54
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a55
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a56
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a57
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a58
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a59
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a60
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a61
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a62
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a63
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a64
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a65
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a66
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a67
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a68
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a69
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a70
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a71
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a72
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a73
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a74
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2014_legislacao
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_legislacao, a
+      aba "Legislação" da MUNIC 2014, suplemento de cultura (IBGE,
+      base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2014_legislacao
+    description: >
+      Camada Silver — a aba "Legislação" da MUNIC 2014, suplemento de cultura
+      tipada, lida de bronze_munic_cultura_2014_legislacao. Uma linha por
+      município. 22 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a286
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a287
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a288
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a289
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a290
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a291
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a292
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a293
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a294
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a295
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a296
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a297
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a298
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a299
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a300
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a301
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a302
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a303
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a304
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2014_equipamentos
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2014_equipamentos, a
+      aba "Equipamentos" da MUNIC 2014, suplemento de cultura (IBGE,
+      base_cultura_MUNIC_xls_2014.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2014_equipamentos
+    description: >
+      Camada Silver — a aba "Equipamentos" da MUNIC 2014, suplemento de cultura
+      tipada, lida de bronze_munic_cultura_2014_equipamentos. Uma linha por
+      município. 33 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5570 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a413
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a414
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a415
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a416
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a417
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a418
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a419
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a420
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a421
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a422
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a423
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a424
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a425
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a426
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a427
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a428
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a429
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a430
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a431
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a432
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a433
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a434
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a435
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a436
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a437
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a438
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a439
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a440
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a441
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a442
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2006_orgao_gestor
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_orgao_gestor, a
+      aba "Órgão gestor" da MUNIC 2006, suplemento de cultura (IBGE,
+      base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2006_orgao_gestor
+    description: >
+      Camada Silver — a aba "Órgão gestor" da MUNIC 2006, suplemento de cultura
+      tipada, lida de bronze_munic_cultura_2006_orgao_gestor. Uma linha por
+      município. 5 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5564 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a2
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a3
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2006_instrumentos_de_gestao
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.ibge_munic_cultura_2006_instrumentos_de_gestao, a aba "Instrumentos de
+      gestão" da MUNIC 2006, suplemento de cultura (IBGE,
+      base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2006_instrumentos_de_gestao
+    description: >
+      Camada Silver — a aba "Instrumentos de gestão" da MUNIC 2006, suplemento de
+      cultura tipada, lida de bronze_munic_cultura_2006_instrumentos_de_gestao.
+      Uma linha por município. 54 colunas, 1 com cast aplicado; as respostas do
+      questionário continuam como o IBGE publica. O significado de cada código de
+      variável está no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5564 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a56
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a57
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a58
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a59
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a60
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a61
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a62
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a63
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a64
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a65
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a66
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a67
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a68
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a69
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a70
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a71
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a72
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a73
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a74
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a75
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a76
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a77
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a78
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a79
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a80
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a81
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a82
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a83
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a84
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a85
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a86
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a87
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a88
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a89
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a90
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a91
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a92
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a93
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a94
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a95
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a96
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a97
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a98
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a99
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a100
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a101
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a102
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a103
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a104
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a105
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a106
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2006_conselhos_municipais
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.ibge_munic_cultura_2006_conselhos_municipais, a aba "Conselhos
+      municipais" da MUNIC 2006, suplemento de cultura (IBGE,
+      base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2006_conselhos_municipais
+    description: >
+      Camada Silver — a aba "Conselhos municipais" da MUNIC 2006, suplemento de
+      cultura tipada, lida de bronze_munic_cultura_2006_conselhos_municipais. Uma
+      linha por município. 69 colunas, 1 com cast aplicado; as respostas do
+      questionário continuam como o IBGE publica. O significado de cada código de
+      variável está no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5564 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a130
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a131
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a132
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a133
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a134
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a135
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a136
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a137
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a138
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a139
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a140
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a141
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a142
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a143
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a144
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a145
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a146
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a147
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a148
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a149
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a150
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a151
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a152
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a153
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a154
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a155
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a156
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a157
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a158
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a159
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a160
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a161
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a162
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a163
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a164
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a165
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a166
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a167
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a168
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a169
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a170
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a171
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a172
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a173
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a174
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a175
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a176
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a177
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a178
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a179
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a180
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a181
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a182
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a183
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a184
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a185
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a186
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a187
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a188
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a189
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a190
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a191
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a192
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a193
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a194
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a195
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2006_fundo_municipal
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_fundo_municipal,
+      a aba "Fundo municipal" da MUNIC 2006, suplemento de cultura (IBGE,
+      base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2006_fundo_municipal
+    description: >
+      Camada Silver — a aba "Fundo municipal" da MUNIC 2006, suplemento de cultura
+      tipada, lida de bronze_munic_cultura_2006_fundo_municipal. Uma linha por
+      município. 36 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5564 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a196
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a197
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a198
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a199
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a200
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a201
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a202
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a203
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a204
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a205
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a206
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a207
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a208
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a209
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a210
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a211
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a212
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a213
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a214
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a215
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a216
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a217
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a218
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a219
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a220
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a221
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a222
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a223
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a224
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a225
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a226
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a227
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a228
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2006_recursos_humanos
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.ibge_munic_cultura_2006_recursos_humanos, a aba "Recursos humanos" da
+      MUNIC 2006, suplemento de cultura (IBGE, base_suplemento_cultura_2006.zip),
+      sem cast, filtro nem join (ADR 0010). Uma linha por município; toda coluna
+      chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2006_recursos_humanos
+    description: >
+      Camada Silver — a aba "Recursos humanos" da MUNIC 2006, suplemento de
+      cultura tipada, lida de bronze_munic_cultura_2006_recursos_humanos. Uma
+      linha por município. 47 colunas, 1 com cast aplicado; as respostas do
+      questionário continuam como o IBGE publica. O significado de cada código de
+      variável está no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5564 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a12
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a13
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a14
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a15
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a16
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a17
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a18
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a19
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a20
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a21
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a22
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a23
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a24
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a25
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a26
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a27
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a28
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a29
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a30
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a31
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a32
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a33
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a34
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a35
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a36
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a37
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a38
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a39
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a40
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a41
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a42
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a43
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a44
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a45
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a46
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a47
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a48
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a49
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a50
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a51
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a52
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a53
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a54
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a55
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2006_legislacao
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_legislacao, a
+      aba "Legislação" da MUNIC 2006, suplemento de cultura (IBGE,
+      base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2006_legislacao
+    description: >
+      Camada Silver — a aba "Legislação" da MUNIC 2006, suplemento de cultura
+      tipada, lida de bronze_munic_cultura_2006_legislacao. Uma linha por
+      município. 26 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5564 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a107
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a108
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a109
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a110
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a111
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a112
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a113
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a114
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a115
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a116
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a117
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a118
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a119
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a120
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a121
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a122
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a123
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a124
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a125
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a126
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a127
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a128
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a129
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+
+  - name: bronze_munic_cultura_2006_equipamentos
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibge_munic_cultura_2006_equipamentos, a
+      aba "Equipamentos" da MUNIC 2006, suplemento de cultura (IBGE,
+      base_suplemento_cultura_2006.zip), sem cast, filtro nem join (ADR 0010). Uma
+      linha por município; toda coluna chega como texto.
+    config:
+      tags:
+        - bronze
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier3
+          owner: minc-data-engineering
+
+  - name: silver_munic_cultura_2006_equipamentos
+    description: >
+      Camada Silver — a aba "Equipamentos" da MUNIC 2006, suplemento de cultura
+      tipada, lida de bronze_munic_cultura_2006_equipamentos. Uma linha por
+      município. 27 colunas, 1 com cast aplicado; as respostas do questionário
+      continuam como o IBGE publica. O significado de cada código de variável está
+      no dicionário da edição.
+    config:
+      tags:
+        - silver
+        - ibge
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    columns:
+      - name: a1
+        description: >
+          Tipagem: 100% dos 5564 valores preenchidos casam com inteiro.
+        data_type: bigint
+      - name: a424
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a425
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a426
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a427
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a428
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a429
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a430
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a431
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a432
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a433
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a434
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a435
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a436
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a437
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a438
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a439
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a440
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a441
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a442
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a443
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a444
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a285
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a445
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: a446
+        description: >
+          Tipagem: valores heterogêneos.
+        data_type: text
+      - name: edicao
+        description: >
+          Tipagem: coluna constante.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Tipagem: coluna constante.
+        data_type: text

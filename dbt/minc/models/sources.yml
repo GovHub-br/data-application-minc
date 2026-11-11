@@ -2244,6 +2244,195 @@ sources:
               Posição do item na página, a partir de 1, contando as partes
               na ordem. Com `_pagina_id`, identifica o item.
             data_type: character varying
+  - name: senado
+    schema: senado
+    description: >
+      Legislação federal da API de Dados Abertos do Senado
+      (legis.senado.leg.br/dadosabertos), que a senado_legislacao_dag grava
+      pelo Trino a partir do raw do MinIO (raw/senado/legislacao_lista/ e
+      raw/senado/legislacao_detalhe/). Toda coluna é varchar: a bronze não tipa.
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+    tables:
+      - name: legislacao_lista
+        description: >
+          Um documento de /legislacao/lista por linha, como veio, com os campos
+          em minúsculas. A listagem é por tipo (LEI, LCP, DEC) e ano de
+          assinatura; tipo=DEC traz decretos com número (DEC-n) e sem número
+          (DEC-sn). Cada listagem carregada entra inteira, então a mesma norma
+          se repete uma vez por listagem do mesmo tipo e ano.
+        columns:
+          - name: _arquivo
+            description: Key no raw do arquivo de onde a linha veio.
+            data_type: character varying
+            tests:
+              - not_null
+          - name: _item
+            description: Posição do documento na resposta, a partir de 1.
+            data_type: character varying
+          - name: id
+            description: Código da norma no Senado; é o id do detalhe.
+            data_type: character varying
+            tests:
+              - not_null
+          - name: tipo
+            description: Sigla do tipo da norma (LEI-n, LCP, DEC-n, DEC-sn).
+            data_type: character varying
+          - name: descricao
+            description: Nome do tipo da norma.
+            data_type: character varying
+          - name: numero
+            description: Número da norma. Vazio nos decretos sem número.
+            data_type: character varying
+          - name: norma
+            description: Identificador da norma (tipo-número-data).
+            data_type: character varying
+          - name: normanome
+            description: Nome da norma por extenso (normaNome na API).
+            data_type: character varying
+          - name: ementa
+            description: Ementa da norma.
+            data_type: character varying
+          - name: dataassinatura
+            description: Data de assinatura, em DD/MM/AAAA.
+            data_type: character varying
+          - name: anoassinatura
+            description: Ano de assinatura; é o ano da listagem.
+            data_type: character varying
+          - name: apelido
+            description: Apelidos da norma, separados por vírgula.
+            data_type: character varying
+          - name: sequencia
+            description: >
+              Sequencial da assinatura na data. Só nos decretos sem número,
+              que se identificam pela data e por ele.
+            data_type: character varying
+      - name: legislacao_detalhe
+        description: >
+          Um detalhe de /legislacao/{id} por linha: a identificação achatada em
+          identificacao__<campo>, a ementa e a observação. As seções do detalhe
+          estão em legislacao_detalhe_secoes, ligadas por _arquivo e id.
+        columns:
+          - name: _arquivo
+            description: Key no raw do arquivo de onde a linha veio.
+            data_type: character varying
+            tests:
+              - not_null
+          - name: id
+            description: Código da norma no Senado.
+            data_type: character varying
+          - name: identificacao__tipo
+            description: Sigla do tipo da norma.
+            data_type: character varying
+          - name: identificacao__descricao
+            description: Nome do tipo da norma.
+            data_type: character varying
+          - name: identificacao__numero
+            description: Número da norma.
+            data_type: character varying
+          - name: identificacao__norma
+            description: Identificador da norma (tipo-número-data).
+            data_type: character varying
+          - name: identificacao__normanome
+            description: Nome da norma por extenso.
+            data_type: character varying
+          - name: identificacao__dataassinatura
+            description: Data de assinatura, em DD/MM/AAAA.
+            data_type: character varying
+          - name: identificacao__apelido
+            description: Apelidos da norma.
+            data_type: character varying
+          - name: identificacao__urldocumento
+            description: Link da norma no normas.leg.br (LexML).
+            data_type: character varying
+          - name: identificacao__sequencia
+            description: Sequencial da assinatura na data, nos decretos sem número.
+            data_type: character varying
+          - name: ementa
+            description: Ementa da norma.
+            data_type: character varying
+          - name: observacao
+            description: Observação do Senado (autoria, projeto de origem).
+            data_type: character varying
+      - name: legislacao_detalhe_secoes
+        description: >
+          Um elemento de seção do detalhe por linha. A API manda cada seção
+          como "" (sem elemento), como um objeto (um elemento) ou como lista
+          (vários); aqui é sempre uma linha por elemento, na ordem da resposta.
+        columns:
+          - name: _arquivo
+            description: Key no raw do detalhe de onde a linha veio.
+            data_type: character varying
+            tests:
+              - not_null
+          - name: id
+            description: Código da norma no Senado.
+            data_type: character varying
+          - name: secao
+            description: >
+              publicacoes, vides, edivs, disps, catalogo, indexacao ou classes.
+            data_type: character varying
+            tests:
+              - not_null
+          - name: _item
+            description: Posição do elemento na seção, a partir de 1.
+            data_type: character varying
+          - name: valor
+            description: >
+              O elemento: texto nas frases (catalogo, indexacao) e na classe
+              temática; JSON compacto nas publicações, vides, edivs e disps.
+            data_type: character varying
+      - name: arquivos
+        description: >
+          Um arquivo do raw carregado por linha. É o registro do que já entrou
+          na bronze: a linha entra depois das linhas do arquivo.
+        columns:
+          - name: arquivo
+            description: Key no raw do arquivo (a que ele teria inteiro).
+            data_type: character varying
+            tests:
+              - not_null
+              - unique
+          - name: entidade
+            description: legislacao_lista ou legislacao_detalhe.
+            data_type: character varying
+          - name: partes
+            description: Em quantos objetos do MinIO o arquivo estava (1, ou as partes).
+            data_type: character varying
+          - name: itens_na_origem
+            description: Quantos documentos a API devolveu, contados na ingestão.
+            data_type: character varying
+          - name: linhas
+            description: Linhas que a carga pôs em legislacao_lista ou legislacao_detalhe.
+            data_type: character varying
+          - name: linhas_secoes
+            description: Linhas que a carga pôs em legislacao_detalhe_secoes (só no detalhe).
+            data_type: character varying
+          - name: requisicao
+            description: Path e parâmetros da requisição à API, em JSON.
+            data_type: character varying
+          - name: status_http
+            description: Status HTTP da resposta.
+            data_type: character varying
+          - name: buscado_em
+            description: Quando a resposta foi buscada na API (ISO 8601, UTC).
+            data_type: character varying
+          - name: run_id
+            description: Run da senado_legislacao_dag que buscou a resposta.
+            data_type: character varying
+          - name: resposta_sem_documentos
+            description: A resposta da API sem os documentos (metadados), em JSON.
+            data_type: character varying
+          - name: carga_run_id
+            description: Run que carregou o arquivo na bronze.
+            data_type: character varying
+          - name: carregado_em
+            description: Quando o arquivo entrou na bronze (ISO 8601, UTC).
+            data_type: character varying
+
   - name: bsc_pnab
     schema: bsc_pnab
   # As planilhas dos relatórios de gestão. Antes eram ~15 tabelas, uma por aba
@@ -3492,3 +3681,112 @@ sources:
             domain: Cultura.Indicadores
             tier: Tier.Tier4
             owner: minc-data-engineering
+
+  # IBGE, perfis dos municípios (MUNIC) e dos estados (ESTADIC): a ibge_perfil_dag
+  # baixa cada edição do FTP do IBGE e grava cada aba em seeds.ibge_<edicao>_<aba>,
+  # toda coluna em texto, com edicao e dt_ingest (ADR 0012). O dicionário de cada
+  # edição está em seeds.ibge_<edicao>_dicionario.
+  - name: ibge
+    schema: seeds
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+    tables:
+      - name: munic_2021_cultura
+        identifier: ibge_munic_2021_cultura
+        description: >
+          Aba "Cultura" da MUNIC 2021 (IBGE, Base_MUNIC_2021_20240425.xlsx),
+          uma linha por município, toda coluna em texto, gravada pela
+          ibge_perfil_dag (ADR 0012).
+      - name: munic_2018_cultura
+        identifier: ibge_munic_2018_cultura
+        description: >
+          Aba "Cultura" da MUNIC 2018 (IBGE,
+          Base_MUNIC_2018_xlsx_20201103.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2014_orgao_gestor
+        identifier: ibge_munic_cultura_2014_orgao_gestor
+        description: >
+          Aba "Órgão gestor" da MUNIC 2014, suplemento de cultura (IBGE,
+          base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2014_politicas_culturais
+        identifier: ibge_munic_cultura_2014_politicas_culturais
+        description: >
+          Aba "Políticas culturais" da MUNIC 2014, suplemento de cultura
+          (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município,
+          toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2014_instancias_participativas
+        identifier: ibge_munic_cultura_2014_instancias_participativas
+        description: >
+          Aba "Instâncias participativas" da MUNIC 2014, suplemento de cultura
+          (IBGE, base_cultura_MUNIC_xls_2014.zip), uma linha por município,
+          toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2014_fundo_cultura
+        identifier: ibge_munic_cultura_2014_fundo_cultura
+        description: >
+          Aba "Fundo cultura" da MUNIC 2014, suplemento de cultura (IBGE,
+          base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2014_recursos_humanos
+        identifier: ibge_munic_cultura_2014_recursos_humanos
+        description: >
+          Aba "Recursos humanos" da MUNIC 2014, suplemento de cultura (IBGE,
+          base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2014_legislacao
+        identifier: ibge_munic_cultura_2014_legislacao
+        description: >
+          Aba "Legislação" da MUNIC 2014, suplemento de cultura (IBGE,
+          base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2014_equipamentos
+        identifier: ibge_munic_cultura_2014_equipamentos
+        description: >
+          Aba "Equipamentos" da MUNIC 2014, suplemento de cultura (IBGE,
+          base_cultura_MUNIC_xls_2014.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2006_orgao_gestor
+        identifier: ibge_munic_cultura_2006_orgao_gestor
+        description: >
+          Aba "Órgão gestor" da MUNIC 2006, suplemento de cultura (IBGE,
+          base_suplemento_cultura_2006.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2006_instrumentos_de_gestao
+        identifier: ibge_munic_cultura_2006_instrumentos_de_gestao
+        description: >
+          Aba "Instrumentos de gestão" da MUNIC 2006, suplemento de cultura
+          (IBGE, base_suplemento_cultura_2006.zip), uma linha por município,
+          toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2006_conselhos_municipais
+        identifier: ibge_munic_cultura_2006_conselhos_municipais
+        description: >
+          Aba "Conselhos municipais" da MUNIC 2006, suplemento de cultura
+          (IBGE, base_suplemento_cultura_2006.zip), uma linha por município,
+          toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2006_fundo_municipal
+        identifier: ibge_munic_cultura_2006_fundo_municipal
+        description: >
+          Aba "Fundo municipal" da MUNIC 2006, suplemento de cultura (IBGE,
+          base_suplemento_cultura_2006.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2006_recursos_humanos
+        identifier: ibge_munic_cultura_2006_recursos_humanos
+        description: >
+          Aba "Recursos humanos" da MUNIC 2006, suplemento de cultura (IBGE,
+          base_suplemento_cultura_2006.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2006_legislacao
+        identifier: ibge_munic_cultura_2006_legislacao
+        description: >
+          Aba "Legislação" da MUNIC 2006, suplemento de cultura (IBGE,
+          base_suplemento_cultura_2006.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
+      - name: munic_cultura_2006_equipamentos
+        identifier: ibge_munic_cultura_2006_equipamentos
+        description: >
+          Aba "Equipamentos" da MUNIC 2006, suplemento de cultura (IBGE,
+          base_suplemento_cultura_2006.zip), uma linha por município, toda
+          coluna em texto, gravada pela ibge_perfil_dag (ADR 0012).
