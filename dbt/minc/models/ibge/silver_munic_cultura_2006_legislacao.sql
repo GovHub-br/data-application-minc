@@ -33,5 +33,5 @@ select
     {{ bronze_texto("a128") }} as a128,
     {{ bronze_texto("a129") }} as a129,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_munic_cultura_2006_legislacao") }}

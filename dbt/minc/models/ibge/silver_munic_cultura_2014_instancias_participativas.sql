@@ -77,5 +77,5 @@ select
     {{ bronze_texto("a370") }} as a370,
     {{ bronze_texto("a371") }} as a371,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_munic_cultura_2014_instancias_participativas") }}

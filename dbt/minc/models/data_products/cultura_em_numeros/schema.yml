@@ -24,7 +24,8 @@ version: 2
 # repositório SGE-Subsecretaria-de-Gestao-Estrategica/cultura-em-numeros-eixo-1;
 # onde a regra do R contraria o ADR 0010, a description diz a diferença. Na frente
 # MUNIC, eixo1_munic_painel_municipio e eixo1_munic_conselho_municipio são as
-# golds-base, e as outras leem delas.
+# golds-base, e as outras leem delas. Na frente ESTADIC, eixo1_estadic_painel_uf
+# é a gold-base.
 #
 # Exceção à regra transversal 1 do ADR 0010 no Eixo 1: '-', 'Recusa' e 'Não
 # informou' viram 'Não' (macro eixo1_sim_nao), como nos scripts do R, para as
@@ -1984,3 +1985,636 @@ models:
         data_type: numeric
         tests:
           - not_null
+
+  - name: eixo1_estadic_painel_uf
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números. Gold-base: o
+      painel da gestão estadual de cultura.
+
+      GRÃO: uma linha por UF e edição da ESTADIC (2012, 2014, 2018, 2021, 2023,
+      2024). UNIVERSO: as 27 UFs em cada edição (162 linhas).
+
+      PARA QUE SERVE: base dos gráficos e mapas da frente ESTADIC. Reproduz o
+      df_estadic_painel do ESTADIC.R, que grava
+      estadic_cultura_painel_transversal_12_24.csv.
+
+      A REGRA: cada edição responde a uma parte do painel. 2018 e 2021, a aba
+      Cultura (órgão gestor, plano, conselho, fundo, patrimônio, lei de
+      incentivo, gestor, composição e competência do conselho); 2014, o
+      suplemento de cultura; 2012, conselho e fundo; 2023, a cultura na
+      primeira infância e na política para mulheres; 2024, a cultura na
+      igualdade racial. A resposta vira 'Sim' ou 'Não' pela macro
+      eixo1_sim_nao; o órgão gestor vira três grupos e a escolaridade, cinco. O
+      tripé (instrumentos_do_tripe, tem_tripe_completo e maturidade_snc) sai
+      daqui, uma vez, para o mapa 8.1, nas edições que perguntam os três
+      instrumentos (2014, 2018 e 2021).
+
+      EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e
+      'Não disponível' viram 'Não', como no R, para as golds baterem com a
+      publicação. Em 10/11/2026, com as tabelas de seeds do dbanalytics: em
+      2023, 2 em pi_arte_cultura (1 '-' e 1 'Recusa') e 14 em
+      pm_parceria_cultura (13 '-' e 1 'Recusa'); em 2024, 13 '-' em cada coluna
+      (ir_gt_cultura, ir_patrimonio_afro e ir_patrimonio_quilombola), os
+      estados que não têm grupo de trabalho de igualdade racial; em 2018 e 2021,
+      16 '-' em tem_lei_incentivo, os estados que não têm conselho de
+      patrimônio. 2012 e 2014 não têm nenhuma. O 'Em elaboração' do plano (23
+      UFs em 2014, 7 em 2018 e 6 em 2021) é 'Não' por regra de negócio, como na
+      MUNIC, e não é falta de resposta.
+
+      DIFERENÇA DO R: resposta ausente fica NULL (ADR 0010, regra transversal
+      1). Nas edições que não perguntam órgão gestor nem escolaridade (2012,
+      2023 e 2024), o R punha 'Setor Subordinado / Outros' e 'Sem Informação'.
+      E três perguntas vêm da variável que o dicionário do IBGE dá para elas, e
+      não da que o ESTADIC.R lê: o plano de 2014 é a a86 ("Plano Estadual de
+      Cultura - existência"), não a a93 ("Consulta pública"); o conselho de 2014
+      é a a254 ("Conselho Estadual de Cultural - existência"), não a a305
+      ("Institutos Históricos e Geográficos locais"); e o fundo de 2012 é a a98
+      ("Fundo estadual de cultura - existência"), não a a94 ("Deliberativo", do
+      conselho). Com isso, em 2014, 27 UFs têm conselho (o R dava 3) e 3 têm
+      plano (o R dava 2); em 2012, 20 têm fundo (o R dava 22). Conferido contra
+      o CSV do R em 10/11/2026: as 162 linhas e as 23 colunas batem, e das 3.726
+      células diferem 193. São as 162 do órgão gestor e da escolaridade e as 31
+      das três perguntas (24 de tem_conselho e 1 de tem_plano em 2014, 6 de
+      tem_fundo em 2012). As colunas do tripé não existem no CSV do R, que
+      calcula o tripé no mapa. Com um item do tripé vazio e nenhum 'Não',
+      tem_tripe_completo fica NULL, e o R contaria a UF como sem tripé, porque a
+      fix_sim_nao faz do vazio 'Não'. Em 11/11/2026 nenhuma UF tem item do tripé
+      vazio, em nenhuma das três edições.
+
+      PENDENTE COM O TIME DO EIXO 1 (issue #176): o ESTADIC.R lê outras três
+      variáveis que não são a pergunta do indicador, e o painel as reproduz até
+      o time dizer qual é a certa. ir_patrimonio_afro e
+      ir_patrimonio_quilombola, de 2024, são a eigr128 ("Trabalho") e a eigr1210
+      ("Justiça"), áreas de governo representadas no grupo de trabalho de
+      igualdade racial; as candidatas são a eigr406 ou a eigr168 (afro) e a
+      eigr167 (quilombola). tem_lei_incentivo, de 2018 e 2021, é a ecul31
+      ("Disponibiliza infraestrutura para o funcionamento", do conselho de
+      patrimônio), e a aba Cultura dessas edições não pergunta por lei de
+      incentivo.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: cod_uf
+        description: Código IBGE da UF.
+        data_type: text
+        tests:
+          - not_null
+      - name: sigla_uf
+        description: Sigla da UF.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO']
+      - name: nome_uf
+        description: Nome da UF.
+        data_type: text
+      - name: regiao
+        description: Grande região.
+        data_type: text
+      - name: ano
+        description: Edição da ESTADIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: tipo_orgao_gestor
+        description: Órgão gestor em três grupos (Secretaria Exclusiva / Fundação, Secretaria Conjunta, Setor Subordinado / Outros), em 2014, 2018 e 2021.
+        data_type: text
+      - name: tem_plano
+        description: O estado tem plano estadual de cultura ('Sim' ou 'Não'; 'Em elaboração' é 'Não'). Em 2014 vem da a86, e não da a93 do R.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_conselho
+        description: O estado tem conselho estadual de cultura ('Sim' ou 'Não'). Em 2014 vem da a254, e não da a305 do R.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_fundo
+        description: O estado tem fundo estadual de cultura ('Sim' ou 'Não'). Em 2012 vem da a98, e não da a94 do R.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: instrumentos_do_tripe
+        description: >
+          Quantos dos três instrumentos do tripé do SNC (plano, conselho, fundo) o
+          estado tem, de 0 a 3. Só em 2014, 2018 e 2021; NULL nas outras edições e
+          quando algum dos três é vazio.
+        data_type: integer
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3]
+                quote: false
+      - name: tem_tripe_completo
+        description: >
+          O estado tem o tripé do SNC: 'Sim' com plano, conselho e fundo; 'Não'
+          com algum 'Não'. NULL quando algum dos três é vazio e nenhum é 'Não',
+          porque aí não dá para saber, e nas edições que não perguntam os três.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: maturidade_snc
+        description: >
+          Tripé Completo, Institucionalização Parcial ou Nenhum Instrumento (mapa
+          8.1). Com algum item vazio, só é Institucionalização Parcial quando os
+          outros dois são 'Sim' e 'Não'; nos outros casos, NULL.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Tripé Completo', 'Institucionalização Parcial', 'Nenhum Instrumento']
+      - name: tem_lei_patrimonio
+        description: O estado tem lei de patrimônio ('Sim' ou 'Não').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_cons_patrimonio
+        description: O estado tem conselho de patrimônio (2018 e 2021).
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_lei_incentivo
+        description: O estado tem lei de incentivo à cultura própria (2018 e 2021). Pendente com o time do Eixo 1, ver a descrição do modelo; por enquanto é a ecul31 do R, que o dicionário do IBGE dá como infraestrutura do conselho de patrimônio.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: gestor_sexo
+        description: Sexo do gestor, como o IBGE respondeu.
+        data_type: text
+      - name: gestor_cor_raca
+        description: Cor ou raça do gestor, como o IBGE respondeu (2018 e 2021).
+        data_type: text
+      - name: gestor_escolaridade
+        description: Escolaridade do gestor, como o IBGE respondeu.
+        data_type: text
+      - name: cons_paritario
+        description: Composição do conselho ('Paritário', 'Não Paritário' ou 'Sem Informação'), em 2018 e 2021.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Paritário', 'Não Paritário', 'Sem Informação']
+      - name: cons_competencia
+        description: Competência do conselho (Deliberativo, Consultivo, Normativo / Fiscalizador ou Sem Informação), em 2018 e 2021. Os rótulos são os do ESTADIC.R; a MUNIC usa os do MUNIC.R ('Deliberativo (com ou sem consultivo)' e 'Apenas Consultivo') para as mesmas categorias.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Deliberativo', 'Consultivo', 'Normativo / Fiscalizador', 'Sem Informação']
+      - name: pi_arte_cultura
+        description: Arte e cultura na política de primeira infância (2023).
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: pm_parceria_cultura
+        description: Articulação da política para mulheres com o órgão de cultura (2023).
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: ir_gt_cultura
+        description: Cultura no grupo de trabalho de igualdade racial (2024).
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: ir_patrimonio_afro
+        description: Ação de preservação do patrimônio afro-brasileiro (2024). Pendente com o time do Eixo 1, ver a descrição do modelo; por enquanto é a eigr128 do R ("Trabalho" no grupo de trabalho de igualdade racial).
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: ir_patrimonio_quilombola
+        description: Ação de preservação do patrimônio quilombola (2024). Pendente com o time do Eixo 1, ver a descrição do modelo; por enquanto é a eigr1210 do R ("Justiça" no grupo de trabalho de igualdade racial).
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: gestor_escolaridade_agrupada
+        description: Escolaridade em cinco grupos, como na frente MUNIC.
+        data_type: text
+
+  - name: eixo1_estadic_orgao_gestor
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: o tipo de órgão gestor da cultura nos estados
+      (gráfico 5.1 do ESTADIC.R).
+
+      GRÃO: uma linha por edição e grupo de órgão gestor. UNIVERSO: 2014, 2018 e 2021, as UFs com órgão gestor informado.
+
+      Lê eixo1_estadic_painel_uf e repete a agregação do R. Conferido em
+      09/11/2026: igual ao mesmo cálculo feito sobre o painel do R.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da ESTADIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: tipo_orgao_gestor
+        description: Grupo do órgão gestor.
+        data_type: text
+      - name: quantidade_ufs
+        description: Quantidade de UFs no grupo.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de UFs da edição.
+        data_type: numeric
+
+  - name: eixo1_estadic_escolaridade_gestor
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: a escolaridade do gestor estadual de cultura
+      (gráfico 5.2 do ESTADIC.R).
+
+      GRÃO: uma linha por edição e grupo de escolaridade. UNIVERSO: 2014, 2018 e 2021, fora a resposta que não cabe em nenhum grupo.
+
+      Lê eixo1_estadic_painel_uf e repete a agregação do R. Conferido em
+      09/11/2026: igual ao mesmo cálculo feito sobre o painel do R.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da ESTADIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: gestor_escolaridade_agrupada
+        description: Grupo de escolaridade.
+        data_type: text
+      - name: quantidade_ufs
+        description: Quantidade de UFs no grupo.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total da edição.
+        data_type: numeric
+
+  - name: eixo1_estadic_paridade_conselho
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: a composição dos conselhos estaduais de cultura
+      (gráfico 5.3 do ESTADIC.R).
+
+      GRÃO: uma linha por edição e composição. UNIVERSO: 2018 e 2021, as UFs com conselho e composição informada.
+
+      Lê eixo1_estadic_painel_uf e repete a agregação do R. Conferido em
+      09/11/2026: igual ao mesmo cálculo feito sobre o painel do R.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da ESTADIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: composicao_conselho
+        description: "'Paritário' ou 'Não Paritário'."
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Paritário', 'Não Paritário']
+      - name: quantidade_ufs
+        description: Quantidade de UFs.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total da edição.
+        data_type: numeric
+
+  - name: eixo1_estadic_competencia_conselho
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: a competência dos conselhos estaduais de cultura
+      (gráfico 5.4 do ESTADIC.R).
+
+      GRÃO: uma linha por edição e competência. UNIVERSO: as UFs com conselho e competência informada; a ESTADIC 2014 não pergunta a competência, então só há 2018 e 2021.
+
+      Lê eixo1_estadic_painel_uf e repete a agregação do R. Conferido em
+      09/11/2026: igual ao mesmo cálculo feito sobre o painel do R.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da ESTADIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: cons_competencia
+        description: Competência do conselho.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Deliberativo', 'Consultivo', 'Normativo / Fiscalizador']
+      - name: quantidade_ufs
+        description: Quantidade de UFs.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total da edição.
+        data_type: numeric
+
+  - name: eixo1_estadic_tripe
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: a proporção de estados com plano, conselho e fundo de cultura
+      (gráfico 6.1 do ESTADIC.R).
+
+      GRÃO: uma linha por edição e instrumento. UNIVERSO: 2014, 2018 e 2021, as respostas 'Sim' ou 'Não'.
+
+      Lê eixo1_estadic_painel_uf e repete a agregação do R. Conferido em
+      10/11/2026 contra o mesmo cálculo feito sobre o painel do R: igual em 2018
+      e 2021. Em 2014, o conselho e o plano diferem porque o painel lê a
+      pergunta certa (27 e 3 UFs com 'Sim'; o R dava 3 e 2), ver a DIFERENÇA DO
+      R em eixo1_estadic_painel_uf.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da ESTADIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: instrumento
+        description: Plano Estadual, Conselho Estadual ou Fundo Estadual.
+        data_type: text
+      - name: quantidade_ufs_sim
+        description: UFs que têm o instrumento.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: quantidade_ufs
+        description: UFs com resposta 'Sim' ou 'Não'.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: UFs com o instrumento divididas pelas que responderam.
+        data_type: numeric
+
+  - name: eixo1_estadic_transversalidade
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: a cultura nas políticas sociais dos estados
+      (gráfico 6.2 do ESTADIC.R).
+
+      GRÃO: uma linha por indicador. UNIVERSO: os módulos transversais da ESTADIC 2023 e 2024.
+
+      Lê eixo1_estadic_painel_uf e repete a agregação do R. Conferido em
+      10/11/2026: igual ao mesmo cálculo feito sobre o painel do R. Os
+      indicadores do patrimônio afro e quilombola estão pendentes com o time do
+      Eixo 1, ver eixo1_estadic_painel_uf.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: indicador
+        description: O indicador, com a edição entre parênteses.
+        data_type: text
+        tests:
+          - not_null
+      - name: quantidade_ufs_sim
+        description: UFs com resposta 'Sim'.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: quantidade_ufs
+        description: UFs que responderam.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: UFs com 'Sim' divididas pelas que responderam.
+        data_type: numeric
+
+  - name: eixo1_estadic_lei_patrimonio
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: a proporção de estados com legislação de patrimônio cultural
+      (gráfico 6.3 (arquivo grafico_7_1) do ESTADIC.R).
+
+      GRÃO: uma linha por edição. UNIVERSO: 2014, 2018 e 2021, as respostas 'Sim' ou 'Não'.
+
+      Lê eixo1_estadic_painel_uf e repete a agregação do R. Conferido em
+      09/11/2026: igual ao mesmo cálculo feito sobre o painel do R.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da ESTADIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: quantidade_ufs_sim
+        description: UFs com lei de patrimônio.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: quantidade_ufs
+        description: UFs que responderam.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: UFs com a lei divididas pelas que responderam.
+        data_type: numeric
+
+  - name: eixo1_estadic_lei_incentivo
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: os estados com lei de incentivo à cultura própria
+      (gráfico 6.4 (arquivo grafico_7_2) do ESTADIC.R).
+
+      GRÃO: uma linha por edição e resposta. UNIVERSO: 2018 e 2021.
+
+      Lê eixo1_estadic_painel_uf e repete a agregação do R. Conferido em
+      10/11/2026: igual ao mesmo cálculo feito sobre o painel do R. Pendente
+      com o time do Eixo 1: a variável é a do R (ecul31), que não é a pergunta
+      da lei de incentivo, ver eixo1_estadic_painel_uf.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da ESTADIC.
+        data_type: integer
+        tests:
+          - not_null
+      - name: tem_lei_incentivo
+        description: "'Sim' ou 'Não'."
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: quantidade_ufs
+        description: Quantidade de UFs.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total da edição.
+        data_type: numeric
+
+  - name: eixo1_estadic_mapa_uf_2021
+    description: >
+      Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: as
+      categorias dos três mapas do ESTADIC.R em 2021 (mapas 8.1 a 8.3).
+
+      GRÃO: uma linha por UF. UNIVERSO: as 27 UFs na ESTADIC 2021.
+
+      PARA QUE SERVE: o dado de cada mapa. Desenhar o mapa fica com quem
+      consome. instrumentos_do_tripe e maturidade_snc vêm prontos de
+      eixo1_estadic_painel_uf, que calcula o tripé uma vez; perfil_fomento
+      cruza a lei de patrimônio com a lei de incentivo.
+
+      DIFERENÇA DO R: no R a contagem do tripé nunca é NULL, porque a
+      fix_sim_nao faz do vazio 'Não'. Aqui, com um item vazio, a contagem fica
+      NULL e a maturidade também, salvo quando os outros dois são 'Sim' e 'Não'
+      (parcial de qualquer jeito). Em 11/11/2026 nenhuma UF de 2021 tem item do
+      tripé vazio. Conferido em 11/11/2026: igual ao mesmo cálculo feito sobre o
+      painel do R. A lei de incentivo está pendente com o time do Eixo 1, ver
+      eixo1_estadic_painel_uf.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - estadic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: cod_uf
+        description: Código IBGE da UF.
+        data_type: text
+        tests:
+          - not_null
+          - unique
+      - name: sigla_uf
+        description: Sigla da UF.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO']
+      - name: nome_uf
+        description: Nome da UF.
+        data_type: text
+      - name: regiao
+        description: Grande região.
+        data_type: text
+      - name: tipo_orgao_gestor
+        description: Grupo do órgão gestor (mapa 8.2).
+        data_type: text
+      - name: instrumentos_do_tripe
+        description: Quantos dos três instrumentos (plano, conselho, fundo) a UF tem; NULL com algum vazio. Vem de eixo1_estadic_painel_uf.
+        data_type: integer
+      - name: maturidade_snc
+        description: Tripé Completo, Institucionalização Parcial ou Nenhum Instrumento (mapa 8.1). Vem de eixo1_estadic_painel_uf.
+        data_type: text
+      - name: perfil_fomento
+        description: Lei de patrimônio e lei de incentivo (mapa 8.3).
+        data_type: text

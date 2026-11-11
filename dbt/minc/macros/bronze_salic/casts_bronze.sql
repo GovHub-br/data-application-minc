@@ -58,6 +58,17 @@
 {%- endmacro %}
 
 
+{% macro bronze_timestamptz(col) -%}
+    {#- Como o bronze_timestamp, mas guarda o fuso. O dt_ingest dos seeds é texto ISO
+        8601 com offset ('2026-11-09T09:40:54.339362+00:00', gravado por
+        datalakehouse._registros_para_df), e timestamp sem fuso o descartaria. -#}
+    case
+        when trim({{ col }}) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+        then trim({{ col }})::timestamptz
+    end
+{%- endmacro %}
+
+
 {% macro bronze_data(col) -%}
     case
         when trim({{ col }}) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then trim({{ col }})::date

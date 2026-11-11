@@ -12,5 +12,5 @@ select
     {{ bronze_texto("a2") }} as a2,
     {{ bronze_texto("a3") }} as a3,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_munic_cultura_2014_orgao_gestor") }}

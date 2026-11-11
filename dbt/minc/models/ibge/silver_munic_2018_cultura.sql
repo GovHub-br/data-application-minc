@@ -184,5 +184,5 @@ select
     {{ bronze_texto("mcul402") }} as mcul402,
     {{ bronze_texto("mcul41") }} as mcul41,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_munic_2018_cultura") }}
