@@ -792,7 +792,22 @@ def gravar_bytes_em_partes(conteudo: bytes, key: str) -> str:
 
 def ler_bytes(key: str) -> bytes:
     """Um binário gravado por ``gravar_bytes_em_partes``, inteiro ou em partes."""
-    return b"".join(_ler_corpo(key_parte) for key_parte in partes_do_objeto(key))
+    return ler_bytes_das_partes(partes_do_objeto(key))
+
+
+def ler_bytes_das_partes(keys: Sequence[str]) -> bytes:
+    """Junta, na ordem, as ``keys`` que compõem um arquivo, sem listar o bucket.
+
+    Para quem já tem as partes resolvidas por ``agrupar_partes`` sobre uma
+    listagem só: a carga da bronze do Senado lê dezenas de milhares de arquivos,
+    e o ``ler_bytes`` faria um LIST por arquivo. Lê pelo client do boto3, uma
+    requisição por parte, como ``ler_texto``.
+    """
+    cliente = get_hook().get_conn()
+    corpos: list[bytes] = [
+        cliente.get_object(Bucket=BUCKET, Key=key)["Body"].read() for key in keys
+    ]
+    return b"".join(corpos)
 
 
 def gravar_arquivo(caminho_local: str, key: str) -> str:
