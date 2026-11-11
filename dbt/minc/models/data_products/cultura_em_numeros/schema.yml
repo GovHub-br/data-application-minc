@@ -2004,7 +2004,10 @@ models:
       suplemento de cultura; 2012, conselho e fundo; 2023, a cultura na
       primeira infância e na política para mulheres; 2024, a cultura na
       igualdade racial. A resposta vira 'Sim' ou 'Não' pela macro
-      eixo1_sim_nao; o órgão gestor vira três grupos e a escolaridade, cinco.
+      eixo1_sim_nao; o órgão gestor vira três grupos e a escolaridade, cinco. O
+      tripé (instrumentos_do_tripe, tem_tripe_completo e maturidade_snc) sai
+      daqui, uma vez, para o mapa 8.1, nas edições que perguntam os três
+      instrumentos (2014, 2018 e 2021).
 
       EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e
       'Não disponível' viram 'Não', como no R, para as golds baterem com a
@@ -2032,7 +2035,11 @@ models:
       o CSV do R em 10/11/2026: as 162 linhas e as 23 colunas batem, e das 3.726
       células diferem 193. São as 162 do órgão gestor e da escolaridade e as 31
       das três perguntas (24 de tem_conselho e 1 de tem_plano em 2014, 6 de
-      tem_fundo em 2012).
+      tem_fundo em 2012). As colunas do tripé não existem no CSV do R, que
+      calcula o tripé no mapa. Com um item do tripé vazio e nenhum 'Não',
+      tem_tripe_completo fica NULL, e o R contaria a UF como sem tripé, porque a
+      fix_sim_nao faz do vazio 'Não'. Em 11/11/2026 nenhuma UF tem item do tripé
+      vazio, em nenhuma das três edições.
 
       PENDENTE COM O TIME DO EIXO 1 (issue #176): o ESTADIC.R lê outras três
       variáveis que não são a pergunta do indicador, e o painel as reproduz até
@@ -2103,6 +2110,37 @@ models:
           - accepted_values:
               arguments:
                 values: ['Sim', 'Não']
+      - name: instrumentos_do_tripe
+        description: >
+          Quantos dos três instrumentos do tripé do SNC (plano, conselho, fundo) o
+          estado tem, de 0 a 3. Só em 2014, 2018 e 2021; NULL nas outras edições e
+          quando algum dos três é vazio.
+        data_type: integer
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3]
+                quote: false
+      - name: tem_tripe_completo
+        description: >
+          O estado tem o tripé do SNC: 'Sim' com plano, conselho e fundo; 'Não'
+          com algum 'Não'. NULL quando algum dos três é vazio e nenhum é 'Não',
+          porque aí não dá para saber, e nas edições que não perguntam os três.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: maturidade_snc
+        description: >
+          Tripé Completo, Institucionalização Parcial ou Nenhum Instrumento (mapa
+          8.1). Com algum item vazio, só é Institucionalização Parcial quando os
+          outros dois são 'Sim' e 'Não'; nos outros casos, NULL.
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Tripé Completo', 'Institucionalização Parcial', 'Nenhum Instrumento']
       - name: tem_lei_patrimonio
         description: O estado tem lei de patrimônio ('Sim' ou 'Não').
         data_type: text
@@ -2526,11 +2564,17 @@ models:
       GRÃO: uma linha por UF. UNIVERSO: as 27 UFs na ESTADIC 2021.
 
       PARA QUE SERVE: o dado de cada mapa. Desenhar o mapa fica com quem
-      consome. maturidade_snc conta plano, conselho e fundo (com um deles
-      ausente, fica NULL, como no R); perfil_fomento cruza a lei de patrimônio
-      com a lei de incentivo. Conferido em 10/11/2026: igual ao mesmo cálculo
-      feito sobre o painel do R. A lei de incentivo está pendente com o time do
-      Eixo 1, ver eixo1_estadic_painel_uf.
+      consome. instrumentos_do_tripe e maturidade_snc vêm prontos de
+      eixo1_estadic_painel_uf, que calcula o tripé uma vez; perfil_fomento
+      cruza a lei de patrimônio com a lei de incentivo.
+
+      DIFERENÇA DO R: no R a contagem do tripé nunca é NULL, porque a
+      fix_sim_nao faz do vazio 'Não'. Aqui, com um item vazio, a contagem fica
+      NULL e a maturidade também, salvo quando os outros dois são 'Sim' e 'Não'
+      (parcial de qualquer jeito). Em 11/11/2026 nenhuma UF de 2021 tem item do
+      tripé vazio. Conferido em 11/11/2026: igual ao mesmo cálculo feito sobre o
+      painel do R. A lei de incentivo está pendente com o time do Eixo 1, ver
+      eixo1_estadic_painel_uf.
     config:
       tags:
         - gold
@@ -2566,10 +2610,10 @@ models:
         description: Grupo do órgão gestor (mapa 8.2).
         data_type: text
       - name: instrumentos_do_tripe
-        description: Quantos dos três instrumentos (plano, conselho, fundo) a UF tem.
+        description: Quantos dos três instrumentos (plano, conselho, fundo) a UF tem; NULL com algum vazio. Vem de eixo1_estadic_painel_uf.
         data_type: integer
       - name: maturidade_snc
-        description: Tripé Completo, Institucionalização Parcial ou Nenhum Instrumento (mapa 8.1).
+        description: Tripé Completo, Institucionalização Parcial ou Nenhum Instrumento (mapa 8.1). Vem de eixo1_estadic_painel_uf.
         data_type: text
       - name: perfil_fomento
         description: Lei de patrimônio e lei de incentivo (mapa 8.3).

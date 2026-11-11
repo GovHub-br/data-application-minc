@@ -932,7 +932,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_estadic_mapa_uf_2021.sql",
-      "descricao": "Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: as categorias dos três mapas do ESTADIC.R em 2021 (mapas 8.1 a 8.3).\nGRÃO: uma linha por UF. UNIVERSO: as 27 UFs na ESTADIC 2021.\nPARA QUE SERVE: o dado de cada mapa. Desenhar o mapa fica com quem consome. maturidade_snc conta plano, conselho e fundo (com um deles ausente, fica NULL, como no R); perfil_fomento cruza a lei de patrimônio com a lei de incentivo. Conferido em 10/11/2026: igual ao mesmo cálculo feito sobre o painel do R. A lei de incentivo está pendente com o time do Eixo 1, ver eixo1_estadic_painel_uf.",
+      "descricao": "Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números: as categorias dos três mapas do ESTADIC.R em 2021 (mapas 8.1 a 8.3).\nGRÃO: uma linha por UF. UNIVERSO: as 27 UFs na ESTADIC 2021.\nPARA QUE SERVE: o dado de cada mapa. Desenhar o mapa fica com quem consome. instrumentos_do_tripe e maturidade_snc vêm prontos de eixo1_estadic_painel_uf, que calcula o tripé uma vez; perfil_fomento cruza a lei de patrimônio com a lei de incentivo.\nDIFERENÇA DO R: no R a contagem do tripé nunca é NULL, porque a fix_sim_nao faz do vazio 'Não'. Aqui, com um item vazio, a contagem fica NULL e a maturidade também, salvo quando os outros dois são 'Sim' e 'Não' (parcial de qualquer jeito). Em 11/11/2026 nenhuma UF de 2021 tem item do tripé vazio. Conferido em 11/11/2026: igual ao mesmo cálculo feito sobre o painel do R. A lei de incentivo está pendente com o time do Eixo 1, ver eixo1_estadic_painel_uf.",
       "colunas": [
         {
           "nome": "cod_uf",
@@ -956,11 +956,11 @@
         },
         {
           "nome": "instrumentos_do_tripe",
-          "descricao": "Quantos dos três instrumentos (plano, conselho, fundo) a UF tem."
+          "descricao": "Quantos dos três instrumentos (plano, conselho, fundo) a UF tem; NULL com algum vazio. Vem de eixo1_estadic_painel_uf."
         },
         {
           "nome": "maturidade_snc",
-          "descricao": "Tripé Completo, Institucionalização Parcial ou Nenhum Instrumento (mapa 8.1)."
+          "descricao": "Tripé Completo, Institucionalização Parcial ou Nenhum Instrumento (mapa 8.1). Vem de eixo1_estadic_painel_uf."
         },
         {
           "nome": "perfil_fomento",
@@ -974,7 +974,7 @@
         "eixo1_estadic_painel_uf"
       ],
       "sources": [],
-      "linhas_sql": 50
+      "linhas_sql": 30
     },
     {
       "nome": "eixo1_estadic_orgao_gestor",
@@ -1016,7 +1016,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_estadic_painel_uf.sql",
-      "descricao": "Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números. Gold-base: o painel da gestão estadual de cultura.\nGRÃO: uma linha por UF e edição da ESTADIC (2012, 2014, 2018, 2021, 2023, 2024). UNIVERSO: as 27 UFs em cada edição (162 linhas).\nPARA QUE SERVE: base dos gráficos e mapas da frente ESTADIC. Reproduz o df_estadic_painel do ESTADIC.R, que grava estadic_cultura_painel_transversal_12_24.csv.\nA REGRA: cada edição responde a uma parte do painel. 2018 e 2021, a aba Cultura (órgão gestor, plano, conselho, fundo, patrimônio, lei de incentivo, gestor, composição e competência do conselho); 2014, o suplemento de cultura; 2012, conselho e fundo; 2023, a cultura na primeira infância e na política para mulheres; 2024, a cultura na igualdade racial. A resposta vira 'Sim' ou 'Não' pela macro eixo1_sim_nao; o órgão gestor vira três grupos e a escolaridade, cinco.\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e 'Não disponível' viram 'Não', como no R, para as golds baterem com a publicação. Em 10/11/2026, com as tabelas de seeds do dbanalytics: em 2023, 2 em pi_arte_cultura (1 '-' e 1 'Recusa') e 14 em pm_parceria_cultura (13 '-' e 1 'Recusa'); em 2024, 13 '-' em cada coluna (ir_gt_cultura, ir_patrimonio_afro e ir_patrimonio_quilombola), os estados que não têm grupo de trabalho de igualdade racial; em 2018 e 2021, 16 '-' em tem_lei_incentivo, os estados que não têm conselho de patrimônio. 2012 e 2014 não têm nenhuma. O 'Em elaboração' do plano (23 UFs em 2014, 7 em 2018 e 6 em 2021) é 'Não' por regra de negócio, como na MUNIC, e não é falta de resposta.\nDIFERENÇA DO R: resposta ausente fica NULL (ADR 0010, regra transversal 1). Nas edições que não perguntam órgão gestor nem escolaridade (2012, 2023 e 2024), o R punha 'Setor Subordinado / Outros' e 'Sem Informação'. E três perguntas vêm da variável que o dicionário do IBGE dá para elas, e não da que o ESTADIC.R lê: o plano de 2014 é a a86 (\"Plano Estadual de Cultura - existência\"), não a a93 (\"Consulta pública\"); o conselho de 2014 é a a254 (\"Conselho Estadual de Cultural - existência\"), não a a305 (\"Institutos Históricos e Geográficos locais\"); e o fundo de 2012 é a a98 (\"Fundo estadual de cultura - existência\"), não a a94 (\"Deliberativo\", do conselho). Com isso, em 2014, 27 UFs têm conselho (o R dava 3) e 3 têm plano (o R dava 2); em 2012, 20 têm fundo (o R dava 22). Conferido contra o CSV do R em 10/11/2026: as 162 linhas e as 23 colunas batem, e das 3.726 células diferem 193. São as 162 do órgão gestor e da escolaridade e as 31 das três perguntas (24 de tem_conselho e 1 de tem_plano em 2014, 6 de tem_fundo em 2012).\nPENDENTE COM O TIME DO EIXO 1 (issue #176): o ESTADIC.R lê outras três variáveis que não são a pergunta do indicador, e o painel as reproduz até o time dizer qual é a certa. ir_patrimonio_afro e ir_patrimonio_quilombola, de 2024, são a eigr128 (\"Trabalho\") e a eigr1210 (\"Justiça\"), áreas de governo representadas no grupo de trabalho de igualdade racial; as candidatas são a eigr406 ou a eigr168 (afro) e a eigr167 (quilombola). tem_lei_incentivo, de 2018 e 2021, é a ecul31 (\"Disponibiliza infraestrutura para o funcionamento\", do conselho de patrimônio), e a aba Cultura dessas edições não pergunta por lei de incentivo.",
+      "descricao": "Camada Gold / Eixo 1, frente ESTADIC, do Cultura em Números. Gold-base: o painel da gestão estadual de cultura.\nGRÃO: uma linha por UF e edição da ESTADIC (2012, 2014, 2018, 2021, 2023, 2024). UNIVERSO: as 27 UFs em cada edição (162 linhas).\nPARA QUE SERVE: base dos gráficos e mapas da frente ESTADIC. Reproduz o df_estadic_painel do ESTADIC.R, que grava estadic_cultura_painel_transversal_12_24.csv.\nA REGRA: cada edição responde a uma parte do painel. 2018 e 2021, a aba Cultura (órgão gestor, plano, conselho, fundo, patrimônio, lei de incentivo, gestor, composição e competência do conselho); 2014, o suplemento de cultura; 2012, conselho e fundo; 2023, a cultura na primeira infância e na política para mulheres; 2024, a cultura na igualdade racial. A resposta vira 'Sim' ou 'Não' pela macro eixo1_sim_nao; o órgão gestor vira três grupos e a escolaridade, cinco. O tripé (instrumentos_do_tripe, tem_tripe_completo e maturidade_snc) sai daqui, uma vez, para o mapa 8.1, nas edições que perguntam os três instrumentos (2014, 2018 e 2021).\nEXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e 'Não disponível' viram 'Não', como no R, para as golds baterem com a publicação. Em 10/11/2026, com as tabelas de seeds do dbanalytics: em 2023, 2 em pi_arte_cultura (1 '-' e 1 'Recusa') e 14 em pm_parceria_cultura (13 '-' e 1 'Recusa'); em 2024, 13 '-' em cada coluna (ir_gt_cultura, ir_patrimonio_afro e ir_patrimonio_quilombola), os estados que não têm grupo de trabalho de igualdade racial; em 2018 e 2021, 16 '-' em tem_lei_incentivo, os estados que não têm conselho de patrimônio. 2012 e 2014 não têm nenhuma. O 'Em elaboração' do plano (23 UFs em 2014, 7 em 2018 e 6 em 2021) é 'Não' por regra de negócio, como na MUNIC, e não é falta de resposta.\nDIFERENÇA DO R: resposta ausente fica NULL (ADR 0010, regra transversal 1). Nas edições que não perguntam órgão gestor nem escolaridade (2012, 2023 e 2024), o R punha 'Setor Subordinado / Outros' e 'Sem Informação'. E três perguntas vêm da variável que o dicionário do IBGE dá para elas, e não da que o ESTADIC.R lê: o plano de 2014 é a a86 (\"Plano Estadual de Cultura - existência\"), não a a93 (\"Consulta pública\"); o conselho de 2014 é a a254 (\"Conselho Estadual de Cultural - existência\"), não a a305 (\"Institutos Históricos e Geográficos locais\"); e o fundo de 2012 é a a98 (\"Fundo estadual de cultura - existência\"), não a a94 (\"Deliberativo\", do conselho). Com isso, em 2014, 27 UFs têm conselho (o R dava 3) e 3 têm plano (o R dava 2); em 2012, 20 têm fundo (o R dava 22). Conferido contra o CSV do R em 10/11/2026: as 162 linhas e as 23 colunas batem, e das 3.726 células diferem 193. São as 162 do órgão gestor e da escolaridade e as 31 das três perguntas (24 de tem_conselho e 1 de tem_plano em 2014, 6 de tem_fundo em 2012). As colunas do tripé não existem no CSV do R, que calcula o tripé no mapa. Com um item do tripé vazio e nenhum 'Não', tem_tripe_completo fica NULL, e o R contaria a UF como sem tripé, porque a fix_sim_nao faz do vazio 'Não'. Em 11/11/2026 nenhuma UF tem item do tripé vazio, em nenhuma das três edições.\nPENDENTE COM O TIME DO EIXO 1 (issue #176): o ESTADIC.R lê outras três variáveis que não são a pergunta do indicador, e o painel as reproduz até o time dizer qual é a certa. ir_patrimonio_afro e ir_patrimonio_quilombola, de 2024, são a eigr128 (\"Trabalho\") e a eigr1210 (\"Justiça\"), áreas de governo representadas no grupo de trabalho de igualdade racial; as candidatas são a eigr406 ou a eigr168 (afro) e a eigr167 (quilombola). tem_lei_incentivo, de 2018 e 2021, é a ecul31 (\"Disponibiliza infraestrutura para o funcionamento\", do conselho de patrimônio), e a aba Cultura dessas edições não pergunta por lei de incentivo.",
       "colunas": [
         {
           "nome": "cod_uf",
@@ -1053,6 +1053,18 @@
         {
           "nome": "tem_fundo",
           "descricao": "O estado tem fundo estadual de cultura ('Sim' ou 'Não'). Em 2012 vem da a98, e não da a94 do R."
+        },
+        {
+          "nome": "instrumentos_do_tripe",
+          "descricao": "Quantos dos três instrumentos do tripé do SNC (plano, conselho, fundo) o estado tem, de 0 a 3. Só em 2014, 2018 e 2021; NULL nas outras edições e quando algum dos três é vazio."
+        },
+        {
+          "nome": "tem_tripe_completo",
+          "descricao": "O estado tem o tripé do SNC: 'Sim' com plano, conselho e fundo; 'Não' com algum 'Não'. NULL quando algum dos três é vazio e nenhum é 'Não', porque aí não dá para saber, e nas edições que não perguntam os três."
+        },
+        {
+          "nome": "maturidade_snc",
+          "descricao": "Tripé Completo, Institucionalização Parcial ou Nenhum Instrumento (mapa 8.1). Com algum item vazio, só é Institucionalização Parcial quando os outros dois são 'Sim' e 'Não'; nos outros casos, NULL."
         },
         {
           "nome": "tem_lei_patrimonio",
@@ -1111,8 +1123,8 @@
           "descricao": "Escolaridade em cinco grupos, como na frente MUNIC."
         }
       ],
-      "colunas_descritas": 23,
-      "testes": 16,
+      "colunas_descritas": 26,
+      "testes": 19,
       "materializacao": "",
       "depende_de": [
         "silver_estadic_2012_conselhos_e_fundos",
@@ -1129,7 +1141,7 @@
         "silver_estadic_cultura_2014_recursos_humanos"
       ],
       "sources": [],
-      "linhas_sql": 440
+      "linhas_sql": 478
     },
     {
       "nome": "eixo1_estadic_paridade_conselho",
@@ -56516,7 +56528,7 @@
     },
     "cultura_em_numeros": {
       "modelos": 27,
-      "testes": 139,
+      "testes": 142,
       "camadas": {
         "gold": 27
       }
@@ -59789,7 +59801,7 @@
   ],
   "totais": {
     "modelos": 813,
-    "testes": 974,
+    "testes": 977,
     "com_descricao": 812,
     "sources": 768
   }

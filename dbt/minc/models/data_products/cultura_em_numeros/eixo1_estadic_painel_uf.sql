@@ -7,7 +7,7 @@
 -- aba Conselhos e fundos; 2023, Primeira Infância e Política para Mulheres; 2024,
 -- Igualdade Racial. A regra de negócio está aqui (macro eixo1_sim_nao, a
 -- composição e a competência do conselho, os grupos de órgão gestor e de
--- escolaridade). As silvers do ibge só tipam.
+-- escolaridade, e o tripé). As silvers do ibge só tipam.
 --
 -- Diferença do R: resposta ausente fica NULL (ADR 0010, regra transversal 1).
 -- O R classificava o órgão gestor ausente como 'Setor Subordinado / Outros' e a
@@ -344,7 +344,29 @@ with
                     ~* 'fundamental|1º grau|1° grau|1o grau|sem instrução|primeiro grau'
                 then 'Ensino Fundamental'
                 else 'Sem Informação'
-            end as gestor_escolaridade_agrupada
+            end as gestor_escolaridade_agrupada,
+            -- O tripé do SNC, calculado aqui uma vez para o mapa 8.1, e só nas
+            -- edições que perguntam os três instrumentos (2014, 2018 e 2021).
+            -- instrumentos_do_tripe conta os 'Sim' e fica NULL com algum vazio.
+            -- tem_tripe_completo é 'Sim' com os três e 'Não' com algum 'Não'; com
+            -- algum vazio e nenhum 'Não' não dá para saber, e fica NULL (regra
+            -- transversal 1). O R passa os três pela fix_sim_nao, que faz do vazio
+            -- 'Não', e contaria essa UF como sem tripé.
+            case
+                when ano in (2014, 2018, 2021)
+                then
+                    (tem_plano = 'Sim')::int
+                    + (tem_conselho = 'Sim')::int
+                    + (tem_fundo = 'Sim')::int
+            end as instrumentos_do_tripe,
+            case
+                when ano not in (2014, 2018, 2021)
+                then null
+                when tem_plano = 'Sim' and tem_conselho = 'Sim' and tem_fundo = 'Sim'
+                then 'Sim'
+                when tem_plano = 'Não' or tem_conselho = 'Não' or tem_fundo = 'Não'
+                then 'Não'
+            end as tem_tripe_completo
         from edicoes
     ),
 
@@ -408,7 +430,20 @@ with
                 when 'DF'
                 then 'Distrito Federal'
                 else 'Outro'
-            end as nome_uf
+            end as nome_uf,
+            -- A maturidade do mapa 8.1, a partir do tripé acima. Com algum vazio,
+            -- só sai categoria quando o vazio não muda a resposta: 'Sim' e 'Não'
+            -- nos outros dois é parcial de qualquer jeito.
+            case
+                when tem_tripe_completo = 'Sim'
+                then 'Tripé Completo'
+                when instrumentos_do_tripe = 0
+                then 'Nenhum Instrumento'
+                when
+                    tem_tripe_completo = 'Não'
+                    and 'Sim' in (tem_plano, tem_conselho, tem_fundo)
+                then 'Institucionalização Parcial'
+            end as maturidade_snc
         from classificado
     )
 
@@ -422,6 +457,9 @@ select
     tem_plano,
     tem_conselho,
     tem_fundo,
+    instrumentos_do_tripe,
+    tem_tripe_completo,
+    maturidade_snc,
     tem_lei_patrimonio,
     tem_cons_patrimonio,
     tem_lei_incentivo,
