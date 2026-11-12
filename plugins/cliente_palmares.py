@@ -208,10 +208,15 @@ def versao_da_planilha(
         raise ValueError(f"versão ({origem}) {versao} depois de hoje ({hoje})")
     ultima = maior_data_dou(livro, hoje)
     if ultima and versao < ultima:
+        conserto = (
+            "informe uma data a partir dela"
+            if informada
+            else 'o carimbo está velho. Confira a planilha e dispare com {"versao": '
+            '"AAAA-MM-DD"}'
+        )
         raise ValueError(
             f"versão ({origem}) {versao} anterior à portaria mais recente da "
-            f"planilha ({ultima}): o carimbo está velho. Confira a planilha e "
-            'dispare com {"versao": "AAAA-MM-DD"}'
+            f"planilha ({ultima}): {conserto}"
         )
     logging.info(
         "[cliente_palmares] versão %s (%s); portaria mais recente %s",
