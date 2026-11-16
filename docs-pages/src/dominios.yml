@@ -212,6 +212,52 @@ dominios:
       federal. E a escolha do que é patrimônio, arquivo ou memória não está
       nestas tabelas: elas trazem todas as normas, do tema ou não.
 
+  - slug: palmares
+    rotulo: Comunidades quilombolas certificadas
+    subtitulo: As certidões de autodefinição que a Fundação Cultural Palmares emitiu
+    sem_modelos: true
+    contexto: |
+      O Eixo 3 do Cultura em Números conta as comunidades quilombolas
+      reconhecidas no país e onde elas estão. O reconhecimento começa pela
+      certidão de autodefinição da Fundação Cultural Palmares, publicada por
+      portaria no Diário Oficial. O script do eixo lia uma cópia da lista
+      guardada no computador de quem o rodava, e cada atualização dependia de
+      alguém baixar o arquivo de novo.
+    o_que_faz: |
+      Todo mês, baixa a planilha de certidões que a Palmares mantém no Google
+      Sheets e guarda cada versão que encontra ao lado das anteriores. A
+      versão é a data de "última atualização" que a própria Palmares escreve
+      na planilha. Uma versão nova só aparece quando a Palmares atualiza a
+      planilha; buscar de novo a mesma versão a substitui. Ainda não há
+      tabela de uso final: a lista está carregada no schema seeds e espera o
+      modelo que vai tratá-la.
+    perguntas:
+      - Quantas comunidades quilombolas foram certificadas, em cada ano e em cada estado?
+      - Em que municípios estão as comunidades certificadas?
+      - Quantas certidões já têm processo de titulação aberto no Incra?
+    sistemas: [Fundação Cultural Palmares]
+    armadilhas: |
+      Uma linha da tabela seeds.palmares_quilombos_certificados é uma
+      certidão, não uma comunidade: uma certidão pode cobrir várias, e o
+      número delas está na coluna no_de_crq. Na versão de 11/11/2026 eram
+      3.578 certidões e 4.783 comunidades. Contar linhas conta certidões.
+      As versões ficam lado a lado, então a mesma certidão aparece uma vez em
+      cada versão: para o retrato atual, filtre a maior versao. O número do
+      registro não identifica a certidão, porque se repete (6 números em 14
+      linhas); dentro de uma versão, quem identifica é a coluna linha, o
+      número da linha na planilha. Uma certidão pode cobrir mais de um
+      município: municipio e codigo_do_ibge trazem vários, separados de
+      jeitos diferentes, e há códigos IBGE inexistentes ou de outro estado.
+      Somar por município exige separar os códigos antes, ou as certidões de
+      vários municípios ficam de fora ou contam em dobro. No número da
+      portaria, valores como "nov./06" são datas que o Excel inventou: querem
+      dizer Portaria 11/2006. Desde 2025 a portaria vem sem o ano. A coluna
+      de moradores mistura famílias e pessoas e está quase toda vazia, a de
+      população do IBGE traz coordenadas, e cont vale sempre 1. Acre,
+      Roraima e Distrito Federal não têm certidão na lista. Célula vazia,
+      inclusive a que a planilha preenche com um espaço invisível, chega
+      como nula.
+
   - slug: metadata
     rotulo: Metadados do pipeline
     subtitulo: O que o próprio pipeline registra sobre sua execução
