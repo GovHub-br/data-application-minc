@@ -26,6 +26,16 @@ Conferido em 16/11/2026, versão 2026-11-06:
 - ``REGISTRO_SALA`` vem vazio nas 37 salas ``NÃO ENCONTRADA``, então dentro de
   uma versão quem identifica a sala é a linha do arquivo.
 
+**CNPJ, nome do exibidor e endereço.** O cadastro traz o CNPJ da sala (6.396
+linhas; nas 37 ``NÃO ENCONTRADA`` vem ``../-``) e o do exibidor (todas), 2.015
+CNPJs distintos, todos com 14 dígitos: não há CPF, nem nas colunas de nome.
+Traz também o nome do exibidor, que em 427 salas termina em ME, EIRELI ou MEI,
+empresas cujo nome costuma ser o de uma pessoa, e o endereço do complexo, que
+entra pelo mesmo critério da lista do SNC (``cliente_dados_cultura``). São
+dados públicos de empresas: vão para o raw, o Parquet e ``seeds`` como
+vieram, e não entram em log. ``DADOS_SENSIVEIS`` lista essas colunas: quem
+modelar, cruzar ou expor a tabela começa por ela.
+
 Os dados vão como vieram, em texto (ADR 0012). O filtro de situação e a
 contagem por município são regra de negócio e ficam no dbt.
 """
@@ -65,9 +75,28 @@ COLUNAS_ESPERADAS = (
     "municipio_complexo",
     "uf_complexo",
 )
+# Colunas com CNPJ, nome que pode ser de pessoa ou endereço, pelo nome
+# normalizado, no critério do ``DADOS_SENSIVEIS`` da lista do SNC (PR #148).
+# Ficam na tabela como vieram: a lista existe para quem for usar a tabela
+# saber o que ela carrega. A carga não depende delas.
+DADOS_SENSIVEIS: dict[str, tuple[str, ...]] = {
+    "CNPJ": ("cnpj_sala", "cnpj_exibidor"),
+    "nome que pode ser de pessoa (ME, EIRELI, MEI)": ("nome_exibidor",),
+    "endereço": (
+        "endereco_complexo",
+        "numero_endereco_complexo",
+        "complemento_complexo",
+        "bairro_complexo",
+        "cep_complexo",
+    ),
+}
 FUSO = ZoneInfo("America/Sao_Paulo")
 
 _VERSAO = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# As quebras que o ``csv.reader`` reconhece, lendo de ``io.StringIO`` com
+# ``newline=""``. O ``str.splitlines`` quebra também em ``\x85``, ``\u2028``,
+# ``\x1c`` e outros, que o parser deixa dentro do campo.
+_QUEBRA_DE_LINHA = re.compile(r"\r\n|\r|\n")
 
 
 @dataclass(frozen=True)
@@ -201,10 +230,14 @@ def registros(
 def contar_linhas(conteudo: bytes) -> int:
     """Linhas de dados por quebra de linha, sem o parser: a conferência independente.
 
-    Se um campo passar a trazer quebra de linha, esta contagem fica maior que a
-    do parser e a carga falha na conferência, de propósito: é preciso olhar o
-    arquivo.
+    Conta as mesmas quebras que o ``csv.reader`` (CR LF, CR e LF), para que um
+    caractere como o NEL (U+0085) num nome de sala não faça a conferência
+    falhar com o arquivo certo. Se um campo passar a trazer quebra de linha,
+    esta contagem fica maior que a do parser e a carga falha na conferência,
+    de propósito: é preciso olhar o arquivo.
     """
     return sum(
-        1 for linha in _texto(conteudo).splitlines()[1:] if linha.strip(SEPARADOR + " ")
+        1
+        for linha in _QUEBRA_DE_LINHA.split(_texto(conteudo))[1:]
+        if linha.strip(SEPARADOR + " ")
     )

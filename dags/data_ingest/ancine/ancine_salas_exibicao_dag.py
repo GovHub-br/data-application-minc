@@ -18,6 +18,11 @@ encontra fica ao lado das anteriores, e recarregar a mesma versão a substitui,
 então reexecutar não duplica. A conferência (linhas do arquivo por quebra de
 linha, do Parquet e do banco) vai para ``seeds.ancine_controle_carga``.
 
+O cadastro traz o CNPJ da sala e do exibidor, o nome do exibidor (em ME,
+EIRELI e MEI, muitas vezes o de uma pessoa) e o endereço do complexo, que vão
+para o raw, o Parquet e ``seeds`` como vieram. As colunas estão em
+``cliente_ancine.DADOS_SENSIVEIS``; nenhuma delas entra em log.
+
 Sem ``Last-Modified``, ou com uma data no futuro, a carga falha em
 ``baixar_para_raw``; confira a data do arquivo no portal e dispare com
 ``{"versao": "AAAA-MM-DD"}``.

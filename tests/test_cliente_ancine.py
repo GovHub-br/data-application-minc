@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 
 import cliente_ancine as ancine
+from seeds_carga import normalizar_colunas
 
 _CABECALHO = (
     "NOME_SALA;REGISTRO_SALA;SITUACAO_SALA;REGISTRO_COMPLEXO;SITUACAO_COMPLEXO;"
@@ -70,6 +71,19 @@ def test_quebra_de_linha_dentro_de_campo_faz_as_contagens_divergirem() -> None:
     ).encode("utf-8")
     assert len(ancine.registros(com_quebra, "2026-11-06", minimo=1)) == 1
     assert ancine.contar_linhas(com_quebra) == 2
+
+
+@pytest.mark.parametrize("separador", ["\x85", "\u2028", "\x1c", "\x0b", "\x0c"])
+def test_separador_que_o_csv_reader_nao_usa_nao_muda_a_contagem(
+    separador: str,
+) -> None:
+    # str.splitlines quebra também nesses caracteres, que o csv.reader deixa
+    # dentro do campo: o arquivo estaria certo e a conferência falharia.
+    texto = _CSV.decode("utf-8-sig").replace("SALA 1", f"SALA{separador}1")
+    conteudo = texto.encode("utf-8")
+    registros = ancine.registros(conteudo, "2026-11-06", minimo=1)
+    assert registros[0]["nome_sala"] == f"SALA{separador}1"
+    assert ancine.contar_linhas(conteudo) == len(registros) == 2
 
 
 def test_falta_coluna_esperada_falha() -> None:
@@ -178,3 +192,29 @@ def test_baixar_recusa_pagina_no_lugar_do_csv(monkeypatch: pytest.MonkeyPatch) -
     )
     with pytest.raises(ValueError, match="não é o CSV"):
         ancine.baixar()
+
+
+# Cabeçalho do arquivo publicado em 06/11/2026, as 32 colunas.
+_CABECALHO_PUBLICADO = (
+    "NOME_SALA;REGISTRO_SALA;CNPJ_SALA;SITUACAO_SALA;DATA_SITUACAO_SALA;"
+    "DATA_INICIO_FUNCIONAMENTO_SALA;ASSENTOS_SALA;ASSENTOS_CADEIRANTES;"
+    "ASSENTOS_MOBILIDADE_REDUZIDA;ASSENTOS_OBESIDADE;ACESSO_ASSENTOS_COM_RAMPA;"
+    "ACESSO_SALA_COM_RAMPA;BANHEIROS_ACESSIVEIS;NOME_COMPLEXO;REGISTRO_COMPLEXO;"
+    "SITUACAO_COMPLEXO;DATA_SITUACAO_COMPLEXO;PAGINA_ELETRONICA_COMPLEXO;"
+    "ENDERECO_COMPLEXO;NUMERO_ENDERECO_COMPLEXO;COMPLEMENTO_COMPLEXO;"
+    "BAIRRO_COMPLEXO;MUNICIPIO_COMPLEXO;CEP_COMPLEXO;UF_COMPLEXO;"
+    "COMPLEXO_ITINERANTE;OPERACAO_USUAL;NOME_EXIBIDOR;REGISTRO_EXIBIDOR;"
+    "CNPJ_EXIBIDOR;SITUACAO_EXIBIDOR;NOME_GRUPO_EXIBIDOR"
+)
+
+
+def test_dados_sensiveis_sao_colunas_do_arquivo_publicado() -> None:
+    # A lista documenta o que a tabela carrega; se a ANCINE renomear uma
+    # coluna, o texto tem de mudar junto.
+    sensiveis = [c for grupo in ancine.DADOS_SENSIVEIS.values() for c in grupo]
+    assert len(sensiveis) == len(set(sensiveis))
+    assert set(sensiveis) <= set(normalizar_colunas(_CABECALHO_PUBLICADO.split(";")))
+    assert {"cnpj_sala", "cnpj_exibidor", "nome_exibidor"} <= set(sensiveis)
+    # A carga não depende delas: sem uma dessas colunas, o cadastro continua
+    # servindo para contar salas.
+    assert not set(sensiveis) & set(ancine.COLUNAS_ESPERADAS)
