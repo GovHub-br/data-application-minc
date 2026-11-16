@@ -111,6 +111,18 @@ models:
     siconfi:
       +schema: siconfi
       +materialized: view
+    # Portal de dados abertos do MinC e SIOP: as DAGs gravam em
+    # seeds.dados_cultura_<entidade> e seeds.siop_<entidade> (ADR 0012), toda
+    # coluna text. bronze_<entidade> e a copia fiel e silver_<entidade> tipa;
+    # caem nos schemas dados_cultura e siop, e o seeds fica so com o que a
+    # ingestao grava. A silver do SNC nao carrega as colunas de
+    # cliente_dados_cultura.DADOS_SENSIVEIS.
+    dados_cultura:
+      +schema: dados_cultura
+      +materialized: view
+    siop:
+      +schema: siop
+      +materialized: view
     # Senado: a senado_legislacao_dag le o raw do MinIO e grava, pelo Trino,
     # senado.legislacao_lista, senado.legislacao_detalhe,
     # senado.legislacao_detalhe_secoes e senado.arquivos (toda coluna varchar).
