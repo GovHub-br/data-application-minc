@@ -221,7 +221,7 @@ models:
       transação-mãe de silver_pagamento_subtransacao_bbagil. Não limpa nem
       recorta — só tipa.
 
-      TIPAGEM: lida de bronze_extrato_bbagil. 22 das 42 colunas recebem
+      TIPAGEM: lida de bronze_extrato_bbagil. 23 das 42 colunas recebem
       cast; o cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
       não do nome da coluna, e exige 100% dos valores preenchidos casando.
       beneficiarydocumentid fica texto mesmo casando com inteiro: é CPF/CNPJ,
@@ -347,8 +347,12 @@ models:
         data_type: numeric
       - name: accountbalance
         description: >
-          Tipagem: 407260 valores 'NaN' gravados como texto.
-        data_type: text
+          Saldo da conta depois da transação. Tipagem: 100% dos 185.092 valores
+          com saldo casam com decimal. A linha sem saldo chega como NULL ou como o
+          texto 'NaN', que o ClientPostgresDB gravava para a chave ausente até o
+          PR #112; os dois viram NULL aqui. Medido em 11/11/2026 sobre 1.037.805
+          lançamentos, com 538.892 'NaN' e 313.821 NULL na origem.
+        data_type: numeric
       - name: descriptioncode
         description: >
           Tipagem: 100% dos 508146 valores casam com inteiro.
