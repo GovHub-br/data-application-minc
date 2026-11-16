@@ -2713,6 +2713,66 @@
       "linhas_sql": 5
     },
     {
+      "nome": "eixo2_meta3_distribuicao_cotas_lpg_bbagil",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_distribuicao_cotas_lpg_bbagil.sql",
+      "descricao": "Cotas da LPG por ano do pagamento, sobre o valor PAGO pelo BB Ágil (eixo2_meta3_pagamento_bbagil_perfil). Mesma macro distribuicao_cotas e mesmos 4 grupos de eixo2_meta3_distribuicao_cotas_lpg, que mede pelas listas de contemplados; esta não a substitui, corre ao lado. A cota territorial é só da LPG e usa a mesma regra de eixo2_meta3_pagamento_elegivel (município declarado no crosswalk do IBGE). A cobertura de perfil é baixa (só uma fatia de quem recebeu respondeu à planilha de perfil), então leia valor_total_com_perfil_ano contra valor_total_ano antes do veredito. Ano sem nenhum valor com perfil sai 'descumprida', como na medida pelas listas.",
+      "colunas": [
+        {
+          "nome": "programa",
+          "descricao": "Programa da linha. Constante 'LPG' neste modelo."
+        },
+        {
+          "nome": "ano_evento",
+          "descricao": "Ano do pagamento no extrato do BB Ágil (não o ano do edital, que é o ano_final da medida pelas listas)."
+        },
+        {
+          "nome": "grupo",
+          "descricao": "Grupo com cota legal. São 4 na LPG."
+        },
+        {
+          "nome": "valor_grupo",
+          "descricao": "Soma do valor pago aos documentos cuja flag do grupo é true. Numerador da cota, ponderado por dinheiro e não por número de agentes."
+        },
+        {
+          "nome": "valor_total_ano",
+          "descricao": "Valor pago no ano, incluindo quem não tem perfil. A cota calculada sobre ele trata todo pagamento sem perfil como fora da cota."
+        },
+        {
+          "nome": "valor_total_com_perfil_ano",
+          "descricao": "Valor pago no ano a quem tem perfil. Denominador do veredito. NULL quando nenhum pagamento do ano casou com perfil."
+        },
+        {
+          "nome": "pct_sobre_total",
+          "descricao": "valor_grupo / valor_total_ano, em 0–100. Piso da estimativa."
+        },
+        {
+          "nome": "pct_sobre_com_perfil",
+          "descricao": "valor_grupo / valor_total_com_perfil_ano, em 0–100. É o percentual comparado com a meta legal."
+        },
+        {
+          "nome": "qtd_agentes_grupo",
+          "descricao": "Documentos distintos no grupo. Contagem informativa."
+        },
+        {
+          "nome": "meta_minima_pct",
+          "descricao": "Meta legal mínima em 0–100: negra 25, indígena 10, PCD 5, território vulnerabilizado 20."
+        },
+        {
+          "nome": "status_sobre_com_perfil",
+          "descricao": "'alcancada' ou 'descumprida', comparando pct_sobre_com_perfil com meta_minima_pct. Frágil quando a cobertura do ano é baixa."
+        }
+      ],
+      "colunas_descritas": 11,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [],
+      "linhas_sql": 18
+    },
+    {
       "nome": "eixo2_meta3_distribuicao_cotas_pnab",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -2770,7 +2830,67 @@
       "materializacao": "",
       "depende_de": [],
       "sources": [],
-      "linhas_sql": 12
+      "linhas_sql": 13
+    },
+    {
+      "nome": "eixo2_meta3_distribuicao_cotas_pnab_bbagil",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_distribuicao_cotas_pnab_bbagil.sql",
+      "descricao": "Cotas da PNAB por ano do pagamento, sobre o valor PAGO pelo BB Ágil (eixo2_meta3_pagamento_bbagil_perfil). Mesma macro distribuicao_cotas e mesmos 3 grupos de eixo2_meta3_distribuicao_cotas_pnab, que mede pelas listas de contemplados; esta não a substitui, corre ao lado. Sem a cota territorial, que só a LPG tem. Aqui o denominador é o valor pago a pessoas: o repasse recebido pelos entes, que pesa na medida pelas listas, já saiu em eixo2_meta5_evento_fomento. A cobertura de perfil é baixa (só uma fatia de quem recebeu respondeu à planilha de perfil), então leia valor_total_com_perfil_ano contra valor_total_ano antes do veredito. Ano sem nenhum valor com perfil sai 'descumprida', como na medida pelas listas.",
+      "colunas": [
+        {
+          "nome": "programa",
+          "descricao": "Programa da linha. Constante 'PNAB' neste modelo."
+        },
+        {
+          "nome": "ano_evento",
+          "descricao": "Ano do pagamento no extrato do BB Ágil (não o ano do edital, que é o ano_final da medida pelas listas)."
+        },
+        {
+          "nome": "grupo",
+          "descricao": "Grupo com cota legal. São 3 na PNAB."
+        },
+        {
+          "nome": "valor_grupo",
+          "descricao": "Soma do valor pago aos documentos cuja flag do grupo é true. Numerador da cota, ponderado por dinheiro e não por número de agentes."
+        },
+        {
+          "nome": "valor_total_ano",
+          "descricao": "Valor pago no ano, incluindo quem não tem perfil. A cota calculada sobre ele trata todo pagamento sem perfil como fora da cota."
+        },
+        {
+          "nome": "valor_total_com_perfil_ano",
+          "descricao": "Valor pago no ano a quem tem perfil. Denominador do veredito. NULL quando nenhum pagamento do ano casou com perfil."
+        },
+        {
+          "nome": "pct_sobre_total",
+          "descricao": "valor_grupo / valor_total_ano, em 0–100. Piso da estimativa."
+        },
+        {
+          "nome": "pct_sobre_com_perfil",
+          "descricao": "valor_grupo / valor_total_com_perfil_ano, em 0–100. É o percentual comparado com a meta legal."
+        },
+        {
+          "nome": "qtd_agentes_grupo",
+          "descricao": "Documentos distintos no grupo. Contagem informativa."
+        },
+        {
+          "nome": "meta_minima_pct",
+          "descricao": "Meta legal mínima em 0–100: negra 25, indígena 10, PCD 5."
+        },
+        {
+          "nome": "status_sobre_com_perfil",
+          "descricao": "'alcancada' ou 'descumprida', comparando pct_sobre_com_perfil com meta_minima_pct. Frágil quando a cobertura do ano é baixa."
+        }
+      ],
+      "colunas_descritas": 11,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [],
+      "linhas_sql": 19
     },
     {
       "nome": "eixo2_meta3_identificador_agente",
@@ -2801,6 +2921,124 @@
       ],
       "sources": [],
       "linhas_sql": 5
+    },
+    {
+      "nome": "eixo2_meta3_pagamento_bbagil",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_pagamento_bbagil.sql",
+      "descricao": "O valor pago pelo BB Ágil a agentes culturais da LPG e da PNAB: o filtro de eixo2_meta5_evento_fomento com fonte 'BB_AGIL' e programa_fomento LPG ou PNAB. Não refaz a regra de pagamento efetivo (débito sem estorno, sublançamento 'Pago', fora ente público, FNC e Banco do Brasil, piso de valor por agente na política), que mora em eixo2_meta5_evento_fomento. A regra própria da Meta 3 é o escopo: só as duas leis que exigem as cotas; a LAB fica de fora. 1 linha por (documento, política, data, valor). View.",
+      "colunas": [
+        {
+          "nome": "beneficiario_documento",
+          "descricao": "CPF ou CNPJ normalizado de quem recebeu o pagamento."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Política do pagamento, pelo código do programa no extrato."
+        },
+        {
+          "nome": "data_evento",
+          "descricao": "Data do pagamento no extrato."
+        },
+        {
+          "nome": "ano_evento",
+          "descricao": "Ano de data_evento. É o ano das golds de distribuição pelo pago."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor pago, em reais."
+        },
+        {
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' ou 'PJ', pelo tamanho do documento."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 4,
+      "materializacao": "view",
+      "depende_de": [
+        "eixo2_meta5_evento_fomento"
+      ],
+      "sources": [],
+      "linhas_sql": 25
+    },
+    {
+      "nome": "eixo2_meta3_pagamento_bbagil_perfil",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": 3,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_pagamento_bbagil_perfil.sql",
+      "descricao": "Gold-base da medida pelo pago: cada pagamento de eixo2_meta3_pagamento_bbagil com o perfil de quem recebeu (eixo2_meta3_perfil_agente) e o território do município dele (silver_territorio_municipio), por LEFT JOIN — nenhum pagamento sai, e o sem perfil entra no denominador com tem_perfil false. Sem perfil, flag_negra, flag_indigena e flag_pcd ficam NULL, não false (ADR 0010, regra 1). A cota territorial usa a mesma regra de eixo2_meta3_pagamento_elegivel. Só uma fatia pequena de quem recebeu tem perfil — medido em novembro de 2026, 6,4% dos documentos da LPG e 3,7% dos da PNAB —, e as cotas valem para essa fatia. Grão de eixo2_meta3_pagamento_bbagil.",
+      "colunas": [
+        {
+          "nome": "beneficiario_documento",
+          "descricao": "CPF ou CNPJ normalizado de quem recebeu. Casa com eixo2_meta3_perfil_agente.identificador_unico."
+        },
+        {
+          "nome": "programa_fomento",
+          "descricao": "Política do pagamento ('LPG' ou 'PNAB')."
+        },
+        {
+          "nome": "data_evento",
+          "descricao": "Data do pagamento no extrato."
+        },
+        {
+          "nome": "ano_evento",
+          "descricao": "Ano do pagamento."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor pago, em reais. Medida somada nas cotas — o denominador e, filtrado pelas flags, os numeradores."
+        },
+        {
+          "nome": "tipo_pessoa",
+          "descricao": "'PF' ou 'PJ'."
+        },
+        {
+          "nome": "raca_normalizada",
+          "descricao": "Raça/cor do perfil em 5 categorias (negra, indigena, branca, amarela, nao_declarada). NULL sem perfil."
+        },
+        {
+          "nome": "flag_negra",
+          "descricao": "Agente autodeclarado negro (preto ou pardo). Numerador da cota de 25%. NULL sem perfil: não ter respondido à planilha não diz que o agente não é negro (ADR 0010, regra 1)."
+        },
+        {
+          "nome": "flag_indigena",
+          "descricao": "Agente autodeclarado indígena, pela raça normalizada ou pelo campo indígena da PNAB. Numerador da cota de 10%. NULL sem perfil."
+        },
+        {
+          "nome": "flag_pcd",
+          "descricao": "Agente autodeclarado pessoa com deficiência. Numerador da cota de 5%. NULL sem perfil."
+        },
+        {
+          "nome": "agente_cidade",
+          "descricao": "Município declarado no perfil. NULL sem perfil e nos perfis da PNAB."
+        },
+        {
+          "nome": "agente_uf",
+          "descricao": "UF declarada no perfil. NULL sem perfil e nos perfis da PNAB."
+        },
+        {
+          "nome": "tem_perfil",
+          "descricao": "True quando o documento casou com eixo2_meta3_perfil_agente. As cotas \"sobre com perfil\" usam só estas linhas."
+        },
+        {
+          "nome": "flag_territorio_vulneravel",
+          "descricao": "True quando o município declarado está no crosswalk de concentrações urbanas do IBGE (silver_territorio_municipio). Numerador da cota de 20%, só da LPG. NULL quando o agente não declarou cidade (sem perfil ou perfil da PNAB)."
+        }
+      ],
+      "colunas_descritas": 14,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "eixo2_meta3_pagamento_bbagil",
+        "eixo2_meta3_perfil_agente",
+        "silver_territorio_municipio"
+      ],
+      "sources": [],
+      "linhas_sql": 51
     },
     {
       "nome": "eixo2_meta3_pagamento_elegivel",
@@ -51787,10 +52025,10 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 50,
-      "testes": 263,
+      "modelos": 54,
+      "testes": 281,
       "camadas": {
-        "gold": 50
+        "gold": 54
       }
     },
     "ibge": {
@@ -55042,9 +55280,9 @@
     }
   ],
   "totais": {
-    "modelos": 817,
-    "testes": 1110,
-    "com_descricao": 816,
+    "modelos": 821,
+    "testes": 1128,
+    "com_descricao": 820,
     "sources": 758
   }
 }
