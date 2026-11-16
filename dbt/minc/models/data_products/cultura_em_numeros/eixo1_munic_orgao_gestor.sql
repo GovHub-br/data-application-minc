@@ -1,7 +1,7 @@
 -- Gold do Eixo 1, frente MUNIC: o tipo de órgão gestor da cultura em cada
 -- edição, em três grupos (gráfico 4 do MUNIC.R). Fora 'Recusa'.
 --
--- O agrupamento é diferente do da ESTADIC (eixo1_estadic_painel_uf) porque os dois
+-- O agrupamento é diferente do da ESTADIC (o ESTADIC.R, #160) porque os dois
 -- scripts R são diferentes, e cada gold segue o seu. O MUNIC.R agrupa no gráfico 4,
 -- não no painel, não põe "indireta" no grupo exclusivo e chama o segundo grupo de
 -- 'Secretaria em Conjunto (Ex: Educação e Cultura)'. O ESTADIC.R agrupa no painel,

@@ -142,8 +142,10 @@ def _schema_excludes(recipe_name: str) -> set[str]:
 def test_profiler_skips_only_the_raw_seeds_copy() -> None:
     """O profiler nao mede o seeds; o metadata continua catalogando tudo.
 
-    O seeds e a copia crua de planilhas (108 tabelas em 10/11/2026). O dbt usa
-    16, que a bronze `ibge` copia sem mudar nada, e o profiler ja mede a bronze.
+    O seeds e a copia crua de planilhas (108 tabelas em 10/11/2026). O dbt le
+    18: 16 pela bronze `ibge` e uma por cada bronze de `dados_cultura` e `siop`.
+    As bronzes sao view, que o profiler nao mede (includeViews fica false); o
+    que o projeto le dessas planilhas e medido nas golds de cultura_em_numeros.
     """
     assert _schema_excludes("postgres_profiler.yaml") == {"^seeds$"}
     assert not _schema_excludes("postgres_metadata.yaml"), (
