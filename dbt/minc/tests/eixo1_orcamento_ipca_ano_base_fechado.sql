@@ -4,8 +4,9 @@
 -- seria a média de parte do ano, e todo valor_real sairia enviesado sem erro.
 --
 -- Confere também a escala: a gold-base lê o índice do ano-base direto do IPCA
--- e o do exercício de int_bacen_siconfi. As duas contas são a mesma, então no
--- ano-base fator_ipca é 1; se uma delas mudar sozinha, deixa de ser.
+-- e o do exercício de int_bacen_bbagil_siconfi. As duas contas são a mesma,
+-- então no ano-base fator_ipca é 1, nos dois ramos (MSC e LAB 1); se uma
+-- delas mudar sozinha, deixa de ser.
 -- Devolve uma linha por problema.
 {% set ano_base = var("eixo1_orcamento_ano_base_ipca", 2024) %}
 
