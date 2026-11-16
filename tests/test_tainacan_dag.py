@@ -1,9 +1,13 @@
 """Fiação da ``tainacan_dag``, com a API, o MinIO e o Postgres trocados por falsos.
 
 Carrega a DAG de verdade (``airflow.sdk``, Airflow 3; sem ele o arquivo é
-pulado, como em ``test_senado_dags.py``).
+pulado, como em ``test_senado_dags.py``). A DAG também importa a linhagem do
+OpenMetadata, que só existe na imagem do Airflow e fica fora do Poetry de
+propósito: como em ``test_dags_fontes_eixo1.py``, estes testes são pulados no
+job ``test`` e rodam no ``docker_build``, que executa a suíte dentro da imagem.
 """
 
+import importlib.util
 import json
 import math
 from datetime import datetime, timezone
@@ -16,6 +20,14 @@ import pandas as pd
 import pytest
 
 pytest.importorskip("airflow.sdk", reason="DAGs do Airflow 3: rodam dentro da imagem")
+
+pytestmark = pytest.mark.skipif(
+    importlib.util.find_spec("metadata") is None,
+    reason=(
+        "openmetadata-ingestion ausente: a tainacan_dag importa a linhagem; "
+        "roda dentro da imagem do Airflow (job docker_build)"
+    ),
+)
 
 from airflow.dag_processing.dagbag import DagBag  # noqa: E402
 
