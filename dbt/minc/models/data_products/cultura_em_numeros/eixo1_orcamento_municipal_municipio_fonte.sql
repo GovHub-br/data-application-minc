@@ -1,19 +1,19 @@
 -- Gold — empenho municipal em cultura por exercício, município e origem do
 -- recurso, em reais correntes e de 2024, com a população do Censo 2022 e o
--- porte do município. É a municipal_final.csv de gasto_municipal.R, sem a LAB 1
--- (ver abaixo).
+-- porte do município. É a municipal_final.csv de gasto_municipal.R.
 --
 -- Agrega eixo1_orcamento_empenho_cultura, onde está a regra (empenho, origem,
--- função 13, DF fora). O município é o cod_ibge do item da MSC: o R casa o
--- nome do município com a malha do IBGE, e o que não casa fica sem código.
+-- função 13, DF fora da MSC, LAB 1 do extrato do BB Ágil). O município é o
+-- cod_ibge do item da MSC ou o da conta do BB Ágil: o R casa o nome do
+-- município da MSC com a malha do IBGE, e o que não casa fica sem código.
 --
 -- PORTE: as faixas da PNAS (macro eixo1_porte_pnas) sobre a população
 -- residente do Censo 2022 (int_ibge_sidra_siconfi), as mesmas da
 -- MUNIC_FINAL.xlsx que o R lê. Sem população do Censo, o porte fica nulo.
 --
--- LAB 1: no R, a origem 'Lei Aldir Blanc 1 (LAB 1)' do município vem do cubo
--- do BB Ágil, não da MSC (a MSC não separa a LAB 1 na fonte). Ainda não entra
--- aqui: o extrato do BB Ágil no banco começa em 2023.
+-- LAB 1: a origem 'lab', 'Lei Aldir Blanc 1 (LAB 1)', vem do extrato do BB
+-- Ágil, como no R, que a tira do cubo do BB Ágil (a MSC não separa a LAB 1 na
+-- fonte do município). O DF entra só aqui, como Brasília (5300108).
 -- GRÃO: uma linha por (exercicio, cod_ibge, origem) que tem empenho.
 with
     por_origem as (
@@ -23,7 +23,7 @@ with
             origem,
             sum(valor_nominal) as valor_nominal,
             sum(valor_real) as valor_real,
-            count(*) as linhas_msc
+            count(*) as linhas
         from {{ ref("eixo1_orcamento_empenho_cultura") }}
         where esfera_eixo1 = 'municipal'
         group by exercicio, cod_ibge, origem
@@ -37,7 +37,7 @@ select
     p.origem,
     p.valor_nominal,
     p.valor_real,
-    p.linhas_msc,
+    p.linhas,
     m.populacao_censo_2022,
     {{ siconfi_regiao_por_extenso("m.regiao") }} as regiao,
     case

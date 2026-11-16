@@ -6,8 +6,8 @@
 -- como em gasto_municipal.R. A participação é sobre o valor real, como no R;
 -- dentro de um ano é a mesma do valor nominal.
 --
--- Só agrega eixo1_orcamento_municipal_municipio_fonte. Sem a LAB 1 enquanto
--- ela não entrar lá.
+-- Só agrega eixo1_orcamento_municipal_municipio_fonte, com a LAB 1 do extrato
+-- do BB Ágil.
 -- GRÃO: uma linha por (exercicio, origem) que tem empenho.
 with
     por_origem as (
