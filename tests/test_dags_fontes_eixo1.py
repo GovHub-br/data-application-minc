@@ -1,11 +1,13 @@
-"""Fiação das DAGs que trazem as fontes do Eixo 1 do Cultura em Números.
+"""Fiação das DAGs que trazem as fontes do Eixo 1 do Cultura em Números, e
+da planilha de quilombolas certificados da Palmares (Eixo 3), que segue o
+mesmo caminho de seeds.
 
 Carrega as DAGs de verdade e confere o que um refactor pode quebrar sem que
 nenhum teste de função perceba: a ordem raw → staging → seeds, as tabelas
 declaradas para a linhagem, os parâmetros e o default do IPCA no BACEN.
 
 As DAGs usam ``airflow.sdk`` (Airflow 3): sem ele o arquivo é pulado, como em
-``test_siconfi_dags.py``. As três DAGs de seeds também importam a linhagem do
+``test_siconfi_dags.py``. As DAGs de seeds também importam a linhagem do
 OpenMetadata, que só existe na imagem do Airflow e fica fora do Poetry de
 propósito (ver ``test_openmetadata_execution.py``). Os testes que as carregam
 são pulados no job ``test`` e rodam no ``docker_build``, que executa a suíte
@@ -30,6 +32,7 @@ _ARQUIVOS = {
     "siop_execucao_dag": _DAGS / "siop" / "siop_execucao_dag.py",
     "tesouro_transparente_dag": _DAGS / "tesouro" / "tesouro_transparente_dag.py",
     "dados_cultura_dag": _DAGS / "dados_cultura" / "dados_cultura_dag.py",
+    "palmares_quilombos_dag": _DAGS / "palmares" / "palmares_quilombos_dag.py",
     "bacen_sgs_ingest_dag": _DAGS / "bacen" / "bacen_sgs_ingest_dag.py",
     "extracao_bbagil_dag": _DAGS / "bsc_pnab" / "extracao_bbagil_dag.py",
 }
@@ -38,6 +41,7 @@ _DAGS_DE_SEEDS = (
     "siop_execucao_dag",
     "tesouro_transparente_dag",
     "dados_cultura_dag",
+    "palmares_quilombos_dag",
 )
 _CAMINHO = ["baixar_para_raw", "raw_para_parquet", "parquet_para_seeds"]
 
@@ -90,6 +94,15 @@ def test_ibge_e_tesouro_sao_manuais(dags: dict[str, Any]) -> None:
         assert type(dags[dag_id].timetable).__name__ == "NullTimetable", dag_id
     assert dags["ibge_perfil_dag"].params["edicoes"] == []
     assert dags["siop_execucao_dag"].params["anos"] == []
+
+
+@requer_openmetadata
+def test_palmares_le_a_versao_da_planilha_por_padrao(dags: dict[str, Any]) -> None:
+    dag = dags["palmares_quilombos_dag"]
+    assert dag.params["versao"] == ""
+    nomes = " ".join(_outlets(dag))
+    assert "palmares_quilombos_certificados" in nomes
+    assert "palmares_controle_carga" in nomes
 
 
 def test_bacen_traz_o_ipca_cheio_por_padrao() -> None:
