@@ -258,6 +258,54 @@ dominios:
       inclusive a que a planilha preenche com um espaço invisível, chega
       como nula.
 
+  - slug: ancine_salas
+    rotulo: Salas de cinema
+    subtitulo: O cadastro de salas de exibição e complexos que a ANCINE publica
+    sem_modelos: true
+    contexto: |
+      O Eixo 5 do Cultura em Números conta as salas de cinema em
+      funcionamento em cada município. O script do eixo lia uma planilha da
+      ANCINE guardada no repositório dele, sem registro de quando nem de onde
+      ela tinha vindo, e cada atualização dependia de alguém baixar o arquivo
+      de novo.
+    o_que_faz: |
+      Todo mês, baixa o cadastro de salas de exibição e complexos que a
+      ANCINE publica nos dados abertos e guarda cada versão que encontra ao
+      lado das anteriores. A versão é a data em que a ANCINE alterou o
+      arquivo, a mesma que o portal de dados abertos mostra. Buscar de novo a
+      mesma versão a substitui. Ainda não há tabela de uso final: o cadastro
+      está carregado no schema seeds e espera o modelo que vai contar as
+      salas.
+    perguntas:
+      - Quantas salas de cinema estão em funcionamento em cada município e em cada estado?
+      - Quantos municípios têm ao menos uma sala de cinema funcionando?
+      - Quantos assentos acessíveis as salas oferecem?
+    sistemas: [ANCINE]
+    armadilhas: |
+      Uma linha da tabela seeds.ancine_salas_exibicao é uma sala, não um
+      cinema: o complexo reúne várias salas, e as colunas dele se repetem em
+      cada uma. O cadastro guarda também as salas fechadas. Para contar o que
+      funciona, filtre situacao_sala igual a EM FUNCIONAMENTO; a situação do
+      complexo e a do exibidor são outras colunas e não dizem o mesmo. As
+      versões ficam lado a lado, então a mesma sala aparece uma vez em cada
+      versão, e contar sem filtrar a versão multiplica o total: para o
+      retrato atual, filtre a maior versao. O registro da sala vem vazio nas
+      salas que a ANCINE marcou como não encontradas; dentro de uma versão,
+      quem identifica a sala é a coluna linha, o número da linha no arquivo.
+      O arquivo não traz o código IBGE: o município vem só por nome e UF do
+      complexo, em maiúsculas, e juntar com outras bases por município exige
+      casar o nome antes. Na versão de 06/11/2026, comparando sem acento com a
+      lista de municípios do IBGE, só Campos dos Goitacazes (RJ), com 5 salas
+      em funcionamento, não casa: o IBGE escreve Goytacazes. As 25 linhas sem
+      município são todas de salas fora de funcionamento. Datas vêm como
+      dd/mm/aaaa e números como texto, do jeito que estão no arquivo. Cinemas
+      itinerantes também fazem parte do cadastro. O cadastro traz ainda o
+      CNPJ da sala e do exibidor, o nome do exibidor, que em microempresas
+      costuma ser o nome de uma pessoa, e o endereço do complexo. São dados
+      públicos de empresas e ficam na tabela como vieram, mas a contagem de
+      salas não usa essas colunas: quem for publicar ou cruzar a tabela
+      decide antes o que fazer com elas.
+
   - slug: cnefe
     rotulo: Endereços de estabelecimentos do Censo 2022
     subtitulo: Escolas e estabelecimentos de outras finalidades que o recenseador encontrou em cada município
