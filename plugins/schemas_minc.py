@@ -68,6 +68,11 @@ FONTE_DADOS_CULTURA = "dados_cultura"
 # Planilha de comunidades quilombolas certificadas da Fundacao Cultural
 # Palmares, publicada no Google Sheets (palmares_quilombos_dag).
 FONTE_PALMARES = "palmares"
+# Repositorios Tainacan (tainacan_dag): Bem Brasileiro, INRC e INDL do Iphan;
+# Museus e Pontos de Memoria do cadastro.museus.gov.br, do Ibram. Uma tabela
+# por colecao, seeds.<fonte>_<entidade>.
+FONTE_IPHAN = "iphan"
+FONTE_IBRAM = "ibram"
 
 # ---------------------------------------------------------------------------
 # senado (senado_legislacao_dag)

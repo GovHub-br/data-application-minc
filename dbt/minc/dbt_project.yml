@@ -123,6 +123,16 @@ models:
     siop:
       +schema: siop
       +materialized: view
+    # Tainacan do Iphan e do Ibram: a tainacan_dag grava uma tabela por colecao em
+    # seeds.iphan_<entidade> e seeds.ibram_<entidade> (ADR 0012), toda coluna text.
+    # bronze_<entidade> e a copia fiel; cai nos schemas iphan e ibram, e o seeds
+    # fica so com o que a ingestao grava.
+    iphan:
+      +schema: iphan
+      +materialized: view
+    ibram:
+      +schema: ibram
+      +materialized: view
     # Senado: a senado_legislacao_dag le o raw do MinIO e grava, pelo Trino,
     # senado.legislacao_lista, senado.legislacao_detalhe,
     # senado.legislacao_detalhe_secoes e senado.arquivos (toda coluna varchar).
