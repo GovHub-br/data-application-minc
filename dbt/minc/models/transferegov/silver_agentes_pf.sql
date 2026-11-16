@@ -3,7 +3,7 @@
 -- multicultural, fatias de bronze_planilha_dados_lpg por tabela_origem.
 -- Corta o lixo de parsing (linha sem CPF) e normaliza a chave. `table`, e não
 -- view: o corte reduz milhões de linhas da planilha a ~20 mil, e quem lê é a
--- gold eixo2_meta3_perfil_agente, que faz union e dedup em cima.
+-- silver_agentes_unif (o union das cinco silvers de perfil).
 with
     unioned as (
         select

@@ -2900,7 +2900,7 @@
       "camada": "gold",
       "meta": 3,
       "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta3_perfil_agente.sql",
-      "descricao": "Perfil unificado LPG + PNAB — une as 5 silvers de agentes (silver_agentes_pf, _pj, _coletivos, _pnab_pf, _pnab_pj). Deduplicado por identificador_unico (1 linha por documento, não por tipo de proponente, para permitir join 1:1 com pagamentos): prioriza, na desambiguação, a linha que já traz raça preenchida, depois por origem. Normaliza raça/cor em 5 categorias (negra, indigena, branca, amarela, nao_declarada) via regex sobre texto sem acento. Deriva as flags flag_negra, flag_indigena (raça normalizada OU campo indígena explícito) e is_pcd. cidade/uf só existem nas fontes LPG (as silvers do PNAB não trazem localização do agente) e ficam NULL para PNAB; são propagadas até aqui exclusivamente para viabilizar a 4ª cota territorial (só aplicável à LPG). chave_municipio_uf (cidade+UF sem acento, minúsculo) é a chave de join com silver_territorio_municipio; fica NULL quando não há localização — nesse caso o agente não é classificável pela cota territorial. Mistura limpeza (união e dedup das cinco silvers) com regra de produto (as flags de quem conta em cada cota); separar a limpeza numa silver é dívida registrada no PR da migração.",
+      "descricao": "Perfil unificado LPG + PNAB — lê silver_agentes_unif, o union das 5 silvers de agentes (silver_agentes_pf, _pj, _coletivos, _pnab_pf, _pnab_pj). Deduplicado por identificador_unico (1 linha por documento, não por tipo de proponente, para permitir join 1:1 com pagamentos): prioriza, na desambiguação, a linha que já traz raça preenchida, depois por origem. Normaliza raça/cor em 5 categorias (negra, indigena, branca, amarela, nao_declarada) via regex sobre texto sem acento. Deriva as flags flag_negra, flag_indigena (raça normalizada OU campo indígena explícito) e is_pcd. cidade/uf só existem nas fontes LPG (as silvers do PNAB não trazem localização do agente) e ficam NULL para PNAB; são propagadas até aqui exclusivamente para viabilizar a 4ª cota territorial (só aplicável à LPG). chave_municipio_uf (cidade+UF sem acento, minúsculo) é a chave de join com silver_territorio_municipio; fica NULL quando não há localização — nesse caso o agente não é classificável pela cota territorial. A união das cinco silvers mora em silver_agentes_unif; aqui ficam o dedup e a regra de produto (as flags de quem conta em cada cota).",
       "colunas": [
         {
           "nome": "identificador_unico",
@@ -2951,14 +2951,10 @@
       "testes": 3,
       "materializacao": "",
       "depende_de": [
-        "silver_agentes_coletivos",
-        "silver_agentes_pf",
-        "silver_agentes_pj",
-        "silver_agentes_pnab_pf",
-        "silver_agentes_pnab_pj"
+        "silver_agentes_unif"
       ],
       "sources": [],
-      "linhas_sql": 133
+      "linhas_sql": 74
     },
     {
       "nome": "eixo2_meta5_conversao_direto_rouanet_coorte",
@@ -50567,6 +50563,64 @@
       "linhas_sql": 35
     },
     {
+      "nome": "silver_agentes_unif",
+      "dominio": "transferegov",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/transferegov/silver_agentes_unif.sql",
+      "descricao": "Camada Silver — perfil dos agentes da LPG e da PNAB num modelo só: o union all de silver_agentes_pf, _pj, _coletivos, _pnab_pf e _pnab_pj, com as mesmas 9 colunas. Não filtra, não deduplica e não aplica regra: um agente que aparece em mais de uma planilha fica com uma linha por aparição, e a escolha da linha é da gold eixo2_meta3_perfil_agente. cidade e uf ficam NULL nas linhas da PNAB, cujas planilhas não trazem localização do agente. View, porque as cinco silvers já são table.",
+      "colunas": [
+        {
+          "nome": "identificador_unico",
+          "descricao": "CPF ou CNPJ do agente, normalizado por normaliza_documento nas silvers de origem (só dígitos). Não é único aqui: o mesmo documento aparece uma vez por planilha em que o agente respondeu."
+        },
+        {
+          "nome": "tipo_proponente",
+          "descricao": "Natureza do proponente na silver de origem ('pf', 'pj' ou 'coletivo')."
+        },
+        {
+          "nome": "origem",
+          "descricao": "Política da planilha de origem ('lpg' ou 'pnab')."
+        },
+        {
+          "nome": "raca_bruto",
+          "descricao": "Raça/cor autodeclarada, texto livre como veio da planilha. A normalização em 5 categorias acontece só em eixo2_meta3_perfil_agente."
+        },
+        {
+          "nome": "pcd_bruto",
+          "descricao": "Autodeclaração de pessoa com deficiência, texto livre da planilha."
+        },
+        {
+          "nome": "indigena_bruto",
+          "descricao": "Autodeclaração indígena, texto livre. Só a PNAB coleta o campo; NULL nas linhas da LPG."
+        },
+        {
+          "nome": "quilombola_bruto",
+          "descricao": "Autodeclaração quilombola, texto livre. Só a PNAB coleta o campo; NULL nas linhas da LPG."
+        },
+        {
+          "nome": "cidade",
+          "descricao": "Município do agente em texto livre, sem código IBGE. NULL nas linhas da PNAB. Insumo da cota territorial, casado por nome em silver_territorio_municipio."
+        },
+        {
+          "nome": "uf",
+          "descricao": "UF do agente. NULL nas linhas da PNAB."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "silver_agentes_coletivos",
+        "silver_agentes_pf",
+        "silver_agentes_pj",
+        "silver_agentes_pnab_pf",
+        "silver_agentes_pnab_pj"
+      ],
+      "sources": [],
+      "linhas_sql": 67
+    },
+    {
       "nome": "silver_anexos_relatorios",
       "dominio": "transferegov",
       "camada": "silver",
@@ -51813,11 +51867,11 @@
       }
     },
     "transferegov": {
-      "modelos": 33,
-      "testes": 19,
+      "modelos": 34,
+      "testes": 22,
       "camadas": {
         "bronze": 13,
-        "silver": 20
+        "silver": 21
       }
     }
   },
@@ -54988,9 +55042,9 @@
     }
   ],
   "totais": {
-    "modelos": 816,
-    "testes": 1107,
-    "com_descricao": 815,
+    "modelos": 817,
+    "testes": 1110,
+    "com_descricao": 816,
     "sources": 758
   }
 }

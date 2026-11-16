@@ -853,8 +853,8 @@ models:
 
   - name: eixo2_meta3_perfil_agente
     description: >
-      Perfil unificado LPG + PNAB — une as 5 silvers de agentes
-      (silver_agentes_pf, _pj, _coletivos, _pnab_pf, _pnab_pj). Deduplicado por identificador_unico
+      Perfil unificado LPG + PNAB — lê silver_agentes_unif, o union das 5
+      silvers de agentes (silver_agentes_pf, _pj, _coletivos, _pnab_pf, _pnab_pj). Deduplicado por identificador_unico
       (1 linha por documento, não por tipo de proponente, para permitir join
       1:1 com pagamentos): prioriza, na desambiguação, a linha que já traz
       raça preenchida, depois por origem. Normaliza raça/cor em 5 categorias
@@ -866,15 +866,14 @@ models:
       territorial (só aplicável à LPG). chave_municipio_uf (cidade+UF sem
       acento, minúsculo) é a chave de join com silver_territorio_municipio; fica NULL
       quando não há localização — nesse caso o agente não é classificável pela
-      cota territorial. Mistura limpeza (união e dedup das cinco silvers) com regra de
-      produto (as flags de quem conta em cada cota); separar a limpeza numa silver é dívida
-      registrada no PR da migração.
+      cota territorial. A união das cinco silvers mora em silver_agentes_unif; aqui
+      ficam o dedup e a regra de produto (as flags de quem conta em cada cota).
 
     config:
       tags: [gold, cotas, meta3]
       meta:
         status: Active
-        origem_dados: 'silver_agentes_pf + silver_agentes_pj + silver_agentes_coletivos + silver_agentes_pnab_pf + silver_agentes_pnab_pj'
+        origem_dados: 'silver_agentes_unif'
         openmetadata:
           tier: "Tier.Tier1"
           owner: "minc-data-engineering"

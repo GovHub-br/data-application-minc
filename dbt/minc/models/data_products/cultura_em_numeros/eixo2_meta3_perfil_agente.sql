@@ -1,72 +1,12 @@
 -- Gold — Meta 3, gold-base: perfil unificado LPG + PNAB, 1 linha por documento, com as
--- flags de quem conta em cada cota (negra, indígena, PCD). A união e o dedup das cinco
--- silvers de perfil estão aqui junto com a regra; separar a limpeza numa silver é
--- dívida registrada no PR da migração.
+-- flags de quem conta em cada cota (negra, indígena, PCD). A união das cinco silvers
+-- de perfil mora em silver_agentes_unif; aqui ficam o dedup e a regra.
 -- Dedup por identificador (não por tipo) p/ join 1:1 com pagamentos.
 -- cidade/uf só existem nos silvers LPG (têm CEP/cidade/UF); os silvers PNAB não trazem
 -- localização do agente -> NULL. Propagados até aqui p/ a cota territorial (LPG).
 with
-    todos as (
-        select
-            identificador_unico,
-            tipo_proponente,
-            origem,
-            raca_bruto,
-            pcd_bruto,
-            indigena_bruto,
-            quilombola_bruto,
-            cidade,
-            uf
-        from {{ ref("silver_agentes_pf") }}
-        union all
-        select
-            identificador_unico,
-            tipo_proponente,
-            origem,
-            raca_bruto,
-            pcd_bruto,
-            indigena_bruto,
-            quilombola_bruto,
-            cidade,
-            uf
-        from {{ ref("silver_agentes_pj") }}
-        union all
-        select
-            identificador_unico,
-            tipo_proponente,
-            origem,
-            raca_bruto,
-            pcd_bruto,
-            indigena_bruto,
-            quilombola_bruto,
-            cidade,
-            uf
-        from {{ ref("silver_agentes_coletivos") }}
-        union all
-        select
-            identificador_unico,
-            tipo_proponente,
-            origem,
-            raca_bruto,
-            pcd_bruto,
-            indigena_bruto,
-            quilombola_bruto,
-            cast(null as text) as cidade,
-            cast(null as text) as uf
-        from {{ ref("silver_agentes_pnab_pf") }}
-        union all
-        select
-            identificador_unico,
-            tipo_proponente,
-            origem,
-            raca_bruto,
-            pcd_bruto,
-            indigena_bruto,
-            quilombola_bruto,
-            cast(null as text) as cidade,
-            cast(null as text) as uf
-        from {{ ref("silver_agentes_pnab_pj") }}
-    ),
+    todos as (select * from {{ ref("silver_agentes_unif") }}),
+
     dedup as (
         select
             *,
@@ -84,6 +24,7 @@ with
             ) as rn
         from todos
     ),
+
     norm as (
         select
             identificador_unico,

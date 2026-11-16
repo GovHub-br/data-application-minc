@@ -737,6 +737,104 @@ models:
   # ---------------------------------------------------------------------------
   # LADO-VALOR — contemplados e editais
   # ---------------------------------------------------------------------------
+  - name: silver_agentes_unif
+    description: >
+      Camada Silver — perfil dos agentes da LPG e da PNAB num modelo só: o union
+      all de silver_agentes_pf, _pj, _coletivos, _pnab_pf e _pnab_pj, com as
+      mesmas 9 colunas. Não filtra, não deduplica e não aplica regra: um agente
+      que aparece em mais de uma planilha fica com uma linha por aparição, e a
+      escolha da linha é da gold eixo2_meta3_perfil_agente. cidade e uf ficam
+      NULL nas linhas da PNAB, cujas planilhas não trazem localização do agente.
+      View, porque as cinco silvers já são table.
+
+    config:
+      tags: [silver, transferegov, cotas, lpg, pnab]
+      meta:
+        status: Active
+        origem_dados: 'silver_agentes_pf + silver_agentes_pj + silver_agentes_coletivos + silver_agentes_pnab_pf + silver_agentes_pnab_pj'
+        openmetadata:
+          tier: "Tier.Tier2"
+          owner: "minc-data-engineering"
+          domain: "Cultura.Fomento Direto"
+          tags: ["Certification.Silver", "PII.Sensitive"]
+          customProperties:
+            responsavel_negocio: "Meta 3 - cotas"
+
+    columns:
+      - name: identificador_unico
+        description: >
+          CPF ou CNPJ do agente, normalizado por normaliza_documento nas silvers
+          de origem (só dígitos). Não é único aqui: o mesmo documento aparece uma
+          vez por planilha em que o agente respondeu.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary: ["MinC.Identificadores.IdentificadorUnico"]
+            tags: ["PII.Sensitive"]
+        tests:
+          - not_null
+
+      - name: tipo_proponente
+        description: Natureza do proponente na silver de origem ('pf', 'pj' ou 'coletivo').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pf', 'pj', 'coletivo']
+
+      - name: origem
+        description: Política da planilha de origem ('lpg' ou 'pnab').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['lpg', 'pnab']
+
+      - name: raca_bruto
+        description: >
+          Raça/cor autodeclarada, texto livre como veio da planilha. A
+          normalização em 5 categorias acontece só em eixo2_meta3_perfil_agente.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: pcd_bruto
+        description: Autodeclaração de pessoa com deficiência, texto livre da planilha.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: indigena_bruto
+        description: >
+          Autodeclaração indígena, texto livre. Só a PNAB coleta o campo; NULL nas
+          linhas da LPG.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: quilombola_bruto
+        description: >
+          Autodeclaração quilombola, texto livre. Só a PNAB coleta o campo; NULL
+          nas linhas da LPG.
+        data_type: text
+        meta:
+          openmetadata:
+            tags: ["PII.Sensitive"]
+
+      - name: cidade
+        description: >
+          Município do agente em texto livre, sem código IBGE. NULL nas linhas da
+          PNAB. Insumo da cota territorial, casado por nome em
+          silver_territorio_municipio.
+        data_type: text
+
+      - name: uf
+        description: UF do agente. NULL nas linhas da PNAB.
+        data_type: text
+
   - name: silver_contemplados_lpg
     description: >
       Camada Silver — Contemplados LPG (lado-valor) — colunas duplicadas por schema-drift na
