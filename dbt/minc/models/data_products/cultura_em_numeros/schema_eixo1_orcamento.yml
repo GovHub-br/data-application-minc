@@ -74,6 +74,29 @@ models:
       Parear o estorno é decisão do indicador (ADR 0015, decisão 3) e fica em
       aberto.
 
+      USO E SIGILO: na LAB 1, cada linha é um lançamento da conta do ente
+      (plano de ação, município, data e valor), e a chave (id_plano_acao,
+      id_plano_acao_dado_bancario, id_transacao) é a mesma de
+      silver_extrato_bbagil, que traz o documento e o nome do beneficiário em
+      claro. O beneficiário pode ser pessoa física. Cruzada com a silver, esta
+      tabela diz quem recebeu quanto e quando. Por isso ela é restrita, fora
+      do RAG e de painel aberto. O consumo público é o das golds que agregam
+      por município (eixo1_orcamento_municipal_municipio_fonte) e por origem
+      (eixo1_orcamento_municipal_fonte).
+
+      DESEMPENHO: medido em 11/11/2026 num Postgres local com a amostra da MSC
+      do #163 e o extrato inteiro do BB Ágil (1.037.805 lançamentos, 11
+      programas), por EXPLAIN ANALYZE, uma consulta de cada vez. O ramo da
+      LAB 1 (a CTE do extrato e os filtros) leva 8,7 s, sem nested loop, e a
+      CTE guarda só os 310.349 lançamentos do programa. Com `select *` e o
+      programa fora da CTE, eram 20,9 s; só com a lista de colunas, 14,6 s.
+      Com os quatro filtros dentro da CTE, a estimativa cai para 25 linhas e
+      o Postgres junta o ente por nested loop, um lançamento por vez (o mesmo
+      plano passou de 13 min, e foi cancelado, com 327 mil lançamentos). A
+      gold-base inteira levou de 298 s a 593 s nas medições isoladas, quase
+      tudo na parte da MSC, que o ramo da LAB 1 não muda (a escrita temporária
+      da MSC é a mesma em todas).
+
       ATUALIZAÇÃO: table, recalculada a cada `dbt build`.
     config:
       tags:
@@ -84,6 +107,10 @@ models:
       meta:
         status: Active
         origem_dados: 'int_bacen_bbagil_siconfi'
+        governance:
+          produto_dados: 'Cultura em Números — Eixo 1, orçamento'
+          classificacao_uso: restrito
+          rag_publication: prohibited
         openmetadata:
           domain: Cultura.Indicadores
           tier: Tier.Tier1
@@ -278,7 +305,10 @@ models:
         description: Empenho em reais do ano-base do IPCA (2024).
         data_type: numeric
       - name: linhas_msc
-        description: Quantas linhas da MSC somam no valor.
+        description: >-
+          Quantas linhas da MSC somam no valor. Na municipal
+          (eixo1_orcamento_municipal_municipio_fonte) a coluna se chama
+          linhas, porque lá a LAB 1 soma lançamentos do extrato do BB Ágil.
         data_type: bigint
 
   - name: eixo1_orcamento_estadual_fonte
@@ -437,9 +467,15 @@ models:
       2024, com a população do Censo 2022 e o porte do município. É a
       municipal_final.csv de gasto_municipal.R.
 
-      GRÃO: uma linha por (exercicio, cod_ibge, origem) com empenho. Só
-      agrega eixo1_orcamento_empenho_cultura (esfera municipal: na MSC, DF
-      fora; na LAB 1, o DF entra como Brasília, 5300108, como no R).
+      GRÃO: uma linha por (exercicio, cod_ibge, origem) com empenho. Agrega
+      eixo1_orcamento_empenho_cultura (esfera municipal: na MSC, DF fora; na
+      LAB 1, o DF entra como Brasília, 5300108, como no R) e junta, pelo
+      cod_ibge, o nome, a UF, a região e a população do Censo 2022 de
+      int_ibge_sidra_siconfi (os municípios de silver_entes, esfera 'M').
+      Brasília está lá: o SICONFI lista 5300108 como município do DF (esfera
+      'M', UF DF, região CO). Por isso o ente da linha de Brasília é
+      'Brasília' aqui e 'Distrito Federal' na gold-base, que guarda o ente do
+      código de origem (53). uf e regiao têm not_null.
 
       PORTE: faixas da PNAS (macro eixo1_porte_pnas) sobre a população
       residente do Censo 2022, as mesmas da MUNIC_FINAL.xlsx que o R lê.
@@ -514,11 +550,17 @@ models:
         tests:
           - not_null
       - name: ente
-        description: Nome do município em silver_entes.
+        description: >-
+          Nome do município em silver_entes, via int_ibge_sidra_siconfi. Na
+          LAB 1 do DF, 'Brasília' (na gold-base, 'Distrito Federal').
         data_type: text
       - name: uf
-        description: Sigla da UF do município.
+        description: >-
+          Sigla da UF do município, de int_ibge_sidra_siconfi. Brasília
+          (5300108), que só aparece na LAB 1, está lá como município do DF.
         data_type: text
+        tests:
+          - not_null
       - name: origem
         description: "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
         data_type: text
@@ -538,7 +580,9 @@ models:
       - name: linhas
         description: >-
           Quantas linhas somaram no grupo: itens da MSC, ou, na LAB 1,
-          lançamentos do extrato do BB Ágil.
+          lançamentos do extrato do BB Ágil. Na estadual
+          (eixo1_orcamento_estadual_uf_fonte) a coluna continua linhas_msc,
+          porque lá só há MSC.
         data_type: bigint
       - name: populacao_censo_2022
         description: População residente do município no Censo 2022.
@@ -547,6 +591,7 @@ models:
         description: Grande região, por extenso.
         data_type: text
         tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
@@ -808,3 +853,41 @@ models:
           Fração dos municípios da região no ano que caem na faixa, de 0 a 1.
           Soma 1 em cada (exercício, região).
         data_type: numeric
+
+unit_tests:
+  - name: eixo1_orcamento_empenho_cultura_regra_lab1
+    description: >
+      A regra da LAB 1 municipal na gold-base, com linhas fixas. Entra o
+      débito do programa 30882120200002, o de indicador nulo e o de código
+      nulo. Saem o crédito ('C'), os movimentos de aplicação (248, 271 e 345),
+      o ano aberto (ipca_meses_ano 10), o lançamento sem exercício e o de
+      outro programa. O DF (53) vira Brasília (5300108). O valor da LAB 1 sai
+      como o extrato manda, sem módulo (a linha de -3). A linha da MSC que
+      conta só confere que o union com o ramo do empenho não a perde e que o
+      valor da MSC sai em módulo; os filtros da MSC e o deflator não são
+      testados aqui.
+    model: eixo1_orcamento_empenho_cultura
+    given:
+      - input: ref('int_bacen_bbagil_siconfi')
+        rows:
+          - {base_origem: siconfi_msc, cod_ibge: 3550308, uf: SP, exercicio: 2021, tipo_matriz: MSCC, mes_referencia: 12, classe_conta: 6, tipo_valor: ending_balance, natureza_conta: C, conta_contabil: '6.2.2.1.3.04.00', funcao: '13', fonte_recursos: '1500', complemento_fonte: '1001', valor: -50, ipca_indice_medio_ano: 1, ipca_meses_ano: 12, _pagina_id: p1, _item: 1}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 1, creditdebitindicator: D, descriptioncode: 132, valor: 100, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 2, creditdebitindicator: null, descriptioncode: 132, valor: 10, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 3, creditdebitindicator: C, descriptioncode: 632, valor: 1000, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 4, creditdebitindicator: D, descriptioncode: 248, valor: 2000, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 5, creditdebitindicator: D, descriptioncode: 271, valor: 3000, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 6, creditdebitindicator: D, descriptioncode: 345, valor: 4000, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 7, creditdebitindicator: D, descriptioncode: null, valor: 7, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 53, uf: DF, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 8, creditdebitindicator: D, descriptioncode: 303, valor: 20, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2026, codigo_programa: 30882120200002, id_transacao: 9, creditdebitindicator: D, descriptioncode: 132, valor: 5000, ipca_indice_medio_ano: 1, ipca_meses_ano: 10}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120230006, id_transacao: 10, creditdebitindicator: D, descriptioncode: 393, valor: 6000, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: null, codigo_programa: 30882120200002, id_transacao: 11, creditdebitindicator: D, descriptioncode: 132, valor: 9000, ipca_indice_medio_ano: null, ipca_meses_ano: null}
+          - {base_origem: bbagil_extrato, cod_ibge: 3550308, uf: SP, exercicio: 2021, codigo_programa: 30882120200002, id_transacao: 12, creditdebitindicator: D, descriptioncode: 132, valor: -3, ipca_indice_medio_ano: 1, ipca_meses_ano: 12}
+    expect:
+      rows:
+        - {base_origem: siconfi_msc, esfera_eixo1: municipal, cod_ibge: 3550308, exercicio: 2021, origem: proprio, valor_nominal: 50, id_transacao: null}
+        - {base_origem: bbagil_extrato, esfera_eixo1: municipal, cod_ibge: 3550308, exercicio: 2021, origem: lab, valor_nominal: 100, id_transacao: 1}
+        - {base_origem: bbagil_extrato, esfera_eixo1: municipal, cod_ibge: 3550308, exercicio: 2021, origem: lab, valor_nominal: 10, id_transacao: 2}
+        - {base_origem: bbagil_extrato, esfera_eixo1: municipal, cod_ibge: 3550308, exercicio: 2021, origem: lab, valor_nominal: 7, id_transacao: 7}
+        - {base_origem: bbagil_extrato, esfera_eixo1: municipal, cod_ibge: 5300108, exercicio: 2021, origem: lab, valor_nominal: 20, id_transacao: 8}
+        - {base_origem: bbagil_extrato, esfera_eixo1: municipal, cod_ibge: 3550308, exercicio: 2021, origem: lab, valor_nominal: -3, id_transacao: 12}

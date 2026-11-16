@@ -290,7 +290,10 @@ models:
       deduplicação da silver inteira a cada build. A chave da MSC é testada em
       silver_msc_orcamentaria, a do lançamento na Gold, e os dois joins não
       multiplicam linha: silver_entes tem cod_ibge único (testado) e o IPCA é
-      agrupado por ano.
+      agrupado por ano. Dois testes leem esta view: o not_null de base_origem,
+      que não lê linha nenhuma (ver a coluna), e o singular
+      eixo1_orcamento_lab1_debito_sem_data (aviso), que lê só o ramo do
+      extrato, com os filtros da LAB 1 descendo até a silver.
     config:
       tags: [intermediate, bacen, bbagil, siconfi]
       meta:
@@ -306,8 +309,13 @@ models:
         description: >-
           De qual silver a linha veio: 'siconfi_msc' (silver_msc_orcamentaria)
           ou 'bbagil_extrato' (silver_extrato_bbagil). Constante em cada ramo
-          do union all; sem teste aqui pelo mesmo motivo da unicidade.
+          do union all: o not_null não lê nenhuma linha, porque o Postgres
+          resolve `base_origem is null` como falso em cada ramo e não lê
+          nenhum deles (1,5 ms no banco local). Ele não falha enquanto cada
+          ramo gravar um literal; pega o ramo novo que deixar a coluna nula.
         data_type: text
+        tests:
+          - not_null
       - name: cod_ibge
         description: >-
           Código IBGE do ente: o do item da MSC, ou o da conta do BB Ágil. No

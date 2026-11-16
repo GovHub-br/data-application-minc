@@ -160,20 +160,40 @@ with
         where funcao_numero = 13 or (esfera_eixo1 = 'estadual' and origem = 'lab')
     ),
 
-    -- O extrato sai inteiro, materializado, antes dos filtros da LAB 1. Eles caem
-    -- em colunas tipadas por CASE e regex, sem estatística: se descessem até o
-    -- extrato, o Postgres estimaria poucas linhas e juntaria o ente por nested
-    -- loop, um lançamento por vez (no recorte local, mais de 13 min contra 30 s).
-    -- O filtro em base_origem desce e tira o ramo da MSC.
+    -- O extrato da LAB 1 sai materializado, só com as colunas que o ramo usa,
+    -- antes dos outros filtros. Dentro da CTE só entram base_origem (vira
+    -- constante e tira o ramo da MSC) e o programa. Os filtros caem em colunas
+    -- tipadas por CASE e regex, sem estatística, e cada um divide a estimativa:
+    -- com o programa sozinho, o Postgres estima 0,5% do extrato e junta o ente
+    -- por hash; com os quatro filtros dentro, estima poucas dezenas de linhas e
+    -- junta o ente por nested loop, um lançamento por vez. Medido com o extrato
+    -- inteiro (1,04 mi lançamentos, 11 programas): programa dentro, 9 s;
+    -- programa fora, 15 s (21 s com select *); todos dentro, nested loop (o
+    -- mesmo plano passou de 13 min, e foi cancelado, com 327 mil lançamentos).
+    -- Detalhe na description do modelo.
     extrato as materialized(  -- noqa: LT01
-        select *
+        select
+            cod_ibge,
+            ente,
+            uf,
+            regiao,
+            exercicio,
+            id_plano_acao,
+            id_plano_acao_dado_bancario,
+            id_transacao,
+            data_lancamento,
+            creditdebitindicator,
+            descriptioncode,
+            valor,
+            ipca_indice_medio_ano,
+            ipca_meses_ano
         from {{ ref("int_bacen_bbagil_siconfi") }}
-        where base_origem = 'bbagil_extrato'
+        where base_origem = 'bbagil_extrato' and codigo_programa = 30882120200002
     ),
 
     lab1_municipal as (
         select
-            base_origem,
+            'bbagil_extrato' as base_origem,
             'municipal' as esfera_eixo1,
             case when cod_ibge = 53 then 5300108 else cod_ibge end as cod_ibge,
             ente,
@@ -181,18 +201,18 @@ with
             regiao,
             exercicio,
             'lab' as origem,
-            funcao,
-            subfuncao,
-            poder_orgao,
-            natureza_despesa,
-            fonte_recursos,
-            complemento_fonte,
-            conta_contabil,
+            null::text as funcao,
+            null::text as subfuncao,
+            null::text as poder_orgao,
+            null::text as natureza_despesa,
+            null::text as fonte_recursos,
+            null::text as complemento_fonte,
+            null::text as conta_contabil,
             valor as valor_nominal,
             ipca_indice_medio_ano,
             ipca_meses_ano,
-            _pagina_id,
-            _item,
+            null::text as _pagina_id,
+            null::integer as _item,
             id_plano_acao,
             id_plano_acao_dado_bancario,
             id_transacao,
@@ -200,8 +220,7 @@ with
             descriptioncode
         from extrato
         where
-            codigo_programa = 30882120200002
-            and creditdebitindicator is distinct from 'C'
+            creditdebitindicator is distinct from 'C'
             and (descriptioncode is null or descriptioncode not in (248, 271, 345))
             and ipca_meses_ano = 12
     ),
