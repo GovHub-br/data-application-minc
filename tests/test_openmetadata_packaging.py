@@ -58,6 +58,10 @@ SCOPED_RECIPES = (
     "postgres_classifier.yaml",
 )
 
+# Schemas que o profiler nao mede, por decisao. Saem dos includes dele; ver
+# test_profiler_skips_only_the_raw_seeds_copy.
+FORA_DO_PROFILER = {"^seeds$"}
+
 
 def _load_recipe(name: str) -> dict:
     return yaml.safe_load((RECIPES_DIR / name).read_text(encoding="utf-8"))
@@ -114,13 +118,15 @@ def test_virtualenv_scaffolding_did_not_come_along() -> None:
 def test_scoped_recipes_share_the_same_schema_filter(recipe_name: str) -> None:
     """Profiler e classifier so enxergam o que postgres_metadata catalogou.
 
-    Se as tres listas divergirem, o profiler passa a medir tabela que o
-    metadata nunca publicou -- e o erro aparece como tabela ausente no
-    OpenMetadata, longe da causa.
+    Se as listas divergirem, o profiler passa a medir tabela que o metadata
+    nunca publicou -- e o erro aparece como tabela ausente no OpenMetadata,
+    longe da causa. A do profiler e a mesma menos FORA_DO_PROFILER.
     """
     config = _load_recipe(recipe_name)["source"]["sourceConfig"]["config"]
     includes = set(config["schemaFilterPattern"]["includes"])
     esperado = _schemas_do_projeto_dbt()
+    if recipe_name == "postgres_profiler.yaml":
+        esperado -= FORA_DO_PROFILER
 
     faltando = esperado - includes
     sobrando = includes - esperado
@@ -129,14 +135,16 @@ def test_scoped_recipes_share_the_same_schema_filter(recipe_name: str) -> None:
         f"{recipe_name} nao cataloga {sorted(faltando)}, que o projeto dbt declara. "
         "As tabelas ficam de fora do OpenMetadata sem nenhum aviso."
     )
-    assert (
-        not sobrando
-    ), f"{recipe_name} filtra {sorted(sobrando)}, que o projeto dbt nao conhece mais."
+    assert not sobrando, (
+        f"{recipe_name} filtra {sorted(sobrando)}, que o projeto dbt nao conhece "
+        "mais ou, no profiler, que esta em FORA_DO_PROFILER."
+    )
 
 
-def _schema_excludes(recipe_name: str) -> set[str]:
-    config = _load_recipe(recipe_name)["source"]["sourceConfig"]["config"]
-    return set(config["schemaFilterPattern"].get("excludes") or [])
+def _schema_filter(recipe_name: str) -> dict:
+    return _load_recipe(recipe_name)["source"]["sourceConfig"]["config"][
+        "schemaFilterPattern"
+    ]
 
 
 def test_profiler_skips_only_the_raw_seeds_copy() -> None:
@@ -146,18 +154,24 @@ def test_profiler_skips_only_the_raw_seeds_copy() -> None:
     18: 16 pela bronze `ibge` e uma por cada bronze de `dados_cultura` e `siop`.
     As bronzes sao view, que o profiler nao mede (includeViews fica false); o
     que o projeto le dessas planilhas e medido nas golds de cultura_em_numeros.
+
+    O seeds sai dos includes do profiler, e nao entra num excludes: quando ha
+    includes, o profiler e o classifier mandam ao servidor so o regex deles e
+    descartam o excludes (_build_regex_from_filter, openmetadata-ingestion
+    1.13.3.2). Um excludes passaria num teste que so le o YAML sem tirar nada.
     """
-    assert _schema_excludes("postgres_profiler.yaml") == {"^seeds$"}
-    assert not _schema_excludes("postgres_metadata.yaml"), (
-        "postgres_metadata ingere tudo dos schemas do projeto, por decisao: o "
-        "catalogo mostra o estado real."
-    )
+    metadata = set(_schema_filter("postgres_metadata.yaml")["includes"])
+    profiler = set(_schema_filter("postgres_profiler.yaml")["includes"])
+    assert metadata - profiler == FORA_DO_PROFILER
+    assert profiler <= metadata
+
     for recipe_name in SCOPED_RECIPES:
-        config = _load_recipe(recipe_name)["source"]["sourceConfig"]["config"]
-        includes = set(config["schemaFilterPattern"]["includes"])
-        assert (
-            _schema_excludes(recipe_name) <= includes
-        ), f"{recipe_name} exclui schema que nao inclui; o exclude nao faz nada."
+        assert not _schema_filter(recipe_name).get("excludes"), (
+            f"{recipe_name} tem excludes. O profiler e o classifier o descartam "
+            "quando ha includes, e o postgres_metadata ingere tudo dos schemas do "
+            "projeto, por decisao. Para o profiler nao medir um schema, tire-o dos "
+            "includes dele e ponha em FORA_DO_PROFILER."
+        )
 
 
 def test_recipes_do_not_carry_hardcoded_credentials() -> None:
