@@ -19,8 +19,19 @@ source:
       schemaFilterPattern:
         includes:
           # Uniao do que o projeto dbt declara como source com o que ele
-          # produz. tests/test_openmetadata_packaging.py deriva a mesma lista
-          # do projeto dbt e falha quando as duas divergem.
+          # produz, menos o seeds. tests/test_openmetadata_packaging.py deriva
+          # a mesma lista do projeto dbt e falha quando as duas divergem.
+          #
+          # O seeds fica de fora so aqui: e a copia crua de planilhas, 108
+          # tabelas em 10/11/2026. O dbt le 18: 16 pela bronze `ibge` e uma
+          # por cada bronze de `dados_cultura` e `siop`. Essas bronzes sao
+          # view, e o profiler pula view (includeViews fica false), entao o
+          # que o projeto le dessas planilhas e medido nas golds de
+          # cultura_em_numeros.
+          #
+          # Nao use excludes para tirar schema daqui: com includes, o profiler
+          # manda ao servidor so o regex dos includes e descarta o excludes
+          # (_build_regex_from_filter, openmetadata-ingestion 1.13.3.2).
           - '^ancine$'
           - '^bacen$'
           - '^bb_agil$'
@@ -39,7 +50,6 @@ source:
           - '^metadata$'
           - '^relatorio_gestao$'
           - '^salic$'
-          - '^seeds$'
           - '^senado$'
           - '^siconfi$'
           - '^siop$'

@@ -4,8 +4,8 @@
 -- Reproduz o df_painel_historico do MUNIC.R (seções 3 e 4), que grava
 -- munic_cultura_painel_historico_06_21.csv. A regra de negócio está toda aqui:
 -- qual pergunta de cada edição responde cada variável, como cada resposta vira
--- 'Sim' ou 'Não' (macro eixo1_sim_nao) e as faixas de idade, raça, escolaridade e
--- execução orçamentária. As silvers do ibge só tipam.
+-- 'Sim' ou 'Não' (macro eixo1_sim_nao), as faixas de idade, raça, escolaridade e
+-- execução orçamentária, e o tripé completo. As silvers do ibge só tipam.
 --
 -- Exceção à regra transversal 1 do ADR 0010, para bater com a publicação: '-',
 -- 'Recusa' e 'Não informou' viram 'Não' na macro eixo1_sim_nao, como no R (as
@@ -272,7 +272,17 @@ with
                 when
                     gestor_cor_raca in ('Branca', 'Preta', 'Parda', 'Amarela', 'Indígena')
                 then gestor_cor_raca
-            end as gestor_cor_raca_limpa
+            end as gestor_cor_raca_limpa,
+            -- O tripé do SNC, calculado aqui uma vez para as golds dos gráficos 5,
+            -- 10 e 15: 'Sim' com plano, conselho e fundo; 'Não' com algum 'Não'.
+            -- Com algum vazio e nenhum 'Não' não dá para saber, e fica NULL (regra
+            -- transversal 1); o R contaria esse município como sem tripé.
+            case
+                when tem_plano = 'Sim' and tem_conselho = 'Sim' and tem_fundo = 'Sim'
+                then 'Sim'
+                when tem_plano = 'Não' or tem_conselho = 'Não' or tem_fundo = 'Não'
+                then 'Não'
+            end as tem_tripe_completo
         from painel
     ),
 
@@ -402,6 +412,7 @@ select
     tem_plano,
     tem_conselho,
     tem_fundo,
+    tem_tripe_completo,
     tem_lei_patrimonio,
     tem_cons_patrimonio,
     equip_biblioteca,
