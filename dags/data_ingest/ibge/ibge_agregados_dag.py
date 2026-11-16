@@ -1,9 +1,32 @@
+"""Catálogo do SIDRA (API de Agregados v3 do IBGE) no schema ``ibge_sidra``.
+
+``extrair_catalogo`` grava ``pesquisas`` e ``agregados_catalogo``. As tasks
+mapeadas gravam ``metadados``, ``periodos``, ``variaveis`` e ``localidades``,
+um lote de agregados por task. ``extrair_resultados`` grava os valores dos
+agregados listados em ``ibge_config``.
+
+Reexecutar não duplica e não derruba tabela: o dbt tem views em cima delas
+(``ibge_sidra.bronze_*``), e o Postgres recusa o ``DROP``. Cada carga
+substitui, numa transação, o que ela traz de novo:
+
+- ``pesquisas`` e ``agregados_catalogo``: a tabela inteira;
+- ``periodos``, ``variaveis`` e ``localidades``: as linhas dos agregados que
+  voltaram da API no lote. O agregado em que a API falhou fica com as linhas
+  do run anterior;
+- ``metadados`` e ``resultados``: upsert pela chave.
+
+``localidades`` é substituída por agregado, não por nível: trocar
+``localidades_nivel`` apaga o nível anterior dos agregados que têm o novo.
+"""
+
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any
 
 from airflow.sdk import dag, task
 from airflow.sdk import Variable
+from airflow.sdk.exceptions import AirflowFailException
 
 from cliente_postgres import ClientPostgresDB
 from extracao_ibge import ClienteIBGE
@@ -51,9 +74,37 @@ def _get_config() -> dict[str, Any]:
     return {**_IBGE_CONFIG_DEFAULTS, **config}
 
 
+# Cada task mapeada substitui só os agregados do seu lote, para não apagar o
+# que as outras gravaram.
+RECORTE_LOTE = "agregado_id"
+
+
 def _batch(lista: list, tamanho: int) -> list[list]:
     """Divide uma lista em sublistas de tamanho fixo."""
     return [lista[i : i + tamanho] for i in range(0, len(lista), tamanho)]
+
+
+def _ids_em_batches(
+    catalogo: list[dict[str, Any]] | None, tamanho: int
+) -> list[list[str]]:
+    """IDs do catálogo em lotes, para o dynamic task mapping.
+
+    ``catalogo`` é o retorno de ``extrair_catalogo``. O Airflow entrega
+    ``None`` quando essa task terminou em sucesso sem ter rodado (marcada como
+    sucesso na interface), e iterar sobre ``None`` dava ``TypeError:
+    'NoneType' object is not iterable``. Tentar de novo não traz o XCom, então
+    a falha é sem retry.
+
+    Cada ID entra num lote só: o mesmo agregado em dois lotes paralelos seria
+    substituído duas vezes ao mesmo tempo, e as duas cargas ficariam.
+    """
+    if catalogo is None:
+        raise AirflowFailException(
+            "[ibge_dag] extrair_catalogo não deixou o catálogo no XCom: a task "
+            "foi marcada como sucesso sem rodar? Limpe-a (clear) para rodar de novo"
+        )
+    ids = list(dict.fromkeys(str(agr["id"]) for agr in catalogo))
+    return _batch(ids, tamanho)
 
 
 @dag(
@@ -83,8 +134,6 @@ def ibge_agregados_dag() -> None:
         db = ClientPostgresDB(get_postgres_conn())
 
         # Tabela de pesquisas (estrutura de grupos)
-        import json
-
         pesquisas_planas = [
             {
                 "id": p.get("id"),
@@ -93,14 +142,12 @@ def ibge_agregados_dag() -> None:
             }
             for p in pesquisas
         ]
-        db.drop_table_if_exists("pesquisas", schema=SCHEMA)
-        db.insert_data(pesquisas_planas, table_name="pesquisas", schema=SCHEMA)
+        db.substituir_dados(pesquisas_planas, table_name="pesquisas", schema=SCHEMA)
         logger.info("[ibge_dag] pesquisas carregadas: %s", len(pesquisas_planas))
 
         # Tabela plana de todos os agregados (reusa pesquisas já buscadas)
         agregados = api.listar_agregados(pesquisas=pesquisas)
-        db.drop_table_if_exists("agregados_catalogo", schema=SCHEMA)
-        db.insert_data(agregados, table_name="agregados_catalogo", schema=SCHEMA)
+        db.substituir_dados(agregados, table_name="agregados_catalogo", schema=SCHEMA)
         logger.info("[ibge_dag] agregados_catalogo carregados: %s", len(agregados))
 
         return agregados
@@ -110,14 +157,13 @@ def ibge_agregados_dag() -> None:
     # ------------------------------------------------------------------
 
     @task
-    def preparar_batches(catalogo: list[dict[str, Any]]) -> list[list[str]]:
+    def preparar_batches(catalogo: list[dict[str, Any]] | None) -> list[list[str]]:
         """Agrupa IDs de agregados em batches para o dynamic task mapping."""
         batch_size = int(_get_config()["batch_size"])
-        ids = [str(agr["id"]) for agr in catalogo]
-        batches = _batch(ids, batch_size)
+        batches = _ids_em_batches(catalogo, batch_size)
         logger.info(
             "[ibge_dag] %s IDs → %s batches de %s",
-            len(ids),
+            sum(len(b) for b in batches),
             len(batches),
             batch_size,
         )
@@ -156,7 +202,9 @@ def ibge_agregados_dag() -> None:
             return
 
         db = ClientPostgresDB(get_postgres_conn())
-        db.insert_data(dados, table_name="periodos", schema=SCHEMA)
+        db.substituir_dados(
+            dados, table_name="periodos", schema=SCHEMA, coluna_recorte=RECORTE_LOTE
+        )
         logger.info("[ibge_dag] periodos inseridos: %s registros", len(dados))
 
     @task(max_active_tis_per_dagrun=4)
@@ -169,7 +217,9 @@ def ibge_agregados_dag() -> None:
             return
 
         db = ClientPostgresDB(get_postgres_conn())
-        db.insert_data(dados, table_name="variaveis", schema=SCHEMA)
+        db.substituir_dados(
+            dados, table_name="variaveis", schema=SCHEMA, coluna_recorte=RECORTE_LOTE
+        )
         logger.info("[ibge_dag] variaveis inseridas: %s registros", len(dados))
 
     @task(max_active_tis_per_dagrun=4)
@@ -183,7 +233,9 @@ def ibge_agregados_dag() -> None:
             return
 
         db = ClientPostgresDB(get_postgres_conn())
-        db.insert_data(dados, table_name="localidades", schema=SCHEMA)
+        db.substituir_dados(
+            dados, table_name="localidades", schema=SCHEMA, coluna_recorte=RECORTE_LOTE
+        )
         logger.info("[ibge_dag] localidades inseridas: %s registros", len(dados))
 
     # ------------------------------------------------------------------
@@ -229,7 +281,9 @@ def ibge_agregados_dag() -> None:
                 )
                 total += len(dados)
                 logger.info(
-                    "[ibge_dag] resultados: agregado=%s → %s linhas", agregado_id, len(dados)
+                    "[ibge_dag] resultados: agregado=%s → %s linhas",
+                    agregado_id,
+                    len(dados),
                 )
             else:
                 logger.warning(
@@ -245,10 +299,10 @@ def ibge_agregados_dag() -> None:
     catalogo = extrair_catalogo()
     batches = preparar_batches(catalogo)
 
-    metadados_done = extrair_metadados.expand(batch=batches)
-    periodos_done = extrair_periodos.expand(batch=batches)
-    variaveis_done = extrair_variaveis.expand(batch=batches)
-    localidades_done = extrair_localidades.expand(batch=batches)
+    extrair_metadados.expand(batch=batches)
+    extrair_periodos.expand(batch=batches)
+    extrair_variaveis.expand(batch=batches)
+    extrair_localidades.expand(batch=batches)
 
     resultados_done = extrair_resultados()
 
