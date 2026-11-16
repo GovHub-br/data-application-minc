@@ -2,10 +2,17 @@
 -- JOIN) de silver_contemplados_unif, com o perfil (eixo2_meta3_perfil_agente) e o
 -- território (silver_territorio_municipio).
 -- Preserva TODOS os pagamentos; expõe órfãos (tem_perfil=false), inclui sem_ano.
+-- Sem perfil, flag_negra, flag_indigena e flag_pcd ficam NULL, não false (ADR 0010,
+-- regra 1): não ter respondido à planilha de perfil não diz que o agente não é da
+-- cota. As golds de cota somam com filter (where flag), em que NULL e false se
+-- comportam igual.
 with
     pagamentos as (select * from {{ ref("silver_contemplados_unif") }}),
+
     perfil as (select * from {{ ref("eixo2_meta3_perfil_agente") }}),
+
     territorio as (select * from {{ ref("silver_territorio_municipio") }})
+
 select
     p.identificador_unico,
     p.valor_pago_num,
@@ -18,9 +25,9 @@ select
     p.anexo_id,
     p.nome_arquivo,
     (pf.identificador_unico is not null) as tem_perfil,
-    coalesce(pf.flag_negra, false) as flag_negra,
-    coalesce(pf.flag_indigena, false) as flag_indigena,
-    coalesce(pf.is_pcd, false) as flag_pcd,
+    pf.flag_negra,
+    pf.flag_indigena,
+    pf.is_pcd as flag_pcd,
     -- Território vulnerabilizado (LPG, cota 20%): o crosswalk silver_territorio_municipio
     -- vem da tabela IBGE de FCU = territórios PERIFÉRICOS. A regra (definição do
     -- edital LPG, confirmada pela usuária) é POR MUNICÍPIO: município que aparece
@@ -38,9 +45,9 @@ select
         then null
         else (terr.chave_municipio_uf is not null)
     end as flag_territorio_vulneravel
-from pagamentos p
+from pagamentos as p
 left join
-    perfil pf
+    perfil as pf
     on p.identificador_unico = pf.identificador_unico
     and p.identificador_unico is not null
-left join territorio terr on pf.chave_municipio_uf = terr.chave_municipio_uf
+left join territorio as terr on pf.chave_municipio_uf = terr.chave_municipio_uf

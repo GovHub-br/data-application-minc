@@ -1192,7 +1192,9 @@ models:
       - name: flag_negra
         description: >
           Agente autodeclarado negro (preto ou pardo). Numerador da cota de 25%.
-          False também quando não há perfil — leia sempre junto de tem_perfil.
+          NULL quando o pagamento não casou com perfil (tem_perfil false): sem
+          autodeclaração não dá para dizer que o agente não é negro (ADR 0010,
+          regra 1).
         data_type: boolean
         meta:
           openmetadata:
@@ -1200,7 +1202,8 @@ models:
       - name: flag_indigena
         description: >
           Agente autodeclarado indígena, por raça normalizada OU pelo campo
-          indígena do PNAB. Numerador da cota de 10%.
+          indígena do PNAB. Numerador da cota de 10%. NULL quando o pagamento não
+          casou com perfil, como flag_negra.
         data_type: boolean
         meta:
           openmetadata:
@@ -1210,7 +1213,8 @@ models:
       - name: flag_pcd
         description: >
           Agente autodeclarado pessoa com deficiência (is_pcd no perfil).
-          Numerador da cota de 5%.
+          Numerador da cota de 5%. NULL quando o pagamento não casou com perfil,
+          como flag_negra.
         data_type: boolean
         meta:
           openmetadata:
