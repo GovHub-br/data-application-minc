@@ -1,6 +1,8 @@
--- Gold do Eixo 1, frente ESTADIC: uma linha por UF em 2021 com as três
--- categorias dos mapas do ESTADIC.R (mapas 8.1 a 8.3). Desenhar o mapa fica com
--- o consumidor.
+-- Gold do Eixo 1, frente ESTADIC: uma linha por UF em 2021 com as categorias
+-- dos mapas 8.1 e 8.2 do ESTADIC.R. Desenhar o mapa fica com o consumidor. O
+-- perfil_fomento do mapa 8.3 foi retirado até a #176, porque a lei de
+-- incentivo que ele cruza vem da ecul31, que não é essa pergunta (ver o
+-- schema.yml).
 --
 -- O tripé (instrumentos_do_tripe e maturidade_snc) vem pronto do
 -- eixo1_estadic_painel_uf, que o calcula uma vez. Diferença do R: lá a soma
@@ -15,15 +17,6 @@ select
     regiao,
     tipo_orgao_gestor,
     instrumentos_do_tripe,
-    maturidade_snc,
-    case
-        when tem_lei_patrimonio = 'Sim' and tem_lei_incentivo = 'Sim'
-        then 'Possui Ambas as Leis'
-        when tem_lei_patrimonio = 'Sim' and tem_lei_incentivo = 'Não'
-        then 'Apenas Lei de Patrimônio'
-        when tem_lei_patrimonio = 'Não' and tem_lei_incentivo = 'Sim'
-        then 'Apenas Lei de Incentivo'
-        else 'Não Possui/Sem Informação'
-    end as perfil_fomento
+    maturidade_snc
 from {{ ref("eixo1_estadic_painel_uf") }}
 where ano = 2021

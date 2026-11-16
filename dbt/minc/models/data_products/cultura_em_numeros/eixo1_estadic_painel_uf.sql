@@ -12,7 +12,19 @@
 -- Diferença do R: resposta ausente fica NULL (ADR 0010, regra transversal 1).
 -- O R classificava o órgão gestor ausente como 'Setor Subordinado / Outros' e a
 -- escolaridade ausente como 'Sem Informação' nas edições que não perguntam isso
--- (2012, 2023 e 2024).
+-- (2012, 2023 e 2024). Exceção, registrada no schema.yml: em 2018 e 2021, a
+-- composição e a competência do conselho sem resposta, inclusive na UF sem
+-- conselho, saem 'Sem Informação', e não NULL, como na MUNIC.
+--
+-- Cada edição diz em edicao_pergunta_tripe se pergunta os três instrumentos do
+-- tripé. É o único lugar que lista essas edições: a edição nova declara a sua
+-- no próprio bloco, e o eixo1_estadic_tripe lê a coluna.
+--
+-- Retirados até a #176: a lei de incentivo de 2018 e 2021 e o patrimônio
+-- afro e quilombola de 2024. O ESTADIC.R lê para eles a ecul31, a eigr128 e
+-- a eigr1210, que o dicionário do IBGE dá para outras perguntas. O
+-- schema.yml diz quais são, as candidatas e como voltar. As silvers
+-- continuam com as três variáveis.
 --
 -- Diferença do R: três perguntas vêm de outra variável. O ESTADIC.R lê, para o
 -- plano de 2014, a a93 ("Consulta pública", subpergunta do plano); para o
@@ -33,7 +45,6 @@ with
             ecul33 as fundo,
             ecul15 as lei_patrimonio,
             ecul26 as cons_patrimonio,
-            ecul31 as lei_incentivo,
             ecul03 as gestor_sexo,
             ecul05 as gestor_cor_raca,
             ecul06 as gestor_escolaridade,
@@ -53,7 +64,6 @@ with
             ecul33 as fundo,
             ecul15 as lei_patrimonio,
             ecul26 as cons_patrimonio,
-            ecul31 as lei_incentivo,
             ecul03 as gestor_sexo,
             ecul05 as gestor_cor_raca,
             ecul06 as gestor_escolaridade,
@@ -69,13 +79,13 @@ with
         select
             cod_uf,
             ano,
+            true as edicao_pergunta_tripe,
             tipo_orgao_gestor,
             {{ eixo1_sim_nao("plano") }} as tem_plano,
             {{ eixo1_sim_nao("conselho") }} as tem_conselho,
             {{ eixo1_sim_nao("fundo") }} as tem_fundo,
             {{ eixo1_sim_nao("lei_patrimonio") }} as tem_lei_patrimonio,
             {{ eixo1_sim_nao("cons_patrimonio") }} as tem_cons_patrimonio,
-            {{ eixo1_sim_nao("lei_incentivo") }} as tem_lei_incentivo,
             gestor_sexo,
             gestor_cor_raca,
             gestor_escolaridade,
@@ -104,9 +114,7 @@ with
             end as cons_competencia,
             null::text as pi_arte_cultura,
             null::text as pm_parceria_cultura,
-            null::text as ir_gt_cultura,
-            null::text as ir_patrimonio_afro,
-            null::text as ir_patrimonio_quilombola
+            null::text as ir_gt_cultura
         from cultura_2021_2018
     ),
 
@@ -116,6 +124,7 @@ with
         select
             orgao.a1::text as cod_uf,
             2014 as ano,
+            true as edicao_pergunta_tripe,
             orgao.a2 as tipo_orgao_gestor,
             -- a86 e a254, não a a93 e a a305 do R: ver o cabeçalho.
             {{ eixo1_sim_nao("politicas.a86") }} as tem_plano,
@@ -123,7 +132,6 @@ with
             {{ eixo1_sim_nao("fundo.a321") }} as tem_fundo,
             {{ eixo1_sim_nao("legislacao.a237") }} as tem_lei_patrimonio,
             null::text as tem_cons_patrimonio,
-            null::text as tem_lei_incentivo,
             rh.a22 as gestor_sexo,
             null::text as gestor_cor_raca,
             rh.a20 as gestor_escolaridade,
@@ -131,9 +139,7 @@ with
             null::text as cons_competencia,
             null::text as pi_arte_cultura,
             null::text as pm_parceria_cultura,
-            null::text as ir_gt_cultura,
-            null::text as ir_patrimonio_afro,
-            null::text as ir_patrimonio_quilombola
+            null::text as ir_gt_cultura
         from {{ ref("silver_estadic_cultura_2014_orgao_gestor") }} as orgao
         left join
             {{ ref("silver_estadic_cultura_2014_politicas_culturais") }} as politicas
@@ -157,6 +163,8 @@ with
         select
             a1::text as cod_uf,
             2012 as ano,
+            -- Pergunta o conselho e o fundo, mas não o plano.
+            false as edicao_pergunta_tripe,
             null::text as tipo_orgao_gestor,
             null::text as tem_plano,
             {{ eixo1_sim_nao("a90") }} as tem_conselho,
@@ -164,7 +172,6 @@ with
             {{ eixo1_sim_nao("a98") }} as tem_fundo,
             null::text as tem_lei_patrimonio,
             null::text as tem_cons_patrimonio,
-            null::text as tem_lei_incentivo,
             null::text as gestor_sexo,
             null::text as gestor_cor_raca,
             null::text as gestor_escolaridade,
@@ -172,9 +179,7 @@ with
             null::text as cons_competencia,
             null::text as pi_arte_cultura,
             null::text as pm_parceria_cultura,
-            null::text as ir_gt_cultura,
-            null::text as ir_patrimonio_afro,
-            null::text as ir_patrimonio_quilombola
+            null::text as ir_gt_cultura
         from {{ ref("silver_estadic_2012_conselhos_e_fundos") }}
     ),
 
@@ -182,13 +187,13 @@ with
         select
             infancia.cod_uf::text as cod_uf,
             2023 as ano,
+            false as edicao_pergunta_tripe,
             null::text as tipo_orgao_gestor,
             null::text as tem_plano,
             null::text as tem_conselho,
             null::text as tem_fundo,
             null::text as tem_lei_patrimonio,
             null::text as tem_cons_patrimonio,
-            null::text as tem_lei_incentivo,
             null::text as gestor_sexo,
             null::text as gestor_cor_raca,
             null::text as gestor_escolaridade,
@@ -196,9 +201,7 @@ with
             null::text as cons_competencia,
             {{ eixo1_sim_nao("infancia.epri0610") }} as pi_arte_cultura,
             {{ eixo1_sim_nao("mulheres.eppm134") }} as pm_parceria_cultura,
-            null::text as ir_gt_cultura,
-            null::text as ir_patrimonio_afro,
-            null::text as ir_patrimonio_quilombola
+            null::text as ir_gt_cultura
         from {{ ref("silver_estadic_2023_primeira_infancia") }} as infancia
         left join
             {{ ref("silver_estadic_2023_politica_para_mulheres") }} as mulheres
@@ -209,13 +212,13 @@ with
         select
             cod_uf::text as cod_uf,
             2024 as ano,
+            false as edicao_pergunta_tripe,
             null::text as tipo_orgao_gestor,
             null::text as tem_plano,
             null::text as tem_conselho,
             null::text as tem_fundo,
             null::text as tem_lei_patrimonio,
             null::text as tem_cons_patrimonio,
-            null::text as tem_lei_incentivo,
             null::text as gestor_sexo,
             null::text as gestor_cor_raca,
             null::text as gestor_escolaridade,
@@ -223,9 +226,7 @@ with
             null::text as cons_competencia,
             null::text as pi_arte_cultura,
             null::text as pm_parceria_cultura,
-            {{ eixo1_sim_nao("eigr123") }} as ir_gt_cultura,
-            {{ eixo1_sim_nao("eigr128") }} as ir_patrimonio_afro,
-            {{ eixo1_sim_nao("eigr1210") }} as ir_patrimonio_quilombola
+            {{ eixo1_sim_nao("eigr123") }} as ir_gt_cultura
         from {{ ref("silver_estadic_2024_igualdade_racial") }}
     ),
 
@@ -346,21 +347,20 @@ with
                 else 'Sem Informação'
             end as gestor_escolaridade_agrupada,
             -- O tripé do SNC, calculado aqui uma vez para o mapa 8.1, e só nas
-            -- edições que perguntam os três instrumentos (2014, 2018 e 2021).
-            -- instrumentos_do_tripe conta os 'Sim' e fica NULL com algum vazio.
+            -- edições que perguntam os três instrumentos (edicao_pergunta_tripe).
+            -- instrumentos_do_tripe conta os 'Sim' e fica NULL com algum vazio,
+            -- o que já inclui as edições que não perguntam algum dos três.
             -- tem_tripe_completo é 'Sim' com os três e 'Não' com algum 'Não'; com
             -- algum vazio e nenhum 'Não' não dá para saber, e fica NULL (regra
             -- transversal 1). O R passa os três pela fix_sim_nao, que faz do vazio
-            -- 'Não', e contaria essa UF como sem tripé.
+            -- 'Não', e contaria essa UF como sem tripé. No tem_tripe_completo a
+            -- guarda da edição fica: sem ela, um 'Não' no conselho ou no fundo de
+            -- 2012 daria 'Não'.
+            (tem_plano = 'Sim')::int
+            + (tem_conselho = 'Sim')::int
+            + (tem_fundo = 'Sim')::int as instrumentos_do_tripe,
             case
-                when ano in (2014, 2018, 2021)
-                then
-                    (tem_plano = 'Sim')::int
-                    + (tem_conselho = 'Sim')::int
-                    + (tem_fundo = 'Sim')::int
-            end as instrumentos_do_tripe,
-            case
-                when ano not in (2014, 2018, 2021)
+                when not edicao_pergunta_tripe
                 then null
                 when tem_plano = 'Sim' and tem_conselho = 'Sim' and tem_fundo = 'Sim'
                 then 'Sim'
@@ -457,12 +457,12 @@ select
     tem_plano,
     tem_conselho,
     tem_fundo,
+    edicao_pergunta_tripe,
     instrumentos_do_tripe,
     tem_tripe_completo,
     maturidade_snc,
     tem_lei_patrimonio,
     tem_cons_patrimonio,
-    tem_lei_incentivo,
     gestor_sexo,
     gestor_cor_raca,
     gestor_escolaridade,
@@ -471,7 +471,5 @@ select
     pi_arte_cultura,
     pm_parceria_cultura,
     ir_gt_cultura,
-    ir_patrimonio_afro,
-    ir_patrimonio_quilombola,
     gestor_escolaridade_agrupada
 from final

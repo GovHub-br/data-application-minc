@@ -1,11 +1,12 @@
 -- Gold do Eixo 1, frente ESTADIC: o tipo de órgão gestor da cultura nos estados
--- em 2014, 2018 e 2021 (gráfico 5.1 do ESTADIC.R), em três grupos.
+-- em 2014, 2018 e 2021 (gráfico 5.1 do ESTADIC.R), em três grupos. Sem filtro
+-- de ano: nas edições que não perguntam o órgão gestor ele fica NULL no painel.
 with
 
     contagem as (
         select ano, tipo_orgao_gestor, count(*) as quantidade_ufs
         from {{ ref("eixo1_estadic_painel_uf") }}
-        where ano in (2014, 2018, 2021) and tipo_orgao_gestor is not null
+        where tipo_orgao_gestor is not null
         group by ano, tipo_orgao_gestor
     )
 
