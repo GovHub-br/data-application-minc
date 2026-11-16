@@ -306,6 +306,56 @@ dominios:
       salas não usa essas colunas: quem for publicar ou cruzar a tabela
       decide antes o que fazer com elas.
 
+  - slug: cnefe
+    rotulo: Endereços de estabelecimentos do Censo 2022
+    subtitulo: Escolas e estabelecimentos de outras finalidades que o recenseador encontrou em cada município
+    sem_modelos: true
+    contexto: |
+      O Eixo 5 do Cultura em Números procura equipamentos culturais que não
+      aparecem nos registros administrativos, como centros culturais e
+      espaços de artes cênicas, pelo nome dos estabelecimentos que o
+      recenseador anotou no Censo 2022. Essa lista é o Cadastro Nacional de
+      Endereços para Fins Estatísticos (CNEFE), que o IBGE publica como um
+      arquivo por município. O script do eixo baixava os milhares de
+      arquivos para o computador de quem o rodava, a cada vez.
+    o_que_faz: |
+      Baixa do FTP do IBGE o arquivo de cada município, uma UF por vez, e
+      guarda cada um como veio. Do conteúdo, leva ao schema seeds só os
+      endereços das duas espécies que o eixo usa, a 4 (estabelecimento de
+      ensino) e a 6 (estabelecimento de outras finalidades), e só as colunas
+      que o eixo lê: o código do endereço, o setor censitário, o CEP, o
+      logradouro, as coordenadas e o nome do estabelecimento. Confere, para
+      cada UF, se vieram todos os municípios e se o número de endereços
+      dessas espécies é o mesmo no arquivo, no staging e no banco. Ainda não
+      há tabela de uso final: a busca dos equipamentos culturais pelo nome é
+      uma regra do Eixo 5 e vai ser feita na etapa seguinte.
+    perguntas:
+      - Que estabelecimentos o Censo 2022 encontrou em cada município e setor censitário?
+      - Onde fica cada um, pelas coordenadas do Censo?
+      - Que estabelecimentos têm no nome um termo ligado a cultura?
+    sistemas: [IBGE]
+    armadilhas: |
+      A espécie 4 é estabelecimento de ensino, e não "estabelecimento em
+      funcionamento", como diz o README do eixo: o dicionário do IBGE é a
+      referência. A espécie 6 reúne tudo o que não é domicílio, escola,
+      saúde, agropecuária, religião ou obra, então um nome de
+      estabelecimento ali pode ser de um bar, de uma loja ou de um teatro: a
+      tabela não diz quais são culturais. Uma linha é um endereço numa
+      espécie, não um estabelecimento. O mesmo código de endereço aparece
+      duas vezes quando no endereço há uma escola e um estabelecimento de
+      outra finalidade, então o código sozinho não identifica a linha: o
+      código junto com a espécie, sim (conferido em Roraima e no Amapá). A
+      linha traz um nome só, mesmo quando o IBGE marca que no endereço há
+      mais de um estabelecimento (essa marca fica só no arquivo original), e
+      o mesmo estabelecimento pode aparecer em endereços vizinhos, que o
+      eixo junta quando o nome se repete a menos de 50 metros. O nome é o que o recenseador escreveu, sem acento e sem
+      padronização. As coordenadas variam de precisão: a coluna
+      nv_geo_coord diz se ela é do endereço, da face de quadra, da
+      localidade ou só do setor censitário. O CNEFE é um retrato de 2022 e
+      não é atualizado. As outras espécies e colunas do arquivo, como os
+      domicílios e os complementos de endereço, ficam só no arquivo
+      original guardado no datalakehouse.
+
   - slug: metadata
     rotulo: Metadados do pipeline
     subtitulo: O que o próprio pipeline registra sobre sua execução
