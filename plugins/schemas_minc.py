@@ -65,6 +65,13 @@ FONTE_TESOURO_TRANSPARENTE = "tesouro_transparente"
 # Planilhas do portal dados.cultura.gov.br, como a lista do SNC
 # (dados_cultura_dag).
 FONTE_DADOS_CULTURA = "dados_cultura"
+# Planilha de comunidades quilombolas certificadas da Fundacao Cultural
+# Palmares, publicada no Google Sheets (palmares_quilombos_dag).
+FONTE_PALMARES = "palmares"
+# Cadastro de salas de exibicao e complexos da ANCINE, nos dados abertos
+# (ancine_salas_exibicao_dag). Nao confundir com o schema ancine do Postgres,
+# que guarda a captacao de projetos.
+FONTE_ANCINE = "ancine"
 
 # ---------------------------------------------------------------------------
 # senado (senado_legislacao_dag)

@@ -1658,7 +1658,8 @@ models:
       execução orçamentária. Os equipamentos de 2021 passam pela macro; os de
       2018, 2014 e 2006 ficam só com 'Sim' e 'Não' exatos (macro
       eixo1_sim_nao_exato) e o resto vira NULL, que é o que o gráfico 11 do R
-      conta.
+      conta. O tripé completo (tem_tripe_completo) sai daqui, uma vez, para as
+      golds dos gráficos 5, 10 e 15.
 
       EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010: '-', 'Recusa', 'Não informou' e
       'Não disponível' viram 'Não', como no R, para as golds baterem com a
@@ -1678,7 +1679,11 @@ models:
       municípios em que a pergunta da lei do plano veio vazia na MUNIC 2018 (todos
       responderam que não têm plano), e 9.460 dos equipamentos de 2018, 2014 e
       2006, em que o R guarda '-', 'Recusa' ou 'Não informou' e aqui é NULL (2.360
-      por equipamento em 2018, 3 em 2014 e 2 em 2006).
+      por equipamento em 2018, 3 em 2014 e 2 em 2006). A coluna tem_tripe_completo
+      não existe no CSV do R, que calcula o tripé em cada gráfico. Com um item do
+      tripé vazio e nenhum 'Não', ela fica NULL, e o R contaria o município como
+      sem tripé. Em 11/11/2026 nenhum município tem item do tripé vazio, em
+      nenhuma edição.
     config:
       tags:
         - gold
@@ -1746,6 +1751,16 @@ models:
                 values: ['Sim', 'Não']
       - name: tem_fundo
         description: O município tem fundo municipal de cultura ('Sim' ou 'Não').
+        data_type: text
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sim', 'Não']
+      - name: tem_tripe_completo
+        description: >
+          O município tem o tripé do SNC: 'Sim' com plano, conselho e fundo; 'Não'
+          com algum 'Não'. NULL quando algum dos três é vazio e nenhum é 'Não',
+          porque aí não dá para saber.
         data_type: text
         tests:
           - accepted_values:
@@ -1875,9 +1890,11 @@ models:
 
       A REGRA: a composição vira 'Paritário', 'Não Paritário' ou 'Sem Informação'
       pelo texto da resposta; "não paritário" é testado antes de "paritário"
-      (nenhuma resposta assim em 09/11/2026). A competência vira uma categoria:
-      deliberativo (com ou sem consultivo), apenas consultivo, normativo ou
-      fiscalizador, ou 'Sem Informação'.
+      (nenhuma resposta assim em 09/11/2026). A competência vira uma categoria
+      em cascata: a primeira com 'Sim', na ordem deliberativo (com ou sem
+      consultivo), consultivo, normativo ou fiscalizador; sem nenhum 'Sim', é
+      'Sem Informação'. Resposta vazia numa das perguntas não interrompe a
+      cascata, como no R (nenhuma em 10/11/2026).
 
       EXCEÇÃO À REGRA TRANSVERSAL 1 DO ADR 0010, como no R: em 2014, "Não
       informado" na composição conta como 'Não Paritário', porque o padrão procura
@@ -1933,6 +1950,1025 @@ models:
                   - 'Apenas Consultivo'
                   - 'Normativo / Fiscalizador'
                   - 'Sem Informação'
+
+  - name: eixo1_munic_tripe
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a presença de
+      plano, conselho e fundo municipal de cultura, os três instrumentos do tripé
+      do SNC, por edição.
+
+      GRÃO: uma linha por edição e instrumento. UNIVERSO: os municípios com 'Sim' ou
+      'Não' no painel. Pela exceção à regra transversal 1 descrita em
+      eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como
+      'Não', como no R: de 2 a 6 municípios por instrumento e edição.
+
+      PARA QUE SERVE: o gráfico 1 do MUNIC.R. Conferido em 09/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
+      versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
+      - name: instrumento
+        description: O instrumento do tripé.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Plano de Cultura', 'Conselho de Cultura', 'Fundo de Cultura']
+      - name: quantidade_municipios_sim
+        description: Municípios que responderam 'Sim' para o instrumento.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: quantidade_municipios
+        description: Municípios que responderam 'Sim' ou 'Não'.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: quantidade_municipios_sim dividido por quantidade_municipios.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_sexo_gestor
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o sexo do gestor
+      municipal de cultura.
+
+      GRÃO: uma linha por edição (2014, 2018, 2021) e sexo. UNIVERSO: os gestores
+      com sexo 'Feminino' ou 'Masculino'; a MUNIC 2006 não pergunta.
+
+      PARA QUE SERVE: o gráfico 2 do MUNIC.R. Conferido em 09/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
+      versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2014, 2018, 2021]
+                quote: false
+      - name: gestor_sexo
+        description: Sexo do gestor.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Feminino', 'Masculino']
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de gestores com sexo informado na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_execucao_orcamentaria
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a faixa do
+      percentual executado do orçamento municipal da cultura em 2021, que o
+      MUNIC.R associa à Lei Aldir Blanc.
+
+      GRÃO: uma linha por faixa. UNIVERSO: os municípios com faixa informada na
+      MUNIC 2021; fora 'Sem Informação'.
+
+      PARA QUE SERVE: o gráfico 3 do MUNIC.R. ordem_faixa dá a ordem do eixo do
+      gráfico, de '0%' a 'Mais de 90%'. Conferido em 09/11/2026: igual ao mesmo
+      cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: orcamento_perc_executado
+        description: Faixa do percentual executado, como o IBGE publica.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - '0%'
+                  - 'Até 10%'
+                  - '11% a 20%'
+                  - '21% a 30%'
+                  - '31% a 40%'
+                  - '41% a 50%'
+                  - '51% a 60%'
+                  - '61% a 70%'
+                  - '71% a 80%'
+                  - '81% a 90%'
+                  - 'Mais de 90%'
+      - name: ordem_faixa
+        description: Posição da faixa no eixo, de 1 ('0%') a 11 ('Mais de 90%').
+        data_type: integer
+        tests:
+          - not_null
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de municípios com faixa informada.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_orgao_gestor
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o tipo de órgão
+      gestor da cultura no município, em três grupos.
+
+      GRÃO: uma linha por edição e grupo. UNIVERSO: os municípios com tipo de
+      órgão informado; fora 'Recusa'.
+
+      PARA QUE SERVE: o gráfico 4 do MUNIC.R. O grupo sai do texto da resposta,
+      como no R: 'exclusiva' ou 'fundação' é secretaria exclusiva ou fundação;
+      'conjunto' é secretaria em conjunto; o resto é setor subordinado ou outro.
+      Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel
+      que o repositório do Eixo 1 versiona.
+
+      DIFERENÇA DA ESTADIC, que vem dos scripts R: o ESTADIC.R agrupa no painel,
+      põe "indireta" no grupo exclusivo e chama o segundo grupo de 'Secretaria
+      Conjunta'. O MUNIC.R agrupa no gráfico e deixa 'Órgão da administração
+      indireta' em setor subordinado ou outro (119 municípios em 2014, 114 em 2018
+      e 114 em 2021, em 11/11/2026). Cada frente segue o seu script.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
+      - name: tipo_orgao_gestor
+        description: Grupo do órgão gestor.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Secretaria Exclusiva / Fundação'
+                  - 'Secretaria em Conjunto (Ex: Educação e Cultura)'
+                  - 'Setor Subordinado / Outros'
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de municípios com órgão informado na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_escolaridade_tripe
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a escolaridade do
+      gestor de cultura nos municípios com e sem o tripé completo, em 2021.
+
+      GRÃO: uma linha por grupo de tripé e escolaridade. UNIVERSO: os municípios
+      da MUNIC 2021 com escolaridade do gestor num dos quatro grupos e tripé
+      conhecido.
+
+      PARA QUE SERVE: o gráfico 5 do MUNIC.R. A proporção é dentro de cada grupo de
+      tripé. O tripé é o tem_tripe_completo de eixo1_munic_painel_municipio. Pela
+      exceção à regra transversal 1 descrita lá, quem tem '-', 'Recusa' ou 'Não
+      informou' num dos três instrumentos conta como sem tripé, como no R.
+
+      DIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora da
+      contagem e do total do grupo; o R o contaria como sem tripé. Em 11/11/2026
+      nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: tripe_completo
+        description: Se o município tem os três instrumentos do tripé.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Com Tripé Completo', 'Sem Tripé Completo']
+      - name: gestor_escolaridade_agrupada
+        description: Escolaridade do gestor, em quatro grupos.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Ensino Fundamental'
+                  - 'Ensino Médio'
+                  - 'Ensino Superior'
+                  - 'Pós-Graduação'
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de municípios do mesmo grupo de tripé.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_raca_gestor
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a cor ou raça do
+      gestor municipal de cultura.
+
+      GRÃO: uma linha por edição (2018, 2021) e cor ou raça. UNIVERSO: os gestores
+      com cor ou raça numa das cinco categorias do IBGE; 2006 e 2014 não
+      perguntam.
+
+      PARA QUE SERVE: o gráfico 6 do MUNIC.R. Conferido em 09/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
+      versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2018, 2021]
+                quote: false
+      - name: gestor_cor_raca
+        description: Cor ou raça do gestor.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Amarela', 'Branca', 'Indígena', 'Parda', 'Preta']
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de gestores com cor ou raça informada na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_sexo_raca_gestor
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o perfil do
+      gestor municipal de cultura por sexo e grupo de raça em 2021.
+
+      GRÃO: uma linha por perfil. UNIVERSO: os gestores da MUNIC 2021 com sexo e
+      grupo de raça informados.
+
+      PARA QUE SERVE: o gráfico 7 do MUNIC.R. Os grupos de raça são os do R:
+      negros (pretos e pardos), brancos, amarela ou indígena. Conferido em
+      09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o
+      repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: perfil
+        description: Sexo e grupo de raça, no rótulo do R.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Feminino - Amarela / Indígena'
+                  - 'Feminino - Brancos'
+                  - 'Feminino - Negros (Pretos e Pardos)'
+                  - 'Masculino - Amarela / Indígena'
+                  - 'Masculino - Brancos'
+                  - 'Masculino - Negros (Pretos e Pardos)'
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de gestores com sexo e raça informados.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_escolaridade_gestor
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a escolaridade do
+      gestor municipal de cultura.
+
+      GRÃO: uma linha por edição e escolaridade. UNIVERSO: os gestores com
+      escolaridade num dos quatro grupos; fora a resposta que não cabe em nenhum.
+
+      PARA QUE SERVE: o gráfico 8 do MUNIC.R. Conferido em 09/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
+      versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
+      - name: gestor_escolaridade_agrupada
+        description: Escolaridade do gestor, em quatro grupos.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Ensino Fundamental'
+                  - 'Ensino Médio'
+                  - 'Ensino Superior'
+                  - 'Pós-Graduação'
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de gestores com escolaridade informada na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_faixa_etaria_gestor
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a faixa de idade
+      do gestor municipal de cultura.
+
+      GRÃO: uma linha por edição (2014, 2018, 2021) e faixa. UNIVERSO: os gestores
+      com idade informada; 2006 não pergunta.
+
+      PARA QUE SERVE: o gráfico 9 do MUNIC.R. ordem_faixa dá a ordem do eixo do
+      gráfico. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o
+      painel que o repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2014, 2018, 2021]
+                quote: false
+      - name: gestor_faixa_etaria
+        description: Faixa de idade do gestor.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Até 29 anos'
+                  - '30 a 39 anos'
+                  - '40 a 49 anos'
+                  - '50 a 59 anos'
+                  - '60 anos ou mais'
+      - name: ordem_faixa
+        description: Posição da faixa no eixo, de 1 ('Até 29 anos') a 5 ('60 anos ou mais').
+        data_type: integer
+        tests:
+          - not_null
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de gestores com idade informada na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_tripe_uf
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a proporção de
+      municípios com o tripé completo por UF em 2021.
+
+      GRÃO: uma linha por UF. UNIVERSO: os municípios da MUNIC 2021 com tripé
+      conhecido.
+
+      PARA QUE SERVE: o gráfico 10 do MUNIC.R. O tripé é o tem_tripe_completo de
+      eixo1_munic_painel_municipio, e as duas contagens e a proporção contam os
+      mesmos municípios: quantidade_municipios_tripe / quantidade_municipios é a
+      proporcao (o teste eixo1_munic_tripe_uf_proporcao_bate_com_contagem confere).
+      Pela exceção à regra transversal 1 descrita no painel, quem tem '-', 'Recusa'
+      ou 'Não informou' num dos três instrumentos conta como sem tripé, como no R.
+
+      DIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora das
+      duas contagens e da proporção; o R o contaria como sem tripé. Em 11/11/2026
+      nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: regiao
+        description: Região da UF.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Centro-Oeste', 'Nordeste', 'Norte', 'Sudeste', 'Sul']
+      - name: uf
+        description: Sigla da UF.
+        data_type: text
+        tests:
+          - not_null
+          - unique
+      - name: quantidade_municipios_tripe
+        description: Municípios da UF com plano, conselho e fundo.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: quantidade_municipios
+        description: Municípios da UF na MUNIC 2021 com tripé conhecido.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: Média do tripé completo (1 ou 0) entre os municípios da UF com tripé conhecido.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_equipamento
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a presença de
+      biblioteca pública, museu, teatro e cinema no município.
+
+      GRÃO: uma linha por edição e equipamento. UNIVERSO: os municípios com 'Sim' ou
+      'Não' no painel. Em 2021, pela exceção à regra transversal 1 descrita em
+      eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como
+      'Não', como no R: 39 municípios por equipamento. Em 2018, 2014 e 2006 essas
+      respostas ficam NULL e saem do universo, como no gráfico 11 do R.
+
+      PARA QUE SERVE: o gráfico 11 do MUNIC.R. Conferido em 09/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
+      versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
+      - name: equipamento
+        description: O equipamento cultural.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Biblioteca Pública'
+                  - 'Museu'
+                  - 'Teatro / Casa de Espetáculos'
+                  - 'Cinema / Sala de Exibição'
+      - name: quantidade_municipios_sim
+        description: Municípios que responderam 'Sim' para o equipamento.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: quantidade_municipios
+        description: Municípios que responderam 'Sim' ou 'Não'.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: quantidade_municipios_sim dividido por quantidade_municipios.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_patrimonio
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a presença de lei
+      e de conselho municipal de patrimônio cultural.
+
+      GRÃO: uma linha por edição e instrumento. UNIVERSO: os municípios com 'Sim' ou
+      'Não' no painel. Pela exceção à regra transversal 1 descrita em
+      eixo1_munic_painel_municipio, '-', 'Recusa' e 'Não informou' contam como
+      'Não', como no R: de 2 a 6 municípios por instrumento e edição.
+
+      PARA QUE SERVE: o gráfico 12 do MUNIC.R. Conferido em 09/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
+      versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2006, 2014, 2018, 2021]
+                quote: false
+      - name: instrumento
+        description: O instrumento de patrimônio.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Legislação Específica de Patrimônio'
+                  - 'Conselho de Patrimônio Cultural'
+      - name: quantidade_municipios_sim
+        description: Municípios que responderam 'Sim' para o instrumento.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: quantidade_municipios
+        description: Municípios que responderam 'Sim' ou 'Não'.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: quantidade_municipios_sim dividido por quantidade_municipios.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_competencia_conselho
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a competência dos
+      conselhos municipais de cultura.
+
+      GRÃO: uma linha por edição (2014, 2018, 2021) e competência. UNIVERSO: os
+      conselhos de eixo1_munic_conselho_municipio com competência informada.
+
+      PARA QUE SERVE: o gráfico 14 do MUNIC.R. Conferido contra a regra do
+      df_conselhos_detalhado aplicada às abas originais, porque o R não salva essa
+      tabela. Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o
+      painel que o repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2014, 2018, 2021]
+                quote: false
+      - name: cons_competencia
+        description: Competência do conselho.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Deliberativo (com ou sem consultivo)'
+                  - 'Apenas Consultivo'
+                  - 'Normativo / Fiscalizador'
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de conselhos com competência informada na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_porte_tripe
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o tripé completo
+      por porte populacional do município em 2021.
+
+      GRÃO: uma linha por porte e situação do tripé. UNIVERSO: os municípios da
+      MUNIC 2021 com população informada e tripé conhecido.
+
+      PARA QUE SERVE: o gráfico 15 do MUNIC.R. A população é a da própria MUNIC
+      2021. A proporção é dentro de cada porte; ordem_porte dá a ordem do eixo. O
+      tripé é o tem_tripe_completo de eixo1_munic_painel_municipio. Pela exceção à
+      regra transversal 1 descrita lá, quem tem '-', 'Recusa' ou 'Não informou' num
+      dos três instrumentos conta como sem tripé, como no R.
+
+      DIFERENÇA DO R: quem tem item do tripé vazio e nenhum 'Não' fica fora da
+      contagem e do total do porte; o R o contaria como incompleto. Em 11/11/2026
+      nenhum município de 2021 está nesse caso. Conferido em 11/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: porte_populacional
+        description: Faixa de população do município.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Até 20 mil hab.'
+                  - '20.001 a 50 mil hab.'
+                  - '50.001 a 100 mil hab.'
+                  - 'Mais de 100 mil hab.'
+      - name: ordem_porte
+        description: Posição do porte no eixo, de 1 ('Até 20 mil hab.') a 4.
+        data_type: integer
+        tests:
+          - not_null
+      - name: status_tripe
+        description: Se o município tem plano, conselho e fundo.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Tripé Completo', 'Incompleto / Nenhum']
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de municípios do mesmo porte.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_lei_plano
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: nos municípios
+      com plano de cultura, quantos o instituíram por lei.
+
+      GRÃO: uma linha por edição (2018, 2021) e situação. UNIVERSO: os municípios
+      com plano de cultura (654 em 2018 e 847 em 2021).
+
+      PARA QUE SERVE: o gráfico 16A do MUNIC.R. Resposta ausente vira 'Sem
+      Informação'; nas duas edições não há nenhuma entre quem tem plano. Conferido
+      em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o
+      repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2018, 2021]
+                quote: false
+      - name: status_lei
+        description: Se o plano foi instituído por lei.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Possui Instrumento Legal'
+                  - 'Sem Instrumento Legal'
+                  - 'Sem Informação'
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de municípios com plano na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_participacao_plano
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: nos municípios
+      com plano de cultura, quantos o elaboraram com participação social.
+
+      GRÃO: uma linha por edição (2018, 2021) e situação. UNIVERSO: os municípios
+      com plano de cultura (654 em 2018 e 847 em 2021).
+
+      PARA QUE SERVE: o gráfico 16B do MUNIC.R. Resposta ausente vira 'Sem
+      Informação'; nas duas edições não há nenhuma entre quem tem plano. Conferido
+      em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel que o
+      repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2018, 2021]
+                quote: false
+      - name: status_participacao
+        description: Se o plano teve participação social.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Com Participação Social', 'Sem Participação', 'Sem Informação']
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de municípios com plano na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_capacitacao_conselho
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: a capacitação dos
+      conselheiros municipais de cultura.
+
+      GRÃO: uma linha por edição (2018, 2021) e tipo de capacitação. UNIVERSO: os
+      municípios com conselho que responderam 'Sim' a uma das três perguntas.
+
+      PARA QUE SERVE: o gráfico 17 do MUNIC.R. Cada conselho cai na primeira
+      categoria com 'Sim', na ordem do R: continuada, eventual, não realiza.
+      Conferido em 09/11/2026: igual ao mesmo cálculo do MUNIC.R sobre o painel
+      que o repositório do Eixo 1 versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Edição da MUNIC.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2018, 2021]
+                quote: false
+      - name: capacitacao
+        description: Tipo de capacitação dos conselheiros.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Capacitação Continuada'
+                  - 'Capacitação Eventual'
+                  - 'Não Realiza Capacitação'
+      - name: quantidade_municipios
+        description: Quantidade de municípios na categoria.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: proporcao
+        description: A quantidade dividida pelo total de conselhos classificados na edição.
+        data_type: numeric
+        tests:
+          - not_null
+
+  - name: eixo1_munic_tamanho_conselho
+    description: >
+      Camada Gold / Eixo 1, frente MUNIC, do Cultura em Números: o número médio de
+      membros dos conselhos municipais de cultura por região em 2021.
+
+      GRÃO: uma linha por região. UNIVERSO: os conselhos da MUNIC 2021 com
+      quantidade de membros entre 1 e 149, o corte do R.
+
+      PARA QUE SERVE: o gráfico 18 do MUNIC.R. A média sai sem arredondar; o
+      gráfico do R mostra uma casa decimal. Conferido em 09/11/2026: igual ao
+      mesmo cálculo do MUNIC.R sobre o painel que o repositório do Eixo 1
+      versiona.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - munic
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: regiao
+        description: Região do município.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Centro-Oeste', 'Nordeste', 'Norte', 'Sudeste', 'Sul']
+      - name: quantidade_municipios
+        description: Conselhos da região que entram na média.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: media_membros
+        description: Média de membros por conselho.
+        data_type: numeric
+        tests:
+          - not_null
 
   - name: eixo1_munic_paridade_conselho
     description: >
