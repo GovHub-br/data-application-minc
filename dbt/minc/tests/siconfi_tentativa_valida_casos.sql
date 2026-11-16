@@ -83,7 +83,7 @@ from
 
 union all
 
-select 'falta' as erro, falta.*
+select 'falta' as erro, falta.*  -- noqa: AM04
 from
     (
         select *  -- noqa: AM04
