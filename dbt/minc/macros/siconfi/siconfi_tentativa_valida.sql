@@ -16,7 +16,15 @@
          que o outro tenha páginas a mais (paginação que mudou de tamanho, ou
          que falhou no meio): misturar daria itens repetidos ou de duas
          respostas diferentes. Empate em `fetched_at` vai para o maior `run_id`;
-      3. uma linha por (`_pagina_id`, `_item`) dessas páginas.
+      3. uma linha por (`_pagina_id`, `_item`) dessas páginas. O item não tem
+         metadado de carga (o `carregado_em` é só da página), então a mesma
+         página carregada duas vezes com conteúdo diferente desempata pelo
+         conteúdo: fica a versão de menor md5 da linha inteira em texto. A
+         escolha é arbitrária, mas é a mesma em todo run e não depende da
+         collation; ordenar pela própria chave da partição deixava o Postgres
+         escolher. O md5, e não o texto inteiro, porque a chave entra no sort
+         de toda linha: na silver_rreo local (1,3 mi de itens), o sort em
+         disco cresceu 10% com o md5 e 67% com o texto.
 
       Nada é descartado pelo conteúdo do item.
 
@@ -92,7 +100,7 @@
                     paginas_validas.fetched_at,
                     row_number() over (
                         partition by bronze_itens._pagina_id, bronze_itens._item
-                        order by bronze_itens._item
+                        order by md5(bronze_itens::text)
                     ) as _repeticao_item
                 from {{ itens }} as bronze_itens
                 inner join

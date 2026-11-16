@@ -34,13 +34,38 @@
 --
 -- VALOR REAL: valor nominal vezes o número-índice médio do IPCA do ano-base
 -- (var eixo1_orcamento_ano_base_ipca, padrão 2024) dividido pelo do exercício.
--- O índice vem de int_bacen_siconfi; o do ano-base é lido das próprias linhas
--- daquele ano. Sem IPCA para o exercício, o valor real fica nulo.
+-- O índice do exercício vem de int_bacen_siconfi; o do ano-base, direto do
+-- IPCA (silver_serie_sgs, CTE ipca_base), e não das linhas de cultura: sem
+-- empenho em cultura no ano-base, elas não teriam de onde tirá-lo. Sem IPCA
+-- para o exercício, o valor real fica nulo.
 --
 -- GRÃO: uma linha por item da MSC que conta, (_pagina_id, _item).
 {% set ano_base = var("eixo1_orcamento_ano_base_ipca", 2024) %}
 
 with
+    -- O número-índice médio do ano-base, como int_bacen_siconfi o calcula para
+    -- o exercício: as variações mensais da 433 encadeadas desde o primeiro mês
+    -- da série, e a média dos meses do ano. A mesma conta dá a mesma escala, e
+    -- a razão entre os dois é o deflator. O teste
+    -- eixo1_orcamento_ipca_ano_base_fechado exige os 12 meses no ano-base e
+    -- confere a escala (fator_ipca = 1 no ano-base).
+    ipca_base as (
+        select avg(indice) as ipca_indice_medio_base
+        from
+            (
+                select
+                    data,
+                    exp(
+                        sum(ln(1 + valor / 100)) over (
+                            order by data rows between unbounded preceding and current row
+                        )
+                    ) as indice
+                from {{ ref("silver_serie_sgs") }}
+                where codigo_serie = '433'
+            ) as ipca_mensal
+        where extract(year from data) = {{ ano_base }}
+    ),
+
     empenho as (
         select
             *,
@@ -74,7 +99,6 @@ with
                 when
                     esfera_eixo1 = 'estadual'
                     and exercicio in (2020, 2021)
-                    and fonte_sem_ponto !~ '^(19|29)'
                     and fonte_sem_ponto ~ '^(17|27)'
                 then 'lab'
                 -- str_pad do R completa com zero à esquerda até 4 e não corta.
@@ -108,10 +132,7 @@ with
     ),
 
     cultura as (
-        select
-            *,
-            max(ipca_indice_medio_ano) filter (where exercicio = {{ ano_base }}) over (
-            ) as ipca_indice_medio_base
+        select *, (select ipca_indice_medio_base from ipca_base) as ipca_indice_medio_base
         from classificado
         where funcao_numero = 13 or (esfera_eixo1 = 'estadual' and origem = 'lab')
     )

@@ -11,6 +11,10 @@
 -- LÍQUIDA (III)"). O filtro é pelo código, não pelo texto da linha: o texto
 -- também casa com as RCL ajustadas, que têm outro código.
 --
+-- PRÓPRIO = 0 NÃO É NULO: o estado que empenhou cultura só com emenda, LAB,
+-- LPG ou PNAB tem o próprio igual a zero de verdade, e fica com 0%. Nulo é só
+-- o estado sem nenhuma linha de cultura no ano.
+--
 -- DIFERENTE DO R: onde falta o numerador ou a RCL, gasto_estadual.R põe 0% e
 -- aqui fica nulo (ADR 0010, regra 1). É o caso do Ceará em 2019 a 2021 e de
 -- Roraima em 2022, cuja MSC não informa a função da despesa: não é que o
@@ -19,10 +23,16 @@
 -- 2019 a 2024; aqui entra todo exercício com MSC ou RCL.
 -- GRÃO: uma linha por (exercicio, cod_ibge) do estado.
 with
+    -- Uma linha por estado e ano com empenho em cultura de qualquer origem; o
+    -- próprio é a soma da origem 'proprio', e 0 quando ela não aparece.
     proprio as (
-        select exercicio, cod_ibge, sum(valor_nominal) as valor_proprio_nominal
+        select
+            exercicio,
+            cod_ibge,
+            coalesce(
+                sum(valor_nominal) filter (where origem = 'proprio'), 0
+            ) as valor_proprio_nominal
         from {{ ref("eixo1_orcamento_estadual_uf_fonte") }}
-        where origem = 'proprio'
         group by exercicio, cod_ibge
     ),
 

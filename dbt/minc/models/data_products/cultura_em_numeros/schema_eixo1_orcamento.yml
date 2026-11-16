@@ -39,7 +39,10 @@ models:
 
       VALOR REAL: nominal vezes o número-índice médio do IPCA do ano-base (var
       eixo1_orcamento_ano_base_ipca, padrão 2024) dividido pelo do exercício,
-      como o R. Sem IPCA para o exercício, nulo.
+      como o R. Sem IPCA para o exercício, nulo. O índice do ano-base é lido
+      do IPCA (silver_serie_sgs), não das linhas de cultura, e o teste
+      eixo1_orcamento_ipca_ano_base_fechado exige que o ano-base tenha os 12
+      meses: com meses parciais, todo valor real sairia enviesado.
 
       PARA QUE SERVE: é a base das golds eixo1_orcamento_*. Não responde
       pergunta sozinha.
@@ -58,7 +61,7 @@ models:
         - orcamento
       meta:
         status: Active
-        origem_dados: 'int_bacen_siconfi'
+        origem_dados: 'int_bacen_siconfi + silver_serie_sgs'
         openmetadata:
           domain: Cultura.Indicadores
           tier: Tier.Tier1
@@ -291,12 +294,16 @@ models:
       contra a meta de 1,5% do PNC.
 
       GRÃO: uma linha por (exercicio, cod_ibge) do estado ou DF que tem
-      empenho próprio em cultura ou RCL.
+      empenho em cultura (de qualquer origem) ou RCL.
 
       A RCL é a do RREO, Anexo 03, 6º bimestre, coluna "TOTAL (ÚLTIMOS 12
       MESES)", conta de código RREO3ReceitaCorrenteLiquida. O R estadual filtra
       pelo texto "receita corrente líquida (iii)" num CSV baixado do SICONFI;
       nos estados o texto e o código pegam a mesma linha.
+
+      PRÓPRIO = 0 NÃO É NULO: o estado que empenhou cultura só com emenda,
+      LAB, LPG ou PNAB tem o próprio igual a zero, e fica com 0%. Nulo é só o
+      estado sem nenhuma linha de cultura no ano.
 
       DIFERENTE DO R: onde falta o numerador ou a RCL, o R põe 0% e aqui fica
       nulo (ADR 0010, regra 1). É o caso do Ceará em 2019 a 2021 e de Roraima
@@ -351,8 +358,9 @@ models:
                 values: ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
       - name: valor_proprio_nominal
         description: >
-          Empenho de origem 'proprio' em cultura, em reais correntes. Nulo
-          quando o estado não tem nenhuma linha que conte no ano.
+          Empenho de origem 'proprio' em cultura, em reais correntes. Zero
+          quando o estado empenhou cultura só com emenda, LAB, LPG ou PNAB;
+          nulo quando não tem nenhuma linha de cultura no ano.
         data_type: numeric
       - name: rcl
         description: Receita Corrente Líquida dos últimos 12 meses, em reais correntes.
@@ -626,9 +634,15 @@ models:
         description: População residente do município no Censo 2022.
         data_type: numeric
       - name: regiao
-        description: Grande região, por extenso.
+        description: >-
+          Grande região, por extenso. Nula quando o município não está em
+          silver_entes; nas linhas com faixa, que vão para a Fig. 9, o
+          not_null acusa.
         data_type: text
         tests:
+          - not_null:
+              config:
+                where: "faixa_rcl is not null"
           - accepted_values:
               arguments:
                 values: ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
@@ -696,8 +710,12 @@ models:
         tests:
           - not_null
       - name: regiao
-        description: Grande região, por extenso.
+        description: >-
+          Grande região, por extenso. O município sem região (fora de
+          silver_entes) não entra.
         data_type: text
+        tests:
+          - not_null
       - name: faixa_rcl
         description: Faixa do percentual da RCL, como em eixo1_orcamento_municipal_rcl.
         data_type: text
