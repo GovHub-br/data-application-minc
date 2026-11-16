@@ -61,9 +61,22 @@
 {% macro bronze_timestamptz(col) -%}
     {#- Como o bronze_timestamp, mas guarda o fuso. O dt_ingest dos seeds é texto ISO
         8601 com offset ('2026-11-09T09:40:54.339362+00:00', gravado por
-        datalakehouse._registros_para_df), e timestamp sem fuso o descartaria. -#}
+        datalakehouse._registros_para_df), e timestamp sem fuso o descartaria.
+
+        Diferente do bronze_timestamp, a regex vai até o fim do valor ($, como no
+        bronze_data) e confere a faixa de cada campo: mês 01-12, dia 01-31, hora
+        00-23, minuto e segundo 00-59 e fuso até 15:59, o limite do Postgres. Hora,
+        fração e fuso são opcionais: o isoformat do Python omite a fração quando
+        ela é zero. O fuso só vem depois da hora, porque o Postgres lê
+        '2026-11-09-03:00' como data inválida. Valor fora disso, como
+        '2026-11-09T25:00:00', vira NULL em vez de estourar o cast na leitura das
+        silvers, que são views. A regex não confere o calendário: '2026-02-30' e
+        '2026-04-31' passam e o cast falha, como no bronze_data; o isoformat do
+        Python, que grava o dt_ingest, não produz data que não existe. -#}
     case
-        when trim({{ col }}) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+        when
+            trim({{ col }})
+            ~ '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])([T ]([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\.[0-9]+)?)?(Z|[+-](0[0-9]|1[0-5])(:?[0-5][0-9])?)?)?$'
         then trim({{ col }})::timestamptz
     end
 {%- endmacro %}
