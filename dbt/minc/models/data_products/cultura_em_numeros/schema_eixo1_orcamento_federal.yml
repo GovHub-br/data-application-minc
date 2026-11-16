@@ -1,10 +1,12 @@
 version: 2
 
-# Eixo 1 do Cultura em Números, frente orçamento, esfera federal: o gráfico do
+# Eixo 1 do Cultura em Números, frente orçamento, esfera federal: os gráficos do
 # gasto_federal.R (repositório SGE cultura-em-numeros-eixo-1, commit d28de40)
-# que usa só o SIOP. Os outros gráficos federais dependem da RCL da União e do
-# teto de renúncia da Rouanet e ficam para depois; quando vierem, leem a mesma
-# gold-base.
+# que usam só o SIOP e a RCL da União. A RCL vem do Tesouro Transparente de
+# 2003 a 2017; a de 2018 em diante, do SICONFI, entra num PR seguinte, na
+# gold-base eixo1_orcamento_federal_rcl_uniao. Os gráficos que dependem do teto
+# de renúncia da Rouanet ficam para depois; quando vierem, leem as mesmas
+# golds-base.
 models:
   - name: eixo1_orcamento_federal_empenho_cultura
     description: >
@@ -121,3 +123,197 @@ models:
     tests:
       - unique:
           column_name: "ano || '|' || categoria_origem"
+
+  - name: eixo1_orcamento_federal_rcl_uniao
+    description: >
+      Camada Gold / Eixo 1, frente orçamento, esfera federal, do Cultura em
+      Números. Gold-base: a Receita Corrente Líquida da União por ano, em
+      reais, com a fonte de cada ano. É o denominador das golds federais que
+      medem o gasto em cultura como fração da RCL.
+
+      GRÃO: um ano. UNIVERSO: 2000 a 2017, 18 linhas, todas do Tesouro
+      Transparente.
+
+      A REGRA: cada fonte é um ramo, com o seu intervalo de anos, e a var
+      eixo1_orcamento_federal_rcl_siconfi_desde (2018) é a fronteira. Antes
+      dela, o conjunto "Limites da LRF para a União: Dívida Consolidada
+      Líquida" do Tesouro Transparente (RGF), só o 3º quadrimestre, que
+      acumula os 12 meses do ano, convertido de milhares de reais para reais.
+      O conjunto para no 2º quadrimestre de 2018, então 2018 não tem ano
+      fechado no Tesouro.
+
+      DE 2018 EM DIANTE A RCL ENTRA NUM PR SEGUINTE, depois do merge do #163:
+      o RREO da União no SICONFI (silver_rreo, esfera 'U', 6º bimestre,
+      Anexo 03, conta RREO3ReceitaCorrenteLiquida, coluna 'TOTAL (ÚLTIMOS 12
+      MESES)'), como um segundo ramo, com fonte_rcl 'siconfi_rreo'. Os
+      modelos que leem daqui não mudam.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        status: Active
+        origem_dados: 'silver_lrf_uniao_dcl'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    columns:
+      - name: ano
+        description: Ano da RCL (exercício).
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: periodo_fonte
+        description: >
+          O período da linha na fonte, para conferir: no Tesouro, '2011 - Até
+          o 3º Quadrimestre'.
+        data_type: text
+        tests:
+          - not_null
+
+      - name: fonte_rcl
+        description: >
+          De onde veio a RCL do ano: 'tesouro_transparente' (Limites da LRF,
+          3º quadrimestre). O PR do SICONFI acrescenta 'siconfi_rreo'.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'tesouro_transparente'
+      - name: rcl
+        description: >
+          Receita Corrente Líquida da União no ano, em reais nominais (a do
+          Tesouro vezes 1.000).
+        data_type: numeric
+        tests:
+          - not_null
+  - name: eixo1_orcamento_federal_impacto_rcl
+    description: >
+      Gold / Eixo 1, frente orçamento, esfera federal. O gasto federal direto
+      em cultura como fração da Receita Corrente Líquida da União, por
+      exercício (gráfico VI do gasto_federal.R, grafico_impacto_rcl).
+      Numerador: o empenhado nominal de toda a gold-base
+      eixo1_orcamento_federal_empenho_cultura no exercício (o siop_direto do
+      R), com a LPG de 2022 em 2022. Denominador: a RCL de
+      eixo1_orcamento_federal_rcl_uniao.
+
+      GRÃO: um exercício, 2003 a 2025. Hoje a RCL cobre 2003 a 2017; de 2018
+      em diante, rcl, fonte_rcl e participacao_rcl ficam nulos até o PR do
+      SICONFI, e este modelo não muda.
+
+      DIFERENTE DO R: o R tira os exercícios sem RCL; aqui eles ficam, com a
+      participação nula (ADR 0010, regra 1), e quem consome corta.
+
+      CONFERÊNCIA (11/11/2026): de 2003 a 2017, onde a LPG não muda nada, é
+      igual ao CSV da Figura 3 do R (commit d28de40) na 3ª casa do percentual
+      nos 15 anos; ver eixo1_orcamento_federal_rcl_lpg_2023. O R não grava CSV
+      deste gráfico, e o PNG dele começa em 2011, porque a planilha de RCL
+      que o gasto_federal.R lê (RCL_2011_2025_Uniao_Resumido.xlsx) começa
+      ali.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, orcamento]
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_federal_empenho_cultura + eixo1_orcamento_federal_rcl_uniao'
+    columns:
+      - name: ano
+        description: Exercício da LOA.
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: valor_empenhado
+        description: Empenhado em cultura no exercício, em reais nominais.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: rcl
+        description: RCL da União no ano, em reais nominais. Nula de 2018 em diante, por ora.
+        data_type: numeric
+      - name: fonte_rcl
+        description: A fonte_rcl de eixo1_orcamento_federal_rcl_uniao.
+        data_type: text
+      - name: participacao_rcl
+        description: >
+          valor_empenhado / rcl, como fração (0,003 é 0,3%). Nula sem RCL.
+        data_type: numeric
+
+  - name: eixo1_orcamento_federal_rcl_lpg_2023
+    description: >
+      Gold / Eixo 1, frente orçamento, esfera federal. Figura 3 da publicação,
+      "Participação da cultura no orçamento da União": o gasto federal direto
+      em cultura como fração da RCL da União, com o empenho da Lei Paulo
+      Gustavo de 2022 contado em 2023, o ano em que foi executado, como na
+      Figura 1 (gráfico IX do gasto_federal.R, grafico_rcl_lpg_2023). É
+      eixo1_orcamento_federal_impacto_rcl com o ajuste_lpg.
+
+      GRÃO: um exercício, 2003 a 2025; a participação é nula onde falta a RCL
+      (hoje, de 2018 em diante, 2022 e 2023 inclusive).
+
+      DIFERENTE DO R: nas linhas 461 a 468 do gasto_federal.R, o valor da LPG
+      de 2022 é calculado por linha com ifelse(ano == 2022, ..., 0), e na
+      linha de 2023 ele vale 0. O R tira a LPG de 2022 e não a soma em 2023:
+      ela some da série, e o numerador de 2023 fica R$ 3.862.000.000,00
+      menor que o da Figura 1. Aqui ela entra em 2023. O numerador de 2022 é
+      igual ao do R.
+      Com a RCL de 2023 da planilha do R (R$ 1.233.714.884.820,18), a
+      participação de 2023 passa de 0,5053% para 0,8184%; a de 2022 fica em
+      0,0992%.
+
+      CONFERÊNCIA (11/11/2026) contra o CSV da Figura 3 do R (commit d28de40),
+      2003 a 2017: os 15 anos iguais na 3ª casa do percentual. Na precisão do
+      double, 6 iguais (2003 a 2006, 2011 e 2013); 8 diferem em menos de 1
+      bilionésimo, relativo, porque o Tesouro publica a RCL arredondada e a do
+      R tem mais casas (2015: 674.522.742 mil contra 674.522.742,0497 mil); e
+      2009 difere em 2 milionésimos (0,0000006 p.p.): a RCL implícita no CSV
+      do R é 437.200.336,33 mil, e a do Tesouro, 437.199.421 mil. O numerador
+      (valor_empenhado) é igual, ao centavo, à soma das origens do SIOP na
+      Figura 1 nos 23 anos, 2022 e 2023 inclusive.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, orcamento]
+      meta:
+        status: Active
+        origem_dados: 'eixo1_orcamento_federal_impacto_rcl + eixo1_orcamento_federal_empenho_cultura'
+    columns:
+      - name: ano
+        description: Exercício da LOA; para a LPG de 2022, o de execução (2023).
+        data_type: integer
+        tests:
+          - not_null
+          - unique
+      - name: valor_empenhado_exercicio
+        description: >
+          Empenhado em cultura no exercício, em reais nominais: o
+          valor_empenhado de eixo1_orcamento_federal_impacto_rcl.
+        data_type: numeric
+      - name: ajuste_lpg
+        description: >
+          O empenho da LPG de 2022 que muda de ano: negativo em 2022, positivo
+          em 2023, zero nos outros. Soma zero na série.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: rcl
+        description: RCL da União no ano, em reais nominais. Nula de 2018 em diante, por ora.
+        data_type: numeric
+      - name: fonte_rcl
+        description: A fonte_rcl de eixo1_orcamento_federal_rcl_uniao.
+        data_type: text
+      - name: valor_empenhado
+        description: >
+          valor_empenhado_exercicio + ajuste_lpg, em reais nominais: o
+          numerador da Figura 3, igual à soma das origens do SIOP na Figura 1.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: participacao_rcl
+        description: >
+          valor_empenhado / rcl, como fração (0,003 é 0,3%): o percentual_rcl
+          do CSV da Figura 3. Nula sem RCL.
+        data_type: numeric
