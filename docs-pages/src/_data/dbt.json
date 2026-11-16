@@ -1038,6 +1038,152 @@
       "linhas_sql": 25
     },
     {
+      "nome": "eixo2_meta2_plano_acao",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": 2,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta2_plano_acao.sql",
+      "descricao": "Camada Gold / Meta 2 do Cultura em Números. Gold-base: o plano de ação que cada estado, o DF e cada município apresentou para receber o repasse da PNAB.\nGRÃO: uma linha por id_plano_acao. UNIVERSO: todos os planos de ação dos programas 60, 61 e 62 (PNAB ciclo 1, 2023) e 111 e 112 (PNAB 2025) no TransfereGov, em qualquer situação. Em 11/11/2026 são 11.331 planos: 27, 697, 4.759, 27 e 5.821, os mesmos da silver_plano_acao_minc em cada programa (teste eixo2_meta2_plano_acao_igual_silver).\nPARA QUE SERVE: é a base da distribuição do repasse planejado por ciclo, porte, UF e situação do plano (eixo2_meta2_repasse_planejado) e a espinha onde a medida de execução vai entrar quando for decidida.\nA REGRA: o escopo são os cinco programas, pelo id_programa. O porte vem do programa, pela regra do painel da Meta 2: 60 é ESTADO_DF, 61 é MUNICIPIO_GE_360K (repasse a partir de R$ 360 mil), 62 é MUNICIPIO_LT_360K. O 111, de estados em 2025, segue o 60. O 112 reúne os dois portes de município e fica MUNICIPIO_SEM_PORTE. O DF aparece no programa de estados e no de municípios de cada ciclo; no de municípios é a única linha com tipo_ente = 'ESTADO' (1 no 61 e 1 no 112).\nDOS RELATÓRIOS DE GESTÃO, SÓ FATOS: quantos o plano tem, o mais recente por data_e_hora e se algum foi APROVADO. Em 11/11/2026, 4.407 planos têm relatório (4.454 relatórios), 46 têm dois ou mais e 61 têm algum APROVADO; em 29 deles o aprovado não é o mais recente. Por isso a situação do mais recente e o flag de aprovado respondem coisas diferentes, e nenhum dos dois decide qual relatório vale.\nO QUE NÃO ESTÁ AQUI: o valor executado, nem o declarado no relatório (valor_executado_relatorio_gestao) nem a saída de caixa do BB Ágil; a escolha das situações do plano que contam (há 1 plano REJEITADO no 62 e 182 no 112, e 171 dos 222 entes do 112 com mais de um plano têm um rejeitado); e a região, que espera a dimensão de território (issue #164).\nLIMITAÇÕES: os programas de 2025 têm 4 parcelas, e o repasse planejado é o do plano inteiro, não o do ano. Um plano do 62 tem início de vigência anterior a 2023, como veio da origem.\nATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga incremental.",
+      "colunas": [
+        {
+          "nome": "id_plano_acao",
+          "descricao": "Identificador do plano de ação no TransfereGov."
+        },
+        {
+          "nome": "codigo_plano_acao",
+          "descricao": "Código do plano de ação, como o TransfereGov o exibe."
+        },
+        {
+          "nome": "id_programa",
+          "descricao": "Programa do TransfereGov a que o plano pertence."
+        },
+        {
+          "nome": "ano_programa",
+          "descricao": "Ano do programa, de silver_programa_minc: 2023 no ciclo 1 (60, 61 e 62) e 2025 na PNAB 2025 (111 e 112). É o ciclo das agregações."
+        },
+        {
+          "nome": "nome_programa",
+          "descricao": "Nome do programa no TransfereGov."
+        },
+        {
+          "nome": "porte_ente",
+          "descricao": "Porte do ente, pelo programa: ESTADO_DF (60 e 111), MUNICIPIO_GE_360K (61), MUNICIPIO_LT_360K (62) e MUNICIPIO_SEM_PORTE (112, que reúne os dois portes de município)."
+        },
+        {
+          "nome": "tipo_ente",
+          "descricao": "Tipo do ente recebedor na origem. Nos programas de municípios, a linha com 'ESTADO' é o DF."
+        },
+        {
+          "nome": "id_ente_recebedor_plano_acao",
+          "descricao": "Identificador do ente recebedor no TransfereGov."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla da UF do ente recebedor (uf_ente_recebedor_plano_acao)."
+        },
+        {
+          "nome": "cod_ibge_uf",
+          "descricao": "Código IBGE da UF do ente recebedor, com 2 dígitos."
+        },
+        {
+          "nome": "cod_ibge_municipio",
+          "descricao": "Código IBGE do município recebedor, com 7 dígitos. NULL para estados e para o DF."
+        },
+        {
+          "nome": "situacao_plano_acao",
+          "descricao": "Situação do plano no TransfereGov (AUTORIZADO, EM_ELABORACAO, REJEITADO e outras). Nenhuma é filtrada."
+        },
+        {
+          "nome": "data_inicio_vigencia_plano_acao",
+          "descricao": "Início da vigência do plano."
+        },
+        {
+          "nome": "data_fim_vigencia_plano_acao",
+          "descricao": "Fim da vigência do plano."
+        },
+        {
+          "nome": "valor_total_repasse_plano_acao",
+          "descricao": "Repasse planejado pela União para o plano, em reais. É o valor previsto no plano, não o executado."
+        },
+        {
+          "nome": "id_relatorio_gestao_recente",
+          "descricao": "O relatório de gestão mais recente do plano: o de maior data_e_hora, com o maior id_relatorio_gestao como desempate. NULL quando não há relatório."
+        },
+        {
+          "nome": "situacao_relatorio_gestao_recente",
+          "descricao": "Situação do relatório mais recente. NULL quando não há relatório."
+        },
+        {
+          "nome": "data_e_hora_relatorio_gestao_recente",
+          "descricao": "Data e hora do relatório mais recente. NULL quando não há relatório."
+        },
+        {
+          "nome": "flag_relatorio_aprovado",
+          "descricao": "Se algum relatório do plano, não só o mais recente, está APROVADO. NULL quando o plano não tem relatório (regra transversal 1 do ADR 0010)."
+        },
+        {
+          "nome": "quantidade_relatorios_gestao",
+          "descricao": "Quantidade de relatórios de gestão do plano. Zero quando não há."
+        }
+      ],
+      "colunas_descritas": 20,
+      "testes": 18,
+      "materializacao": "",
+      "depende_de": [
+        "silver_plano_acao_minc",
+        "silver_programa_minc",
+        "silver_relatorios_gestao"
+      ],
+      "sources": [],
+      "linhas_sql": 111
+    },
+    {
+      "nome": "eixo2_meta2_repasse_planejado",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": 2,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo2_meta2_repasse_planejado.sql",
+      "descricao": "Camada Gold / Meta 2 do Cultura em Números. O repasse planejado da PNAB somado por ciclo, porte, UF e situação do plano.\nGRÃO: uma linha por ano_programa, porte_ente, UF e situacao_plano_acao. UNIVERSO: todos os planos de eixo2_meta2_plano_acao, sem filtro. A soma de quantidade_planos e de valor_total_repasse_planejado é a da silver_plano_acao_minc nos cinco programas (teste eixo2_meta2_repasse_planejado_soma_igual_silver).\nPARA QUE SERVE: a distribuição federativa do repasse planejado em cada ciclo, a primeira pergunta da Meta 2, do lado do planejado.\nCOMO LER: é o repasse PLANEJADO pela União ao ente, não o executado nem o pago a agentes culturais. Cada situação do plano fica numa linha própria, porque quais situações contam ainda não foi decidido. Somar todas pode contar o mesmo ente duas vezes: no 112, 171 dos 222 entes com mais de um plano têm um plano REJEITADO. Nos programas de 2025 o valor é o do plano inteiro, de 4 parcelas, e não o de um ano. A região fica de fora até a dimensão de território (issue #164).",
+      "colunas": [
+        {
+          "nome": "ano_programa",
+          "descricao": "Ciclo, pelo ano do programa (2023 ou 2025)."
+        },
+        {
+          "nome": "porte_ente",
+          "descricao": "Porte do ente, como em eixo2_meta2_plano_acao."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla da UF do ente recebedor."
+        },
+        {
+          "nome": "cod_ibge_uf",
+          "descricao": "Código IBGE da UF do ente recebedor."
+        },
+        {
+          "nome": "situacao_plano_acao",
+          "descricao": "Situação do plano no TransfereGov."
+        },
+        {
+          "nome": "quantidade_planos",
+          "descricao": "Quantidade de planos de ação no grupo."
+        },
+        {
+          "nome": "valor_total_repasse_planejado",
+          "descricao": "Soma de valor_total_repasse_plano_acao dos planos do grupo, em reais."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo2_meta2_plano_acao"
+      ],
+      "sources": [],
+      "linhas_sql": 19
+    },
+    {
       "nome": "eixo2_meta3_cobertura_pagamento",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -50096,10 +50242,10 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 17,
-      "testes": 98,
+      "modelos": 19,
+      "testes": 123,
       "camadas": {
-        "gold": 17
+        "gold": 19
       }
     },
     "ibge": {
@@ -53321,9 +53467,9 @@
     }
   ],
   "totais": {
-    "modelos": 779,
-    "testes": 933,
-    "com_descricao": 778,
+    "modelos": 781,
+    "testes": 958,
+    "com_descricao": 780,
     "sources": 756
   }
 }
