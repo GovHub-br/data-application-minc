@@ -1,6 +1,31 @@
 # Meta 3 — Cotas de ações afirmativas (domínio `cotas_dbt`)
 
 > **Migrado em 2026-10-27 para a estrutura do ADR 0010.** Os modelos deste documento vivem hoje em `models/transferegov/` (bronze_*, silver_*) e `models/data_products/cultura_em_numeros/` (eixo2_meta3_*); os nomes abaixo são os antigos. A cadeia do BB Ágil (`stg_bbagil`, `bbagil_ente_ano`, `fct_pagamentos_bbagil`, `comparativo_recebido_vs_pago`) foi apagada no mesmo PR, porque `bsc_pnab.fato_bbagil` não é mais gerada; a medida sobre o valor pago pelo BB Ágil virá de `eixo2_meta5_evento_fomento`. Mapa de nomes no PR da migração e em `docs/superpowers/plans/2026-10-26-cotas-adr-0010.md`.
+>
+> | Nome antigo, schema `cotas` | Nome de hoje, `schema.modelo` |
+> |---|---|
+> | `stg_agentes_pf` | `transferegov.silver_agentes_pf` |
+> | `stg_agentes_pj` | `transferegov.silver_agentes_pj` |
+> | `stg_agentes_coletivos` | `transferegov.silver_agentes_coletivos` |
+> | `stg_agentes_pnab_pf` | `transferegov.silver_agentes_pnab_pf` |
+> | `stg_agentes_pnab_pj` | `transferegov.silver_agentes_pnab_pj` |
+> | `stg_contemplados_lpg` | `transferegov.silver_contemplados_lpg` |
+> | `stg_contemplados_pnab` | `transferegov.silver_contemplados_pnab` |
+> | `stg_editais` | `transferegov.silver_editais` |
+> | `edital_ano_por_anexo` | `transferegov.silver_edital_ano_por_anexo` |
+> | `edital_ano_por_arquivo` | `transferegov.silver_edital_ano_por_arquivo` |
+> | `editais_unif` | `transferegov.silver_editais_unif` |
+> | `contemplados_unif` | `transferegov.silver_contemplados_unif` |
+> | `territorio_municipio` | `transferegov.silver_territorio_municipio` |
+> | `perfil_agentes_normalizado` | `cultura_em_numeros.eixo2_meta3_perfil_agente` |
+> | `identificadores_agentes_cotas` | `cultura_em_numeros.eixo2_meta3_identificador_agente` |
+> | `diag_valores_cortados` | `cultura_em_numeros.eixo2_meta3_diag_valores_cortados` |
+> | `fct_pagamentos_elegiveis` | `cultura_em_numeros.eixo2_meta3_pagamento_elegivel` |
+> | `cobertura_pagamentos` | `cultura_em_numeros.eixo2_meta3_cobertura_pagamento` |
+> | `distribuicao_cotas_lpg` | `cultura_em_numeros.eixo2_meta3_distribuicao_cotas_lpg` |
+> | `distribuicao_cotas_pnab` | `cultura_em_numeros.eixo2_meta3_distribuicao_cotas_pnab` |
+>
+> O nome antigo trazia a camada antiga: os `stg_*`, que este documento chama de bronze, são silvers hoje. As bronzes de hoje (`transferegov.bronze_planilha_*`, `bronze_plano_acao_minc`, `bronze_territorio_fcu_setores`) são cópias fiéis da origem e não têm nome antigo.
 
 > Estado do pipeline dbt que audita o cumprimento das cotas de ações afirmativas
 > (raça/cor, PCD, indígena e território) da **LPG** (Lei Paulo Gustavo) e da **PNAB**
