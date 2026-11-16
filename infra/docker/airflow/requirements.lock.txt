@@ -137,7 +137,6 @@ apache-airflow==3.2.2
     #   apache-airflow-providers-mysql
     #   apache-airflow-providers-odbc
     #   apache-airflow-providers-openlineage
-    #   apache-airflow-providers-opensearch
     #   apache-airflow-providers-postgres
     #   apache-airflow-providers-redis
     #   apache-airflow-providers-sendgrid
@@ -149,7 +148,6 @@ apache-airflow==3.2.2
     #   apache-airflow-providers-standard
     #   apache-airflow-providers-trino
     #   astronomer-cosmos
-    #   openmetadata-ingestion
 apache-airflow-core==3.2.2
     # via
     #   -r w/lock.in
@@ -184,7 +182,6 @@ apache-airflow-providers-common-compat==1.18.0
     #   apache-airflow-providers-mysql
     #   apache-airflow-providers-odbc
     #   apache-airflow-providers-openlineage
-    #   apache-airflow-providers-opensearch
     #   apache-airflow-providers-postgres
     #   apache-airflow-providers-redis
     #   apache-airflow-providers-sendgrid
@@ -219,9 +216,7 @@ apache-airflow-providers-common-sql==2.1.1
 apache-airflow-providers-docker==4.5.9
     # via -r w/lock.in
 apache-airflow-providers-elasticsearch==6.9.0
-    # via
-    #   -r w/lock.in
-    #   openmetadata-ingestion
+    # via -r w/lock.in
 apache-airflow-providers-fab==3.8.1
     # via -r w/lock.in
 apache-airflow-providers-ftp==3.15.2
@@ -238,7 +233,6 @@ apache-airflow-providers-http==6.0.5
     # via
     #   -r w/lock.in
     #   apache-airflow-providers-amazon
-    #   openmetadata-ingestion
 apache-airflow-providers-microsoft-azure==15.0.1
     # via -r w/lock.in
 apache-airflow-providers-microsoft-mssql==4.7.0
@@ -249,8 +243,6 @@ apache-airflow-providers-odbc==4.12.3
     # via -r w/lock.in
 apache-airflow-providers-openlineage==2.20.1
     # via -r w/lock.in
-apache-airflow-providers-opensearch==1.12.0
-    # via openmetadata-ingestion
 apache-airflow-providers-postgres==6.7.0
     # via -r w/lock.in
 apache-airflow-providers-redis==4.5.0
@@ -333,7 +325,6 @@ attrs==26.1.0
     #   looker-sdk
     #   openlineage-integration-common
     #   openlineage-python
-    #   openmetadata-ingestion
     #   outcome
     #   referencing
     #   svcs
@@ -508,7 +499,7 @@ blinker==1.9.0
     #   -r w/lock.in
     #   apache-airflow-providers-fab
     #   flask
-blis==0.7.11
+blis==1.3.4
     # via thinc
 boto3==1.41.5
     # via
@@ -561,7 +552,7 @@ celery==5.6.3
     #   -r w/lock.in
     #   apache-airflow-providers-celery
     #   flower
-certifi==2026.7.22
+certifi==2026.10.23
     # via
     #   -r w/lock.in
     #   elastic-transport
@@ -571,7 +562,7 @@ certifi==2026.7.22
     #   kubernetes
     #   kubernetes-asyncio
     #   msrest
-    #   opensearch-py
+    #   openmetadata-ingestion
     #   requests
     #   snowflake-connector-python
 cffi==2.1.1
@@ -602,13 +593,14 @@ click==8.3.3
     #   collate-data-diff
     #   collate-sqlfluff
     #   dbt-core
-    #   dbt-semantic-interfaces
     #   flask
     #   flask-appbuilder
     #   litellm
     #   ray
     #   rich-toolkit
+    #   spacy
     #   uvicorn
+    #   weasel
 click-didyoumean==0.3.1
     # via
     #   -r w/lock.in
@@ -627,13 +619,13 @@ cloudpickle==3.1.1
     # via
     #   -r w/lock.in
     #   snowflake-snowpark-python
-collate-data-diff==0.11.15
+collate-data-diff==0.11.18
     # via openmetadata-ingestion
 collate-dbt-artifacts-parser==0.1.4
     # via openmetadata-ingestion
 collate-sqlfluff==3.5.3
     # via collate-sqllineage
-collate-sqllineage==2.1.6
+collate-sqllineage==2.1.7
     # via openmetadata-ingestion
 colorama==0.4.6
     # via
@@ -650,8 +642,9 @@ colorlog==6.12.0
     #   -r w/lock.in
     #   apache-airflow-core
     #   apache-airflow-task-sdk
-confection==0.1.5
+confection==1.3.4
     # via
+    #   spacy
     #   thinc
     #   weasel
 cron-descriptor==2.1.0
@@ -704,11 +697,13 @@ dbt-common==1.39.0
     #   dbt-adapters
     #   dbt-core
     #   dbt-postgres
-dbt-core==1.10.23
+dbt-core==1.12.7
     # via
     #   -r w/lock.in
     #   collate-data-diff
     #   dbt-postgres
+dbt-core-experimental-parser==2.0.11
+    # via dbt-core
 dbt-extractor==0.6.0
     # via
     #   dbt-core
@@ -720,8 +715,6 @@ dbt-protos==1.0.565
     #   dbt-adapters
     #   dbt-common
     #   dbt-core
-dbt-semantic-interfaces==0.9.0
-    # via dbt-core
 decorator==5.3.1
     # via
     #   -r w/lock.in
@@ -792,8 +785,6 @@ et-xmlfile==2.0.0
     # via openpyxl
 eventlet==0.41.2
     # via -r w/lock.in
-events==0.5
-    # via opensearch-py
 fastapi==0.141.1
     # via
     #   -r w/lock.in
@@ -1364,7 +1355,6 @@ grpcio==1.83.1
     #   grpc-interceptor
     #   grpcio-gcp
     #   grpcio-status
-    #   opensearch-protobufs
     #   opentelemetry-exporter-otlp-proto-grpc
     #   ray
 grpcio-gcp==0.2.2
@@ -1425,6 +1415,7 @@ httpx==0.28.1
     #   openai
     #   openlineage-python
     #   openmetadata-ingestion
+    #   weasel
 httpx2==2.13.1
     # via apache-airflow-providers-google
 huggingface-hub==1.16.1
@@ -1470,9 +1461,9 @@ importlib-metadata==8.7.1
     #   -r w/lock.in
     #   apache-airflow-core
     #   apache-airflow-task-sdk
-    #   dbt-semantic-interfaces
     #   keyring
     #   litellm
+    #   metricflow
     #   openmetadata-ingestion
     #   opentelemetry-api
 importlib-resources==7.1.0
@@ -1540,12 +1531,12 @@ jinja2==3.1.6
     #   collate-sqlfluff
     #   dbt-common
     #   dbt-core
-    #   dbt-semantic-interfaces
     #   diff-cover
     #   fastapi
     #   flask
     #   flask-babel
     #   litellm
+    #   metricflow
     #   openmetadata-ingestion
     #   spacy
 jiter==0.16.0
@@ -1583,10 +1574,10 @@ jsonschema==4.26.0
     #   apache-airflow-task-sdk
     #   dbt-common
     #   dbt-core
-    #   dbt-semantic-interfaces
     #   flask-appbuilder
     #   google-cloud-aiplatform
     #   litellm
+    #   metricflow
     #   ray
 jsonschema-specifications==2025.9.1
     # via
@@ -1607,8 +1598,6 @@ kubernetes-asyncio==36.1.0
     # via
     #   -r w/lock.in
     #   apache-airflow-providers-cncf-kubernetes
-langcodes==3.5.1
-    # via spacy
 lazy-object-proxy==1.12.0
     # via
     #   -r w/lock.in
@@ -1695,6 +1684,8 @@ methodtools==0.4.7
     #   apache-airflow-providers-common-sql
     #   apache-airflow-providers-microsoft-mssql
     #   apache-airflow-task-sdk
+metricflow==0.214.0
+    # via dbt-core
 microsoft-kiota-abstractions==1.12.0
     # via
     #   -r w/lock.in
@@ -1732,9 +1723,9 @@ more-itertools==10.8.0
     # via
     #   -r w/lock.in
     #   apache-airflow-providers-common-sql
-    #   dbt-semantic-interfaces
     #   jaraco-classes
     #   jaraco-functools
+    #   metricflow
 msal==1.38.0
     # via
     #   -r w/lock.in
@@ -1809,7 +1800,7 @@ networkx==3.6.1
     # via
     #   collate-sqllineage
     #   dbt-core
-numpy==1.26.4
+numpy==2.4.6
     # via
     #   -r w/lock.in
     #   blis
@@ -1855,19 +1846,16 @@ openlineage-sql==1.52.0
     # via
     #   -r w/lock.in
     #   openlineage-integration-common
-openmetadata-ingestion==1.13.3.2
+openmetadata-ingestion==2.0.7.2
     # via -r w/lock.in
 openpyxl==3.1.5
     # via -r w/lock.in
-opensearch-protobufs==1.2.0
-    # via opensearch-py
-opensearch-py==3.2.0
-    # via apache-airflow-providers-opensearch
 opentelemetry-api==1.37.0
     # via
     #   -r w/lock.in
     #   apache-airflow-core
     #   dbt-common
+    #   dbt-core
     #   google-cloud-bigtable
     #   google-cloud-logging
     #   google-cloud-pubsub
@@ -1885,7 +1873,6 @@ opentelemetry-exporter-otlp==1.37.0
     # via
     #   -r w/lock.in
     #   apache-airflow-core
-    #   openmetadata-ingestion
 opentelemetry-exporter-otlp-proto-common==1.37.0
     # via
     #   -r w/lock.in
@@ -1975,7 +1962,7 @@ packaging==26.3
     #   thinc
     #   weasel
     #   wheel
-pandas==2.1.4
+pandas==2.3.3
     # via
     #   -r w/lock.in
     #   apache-airflow-providers-google
@@ -2031,6 +2018,7 @@ pluggy==1.6.0
     #   pytest
 preshed==3.0.13
     # via
+    #   openmetadata-ingestion
     #   spacy
     #   thinc
 presidio-analyzer==2.2.358
@@ -2157,7 +2145,6 @@ protobuf==6.33.6
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-    #   opensearch-protobufs
     #   opentelemetry-proto
     #   proto-plus
     #   ray
@@ -2207,7 +2194,7 @@ pycparser==3.0
     # via
     #   -r w/lock.in
     #   cffi
-pydantic==2.11.10
+pydantic==2.14.3
     # via
     #   -r w/lock.in
     #   apache-airflow-core
@@ -2216,13 +2203,12 @@ pydantic==2.11.10
     #   cadwyn
     #   collate-data-diff
     #   collate-dbt-artifacts-parser
-    #   confection
     #   dbt-core
-    #   dbt-semantic-interfaces
     #   fastapi
     #   google-cloud-aiplatform
     #   google-genai
     #   litellm
+    #   metricflow
     #   openai
     #   openmetadata-ingestion
     #   pydantic-extra-types
@@ -2231,7 +2217,7 @@ pydantic==2.11.10
     #   spacy
     #   thinc
     #   weasel
-pydantic-core==2.33.2
+pydantic-core==2.50.4
     # via
     #   -r w/lock.in
     #   pydantic
@@ -2260,7 +2246,7 @@ pygtrie==2.5.0
     #   -r w/lock.in
     #   apache-airflow-core
     #   apache-airflow-task-sdk
-pyjwt==2.13.0
+pyjwt==2.15.1
     # via
     #   -r w/lock.in
     #   adal
@@ -2319,15 +2305,14 @@ python-dateutil==2.9.0.post0
     #   celery
     #   croniter
     #   dbt-common
-    #   dbt-semantic-interfaces
     #   elasticsearch
     #   flask-appbuilder
     #   google-cloud-bigquery
     #   kubernetes
     #   kubernetes-asyncio
+    #   metricflow
     #   openlineage-python
     #   openmetadata-ingestion
-    #   opensearch-py
     #   pandas
     #   pendulum
     #   pyathena
@@ -2342,6 +2327,7 @@ python-dotenv==1.2.3
     # via
     #   -r w/lock.in
     #   apache-airflow-providers-docker
+    #   dbt-core
     #   litellm
     #   openmetadata-ingestion
     #   pydantic-settings
@@ -2356,7 +2342,6 @@ python-multipart==0.0.32
     # via
     #   -r w/lock.in
     #   fastapi
-    #   openmetadata-ingestion
 python-slugify==8.0.4
     # via
     #   -r w/lock.in
@@ -2385,13 +2370,13 @@ pyyaml==6.0.3
     #   apispec
     #   collate-sqlfluff
     #   dbt-core
-    #   dbt-semantic-interfaces
     #   google-ads
     #   google-cloud-aiplatform
     #   huggingface-hub
     #   kubernetes
     #   kubernetes-asyncio
     #   libcst
+    #   metricflow
     #   openlineage-integration-common
     #   openlineage-python
     #   openmetadata-ingestion
@@ -2399,6 +2384,8 @@ pyyaml==6.0.3
     #   ray
     #   snowflake-snowpark-python
     #   uvicorn
+rapidfuzz==3.14.6
+    # via metricflow
 ray==2.58.0
     # via
     #   -r w/lock.in
@@ -2417,6 +2404,7 @@ referencing==0.37.0
     #   -r w/lock.in
     #   jsonschema
     #   jsonschema-specifications
+    #   metricflow
 regex==2026.8.31
     # via
     #   -r w/lock.in
@@ -2448,7 +2436,6 @@ requests==2.34.2
     #   msrest
     #   openlineage-python
     #   openmetadata-ingestion
-    #   opensearch-py
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-resourcedetector-gcp
     #   ray
@@ -2458,13 +2445,13 @@ requests==2.34.2
     #   requests-oauthlib
     #   requests-toolbelt
     #   sagemaker-studio
+    #   smart-open
     #   snowflake-connector-python
     #   snowplow-tracker
     #   spacy
     #   tiktoken
     #   tldextract
     #   trino
-    #   weasel
     #   zeep
 requests-aws4auth==1.3.2
     # via openmetadata-ingestion
@@ -2614,7 +2601,7 @@ soupsieve==2.9.2
     # via
     #   -r w/lock.in
     #   beautifulsoup4
-spacy==3.7.5
+spacy==3.8.18
     # via
     #   openmetadata-ingestion
     #   presidio-analyzer
@@ -2649,8 +2636,10 @@ sqlalchemy-utils==0.42.1
     #   -r w/lock.in
     #   flask-appbuilder
 sqlglot==29.0.1
-    # via collate-sqllineage
-sqlparse==0.5.4
+    # via
+    #   collate-sqllineage
+    #   metricflow
+sqlparse==0.6.0
     # via
     #   -r w/lock.in
     #   apache-airflow-providers-common-sql
@@ -2659,7 +2648,6 @@ sqlparse==0.5.4
     #   google-cloud-spanner
 srsly==2.5.3
     # via
-    #   confection
     #   spacy
     #   thinc
     #   weasel
@@ -2669,7 +2657,6 @@ starlette==1.6.0
     #   apache-airflow-core
     #   cadwyn
     #   fastapi
-    #   openmetadata-ingestion
 statsd==4.0.1
     # via -r w/lock.in
 std-uritemplate==2.0.12
@@ -2690,6 +2677,7 @@ tabulate==0.9.0
     #   -r w/lock.in
     #   apache-airflow-core
     #   collate-data-diff
+    #   metricflow
     #   openmetadata-ingestion
 tblib==3.2.2
     # via collate-sqlfluff
@@ -2711,7 +2699,7 @@ text-unidecode==1.3
     # via
     #   -r w/lock.in
     #   python-slugify
-thinc==8.2.5
+thinc==8.3.14
     # via spacy
 threadpoolctl==3.6.0
     # via
@@ -2737,7 +2725,6 @@ tornado==6.5.8
     # via
     #   -r w/lock.in
     #   flower
-    #   openmetadata-ingestion
 tqdm==4.70.0
     # via
     #   -r w/lock.in
@@ -2758,9 +2745,7 @@ typer==0.27.2
     #   fastapi-cli
     #   huggingface-hub
     #   spacy
-    #   typer-slim
-typer-slim==0.24.0
-    # via weasel
+    #   weasel
 types-protobuf==7.35.1.20260827
     # via
     #   -r w/lock.in
@@ -2802,7 +2787,6 @@ typing-extensions==4.16.0
     #   dbt-adapters
     #   dbt-common
     #   dbt-core
-    #   dbt-semantic-interfaces
     #   elasticsearch
     #   fastapi
     #   flask-limiter
@@ -2814,6 +2798,7 @@ typing-extensions==4.16.0
     #   limits
     #   looker-sdk
     #   mashumaro
+    #   metricflow
     #   openai
     #   opentelemetry-api
     #   opentelemetry-exporter-otlp-proto-grpc
@@ -2865,7 +2850,7 @@ uritemplate==4.2.0
     # via
     #   -r w/lock.in
     #   google-api-python-client
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   -r w/lock.in
     #   apache-airflow-providers-cncf-kubernetes
@@ -2875,7 +2860,7 @@ urllib3==2.7.0
     #   elastic-transport
     #   kubernetes
     #   kubernetes-asyncio
-    #   opensearch-py
+    #   openmetadata-ingestion
     #   requests
     #   sagemaker-studio
 uuid6==2025.0.1
@@ -2920,7 +2905,7 @@ wcwidth==0.8.3
     # via
     #   -r w/lock.in
     #   prompt-toolkit
-weasel==0.4.3
+weasel==1.0.1
     # via spacy
 websocket-client==1.9.1
     # via
@@ -2939,7 +2924,6 @@ werkzeug==3.1.8
     #   flask-appbuilder
     #   flask-jwt-extended
     #   flask-login
-    #   openmetadata-ingestion
     #   sendgrid
 wheel==0.48.0
     # via snowflake-snowpark-python

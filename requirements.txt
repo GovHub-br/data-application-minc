@@ -14,7 +14,7 @@
 # container, e os testes injetam `metadata.*` falso via sys.modules.
 
 astronomer-cosmos==1.15.1
-dbt-core==1.10.23
+dbt-core==1.12.7
 dbt-postgres==1.10.0
 imap-tools==1.10.0
 zeep==4.3.3
@@ -30,7 +30,13 @@ apache-airflow-providers-postgres==6.7.0
 apache-airflow-providers-trino==6.6.1
 apache-airflow-providers-standard==1.13.1
 apache-airflow-providers-git==0.4.3
-openmetadata-ingestion[dbt,postgres,superset,airflow,pii-processor]==1.13.3.2
+# Major.minor tem que casar com o servidor do OpenMetadata: o cliente recusa
+# qualquer chamada se divergir (VersionMismatchException). O servidor do MinC
+# esta em 2.0.7. Sem o extra `airflow`: desde a 2.0 ele pina
+# apache-airflow==3.3.x, e a imagem esta no 3.2.2. O operator de linhagem e a
+# fonte de pipeline do Airflow vem no pacote de qualquer jeito; o extra so
+# acrescenta providers (http, elasticsearch, opensearch) que nao usamos.
+openmetadata-ingestion[dbt,postgres,superset,pii-processor]==2.0.7.2
 # Nao usamos o provider do Google, mas ele vem na imagem base (22.x). Sem este
 # piso o resolvedor o rebaixava para 12.0.0 so para manter o litellm mais novo.
 apache-airflow-providers-google>=22
