@@ -49,6 +49,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, Sequence, Ty
 import pandas as pd
 
 if TYPE_CHECKING:
+    import pyarrow as pa
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from airflow.sdk import Asset
 
@@ -505,6 +506,49 @@ def partes_do_parquet(
         fatias *= 2
 
 
+def _tabela_para_parquet(tabela: pa.Table) -> bytes:
+    import pyarrow.parquet as pq
+
+    buffer = io.BytesIO()
+    pq.write_table(tabela, buffer)
+    return buffer.getvalue()
+
+
+def partes_da_tabela(tabela: pa.Table, limite: int | None) -> list[bytes]:
+    """A tabela Arrow em Parquet: um arquivo, ou partes de até ``limite`` bytes.
+
+    O mesmo que ``partes_do_parquet``, para quem já tem a tabela em Arrow e não
+    quer passar por uma lista de dicts, que ocupa muitas vezes a memória da
+    tabela (o CNEFE, um município por vez). As partes são fatias de
+    linhas da mesma tabela, com o mesmo schema: concatenadas, dão a tabela
+    inteira. Tabela vazia vira um Parquet sem linhas, com as colunas.
+    """
+    inteiro = _tabela_para_parquet(tabela)
+    if limite is None or len(inteiro) <= limite:
+        return [inteiro]
+    if tabela.num_rows <= 1:
+        raise ValueError(
+            f"Parquet de {tabela.num_rows} linha(s) com {len(inteiro)} bytes, acima "
+            f"do limite de {limite}: não há como dividi-lo"
+        )
+    fatias = math.ceil(len(inteiro) / limite)
+    while True:
+        fatias = min(fatias, tabela.num_rows)
+        tamanho = math.ceil(tabela.num_rows / fatias)
+        partes = [
+            _tabela_para_parquet(tabela.slice(inicio, tamanho))
+            for inicio in range(0, tabela.num_rows, tamanho)
+        ]
+        if all(len(parte) <= limite for parte in partes):
+            return partes
+        if tamanho == 1:
+            raise ValueError(
+                f"uma linha sozinha passa de {limite} bytes em Parquet: não há "
+                "como gravá-la abaixo do limite"
+            )
+        fatias *= 2
+
+
 def parquet_para_registros(df: pd.DataFrame, chave: list[str]) -> list[dict[str, Any]]:
     """Linhas de um Parquet de staging prontas para ``insert_data`` com upsert.
 
@@ -727,6 +771,24 @@ def gravar_parquet(
     logging.info(
         "[datalakehouse] %d registros gravados em s3://%s/%s (%d arquivo(s))",
         len(registros),
+        BUCKET,
+        key,
+        len(keys),
+    )
+    return keys
+
+
+def gravar_tabela(tabela: pa.Table, key: str) -> list[str]:
+    """Grava a tabela Arrow como Parquet de staging em ``key`` e devolve as keys.
+
+    Acima do limite do proxy vira partes com o mesmo schema
+    (``partes_da_tabela``); cada parte é um Parquet válido sozinho, e
+    ``partes_do_objeto`` devolve as keys na ordem.
+    """
+    keys = _gravar_partes(partes_da_tabela(tabela, limite_objeto_bytes()), key)
+    logging.info(
+        "[datalakehouse] %d registros gravados em s3://%s/%s (%d arquivo(s))",
+        tabela.num_rows,
         BUCKET,
         key,
         len(keys),
