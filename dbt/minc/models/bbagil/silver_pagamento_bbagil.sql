@@ -1,4 +1,5 @@
-{{ config(materialized='table') }}
+-- view, como a pasta: o union all de duas tabelas sai em ~0,6 s, como a tabela
+-- (medido em 2026-11-11).
 
 -- Silver — unifica os lançamentos do extrato-folha
 -- (silver_pagamento_extrato_bbagil, já sem as transações com

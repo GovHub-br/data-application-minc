@@ -462,7 +462,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/bbagil/silver_pagamento_bbagil.sql",
-      "descricao": "Camada Silver / BB Ágil. Os movimentos de dinheiro com beneficiário informado das contas do fomento direto, do extrato e dos sublançamentos numa tabela só, com tipo_lancamento dizendo de qual lado a linha veio.\nGRÃO: uma linha por movimento de dinheiro. UNIVERSO: a união de silver_pagamento_extrato_bbagil e silver_pagamento_subtransacao_bbagil, sem sobreposição entre elas.\nPARA QUE SERVE: é a entrada do BB Ágil (LPG, PNAB e LAB) na Meta 5, via int_ancine_bbagil_salic.\nO QUE NÃO É DECIDIDO AQUI: não decide o que é pagamento efetivo (estorno, só débito, status 'Pago'), não classifica programa nem decide quem conta como agente cultural. As linhas saem como a limpeza deixou, com as colunas que a Gold usa para essas decisões.\nLIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do Brasil, e a extração começa em 2023 — a Aldir Blanc emergencial de 2020-2021 não está aqui.\nZONA RESTRITA. Carrega documento e nome do beneficiário em claro: não publicável e proibida em corpus de RAG. A anonimização no momento do acesso é responsabilidade do Apache Ranger (ADR 0009).\nATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga incremental.",
+      "descricao": "Camada Silver / BB Ágil. Os movimentos de dinheiro com beneficiário informado das contas do fomento direto, do extrato e dos sublançamentos numa tabela só, com tipo_lancamento dizendo de qual lado a linha veio.\nGRÃO: uma linha por movimento de dinheiro. UNIVERSO: a união de silver_pagamento_extrato_bbagil e silver_pagamento_subtransacao_bbagil, sem sobreposição entre elas.\nPARA QUE SERVE: é a entrada do BB Ágil (LPG, PNAB e LAB) na Meta 5, via int_ancine_bbagil_salic.\nO QUE NÃO É DECIDIDO AQUI: não decide o que é pagamento efetivo (estorno, só débito, status 'Pago'), não classifica programa nem decide quem conta como agente cultural. As linhas saem como a limpeza deixou, com as colunas que a Gold usa para essas decisões.\nLIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do Brasil, e a extração começa em 2023 — a Aldir Blanc emergencial de 2020-2021 não está aqui.\nZONA RESTRITA. Carrega documento e nome do beneficiário em claro: não publicável e proibida em corpus de RAG. A anonimização no momento do acesso é responsabilidade do Apache Ranger (ADR 0009).\nATUALIZAÇÃO: view, recalculada a cada leitura; não há carga incremental.",
       "colunas": [
         {
           "nome": "tipo_lancamento",
@@ -515,13 +515,13 @@
       ],
       "colunas_descritas": 12,
       "testes": 8,
-      "materializacao": "table",
+      "materializacao": "",
       "depende_de": [
         "silver_pagamento_extrato_bbagil",
         "silver_pagamento_subtransacao_bbagil"
       ],
       "sources": [],
-      "linhas_sql": 62
+      "linhas_sql": 63
     },
     {
       "nome": "silver_pagamento_extrato_bbagil",
@@ -8650,7 +8650,7 @@
       "camada": "intermediate",
       "meta": null,
       "caminho": "dbt/minc/models/intermediate/int_ancine_bbagil_salic.sql",
-      "descricao": "Camada Intermediate. Os eventos em que um agente recebeu recurso, de três fontes numa forma só: saída de dinheiro das contas do BB Ágil (silver_pagamento_bbagil), recibo de captação da Rouanet (silver_sac_captacao_proponente) e captação de projeto audiovisual da Ancine (silver_consulta).\nGRÃO: uma linha por evento da fonte. UNIVERSO: todo movimento de silver_pagamento_bbagil, todo recibo de silver_sac_captacao_proponente e toda captação de silver_consulta. Nada é descartado aqui.\nPARA QUE SERVE: dá às três fontes uma forma comum para a Gold eixo2_meta5_evento_fomento aplicar a regra de negócio da Meta 5.\nNADA É DECIDIDO AQUI: quais eventos contam, a que política cada um pertence e o piso de valor são regra de negócio e ficam na Gold (ADR 0010). Por isso cada linha leva o que a fonte tem para essa decisão — programa_bruto, beneficiario_nome, beneficiario_documento_bruto, descriptionname, tipo_lancamento —, nulo onde a fonte não tem.\nPOR QUE O BB ÁGIL CHEGA INCOMPLETO: as linhas do BB Ágil chegam mesmo sem documento normalizado, sem data ou sem valor, e com crédito e sublançamento de qualquer status. O pareamento de estorno na Gold é por conta e precisa das duas pernas, e só depois dele a Gold descarta o que não é atribuível a um agente. Por isso os testes de não nulo daqui valem só para SALIC e Ancine.\nLIMITAÇÕES: a identidade entre fontes é só o CPF/CNPJ normalizado; não há resolução por nome. As janelas das fontes são muito diferentes (Rouanet desde 1993, Ancine desde 2005, BB Ágil desde 2023), e quem trata isso é a Gold.\nZONA RESTRITA. Carrega CPF/CNPJ e nome em claro: não publicável e proibida em corpus de RAG. A anonimização no momento do acesso é responsabilidade do Apache Ranger (ADR 0009).\nATUALIZAÇÃO: table, recalculada a cada `dbt build`; não há carga incremental.",
+      "descricao": "Camada Intermediate. Os eventos em que um agente recebeu recurso, de três fontes numa forma só: saída de dinheiro das contas do BB Ágil (silver_pagamento_bbagil), recibo de captação da Rouanet (silver_sac_captacao_proponente) e captação de projeto audiovisual da Ancine (silver_consulta).\nGRÃO: uma linha por evento da fonte. UNIVERSO: todo movimento de silver_pagamento_bbagil, todo recibo de silver_sac_captacao_proponente e toda captação de silver_consulta. Nada é descartado aqui.\nPARA QUE SERVE: dá às três fontes uma forma comum para a Gold eixo2_meta5_evento_fomento aplicar a regra de negócio da Meta 5.\nNADA É DECIDIDO AQUI: quais eventos contam, a que política cada um pertence e o piso de valor são regra de negócio e ficam na Gold (ADR 0010). Por isso cada linha leva o que a fonte tem para essa decisão — programa_bruto, beneficiario_nome, beneficiario_documento_bruto, descriptionname, tipo_lancamento —, nulo onde a fonte não tem.\nPOR QUE O BB ÁGIL CHEGA INCOMPLETO: as linhas do BB Ágil chegam mesmo sem documento normalizado, sem data ou sem valor, e com crédito e sublançamento de qualquer status. O pareamento de estorno na Gold é por conta e precisa das duas pernas, e só depois dele a Gold descarta o que não é atribuível a um agente. Por isso os testes de não nulo daqui valem só para SALIC e Ancine.\nLIMITAÇÕES: a identidade entre fontes é só o CPF/CNPJ normalizado; não há resolução por nome. As janelas das fontes são muito diferentes (Rouanet desde 1993, Ancine desde 2005, BB Ágil desde 2023), e quem trata isso é a Gold.\nZONA RESTRITA. Carrega CPF/CNPJ e nome em claro: não publicável e proibida em corpus de RAG. A anonimização no momento do acesso é responsabilidade do Apache Ranger (ADR 0009).\nATUALIZAÇÃO: view, recalculada a cada leitura; não há carga incremental.",
       "colunas": [
         {
           "nome": "fonte",
@@ -8723,14 +8723,14 @@
       ],
       "colunas_descritas": 17,
       "testes": 7,
-      "materializacao": "table",
+      "materializacao": "view",
       "depende_de": [
         "silver_consulta",
         "silver_pagamento_bbagil",
         "silver_sac_captacao_proponente"
       ],
       "sources": [],
-      "linhas_sql": 113
+      "linhas_sql": 116
     },
     {
       "nome": "int_ancine_bbagil_salic_transferegov",
@@ -50884,7 +50884,7 @@
       ],
       "colunas_descritas": 5,
       "testes": 0,
-      "materializacao": "table",
+      "materializacao": "",
       "depende_de": [
         "bronze_planilha_dados_lpg",
         "bronze_planilha_editais_lpg"

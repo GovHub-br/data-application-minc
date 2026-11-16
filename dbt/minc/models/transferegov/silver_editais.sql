@@ -1,9 +1,9 @@
-{{ config(materialized="table") }}
 -- Silver transferegov — editais (denominador / derivação de ano): a aba de
 -- editais da LPG (bronze_planilha_editais_lpg) mais as quatro abas de
 -- instrumentos, fatias de bronze_planilha_dados_lpg. Colunas via coalesce_por_nome
 -- sobre as tabelas de origem (origem_da_bronze; ver silver_contemplados_lpg).
--- `table`: corta linha sem nome e sem número de edital.
+-- view, como a pasta: o where final corta linha sem nome e sem número de edital.
+-- Varredura completa em ~3,5 s (medido em 2026-11-11).
 {% set ed = (
     origem_da_bronze("bronze_planilha_editais_lpg")
     if execute
