@@ -1,0 +1,123 @@
+version: 2
+
+# Eixo 1 do Cultura em Números, frente orçamento, esfera federal: o gráfico do
+# gasto_federal.R (repositório SGE cultura-em-numeros-eixo-1, commit d28de40)
+# que usa só o SIOP. Os outros gráficos federais dependem da RCL da União e do
+# teto de renúncia da Rouanet e ficam para depois; quando vierem, leem a mesma
+# gold-base.
+models:
+  - name: eixo1_orcamento_federal_empenho_cultura
+    description: >
+      Camada Gold / Eixo 1, frente orçamento, esfera federal, do Cultura em
+      Números. Gold-base: as linhas da execução da LOA (SIOP) que o
+      gasto_federal.R conta como gasto direto da União em cultura, com a
+      origem do recurso.
+
+      GRÃO: uma linha por exercício, órgão, unidade orçamentária, função e
+      resultado primário, como na silver. UNIVERSO: 2003 a 2025, 1.184 linhas
+      na carga de 09/11/2026.
+
+      A REGRA: o filtro_fases_cultura do R. Em 2019, o órgão 42000 (MinC), ou
+      a função 13 (Cultura) do órgão 55000 (Cidadania), ou a função 28 dele
+      fora da UO 55901; nos exercícios com o órgão 42000, só ele; nos sem, a
+      função 13, ou a 28 fora da UO 55901, dos órgãos 54000 (Turismo) e 55000.
+      Em todos, as UOs 73120 (PNAB), 74912 (Fundo Setorial do Audiovisual) e
+      73117 (LAB até 2021, LPG a partir de 2022). O R tira 2026, exercício em
+      execução; aqui o último exercício é a var
+      eixo1_orcamento_federal_ultimo_ano (2025).
+
+      CONFERÊNCIA (10/11/2026): eixo1_orcamento_federal_origem_direto é igual,
+      ao centavo e nas 49 linhas, à mesma regra do R aplicada ao SIOP do banco
+      e à aplicada à planilha do Painel do Orçamento que o R leu
+      (funcoes_orgaos_unidades_rp_20260402_v2.xlsx); as 46 linhas com valor
+      positivo são as do SIOP na Figura 1 da publicação.
+    config:
+      tags:
+        - gold
+        - cultura_em_numeros
+        - eixo1
+        - orcamento
+      meta:
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier1
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "ano || '|' || orgao_cod || '|' || uo_cod || '|' || funcao_cod || '|' || rp_cod"
+    columns:
+      - name: ano
+        description: Exercício da LOA.
+        data_type: integer
+        tests: [not_null]
+      - name: orgao_cod
+        description: Código do órgão orçamentário.
+        data_type: text
+        tests: [not_null]
+      - name: orgao_nome
+        data_type: text
+      - name: uo_cod
+        description: Código da unidade orçamentária.
+        data_type: text
+      - name: uo_nome
+        data_type: text
+      - name: funcao_cod
+        description: Código da função de governo.
+        data_type: text
+      - name: funcao_nome
+        data_type: text
+      - name: rp_cod
+        description: Código do resultado primário.
+        data_type: text
+      - name: rp_nome
+        data_type: text
+      - name: empenhado
+        description: Valor empenhado, em reais nominais. É o que o R soma.
+        data_type: numeric
+      - name: liquidado
+        description: Valor liquidado, em reais nominais.
+        data_type: numeric
+      - name: pago
+        description: Valor pago, em reais nominais.
+        data_type: numeric
+      - name: categoria_origem
+        description: >
+          Origem do recurso, pelo categoria_origem do R: PNAB, Fundo Setorial do
+          Audiovisual, LAB ou LPG pela UO; senão execução direta do MinC (órgão
+          42000) ou de Cidadania/Turismo.
+        data_type: text
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Execução direta da União (MinC)'
+                  - 'Execução direta da União (Cidadania/Turismo)'
+                  - 'Lei Aldir Blanc (LAB)'
+                  - 'Lei Paulo Gustavo (LPG)'
+                  - 'Política Nacional Aldir Blanc (PNAB)'
+                  - 'Fundo Setorial do Audiovisual'
+
+  - name: eixo1_orcamento_federal_origem_direto
+    description: >
+      Gold / Eixo 1, frente orçamento, esfera federal. Gasto federal direto em
+      cultura por exercício e origem do recurso, empenhado nominal (gráfico I
+      do gasto_federal.R, grafico_origem_direto). GRÃO: exercício e origem,
+      inclusive a origem que somou zero no exercício (2014 FSA, 2019 MinC, 2023
+      LPG), como no R. A Figura 1 da publicação parte destes valores, mas leva a
+      LPG de 2022 para 2023 e soma a renúncia fiscal, que não está aqui.
+    config:
+      tags: [gold, cultura_em_numeros, eixo1, orcamento]
+    columns:
+      - name: ano
+        data_type: integer
+        tests: [not_null]
+      - name: categoria_origem
+        data_type: text
+        tests: [not_null]
+      - name: valor_empenhado
+        description: Soma do empenhado, em reais nominais.
+        data_type: numeric
+    tests:
+      - unique:
+          column_name: "ano || '|' || categoria_origem"

@@ -2244,6 +2244,118 @@ sources:
               Posição do item na página, a partir de 1, contando as partes
               na ordem. Com `_pagina_id`, identifica o item.
             data_type: character varying
+  # Portal de dados abertos do MinC (dados.cultura.gov.br): a dados_cultura_dag
+  # baixa cada planilha do CKAN e grava em seeds.dados_cultura_<entidade>, toda
+  # coluna em texto, com a versão do arquivo em `versao` (ADR 0012). Cada versão
+  # que um run encontra fica na tabela, ao lado das anteriores.
+  - name: dados_cultura
+    schema: seeds
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+    tables:
+      - name: snc_entes
+        identifier: dados_cultura_snc_entes
+        description: >
+          "Lista de municípios que compõem o SNC", o export da Plataforma do
+          Sistema Nacional de Cultura publicado no portal: estados e
+          municípios na mesma aba, uma linha por ente e versão, com adesão,
+          órgão gestor, conselho, fundo e plano de cultura. Traz também dados
+          bancários, CNPJ, nome do prefeito e do gestor de cultura e endereço
+          (lista em cliente_dados_cultura.DADOS_SENSIVEIS), que ficam só aqui
+          e na bronze: a silver não os carrega. As 10 colunas levam a tag
+          PII.Sensitive.
+        columns:
+          - name: cnpj_ente_federado
+            description: CNPJ do ente federado.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cnpj_do_orgao_gestor_de_cultura
+            description: CNPJ do órgão gestor de cultura do ente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: dados_bancarios_do_orgao_gestor_de_cultura
+            description: Agência e conta do órgão gestor de cultura.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cnpj_do_fundo_de_cultura
+            description: CNPJ do fundo de cultura do ente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: dados_bancarios_do_fundo_de_cultura
+            description: Agência e conta do fundo de cultura.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: endereco
+            description: Endereço do cadastro do ente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: bairro
+            description: Bairro do endereço do cadastro do ente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: cep
+            description: CEP do endereço do cadastro do ente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: prefeito
+            description: Nome do prefeito.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+          - name: gestor_de_cultura
+            description: Nome do gestor de cultura do ente.
+            data_type: text
+            meta:
+              openmetadata:
+                tags:
+                  - PII.Sensitive
+  # SIOP: a siop_execucao_dag consulta o SPARQL público do SIOP e grava a
+  # execução da LOA de cada exercício em seeds.siop_execucao_orcamentaria, toda
+  # coluna em texto (ADR 0012). Cada exercício substitui só a si mesmo.
+  - name: siop
+    schema: seeds
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+    tables:
+      - name: execucao_orcamentaria
+        identifier: siop_execucao_orcamentaria
+        description: >
+          Execução orçamentária federal por exercício, agregada por órgão,
+          unidade orçamentária, função e resultado primário, do projeto de lei
+          ao pago. É o recorte da planilha funcoes_orgaos_unidades_rp do Painel
+          do Orçamento que o gasto_federal.R do Eixo 1 lê.
   - name: senado
     schema: senado
     description: >
