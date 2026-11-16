@@ -1,6 +1,5 @@
-{{ config(materialized="table") }}
--- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
--- Bronze; era table por pasta em salic_dbt.
+-- view, como a pasta: renomeia, tipa e filtra `silver_sac_aprovacao`, sem join.
+-- Varredura completa em ~5 s (medido em 2026-11-11).
 -- Silver SALIC / core -- fato da aprovacao de projeto na Lei Rouanet.
 --
 -- GRAO: 1 linha por registro de aprovacao. A chave e `id_aprovacao`.

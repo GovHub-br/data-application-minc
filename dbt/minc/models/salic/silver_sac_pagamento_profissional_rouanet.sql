@@ -1,6 +1,7 @@
-{{ config(materialized="table") }}
--- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
--- Bronze; era table por pasta em salic_dbt.
+-- view, como a pasta. Como table ocupava 1,09 GB sem índice e sem modelo que a
+-- lesse. O custo passa para a leitura: ~2 min e ~2,6 GB de temporário em disco
+-- por varredura completa, por causa do row_number sobre 4,2 mi de linhas
+-- (medido em 2026-11-11). Se um gold passar a ler daqui, volte a table.
 -- Silver SALIC / Meta 3 -- pagamentos a fornecedores e profissionais.
 --
 -- GRAO PROVISORIO: 1 linha por registro devolvido pela view detalhada de

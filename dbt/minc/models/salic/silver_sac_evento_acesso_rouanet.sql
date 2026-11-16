@@ -1,6 +1,5 @@
-{{ config(materialized="table") }}
--- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
--- Bronze; era table por pasta em salic_dbt.
+-- view, como a pasta: union all das silvers de captação e aprovação, que também
+-- são views. Varredura completa em ~6 s (medido em 2026-11-11).
 -- Silver SALIC / core -- espinha de eventos datados de acesso a Rouanet.
 --
 -- GRAO: 1 linha por evento qualificavel. A chave e `id_evento`.

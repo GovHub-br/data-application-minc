@@ -14268,7 +14268,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_aprovacao_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Fato da aprovação de projeto na Lei Rouanet, com o histórico completo.\nGRÃO: uma linha por registro de aprovação. CHAVE: `id_aprovacao`. UNIVERSO: todos os registros de `silver_sac_aprovacao` com id e PRONAC resolvidos.\nPOR QUE O HISTÓRICO INTEIRO: um projeto tem mais de uma aprovação ao longo da vida — inicial, readequação, prorrogação. A `silver_sac_projeto_rouanet` guarda só a mais recente, que é o que um painel lê; aqui nenhuma linha se perde, porque a série de valor autorizado e a janela de captação dependem do histórico. `codigo_tipo_aprovacao`, `id_readequacao` e `id_prorrogacao` são o que distingue os registros entre si.\nAPROVAÇÃO NÃO É CAPTAÇÃO: o valor autorizado é teto — quanto o projeto pode captar, não quanto captou. Usá-lo como recurso realizado superestima qualquer indicador de execução.\nMEDIDA E UNIDADE: todos os valores `_reais` em reais nominais da data da aprovação, sem correção monetária; os `_ufir` na unidade fiscal histórica.\nDUAS COLUNAS DA ORIGEM FICAM DE FORA: `logon`, que identifica o servidor que registrou a aprovação, e `resumoaprovacao`, texto livre digitado por analista — texto livre é o vetor por onde nome, endereço e documento entram numa tabela que nenhuma classificação automática marca.\nLIMITAÇÕES: o domínio de `codigo_tipo_aprovacao` não foi levantado contra o banco e fica exposto como código, sem descrição inventada (gate G1). ATUALIZAÇÃO: recalculado a cada `dbt build`.",
+      "descricao": "Camada Silver / núcleo SALIC. Fato da aprovação de projeto na Lei Rouanet, com o histórico completo.\nGRÃO: uma linha por registro de aprovação. CHAVE: `id_aprovacao`. UNIVERSO: todos os registros de `silver_sac_aprovacao` com id e PRONAC resolvidos.\nPOR QUE O HISTÓRICO INTEIRO: um projeto tem mais de uma aprovação ao longo da vida — inicial, readequação, prorrogação. A `silver_sac_projeto_rouanet` guarda só a mais recente, que é o que um painel lê; aqui nenhuma linha se perde, porque a série de valor autorizado e a janela de captação dependem do histórico. `codigo_tipo_aprovacao`, `id_readequacao` e `id_prorrogacao` são o que distingue os registros entre si.\nAPROVAÇÃO NÃO É CAPTAÇÃO: o valor autorizado é teto — quanto o projeto pode captar, não quanto captou. Usá-lo como recurso realizado superestima qualquer indicador de execução.\nMEDIDA E UNIDADE: todos os valores `_reais` em reais nominais da data da aprovação, sem correção monetária; os `_ufir` na unidade fiscal histórica.\nDUAS COLUNAS DA ORIGEM FICAM DE FORA: `logon`, que identifica o servidor que registrou a aprovação, e `resumoaprovacao`, texto livre digitado por analista — texto livre é o vetor por onde nome, endereço e documento entram numa tabela que nenhuma classificação automática marca.\nLIMITAÇÕES: o domínio de `codigo_tipo_aprovacao` não foi levantado contra o banco e fica exposto como código, sem descrição inventada (gate G1). ATUALIZAÇÃO: view, recalculada a cada leitura.",
       "colunas": [
         {
           "nome": "id_aprovacao",
@@ -14357,12 +14357,12 @@
       ],
       "colunas_descritas": 21,
       "testes": 3,
-      "materializacao": "table",
+      "materializacao": "",
       "depende_de": [
         "silver_sac_aprovacao"
       ],
       "sources": [],
-      "linhas_sql": 58
+      "linhas_sql": 57
     },
     {
       "nome": "silver_sac_area",
@@ -15475,7 +15475,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_captacao_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Fato da captação de recurso na Lei Rouanet.\nGRÃO: uma linha por recibo de captação. CHAVE: `id_captacao`. UNIVERSO: todos os recibos de `silver_sac_captacao` com id, data e PRONAC resolvidos. Nenhum corte por ano, valor ou situação do projeto.\nO QUE MEDE: na Rouanet o MinC não repassa dinheiro ao agente — o projeto aprovado capta de um incentivador, que abate o valor do imposto devido. O recibo é o registro de que o recurso entrou, e por isso ele, e não a portaria de aprovação, é a medida de recurso captado das Metas 3 e 5.\nCAPTAÇÃO NÃO É PAGAMENTO: captado, comprovado e pago são três medidas diferentes, e um indicador nunca pode usar uma no numerador e outra no denominador. Este fato responde por captado.\nMEDIDA E UNIDADE: `valor_captado_reais` em reais nominais da data do recibo, sem correção monetária. `valor_captado_ufir` é o mesmo valor na unidade fiscal histórica e só faz sentido para série antiga.\nO MECENAS FICA DE FORA: `cgccpfmecena` identifica o incentivador e não é trazido. No lugar fica `tipo_pessoa_mecenas`, derivado só do comprimento do documento. É o que deixa este fato candidato a publicação depois da validação de segurança; análise por incentivador pede um fato restrito próprio.\nNULOS E DESCONHECIDOS: valor zero ou negativo (estorno) é preservado — filtrar aqui esconderia estorno de quem soma, e a decisão do que entra em cada indicador é do gold, com a regra declarada. Sai apenas o que não identifica evento: recibo sem id, sem data ou sem PRONAC resolvido.\nLIMITAÇÕES: a reconciliação por ano e PRONAC com `salic/silver_sac_captacao_proponente` é o gate G3 e ainda não foi feita. As duas leem a v2 e montam o PRONAC pela mesma macro; até a reconciliação os dois convivem e nenhum substitui o outro. ATUALIZAÇÃO: recalculado a cada `dbt build`.",
+      "descricao": "Camada Silver / núcleo SALIC. Fato da captação de recurso na Lei Rouanet.\nGRÃO: uma linha por recibo de captação. CHAVE: `id_captacao`. UNIVERSO: todos os recibos de `silver_sac_captacao` com id, data e PRONAC resolvidos. Nenhum corte por ano, valor ou situação do projeto.\nO QUE MEDE: na Rouanet o MinC não repassa dinheiro ao agente — o projeto aprovado capta de um incentivador, que abate o valor do imposto devido. O recibo é o registro de que o recurso entrou, e por isso ele, e não a portaria de aprovação, é a medida de recurso captado das Metas 3 e 5.\nCAPTAÇÃO NÃO É PAGAMENTO: captado, comprovado e pago são três medidas diferentes, e um indicador nunca pode usar uma no numerador e outra no denominador. Este fato responde por captado.\nMEDIDA E UNIDADE: `valor_captado_reais` em reais nominais da data do recibo, sem correção monetária. `valor_captado_ufir` é o mesmo valor na unidade fiscal histórica e só faz sentido para série antiga.\nO MECENAS FICA DE FORA: `cgccpfmecena` identifica o incentivador e não é trazido. No lugar fica `tipo_pessoa_mecenas`, derivado só do comprimento do documento. É o que deixa este fato candidato a publicação depois da validação de segurança; análise por incentivador pede um fato restrito próprio.\nNULOS E DESCONHECIDOS: valor zero ou negativo (estorno) é preservado — filtrar aqui esconderia estorno de quem soma, e a decisão do que entra em cada indicador é do gold, com a regra declarada. Sai apenas o que não identifica evento: recibo sem id, sem data ou sem PRONAC resolvido.\nLIMITAÇÕES: a reconciliação por ano e PRONAC com `salic/silver_sac_captacao_proponente` é o gate G3 e ainda não foi feita. As duas leem a v2 e montam o PRONAC pela mesma macro; até a reconciliação os dois convivem e nenhum substitui o outro. ATUALIZAÇÃO: view, recalculada a cada leitura.",
       "colunas": [
         {
           "nome": "id_captacao",
@@ -15536,12 +15536,12 @@
       ],
       "colunas_descritas": 14,
       "testes": 6,
-      "materializacao": "table",
+      "materializacao": "",
       "depende_de": [
         "silver_sac_captacao"
       ],
       "sources": [],
-      "linhas_sql": 58
+      "linhas_sql": 57
     },
     {
       "nome": "silver_sac_captacaoconversao",
@@ -20189,7 +20189,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/salic/silver_sac_evento_acesso_rouanet.sql",
-      "descricao": "Camada Silver / núcleo SALIC. Espinha de eventos datados de acesso à Lei Rouanet, no grão do projeto.\nGRÃO: uma linha por evento qualificável. CHAVE: `id_evento`. UNIVERSO: união de `silver_sac_captacao_rouanet` e `silver_sac_aprovacao_rouanet`, restrita aos eventos com data resolvida.\nPARA QUE SERVE: a Meta 5 pergunta quantos proponentes acessaram a Rouanet pela primeira vez em um ano. Responder exige uma série de eventos datados e comparáveis, e exige que \"primeira aprovação\" e \"primeira captação\" continuem distinguíveis — são conceitos diferentes e o plano proíbe colapsá-los. Por isso o tipo do evento é coluna, e não filtro embutido.\nÉ MODELO DE PROJETO, NÃO DE PESSOA: não carrega proponente, documento nem id de agente. A ligação com identidade acontece uma camada acima, na zona restrita, cruzando com `silver_sac_projeto_proponente_rouanet`. Manter a espinha no grão do projeto é o que permite publicá-la.\nFALTA O EVENTO DE REGISTRO, e a ausência é conhecida: a data de registro da proposta está em `PreProjeto`/`Projetos` da v2, que não foram ingeridas. Derivá-la de `data_situacao` seria errado — aquilo é a última mudança de situação, não a entrada. Enquanto a fonte não chega, `tipo_evento` tem dois valores, e qualquer KPI de primeiro acesso construído sobre isto mede primeiro acesso A RECURSO, não primeiro contato com o sistema.\nMEDIDA E UNIDADE: `valor_reais` é captado quando o evento é captação e autorizado quando é aprovação. São medidas diferentes na mesma coluna, de propósito, porque a coluna é o valor associado ao evento — somar as duas juntas é erro, e é por isso que `tipo_evento` nunca deve ser agregado fora.\nREGRA DA DATA: publicação vem antes de data de aprovação no `coalesce` porque é a data com efeito legal. Quando a publicação não está preenchida, a data de aprovação entra como substituta e `data_evento_substituta` marca isso, para que o gold possa medir o quanto da série depende do substituto.\nLIMITAÇÕES: herda os limites dos dois fatos de origem, incluindo a reconciliação pendente com a bronze v1 (gate G3). ATUALIZAÇÃO: recalculado a cada `dbt build`.",
+      "descricao": "Camada Silver / núcleo SALIC. Espinha de eventos datados de acesso à Lei Rouanet, no grão do projeto.\nGRÃO: uma linha por evento qualificável. CHAVE: `id_evento`. UNIVERSO: união de `silver_sac_captacao_rouanet` e `silver_sac_aprovacao_rouanet`, restrita aos eventos com data resolvida.\nPARA QUE SERVE: a Meta 5 pergunta quantos proponentes acessaram a Rouanet pela primeira vez em um ano. Responder exige uma série de eventos datados e comparáveis, e exige que \"primeira aprovação\" e \"primeira captação\" continuem distinguíveis — são conceitos diferentes e o plano proíbe colapsá-los. Por isso o tipo do evento é coluna, e não filtro embutido.\nÉ MODELO DE PROJETO, NÃO DE PESSOA: não carrega proponente, documento nem id de agente. A ligação com identidade acontece uma camada acima, na zona restrita, cruzando com `silver_sac_projeto_proponente_rouanet`. Manter a espinha no grão do projeto é o que permite publicá-la.\nFALTA O EVENTO DE REGISTRO, e a ausência é conhecida: a data de registro da proposta está em `PreProjeto`/`Projetos` da v2, que não foram ingeridas. Derivá-la de `data_situacao` seria errado — aquilo é a última mudança de situação, não a entrada. Enquanto a fonte não chega, `tipo_evento` tem dois valores, e qualquer KPI de primeiro acesso construído sobre isto mede primeiro acesso A RECURSO, não primeiro contato com o sistema.\nMEDIDA E UNIDADE: `valor_reais` é captado quando o evento é captação e autorizado quando é aprovação. São medidas diferentes na mesma coluna, de propósito, porque a coluna é o valor associado ao evento — somar as duas juntas é erro, e é por isso que `tipo_evento` nunca deve ser agregado fora.\nREGRA DA DATA: publicação vem antes de data de aprovação no `coalesce` porque é a data com efeito legal. Quando a publicação não está preenchida, a data de aprovação entra como substituta e `data_evento_substituta` marca isso, para que o gold possa medir o quanto da série depende do substituto.\nLIMITAÇÕES: herda os limites dos dois fatos de origem, incluindo a reconciliação pendente com a bronze v1 (gate G3). ATUALIZAÇÃO: view, recalculada a cada leitura.",
       "colunas": [
         {
           "nome": "id_evento",
@@ -20226,13 +20226,13 @@
       ],
       "colunas_descritas": 8,
       "testes": 9,
-      "materializacao": "table",
+      "materializacao": "",
       "depende_de": [
         "silver_sac_aprovacao_rouanet",
         "silver_sac_captacao_rouanet"
       ],
       "sources": [],
-      "linhas_sql": 85
+      "linhas_sql": 84
     },
     {
       "nome": "silver_sac_evolucao",
@@ -21789,13 +21789,13 @@
       ],
       "colunas_descritas": 18,
       "testes": 2,
-      "materializacao": "table",
+      "materializacao": "",
       "depende_de": [
         "silver_sac_chave_projeto_rouanet",
         "silver_sac_vwpagamentodefornecedordoprojetoporitemdetalhado"
       ],
       "sources": [],
-      "linhas_sql": 105
+      "linhas_sql": 106
     },
     {
       "nome": "silver_sac_preprojeto",
@@ -22026,13 +22026,13 @@
       ],
       "colunas_descritas": 13,
       "testes": 4,
-      "materializacao": "table",
+      "materializacao": "",
       "depende_de": [
         "silver_sac_abrangencia",
         "silver_sac_chave_projeto_rouanet"
       ],
       "sources": [],
-      "linhas_sql": 57
+      "linhas_sql": 56
     },
     {
       "nome": "silver_sac_projeto_proponente_rouanet",
@@ -22210,7 +22210,7 @@
         "silver_sac_vwalterarprojeto"
       ],
       "sources": [],
-      "linhas_sql": 208
+      "linhas_sql": 209
     },
     {
       "nome": "silver_sac_projetos",

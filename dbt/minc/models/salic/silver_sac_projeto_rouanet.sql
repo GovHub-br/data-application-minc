@@ -1,6 +1,7 @@
 {{ config(materialized="table") }}
 -- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
--- Bronze; era table por pasta em salic_dbt.
+-- Bronze; era table por pasta em salic_dbt. Medida como view em 2026-11-11: 18 s
+-- e 174 MB de temporário por varredura, para liberar 56 MB.
 -- Silver SALIC / core -- dimensao do projeto cultural na Lei Rouanet.
 --
 -- GRAO: 1 linha por PRONAC. A chave e `pronac`, texto de 5 a 7 posicoes na

@@ -48,7 +48,7 @@ vem depois dela.
 
 ## 1. Estado atual
 
-**Última atualização: 2026-11-03 · Claude (F17 concluída: as linhas SALIC abaixo descrevem o estado final, as outras seguem de 2026-09-03)**
+**Última atualização: 2026-11-16 · Claude (cinco silvers dos modelos manuais viram view; F17 concluída em 2026-11-03: as linhas SALIC abaixo descrevem o estado final, as outras seguem de 2026-09-03)**
 
 | Item | Situação |
 |---|---|
@@ -70,7 +70,7 @@ vem depois dela.
 | Cidades — credencial vazada | 🟠 literal removido da cabeça em `88a110a`; ainda está em 2 commits da branch remota ativa. Rotação/instância não verificadas. Ver §6 |
 | SALIC — Bronze | ✅ tabelas `salic.bronze_<banco>_<tabela>` gravadas pela `salic_ingestion_trino` (ADR 0017); não é modelo dbt. `salic_bronze` e as `tmp_trino_*` foram apagados na limpeza de 2026-11-03 |
 | SALIC — silvers migradas (F17) | ✅ `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57 e (parte 2, views) 65: o `sac` inteiro migrou; `dtproperties` fica só na Bronze. Os modelos manuais (core, meta3–5) saíram de `salic_dbt/` para `salic/silver_sac_*` e a gold `eixo2_meta5_proponente_ano_rouanet`. Os defeitos que mudavam número foram corrigidos. Limpeza final feita em 2026-11-03: `salic_dbt/` e a ingestão v1 saíram |
-| SALIC — modelos manuais | ✅ migrados para `salic/silver_sac_*` e `cultura_em_numeros`; defeitos corrigidos (diário de 2026-10-30) |
+| SALIC — modelos manuais | ✅ migrados para `salic/silver_sac_*` e `cultura_em_numeros`; defeitos corrigidos (diário de 2026-10-30). Desde 2026-11-16, pagamento profissional, evento de acesso, local de execução, aprovação e captação são view; chave, projeto, ponte projeto–proponente, captação por proponente e município seguem table (diário) |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
 | SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic/` |
 
@@ -351,6 +351,15 @@ Isto não bloqueia as outras frentes. Vale como frente **F1**, independente.
   `task_id == "dbt_metadata"`; com `OM_INGEST_DBT=false`, ela é criada mas não
   entra na cadeia principal. Testar flags individualmente e definir política
   explícita (pular relações ou ligá-las ao predecessor correto).
+- **`ocorrencia_chave_candidata` não é estável.** Em
+  `silver_sac_pagamento_profissional_rouanet`, o `row_number` desempata só até
+  `nome_prestador`. Nas 35.129 chaves candidatas repetidas (99.402 linhas),
+  linhas que empatam nas três colunas do `order by` e diferem em outra recebem
+  número arbitrário: em 2026-11-11, o SQL compilado da `main` rodado sobre a
+  mesma Bronze diferiu da tabela de produção em 2.468 linhas, todas só nessa
+  coluna. Como view, a numeração pode mudar entre duas leituras. Não filtre
+  `ocorrencia_chave_candidata = 1` num gold antes de desempatar até a última
+  coluna.
 
 ---
 
@@ -1300,6 +1309,60 @@ Os redundantes saíram (#145) e o resto ganhou task própria com
 `control` fica, a v2 e o Mapas gravam nele); as dependências `pymssql` e
 `apache-airflow-providers-microsoft-mssql`, que só a v1 usava, saem num PR
 que possa regenerar o lock.
+
+### 2026-11-16 · Claude · Cinco silvers dos modelos manuais viram view
+
+**O que mudou.** O disco do servidor do `dbanalytics` encheu em 2026-11-11.
+`silver_sac_pagamento_profissional_rouanet`,
+`silver_sac_evento_acesso_rouanet`, `silver_sac_projeto_local_execucao`,
+`silver_sac_aprovacao_rouanet` e `silver_sac_captacao_rouanet` perdem o
+`config(materialized="table")` e ficam com a view da pasta. Juntas ocupavam
+1,37 GB (`pg_total_relation_size`), sem índice e sem view dependente. Em
+nenhum dos quatro manifests conferidos (`main` e três branches do Eixo 1) um
+modelo de fora do grupo lê alguma delas; dentro dele, só a `evento_acesso`
+lê a aprovação e a captação, e ela também virou view. Os outros leitores
+conhecidos são os 24 testes do dbt; o servidor não tem `pg_stat_statements`
+para mostrar consulta avulsa. `silver_sac_projeto_rouanet` fica table: como
+view, a varredura leva 18 s e grava 174 MB de temporário, para liberar 56 MB.
+
+**Medição** (2026-11-11, psql só leitura; o SQL compilado de cada modelo com
+os pais que também viram view inlinados como CTE `not materialized`, que é o
+que o planner faz com view):
+
+| Modelo | Tamanho | Varredura: tabela → view | Temporário da view | Testes dbt: tabela → view |
+|---|---|---|---|---|
+| `pagamento_profissional_rouanet` | 1.090 MB | 3,7 s → 123 s | 2,6 GB | 5,6 s → 41 s (2 testes; 454 MB) |
+| `evento_acesso_rouanet` | 96 MB | 0,5 s → 5,6 s | — | 2,7 s → 17 s (9) |
+| `projeto_local_execucao` | 73 MB | 0,3 s → 1,9 s | — | 1,7 s → 2,2 s (4) |
+| `captacao_rouanet` | 60 MB | 0,2 s → 5,1 s | — | 1,4 s → 15 s (6) |
+| `aprovacao_rouanet` | 56 MB | 0,2 s → 5,2 s | — | 1,0 s → 5,7 s (3) |
+| `projeto_rouanet` (fica table) | 56 MB | 0,2 s → 18,5 s | 174 MB | 0,8 s → 25 s (5) |
+
+A varredura completa da `pagamento_profissional` é cara (o `row_number`
+ordena 4,2 milhões de linhas em disco), mas é o mesmo custo que o build da
+tabela já pagava toda noite. Os dois testes não leem todas as colunas e saem
+por 41 s.
+
+**Mesma saída.** EXCEPT ALL nos dois sentidos, SQL como view × tabela de
+produção: 0 e 0 na aprovação (472.606 linhas), na captação (668.765), no
+evento de acesso (1.141.371) e no local de execução (860.304). No pagamento
+profissional, comparado por `md5` da linha, 2.468 linhas de cada lado diferem
+só em `ocorrencia_chave_candidata`; sem essa coluna, 0 e 0 em 4.182.025. O
+defeito é anterior a esta mudança (§7).
+
+**Para a F15.** A consulta de primeiro acesso por agente (`evento_acesso` ×
+`projeto_proponente`, menor ano por tipo de evento) leva 5,0 s sobre a view e
+0,5 s sobre a tabela. Um gold que leia uma vez por execução não precisa da
+silver como table; se a F15 precisar de leitura rápida, a table é o gold.
+
+**Depois do merge.** A primeira execução de cada modelo renomeia a tabela
+para `<modelo>__dbt_backup`, cria a view e, depois do commit, faz `drop table
+... cascade` do backup: o espaço volta nessa hora, sem script. Nenhuma das
+cinco tinha view dependente no `pg_depend`. Daí em diante, cada recriação da
+aprovação ou da captação derruba em cascata a view do evento de acesso, que
+volta na task seguinte da `minc_cosmos_dag`. Rodar só a aprovação, fora da
+DAG, deixa o evento de acesso sem view até a próxima execução completa. Para
+voltar a table, basta repor o `config` e rodar o modelo.
 
 ---
 

@@ -1,6 +1,5 @@
-{{ config(materialized="table") }}
--- table, e não a view da pasta: join pesado sobre silvers que são views do texto da
--- Bronze; era table por pasta em salic_dbt.
+-- view, como a pasta: a abrangência com um left join na tabela de chaves.
+-- Varredura completa em ~2 s (medido em 2026-11-11).
 -- Silver SALIC / Meta 4 -- locais declarados de realizacao do projeto.
 --
 -- GRAO: 1 linha por `id_abrangencia`, o registro territorial do SALIC.
