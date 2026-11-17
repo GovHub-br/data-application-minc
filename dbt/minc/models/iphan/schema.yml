@@ -1,0 +1,892 @@
+version: 2
+
+# iphan, na estrutura do ADR 0010: bronze_<entidade> é a cópia fiel do que a
+# tainacan_dag grava em seeds.iphan_<entidade>, uma tabela por coleção Tainacan
+# do Bem Brasileiro (bcr), do INRC e do INDL. A entidade é <instância>_<slug da
+# coleção>, fixada em cliente_tainacan.COLECOES; tests/test_cliente_tainacan.py
+# falha se este arquivo, as sources e o catálogo divergirem. As colunas são as
+# mesmas em todas as coleções (a âncora abaixo): as do topo do item, e o
+# formulário da coleção inteiro em `metadata`. A exceção ao nome pela regra é
+# bronze_indl_modulo_2_identificacao_de_localidades, cujo slug tem 111
+# caracteres.
+
+models:
+  - name: bronze_bcr_bens_culturais
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_bcr_bens_culturais: a coleção
+      65733, "Bens Culturais Imateriais Registrados", do Bem Brasileiro
+      (bcr.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem join
+      (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: &colunas_tainacan_iphan
+      - name: id
+        description: >
+          Id do item no WordPress (post ID). Único na coleção.
+        data_type: text
+        tests:
+          - unique
+          - not_null
+      - name: title
+        description: >
+          Título do item. Nulo quando vem vazio (`""`), como em itens de
+          mídia do INDL.
+        data_type: text
+      - name: description
+        description: >
+          Descrição do item, como veio.
+        data_type: text
+      - name: status
+        description: >
+          Status de publicação. Sem autenticação a API só devolve
+          `publish`.
+        data_type: text
+      - name: slug
+        description: >
+          Slug do item na URL, único entre os publicados da coleção. É a
+          ordem da paginação.
+        data_type: text
+      - name: url
+        description: >
+          Endereço público do item.
+        data_type: text
+      - name: collection_id
+        description: >
+          Id da coleção. É o mesmo em toda linha da tabela, e é por ele
+          que a carga substitui a coleção.
+        data_type: text
+      - name: author_id
+        description: >
+          Id do usuário do WordPress que cadastrou o item.
+        data_type: text
+      - name: author_name
+        description: >
+          Nome do usuário do WordPress que cadastrou o item.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: creation_date
+        description: >
+          Data de criação do item no WordPress, como texto no formato do
+          idioma da instância: `21/09/2026` (Bem Brasileiro e Ibram),
+          `19 de outubro de 2026` (INRC), `outubro 22, 2026` (INDL). Nos
+          Pontos de Memória é a data da carga em lote, não a do
+          cadastro.
+        data_type: text
+      - name: modification_date
+        description: >
+          Data da última modificação, no mesmo formato de
+          `creation_date`.
+        data_type: text
+      - name: comment_status
+        description: >
+          Se o item aceita comentários.
+        data_type: text
+      - name: document
+        description: >
+          Documento principal do item: id de anexo, URL ou texto,
+          conforme `document_type`.
+        data_type: text
+      - name: document_type
+        description: >
+          Tipo do documento principal (`attachment`, `url`, `text`,
+          `empty`).
+        data_type: text
+      - name: document_mimetype
+        description: >
+          Tipo MIME do documento principal.
+        data_type: text
+      - name: document_as_html
+        description: >
+          Documento principal renderizado em HTML pela API.
+        data_type: text
+      - name: document_options
+        description: >
+          Opções de exibição do documento, em JSON.
+        data_type: text
+      - name: _thumbnail_id
+        description: >
+          Id do anexo da miniatura. Nulo quando não há.
+        data_type: text
+      - name: terms
+        description: >
+          Termos do item fora dos metadados, em JSON. Vem nulo nas
+          quatro instâncias.
+        data_type: text
+      - name: exposer_urls
+        description: >
+          Links de exportação do item, em JSON.
+        data_type: text
+      - name: document_content_index
+        description: >
+          Índice do conteúdo do documento para busca. Só no Iphan.
+        data_type: text
+      - name: supports_document_content_extraction
+        description: >
+          Se o documento permite extrair conteúdo. Só no Iphan.
+        data_type: text
+      - name: tainacan_inventarios_inventario_post_id
+        description: >
+          Id do inventário do plugin tainacan-inventarios
+          (`tainacan-inventarios-inventario-post-id` na API). Só no INRC
+          e no INDL.
+        data_type: text
+      - name: metadata
+        description: >
+          O formulário da coleção, inteiro e como a API o devolveu, em
+          JSON: uma chave por slug de metadado, com `name`, `value`,
+          `value_as_string`, `value_as_html`, `multiple`, `id`,
+          `mapping` e `semantic_uri`. Termo de taxonomia vem como objeto
+          (com `name`), relacionamento como id de outro item, valor
+          múltiplo como lista. Vazio vem como `""` ou como o booleano
+          `false` do JSON (o extrator do eixo 3 o escrevia como o texto
+          `"False"`), nas quatro instâncias; dentro do termo de
+          taxonomia, `header_image` e `thumbnail_alt` também vêm `false`
+          e não são valor. Datas do formulário vêm em ISO ou
+          `dd/mm/aaaa`. Achatar é da silver. Pode trazer dado pessoal
+          (nome de responsável, e-mail, telefone).
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _pagina
+        description: >
+          Página da API em que o item veio no run (ordem por `slug`).
+        data_type: text
+      - name: _posicao
+        description: >
+          Posição do item na página, a partir de 1.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Quando o run converteu a coleção em Parquet (UTC, ISO 8601).
+          Igual em toda linha.
+        data_type: text
+
+  - name: bronze_bcr_documentos_do_process
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_bcr_documentos_do_process: a
+      coleção 65968, "Documentos", do Bem Brasileiro (bcr.iphan.gov.br), um item
+      publicado por linha. Sem cast, filtro nem join (ADR 0010); toda coluna é
+      texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_bcr_midias_registro
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_bcr_midias_registro: a coleção
+      65998, "Imagem, som e vídeo", do Bem Brasileiro (bcr.iphan.gov.br), um
+      item publicado por linha. Sem cast, filtro nem join (ADR 0010); toda
+      coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_bcr_organizacoes
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_bcr_organizacoes: a coleção
+      103951, "Instituições Parceiras", do Bem Brasileiro (bcr.iphan.gov.br), um
+      item publicado por linha. Sem cast, filtro nem join (ADR 0010); toda
+      coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_bcr_grupos_detentores
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_bcr_grupos_detentores: a coleção
+      104725, "Grupos detentores", do Bem Brasileiro (bcr.iphan.gov.br), um item
+      publicado por linha. Sem cast, filtro nem join (ADR 0010); toda coluna é
+      texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_bcr_acoes_de_salvaguarda
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_bcr_acoes_de_salvaguarda: a
+      coleção 106027, "Ações de salvaguarda", do Bem Brasileiro
+      (bcr.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem join
+      (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_bcr_bibliografias
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_bcr_bibliografias: a coleção
+      110421, "Bibliografia", do Bem Brasileiro (bcr.iphan.gov.br), um item
+      publicado por linha. Sem cast, filtro nem join (ADR 0010); toda coluna é
+      texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_audiovisuais
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_audiovisuais: a coleção
+      1327, "11 - Imagem, som e vídeo", do Inventário Nacional de Referências
+      Culturais (inrc.iphan.gov.br), um item publicado por linha. Sem cast,
+      filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_bibliografia
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_bibliografia: a coleção
+      1399, "12 - Bibliografia", do Inventário Nacional de Referências Culturais
+      (inrc.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_agentes_do_patrimonio
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_agentes_do_patrimonio: a
+      coleção 1933, "02 - Agentes do Patrimônio", do Inventário Nacional de
+      Referências Culturais (inrc.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_organizacoes
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_organizacoes: a coleção
+      1954, "03 - Organizações", do Inventário Nacional de Referências Culturais
+      (inrc.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_03_1identificacao
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_03_1identificacao: a
+      coleção 2052, "04 - Comunidade", do Inventário Nacional de Referências
+      Culturais (inrc.iphan.gov.br), um item publicado por linha. Sem cast,
+      filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_04_identificacao_territorio
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_inrc_04_identificacao_territorio: a coleção 2198, "05 -
+      Território", do Inventário Nacional de Referências Culturais
+      (inrc.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_05_identificacao_bem_cultural
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_inrc_05_identificacao_bem_cultural: a coleção 2292, "06 - Bem
+      Cultural", do Inventário Nacional de Referências Culturais
+      (inrc.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_06_grupo
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_06_grupo: a coleção 2581,
+      "08 - Grupo", do Inventário Nacional de Referências Culturais
+      (inrc.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_07_identificacao_detentores
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_inrc_07_identificacao_detentores: a coleção 2792, "07 -
+      Detentores", do Inventário Nacional de Referências Culturais
+      (inrc.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_2_2_detalhamento_dos_projetos_de_identificacao
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_inrc_2_2_detalhamento_dos_projetos_de_identificacao: a coleção
+      3727, "01 - Detalhamento dos Projetos de Identificação", do Inventário
+      Nacional de Referências Culturais (inrc.iphan.gov.br), um item publicado
+      por linha. Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_documentos
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_documentos: a coleção
+      26488, "10 - Documentos", do Inventário Nacional de Referências Culturais
+      (inrc.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_2_1_projetos
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_2_1_projetos: a coleção
+      37719, "0 - Projetos de Identificação", do Inventário Nacional de
+      Referências Culturais (inrc.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_inrc_diagnostico_comunitario
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_inrc_diagnostico_comunitario: a
+      coleção 1931854, "09 - Diagnóstico Comunitário", do Inventário Nacional de
+      Referências Culturais (inrc.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_identificacao_da_pesquisa
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_identificacao_da_pesquisa:
+      a coleção 6, "Identificação da Pesquisa", do Inventário Nacional da
+      Diversidade Linguística (indl.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_caracterizacao_territorial
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_caracterizacao_territorial:
+      a coleção 19, "Caracterização Territorial", do Inventário Nacional da
+      Diversidade Linguística (indl.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_comunidade_linguistica
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_comunidade_linguistica: a
+      coleção 86, "Comunidade Linguística", do Inventário Nacional da
+      Diversidade Linguística (indl.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_identificacao_e_caracterizacao_da_lingua_referencia
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_indl_identificacao_e_caracterizacao_da_lingua_referencia: a
+      coleção 93, "Identificação e Caracterização da Língua Referência", do
+      Inventário Nacional da Diversidade Linguística (indl.iphan.gov.br), um
+      item publicado por linha. Sem cast, filtro nem join (ADR 0010); toda
+      coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_diagnostico_sociolinguistico
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_indl_diagnostico_sociolinguistico: a coleção 100, "Diagnóstico
+      Sociolinguístico", do Inventário Nacional da Diversidade Linguística
+      (indl.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_avaliacao_da_vitalidade_linguistica_revitalizacao
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_indl_avaliacao_da_vitalidade_linguistica_revitalizacao: a
+      coleção 107, "Avaliação da Vitalidade Linguística, Revitalização", do
+      Inventário Nacional da Diversidade Linguística (indl.iphan.gov.br), um
+      item publicado por linha. Sem cast, filtro nem join (ADR 0010); toda
+      coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_documentos
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_documentos: a coleção 350,
+      "Documentos", do Inventário Nacional da Diversidade Linguística
+      (indl.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_midias
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_midias: a coleção 357,
+      "Imagens, sons e vídeos", do Inventário Nacional da Diversidade
+      Linguística (indl.iphan.gov.br), um item publicado por linha. Sem cast,
+      filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_pessoas_de_referencia
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_pessoas_de_referencia: a
+      coleção 1983, "Pessoas de referência", do Inventário Nacional da
+      Diversidade Linguística (indl.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_instituicoes_responsaveis
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_instituicoes_responsaveis:
+      a coleção 5062, "Instituições responsáveis pelos inventários", do
+      Inventário Nacional da Diversidade Linguística (indl.iphan.gov.br), um
+      item publicado por linha. Sem cast, filtro nem join (ADR 0010); toda
+      coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_referencias_bibliograficas_pp2
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_indl_referencias_bibliograficas_pp2: a coleção 11434,
+      "Bibliografia", do Inventário Nacional da Diversidade Linguística
+      (indl.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_projeto_de_identificacao
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_projeto_de_identificacao: a
+      coleção 14653, "Projeto de Identificação", do Inventário Nacional da
+      Diversidade Linguística (indl.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_instituicoes_modulo_4
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_instituicoes_modulo_4: a
+      coleção 19322, "Escolas", do Inventário Nacional da Diversidade
+      Linguística (indl.iphan.gov.br), um item publicado por linha. Sem cast,
+      filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_instituicoes_que_promovem
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_instituicoes_que_promovem:
+      a coleção 19505, "Instituições que promovem a língua", do Inventário
+      Nacional da Diversidade Linguística (indl.iphan.gov.br), um item publicado
+      por linha. Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_identificacao_de_linguas_e_variedades
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_indl_identificacao_de_linguas_e_variedades: a coleção 20829,
+      "Identificação de línguas e variedades", do Inventário Nacional da
+      Diversidade Linguística (indl.iphan.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_identificacao_das_localidades_de_pesquisa
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_indl_identificacao_das_localidades_de_pesquisa: a coleção
+      26887, "Identificação das localidades de pesquisa", do Inventário Nacional
+      da Diversidade Linguística (indl.iphan.gov.br), um item publicado por
+      linha. Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_modulo_2_identificacao_de_localidades
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_indl_modulo_2_identificacao_de_localidades: a coleção 48393,
+      "Localidades", do Inventário Nacional da Diversidade Linguística
+      (indl.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_grafias_existentes
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_grafias_existentes: a
+      coleção 50770, "Grafias existentes", do Inventário Nacional da Diversidade
+      Linguística (indl.iphan.gov.br), um item publicado por linha. Sem cast,
+      filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_lexicos_e_listas_de_palavras
+    description: >
+      Camada Bronze — cópia fiel de
+      seeds.iphan_indl_lexicos_e_listas_de_palavras: a coleção 90288, "Léxicos e
+      Listas de Palavras", do Inventário Nacional da Diversidade Linguística
+      (indl.iphan.gov.br), um item publicado por linha. Sem cast, filtro nem
+      join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
+
+  - name: bronze_indl_resumo_executivo
+    description: >
+      Camada Bronze — cópia fiel de seeds.iphan_indl_resumo_executivo: a coleção
+      184289, "Resumo executivo", do Inventário Nacional da Diversidade
+      Linguística (indl.iphan.gov.br), um item publicado por linha. Sem cast,
+      filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - iphan
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_iphan
