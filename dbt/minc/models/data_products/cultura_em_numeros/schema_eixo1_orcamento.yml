@@ -883,9 +883,14 @@ unit_tests:
       como o extrato manda, sem módulo (a linha de -3). A linha da MSC que
       conta só confere que o union com o ramo do empenho não a perde e que o
       valor da MSC sai em módulo; os filtros da MSC e o deflator não são
-      testados aqui.
+      testados aqui. O IPCA entra com uma linha só, porque o ipca_base lê a
+      silver_serie_sgs direto e o dbt exige todo ref como input; o deflator
+      não está no expect.
     model: eixo1_orcamento_empenho_cultura
     given:
+      - input: ref('silver_serie_sgs')
+        rows:
+          - {codigo_serie: '433', data: '2024-01-01', valor: 0}
       - input: ref('int_bacen_bbagil_siconfi')
         rows:
           - {base_origem: siconfi_msc, cod_ibge: 3550308, uf: SP, exercicio: 2021, tipo_matriz: MSCC, mes_referencia: 12, classe_conta: 6, tipo_valor: ending_balance, natureza_conta: C, conta_contabil: '6.2.2.1.3.04.00', funcao: '13', fonte_recursos: '1500', complemento_fonte: '1001', valor: -50, ipca_indice_medio_ano: 1, ipca_meses_ano: 12, _pagina_id: p1, _item: 1}
