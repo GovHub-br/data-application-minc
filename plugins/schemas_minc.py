@@ -72,6 +72,11 @@ FONTE_PALMARES = "palmares"
 # (ancine_salas_exibicao_dag). Nao confundir com o schema ancine do Postgres,
 # que guarda a captacao de projetos.
 FONTE_ANCINE = "ancine"
+# Repositorios Tainacan (tainacan_dag): Bem Brasileiro, INRC e INDL do Iphan;
+# Museus e Pontos de Memoria do cadastro.museus.gov.br, do Ibram. Uma tabela
+# por colecao, seeds.<fonte>_<entidade>.
+FONTE_IPHAN = "iphan"
+FONTE_IBRAM = "ibram"
 
 # ---------------------------------------------------------------------------
 # senado (senado_legislacao_dag)
