@@ -306,6 +306,85 @@ dominios:
       salas não usa essas colunas: quem for publicar ou cruzar a tabela
       decide antes o que fazer com elas.
 
+  - slug: iphan
+    rotulo: Patrimônio imaterial e diversidade linguística
+    subtitulo: Os bens registrados e os inventários que o Iphan publica no Tainacan
+    contexto: |
+      O Eixo 3 do Cultura em Números descreve o patrimônio imaterial e as
+      línguas inventariadas no país. O Iphan publica três acervos na
+      plataforma Tainacan: o Bem Brasileiro, com os bens culturais registrados
+      e os documentos, mídias e ações de salvaguarda de cada registro; o INRC,
+      Inventário Nacional de Referências Culturais; e o INDL, Inventário
+      Nacional da Diversidade Linguística. O script do eixo extraía os três e
+      guardava o resultado no computador de quem o rodava.
+    o_que_faz: |
+      Todo mês, pede à API pública de cada acervo a lista de coleções e todos
+      os itens publicados de cada uma, e guarda as respostas como vieram. Cada
+      coleção vira uma tabela própria, porque cada uma tem o próprio
+      formulário: juntar todas numa tabela só deixaria a maior parte das
+      colunas vazia em cada linha. Cada busca substitui a coleção inteira, e
+      confere se o número de itens trazidos bate com o que a API declara. Ainda
+      não há tabela de uso final: os campos do formulário estão guardados como
+      vieram, e abri-los em colunas é a etapa seguinte.
+    perguntas:
+      - Quais bens culturais imateriais estão registrados, e com que documentos e ações de salvaguarda?
+      - Que referências culturais, grupos e detentores o INRC inventariou, e em que territórios?
+      - Que línguas o INDL inventariou, onde são faladas e por quais comunidades?
+    sistemas: [Iphan (Tainacan)]
+    armadilhas: |
+      Só entra o que está publicado: rascunho, item privado e item na lixeira
+      não saem na API pública, e algumas coleções do INRC têm mais itens
+      privados que publicados. Os campos do formulário ficam juntos na coluna
+      metadata, e o vazio aparece de dois jeitos: texto vazio ou o valor
+      lógico false, resto do sistema, que não quer dizer "não" (o script do
+      eixo o escrevia como a palavra "False"). Um termo de lista (a categoria do bem, por exemplo) vem com o nome dentro,
+      e um campo que aponta para outro item traz só o número desse item, que
+      fica em outra coleção. As datas de criação e de modificação estão como
+      texto, cada acervo num formato: "21/09/2026" no Bem Brasileiro, "19 de
+      outubro de 2026" no INRC, "outubro 22, 2026" no INDL. As datas digitadas
+      no formulário vêm como ano-mês-dia ou como dia/mês/ano. A data de criação
+      é a do cadastro no sistema, não a do registro do bem nem a da pesquisa.
+      As coleções do INRC são numeradas no nome ("06 - Bem Cultural"), e a
+      numeração não é a do endereço ("05-identificacao-bem-cultural"): a tabela
+      segue o endereço. Os acervos ainda recebem coleções novas; quando aparece
+      uma, a carga do mês termina com erro até alguém acrescentá-la, e as
+      outras são carregadas mesmo assim. Bens tombados não estão aqui: o
+      tombamento não é publicado no Tainacan.
+
+  - slug: ibram
+    rotulo: Museus e Pontos de Memória
+    subtitulo: O Cadastro Nacional de Museus e os Pontos de Memória, como o Ibram os publica
+    contexto: |
+      Os eixos 3 e 5 do Cultura em Números contam os museus e os pontos de
+      memória do país e descrevem onde estão e como funcionam. O Ibram mantém
+      os dois cadastros na plataforma Tainacan, em cadastro.museus.gov.br, e o
+      script do eixo os extraía para o computador de quem o rodava.
+    o_que_faz: |
+      Todo mês, pede à API pública do cadastro todos os itens publicados das
+      coleções Museus e Pontos de Memória e guarda as respostas como vieram.
+      Cada coleção é uma tabela, cada busca substitui a coleção inteira e
+      confere o número de itens com o que a API declara. As outras coleções do
+      cadastro (agentes de participação social, pesquisa anual, gestão de
+      risco) ficam de fora. Ainda não há tabela de uso final: os campos do
+      formulário estão guardados como vieram.
+    perguntas:
+      - Quantos museus estão cadastrados, de que tipo e em que municípios?
+      - Que pontos de memória existem, e com que temática?
+      - Que infraestrutura de acessibilidade os museus declaram?
+    sistemas: [Ibram (Tainacan)]
+    armadilhas: |
+      Só entra o que está publicado: museu em rascunho ou privado não aparece.
+      Nos Pontos de Memória, a data de criação é a da carga em lote, feita em
+      poucos dias, e não a do cadastro do ponto: não serve para série
+      histórica. Os campos do formulário ficam juntos na coluna metadata, com o
+      vazio como texto vazio ou como o valor lógico false, que não quer dizer
+      "não"; termo de lista vem com o nome dentro, e campo que aponta para
+      outro museu traz só o número dele. As datas de criação e de
+      modificação estão como texto, no formato dia/mês/ano. O cadastro traz
+      contatos (e-mail, telefone, nome do responsável), marcados como dado
+      pessoal no catálogo. O site pontosdememoria.museus.gov.br e a Brasiliana
+      Museus são outros sistemas e não estão aqui.
+
   - slug: cnefe
     rotulo: Endereços de estabelecimentos do Censo 2022
     subtitulo: Escolas e estabelecimentos de outras finalidades que o recenseador encontrou em cada município

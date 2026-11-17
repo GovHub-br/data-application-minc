@@ -1,0 +1,174 @@
+version: 2
+
+# ibram, na estrutura do ADR 0010: bronze_<entidade> é a cópia fiel do que a
+# tainacan_dag grava em seeds.ibram_<entidade>, uma tabela por coleção do
+# cadastro.museus.gov.br (Museus e Pontos de Memória). Mesmo desenho do iphan;
+# tests/test_cliente_tainacan.py confere o catálogo contra este arquivo.
+
+models:
+  - name: bronze_cadastro_museus
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibram_cadastro_museus: a coleção 208,
+      "Museus", do Cadastro Nacional de Museus e Pontos de Memória
+      (cadastro.museus.gov.br), um item publicado por linha. Sem cast, filtro
+      nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - ibram
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: &colunas_tainacan_ibram
+      - name: id
+        description: >
+          Id do item no WordPress (post ID). Único na coleção.
+        data_type: text
+        tests:
+          - unique
+          - not_null
+      - name: title
+        description: >
+          Título do item. Nulo quando vem vazio (`""`), como em itens de
+          mídia do INDL.
+        data_type: text
+      - name: description
+        description: >
+          Descrição do item, como veio.
+        data_type: text
+      - name: status
+        description: >
+          Status de publicação. Sem autenticação a API só devolve
+          `publish`.
+        data_type: text
+      - name: slug
+        description: >
+          Slug do item na URL, único entre os publicados da coleção. É a
+          ordem da paginação.
+        data_type: text
+      - name: url
+        description: >
+          Endereço público do item.
+        data_type: text
+      - name: collection_id
+        description: >
+          Id da coleção. É o mesmo em toda linha da tabela, e é por ele
+          que a carga substitui a coleção.
+        data_type: text
+      - name: author_id
+        description: >
+          Id do usuário do WordPress que cadastrou o item.
+        data_type: text
+      - name: author_name
+        description: >
+          Nome do usuário do WordPress que cadastrou o item.
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: creation_date
+        description: >
+          Data de criação do item no WordPress, como texto no formato do
+          idioma da instância: `21/09/2026` (Bem Brasileiro e Ibram),
+          `19 de outubro de 2026` (INRC), `outubro 22, 2026` (INDL). Nos
+          Pontos de Memória é a data da carga em lote, não a do
+          cadastro.
+        data_type: text
+      - name: modification_date
+        description: >
+          Data da última modificação, no mesmo formato de
+          `creation_date`.
+        data_type: text
+      - name: comment_status
+        description: >
+          Se o item aceita comentários.
+        data_type: text
+      - name: document
+        description: >
+          Documento principal do item: id de anexo, URL ou texto,
+          conforme `document_type`.
+        data_type: text
+      - name: document_type
+        description: >
+          Tipo do documento principal (`attachment`, `url`, `text`,
+          `empty`).
+        data_type: text
+      - name: document_mimetype
+        description: >
+          Tipo MIME do documento principal.
+        data_type: text
+      - name: document_as_html
+        description: >
+          Documento principal renderizado em HTML pela API.
+        data_type: text
+      - name: document_options
+        description: >
+          Opções de exibição do documento, em JSON.
+        data_type: text
+      - name: _thumbnail_id
+        description: >
+          Id do anexo da miniatura. Nulo quando não há.
+        data_type: text
+      - name: terms
+        description: >
+          Termos do item fora dos metadados, em JSON. Vem nulo nas
+          quatro instâncias.
+        data_type: text
+      - name: exposer_urls
+        description: >
+          Links de exportação do item, em JSON.
+        data_type: text
+      - name: metadata
+        description: >
+          O formulário da coleção, inteiro e como a API o devolveu, em
+          JSON: uma chave por slug de metadado, com `name`, `value`,
+          `value_as_string`, `value_as_html`, `multiple`, `id`,
+          `mapping` e `semantic_uri`. Termo de taxonomia vem como objeto
+          (com `name`), relacionamento como id de outro item, valor
+          múltiplo como lista. Vazio vem como `""` ou como o booleano
+          `false` do JSON (o extrator do eixo 3 o escrevia como o texto
+          `"False"`), nas quatro instâncias; dentro do termo de
+          taxonomia, `header_image` e `thumbnail_alt` também vêm `false`
+          e não são valor. Datas do formulário vêm em ISO ou
+          `dd/mm/aaaa`. Achatar é da silver. Pode trazer dado pessoal
+          (nome de responsável, e-mail, telefone).
+        data_type: text
+        meta:
+          openmetadata:
+            tags:
+              - PII.Sensitive
+      - name: _pagina
+        description: >
+          Página da API em que o item veio no run (ordem por `slug`).
+        data_type: text
+      - name: _posicao
+        description: >
+          Posição do item na página, a partir de 1.
+        data_type: text
+      - name: dt_ingest
+        description: >
+          Quando o run converteu a coleção em Parquet (UTC, ISO 8601).
+          Igual em toda linha.
+        data_type: text
+
+  - name: bronze_cadastro_pontos_de_memoria
+    description: >
+      Camada Bronze — cópia fiel de seeds.ibram_cadastro_pontos_de_memoria: a
+      coleção 179824, "Pontos de Memória", do Cadastro Nacional de Museus e
+      Pontos de Memória (cadastro.museus.gov.br), um item publicado por linha.
+      Sem cast, filtro nem join (ADR 0010); toda coluna é texto.
+    config:
+      tags:
+        - bronze
+        - ibram
+        - tainacan
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    columns: *colunas_tainacan_ibram
