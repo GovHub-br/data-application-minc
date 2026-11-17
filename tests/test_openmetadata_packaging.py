@@ -151,10 +151,11 @@ def test_profiler_skips_only_the_raw_seeds_copy() -> None:
     """O profiler nao mede o seeds; o metadata continua catalogando tudo.
 
     O seeds e a copia crua de planilhas (108 tabelas em 10/11/2026). O dbt le
-    19: 16 pela bronze `ibge` e uma por cada bronze de `dados_cultura`, `siop` e
-    `tesouro_transparente`. As bronzes sao view, que o profiler nao mede
-    (includeViews fica false); o que o projeto le dessas planilhas e medido nas
-    golds de cultura_em_numeros.
+    61: 16 pela bronze `ibge`, 40 pela `iphan`, 2 pela `ibram` e uma por cada
+    bronze de `dados_cultura`, `siop` e `tesouro_transparente`. As bronzes sao
+    view, que o profiler nao mede (includeViews fica false); o que o projeto le
+    dessas planilhas e medido nas tabelas que o dbt materializa a partir delas,
+    como as golds de cultura_em_numeros.
 
     O seeds sai dos includes do profiler, e nao entra num excludes: quando ha
     includes, o profiler e o classifier mandam ao servidor so o regex deles e
