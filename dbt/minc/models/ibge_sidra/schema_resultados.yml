@@ -1,0 +1,101 @@
+version: 2
+
+# ibge_sidra.resultados: os valores das tabelas do SIDRA que a ibge_agregados_dag
+# grava para os agregados da Variable ibge_config. Arquivo à parte do schema.yml
+# da pasta, que documenta o catálogo.
+models:
+  - name: bronze_resultados
+    description: >
+      Camada Bronze — cópia fiel de ibge_sidra.resultados, sem cast, filtro nem
+      join (ADR 0010). Todas as colunas chegam como na origem, em text.
+    config:
+      tags:
+        - bronze
+        - ibge_sidra
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: silver_resultados
+    description: >
+      Camada Silver — valores das tabelas do SIDRA, tipados. Uma linha por
+      agregado, variável, nível territorial, localidade, período e
+      classificação, a chave com que a DAG grava.
+
+
+      PARA QUE SERVE no Eixo 1: a população residente do Censo 2022 por
+      município (agregado_id 4709, variavel_id 93, nivel 'N6', periodo '2022'),
+      que dá o porte do município nas golds do orçamento (via
+      int_ibge_sidra_siconfi).
+
+
+      Os símbolos do SIDRA no lugar do número: '-' é zero absoluto e vira 0;
+      '..', '...' e 'X' viram nulo. O texto original fica em valor_original.
+    config:
+      tags:
+        - silver
+        - ibge_sidra
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: >-
+            agregado_id || '|' || variavel_id || '|' || nivel || '|' || localidade_id
+            || '|' || periodo || '|' || coalesce(classificacoes, '')
+    columns:
+      - name: agregado_id
+        description: Código da tabela (agregado) do SIDRA. 4709 = Censo 2022, população.
+        data_type: integer
+        tests:
+          - not_null
+      - name: variavel_id
+        description: Código da variável no agregado. 93 = população residente.
+        data_type: integer
+        tests:
+          - not_null
+      - name: variavel_nome
+        description: Nome da variável, como o SIDRA devolve.
+        data_type: text
+      - name: unidade
+        description: Unidade de medida da variável (por exemplo, 'Pessoas').
+        data_type: text
+      - name: nivel
+        description: >
+          Nível territorial pedido à API: 'N1' Brasil, 'N2' grande região, 'N3' UF,
+          'N6' município.
+        data_type: text
+        tests:
+          - not_null
+      - name: localidade_id
+        description: >
+          Código da localidade no nível: no N6, o código IBGE de 7 dígitos do
+          município (o mesmo cod_ibge do SICONFI).
+        data_type: bigint
+        tests:
+          - not_null
+      - name: localidade_nome
+        description: Nome da localidade, como o SIDRA devolve ('Cidade - UF' no N6).
+        data_type: text
+      - name: periodo
+        description: Período do valor, como rótulo ('2022'). Texto, não número.
+        data_type: text
+        tests:
+          - not_null
+      - name: valor
+        description: >
+          O valor, numérico. 0 onde o SIDRA põe '-' (zero absoluto); nulo onde
+          põe '..', '...' ou 'X'.
+        data_type: numeric
+      - name: valor_original
+        description: O valor como o SIDRA devolve, com os símbolos.
+        data_type: text
+      - name: classificacoes
+        description: >
+          As classificações (e categorias) da linha, como texto do JSON da API.
+          Nulo no agregado sem classificação, como a 4709.
+        data_type: text
