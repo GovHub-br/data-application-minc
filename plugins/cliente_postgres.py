@@ -444,6 +444,82 @@ class ClientPostgresDB:
         with self._transacao() as cursor:
             self._inserir(cursor, linhas, table_name, conflict_fields, schema)
 
+    def substituir_dados(
+        self,
+        data: List[Dict[str, Any]],
+        table_name: str,
+        schema: str = "raw",
+        coluna_recorte: Optional[str] = None,
+    ) -> None:
+        """Troca o conteúdo da tabela pelas linhas de ``data``, sem derrubá-la.
+
+        Para recarregar tabela que tem view em cima, como as ``bronze_*`` do
+        dbt: o ``DROP`` é recusado pelo Postgres (``DependentObjectsStillExist``)
+        e o ``DROP ... CASCADE`` levaria as views junto.
+
+        Sem ``coluna_recorte``, apaga a tabela inteira. Com ela, apaga só as
+        linhas cujo valor nessa coluna aparece em ``data``: o recorte que a
+        carga traz de novo. Tasks paralelas que substituem recortes diferentes
+        da mesma tabela não apagam o que a outra gravou.
+
+        ``DELETE`` e ``INSERT`` vão na mesma transação: uma falha no meio deixa
+        o conteúdo anterior, e quem lê nunca encontra a tabela vazia. É
+        ``DELETE`` e não ``TRUNCATE`` porque o ``TRUNCATE`` trava a tabela até
+        o commit e esvazia o que outra transação já estava lendo. Sem ``data``,
+        nada é apagado.
+
+        Args:
+            data: Linhas que passam a ser o conteúdo da tabela (ou do recorte).
+            table_name: Tabela destino. Criada se não existir; coluna nova
+                entra como ``TEXT``, como no ``insert_data``.
+            schema: Schema do banco.
+            coluna_recorte: Coluna que delimita o que é substituído. Toda
+                linha precisa ter valor nela.
+
+        Raises:
+            ValueError: alguma linha sem valor em ``coluna_recorte``. Ela
+                entraria sem que a carga seguinte a alcançasse.
+        """
+        if not data:
+            logging.warning(
+                f"[cliente_postgres.py] Nada para substituir em {schema}."
+                f"{table_name}: a tabela fica como está"
+            )
+            return
+
+        linhas = self._flatten_data(data)
+        coluna: Optional[str] = None
+        recorte: List[Any] = []
+        if coluna_recorte is not None:
+            coluna = coluna_recorte.lower()
+            valores = [linha.get(coluna) for linha in linhas]
+            if any(valor is None for valor in valores):
+                raise ValueError(
+                    f"{schema}.{table_name}: toda linha precisa de valor em "
+                    f"{coluna!r} para substituir por recorte"
+                )
+            recorte = list(dict.fromkeys(valores))
+
+        with self._transacao() as cursor:
+            linhas = self._preparar_tabela(cursor, linhas, table_name, None, schema, None)
+        with self._transacao() as cursor:
+            alvo = _tabela(schema, table_name)
+            if coluna is None:
+                cursor.execute(f"DELETE FROM {alvo}")
+            else:
+                # A coluna é TEXT; o cast compara como o INSERT gravou.
+                cursor.execute(
+                    f"DELETE FROM {alvo} WHERE {_ident(coluna)} = ANY(%s::text[])",
+                    (recorte,),
+                )
+            apagadas = cursor.rowcount
+            self._inserir(cursor, linhas, table_name, None, schema)
+        logging.info(
+            f"[cliente_postgres.py] {schema}.{table_name} substituída"
+            + (f" em {len(recorte)} valores de {coluna}" if coluna else "")
+            + f": {apagadas} linhas apagadas, {len(linhas)} gravadas"
+        )
+
     @staticmethod
     def _mover_para_payload_origem(
         linhas: List[Dict[str, Any]], excedentes: set
