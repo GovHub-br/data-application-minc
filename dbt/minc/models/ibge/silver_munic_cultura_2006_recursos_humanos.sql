@@ -54,5 +54,5 @@ select
     {{ bronze_texto("a54") }} as a54,
     {{ bronze_texto("a55") }} as a55,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_munic_cultura_2006_recursos_humanos") }}
