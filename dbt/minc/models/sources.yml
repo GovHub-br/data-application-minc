@@ -602,12 +602,13 @@ sources:
           - name: descricao_programa
             description: >
               8 valores distintos em 11 registros preenchidos de 11. Comprimento entre 696 e
-              2141 caracteres. Perfil obtido só com agregado; nenhum valor de exemplo é
-              reproduzido aqui.
+              2141 caracteres. Não é chave: programas diferentes do mesmo fundo repetem o
+              texto (em 11/11/2026, dois grupos, de 2 e de 3 programas com id, nome e código
+              próprios). Perfil obtido só com agregado; nenhum valor de exemplo é reproduzido
+              aqui.
             data_type: text
             tests:
               - not_null   # inferido do perfil do banco
-              - unique   # inferido do perfil do banco
           - name: cnpj_fundo_programa
             description: >
               Coluna constante: um único valor distinto em 4 registros preenchidos. Não
@@ -3567,12 +3568,19 @@ sources:
               - not_null   # inferido do perfil do banco
           - name: accountbalance
             description: >
-              520 valores distintos em 508.146 registros preenchidos de 508.146. Comprimento
-              entre 3 e 10 caracteres. Perfil obtido só com agregado; nenhum valor de exemplo
-              é reproduzido aqui.
+              Saldo da conta depois da transação, em texto com ponto decimal. A API só traz o
+              saldo em parte das linhas. Na linha sem saldo, a coluna tem NULL ou o texto
+              'NaN', e os dois querem dizer a mesma coisa: o 'NaN' é o que o ClientPostgresDB
+              gravava para a chave ausente até o PR #112 (issue #111), e depois dele a falta
+              vira NULL. Medido em 11/11/2026, por ano do bookingdate: a falta aparece só como
+              NULL de 2020 a 2022, só como 'NaN' de 2023 a 2025 e dos dois jeitos em 2026, e
+              todo ano tem linhas com saldo. No total, de 1.037.805 registros, 185.092
+              numéricos, 538.892 'NaN' e 313.821 NULL, e nenhum outro formato. Sem teste
+              not_null: a falta vem da origem, e o teste inferido do perfil de 508.146
+              registros, quando ainda não havia NULL, falhava em 313.821 linhas. A
+              silver_extrato_bbagil tipa como numeric, e o 'NaN' vira NULL. Perfil obtido só
+              com agregado; nenhum valor de exemplo é reproduzido aqui.
             data_type: text
-            tests:
-              - not_null   # inferido do perfil do banco
           - name: descriptioncode
             description: >
               72 valores distintos em 508.146 registros preenchidos de 508.146. Comprimento

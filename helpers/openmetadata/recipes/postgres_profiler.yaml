@@ -23,11 +23,12 @@ source:
           # a mesma lista do projeto dbt e falha quando as duas divergem.
           #
           # O seeds fica de fora so aqui: e a copia crua de planilhas, 108
-          # tabelas em 10/11/2026. O dbt le 18: 16 pela bronze `ibge` e uma
-          # por cada bronze de `dados_cultura` e `siop`. Essas bronzes sao
-          # view, e o profiler pula view (includeViews fica false), entao o
-          # que o projeto le dessas planilhas e medido nas golds de
-          # cultura_em_numeros.
+          # tabelas em 10/11/2026. O dbt le 73: 28 pela bronze `ibge`, 40
+          # pela `iphan`, 2 pela `ibram` e uma por cada bronze de
+          # `dados_cultura`, `siop` e `tesouro_transparente`. Essas bronzes
+          # sao view, e o profiler pula view (includeViews fica false), entao
+          # o que o projeto le dessas planilhas e medido nas tabelas que o dbt
+          # materializa a partir delas, como as golds de cultura_em_numeros.
           #
           # Nao use excludes para tirar schema daqui: com includes, o profiler
           # manda ao servidor so o regex dos includes e descarta o excludes
@@ -55,6 +56,7 @@ source:
           - '^senado$'
           - '^siconfi$'
           - '^siop$'
+          - '^tesouro_transparente$'
           - '^transferegov$'
 processor:
   type: orm-profiler
