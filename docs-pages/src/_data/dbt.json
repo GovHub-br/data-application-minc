@@ -2351,6 +2351,277 @@
       "linhas_sql": 17
     },
     {
+      "nome": "eixo1_orcamento_empenho_cultura",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_empenho_cultura.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento, do Cultura em Números. Gold-base: o gasto de estados e municípios em cultura, linha a linha, com a origem do recurso e o valor em reais de 2024. O empenho vem da Matriz de Saldos Contábeis (MSC) do SICONFI; a LAB 1 municipal, do extrato do BB Ágil.\nGRÃO: uma linha por item da MSC que conta (_pagina_id, _item) ou por lançamento da LAB 1 que conta (id_plano_acao, id_plano_acao_dado_bancario, id_transacao). base_origem diz qual. UNIVERSO: as linhas de int_bacen_bbagil_siconfi que passam pela regra abaixo, de estados, DF e municípios (na MSC, fora o DF na esfera municipal).\nO QUE É EMPENHO: a MSC agregada (MSCC) de dezembro, classe 6, saldo final; natureza credora (C); conta contábil começando com 62213 (crédito empenhado). Valor em módulo, linha a linha (abs, como o R).\nA LAB 1 MUNICIPAL: a MSC não separa a LAB 1 na fonte do município, e o R a tira do cubo do BB Ágil. Aqui ela vem do extrato das mesmas contas: programa 30882120200002 (Aldir Blanc dos municípios); todo lançamento que não é crédito (indicador diferente de 'C', o nulo incluído), como o R; menos os movimentos de aplicação financeira, que não são gasto e o cubo do R não tem: 271 (\"BB-APLIC C.PRZ-APL.AUT\"), 345 (\"Aplicação em BB Fix\") e 248 (\"Estorno Resgate Automático\"). O exercício é o ano da data do lançamento (bookingdate), só no ano fechado (os 12 meses do IPCA), porque o R lê o IPCA até dez/2025 e descarta a linha sem deflator. O valor é o value do extrato, sem módulo. O DF recebe com o código da UF (53) e aqui vira Brasília (5300108), na esfera municipal, como no R. Origem 'lab'.\nDE ONDE VEIO O RECURSO, na MSC, pela fonte e nesta ordem: pnab (fonte começando com 1719, 2719, 1720, 2720, 719 ou 720), lpg (1715, 2715, 1716, 2716, 715 ou 716), lab (na MSC, só estadual, só 2020 e 2021, fonte começando com 17 ou 27 e não com 19 ou 29), emenda (complemento da fonte, com zero à esquerda até 4 dígitos, entre os 13 códigos de emenda parlamentar), proprio (o resto).\nQUEM CONTA COMO CULTURA: na MSC, a função 13, e, na esfera estadual, a linha da LAB em qualquer função, como o R estadual. A LAB 1 municipal é cultura pelo programa.\nVALOR REAL: nominal vezes o número-índice médio do IPCA do ano-base (var eixo1_orcamento_ano_base_ipca, padrão 2024) dividido pelo do exercício, como o R. Sem IPCA para o exercício, nulo. O índice do ano-base é lido do IPCA (silver_serie_sgs), não das linhas de cultura, e o teste eixo1_orcamento_ipca_ano_base_fechado exige que o ano-base tenha os 12 meses: com meses parciais, todo valor real sairia enviesado.\nPARA QUE SERVE: é a base das golds eixo1_orcamento_*. Não responde pergunta sozinha.\nLIMITAÇÕES: a MSC de alguns entes não informa a função em alguns anos (o Ceará em 2019 a 2021); essas linhas não entram, e o ente fica sem empenho em cultura no ano. A LAB 1 só enxerga as contas que o Banco do Brasil administra e que a extração do BB Ágil alcançou (combinações de conta e mês com erro na API ficam de fora até a DAG repetir). E, como no R, o estorno não é pareado: conta o débito que depois voltou como crédito (TED devolvida, ordem bancária cancelada, estorno de débito). Em 2020 esses créditos somam R$ 91,9 mi no programa, contra R$ 989,4 mi de LAB 1. Descontá-los afasta do R (800 de 2.791 municípios iguais em 2020, contra 2.534), porque o cubo do R conta o débito estornado. Parear o estorno é decisão do indicador (ADR 0015, decisão 3) e fica em aberto.\nUSO E SIGILO: na LAB 1, cada linha é um lançamento da conta do ente (plano de ação, município, data e valor), e a chave (id_plano_acao, id_plano_acao_dado_bancario, id_transacao) é a mesma de silver_extrato_bbagil, que traz o documento e o nome do beneficiário em claro. O beneficiário pode ser pessoa física. Cruzada com a silver, esta tabela diz quem recebeu quanto e quando. Por isso ela é restrita, fora do RAG e de painel aberto. O consumo público é o das golds que agregam por município (eixo1_orcamento_municipal_municipio_fonte) e por origem (eixo1_orcamento_municipal_fonte).\nDESEMPENHO: medido em 11/11/2026 num Postgres local com a amostra da MSC do #163 e o extrato inteiro do BB Ágil (1.037.805 lançamentos, 11 programas), por EXPLAIN ANALYZE, uma consulta de cada vez. O ramo da LAB 1 (a CTE do extrato e os filtros) leva 8,7 s, sem nested loop, e a CTE guarda só os 310.349 lançamentos do programa. Com `select *` e o programa fora da CTE, eram 20,9 s; só com a lista de colunas, 14,6 s. Com os quatro filtros dentro da CTE, a estimativa cai para 25 linhas e o Postgres junta o ente por nested loop, um lançamento por vez (o mesmo plano passou de 13 min, e foi cancelado, com 327 mil lançamentos). A gold-base inteira levou de 298 s a 593 s nas medições isoladas, quase tudo na parte da MSC, que o ramo da LAB 1 não muda (a escrita temporária da MSC é a mesma em todas).\nATUALIZAÇÃO: table, recalculada a cada `dbt build`.",
+      "colunas": [
+        {
+          "nome": "base_origem",
+          "descricao": "De onde a linha veio: 'siconfi_msc' (o empenho da MSC) ou 'bbagil_extrato' (a LAB 1 municipal, do extrato do BB Ágil)."
+        },
+        {
+          "nome": "esfera_eixo1",
+          "descricao": "'estadual' (código IBGE de 2 dígitos, estados e DF) ou 'municipal' (7 dígitos). A LAB 1 é toda municipal, o DF incluído."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente: o do item da MSC, ou o da conta do BB Ágil na LAB 1, com o 53 do DF trocado pelo 5300108 de Brasília."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do ente em silver_entes, pelo código de origem. Na LAB 1 do DF, 'Brasília', junto com o cod_ibge 5300108."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do ente."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Sigla da região do ente (NO, NE, CO, SE, SU)."
+        },
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "origem",
+          "descricao": "De onde veio o recurso: 'proprio', 'emenda', 'lab', 'lpg' ou 'pnab' (regra na description do modelo)."
+        },
+        {
+          "nome": "funcao",
+          "descricao": "Função de governo da linha, como a MSC manda ('13' é Cultura). Nula na LAB 1, como as outras colunas da MSC abaixo."
+        },
+        {
+          "nome": "subfuncao",
+          "descricao": "Subfunção de governo."
+        },
+        {
+          "nome": "poder_orgao",
+          "descricao": "Código de poder e órgão."
+        },
+        {
+          "nome": "natureza_despesa",
+          "descricao": "Natureza da despesa."
+        },
+        {
+          "nome": "fonte_recursos",
+          "descricao": "Fonte de recursos, como a MSC manda."
+        },
+        {
+          "nome": "complemento_fonte",
+          "descricao": "Complemento da fonte, como a MSC manda."
+        },
+        {
+          "nome": "conta_contabil",
+          "descricao": "Conta contábil (62213xxxx)."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Em reais correntes do exercício: o valor empenhado (módulo do saldo da MSC), ou o value do lançamento da LAB 1."
+        },
+        {
+          "nome": "fator_ipca",
+          "descricao": "Índice médio do ano-base dividido pelo do exercício."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "valor_nominal vezes fator_ipca, em reais do ano-base."
+        },
+        {
+          "nome": "ano_base_ipca",
+          "descricao": "Ano-base do valor real (var eixo1_orcamento_ano_base_ipca)."
+        },
+        {
+          "nome": "ipca_meses_ano",
+          "descricao": "Quantos meses do exercício o IPCA tem (12 no ano fechado). Nulo sem IPCA."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "Só na MSC. A página do SICONFI de onde o item veio."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Só na MSC. Posição do item na página."
+        },
+        {
+          "nome": "id_plano_acao",
+          "descricao": "Só na LAB 1. Plano de ação do TransfereGov dono da conta."
+        },
+        {
+          "nome": "id_plano_acao_dado_bancario",
+          "descricao": "Só na LAB 1. A conta bancária do plano de ação."
+        },
+        {
+          "nome": "id_transacao",
+          "descricao": "Só na LAB 1. O id do lançamento no extrato do BB Ágil."
+        },
+        {
+          "nome": "data_lancamento",
+          "descricao": "Só na LAB 1. A data do lançamento (bookingdate)."
+        },
+        {
+          "nome": "descriptioncode",
+          "descricao": "Só na LAB 1. Código do tipo de lançamento do BB."
+        }
+      ],
+      "colunas_descritas": 27,
+      "testes": 13,
+      "materializacao": "",
+      "depende_de": [
+        "int_bacen_bbagil_siconfi",
+        "silver_serie_sgs"
+      ],
+      "sources": [],
+      "linhas_sql": 296
+    },
+    {
+      "nome": "eixo1_orcamento_estadual_fonte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_estadual_fonte.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Figs. 4 e 5 da publicação: o investimento estadual em cultura por exercício e origem do recurso, em reais correntes (Fig. 4) e de 2024, e a participação de cada origem no total do ano (Fig. 5).\nGRÃO: uma linha por (exercicio, origem) com empenho. UNIVERSO: a esfera estadual, sem as emendas parlamentares, que as duas figuras tiram (elas estão em eixo1_orcamento_estadual_uf_fonte).\nA participação é sobre o valor real, como no R; dentro de um ano é a mesma do valor nominal, porque todas as origens levam o mesmo fator.\nCONFERIDO em 09/11/2026 contra os CSVs das Figs. 4 e 5 do repositório do R (cultura-em-numeros-eixo-1, commit d28de40), sobre a MSC estadual de 2019 a 2025 copiada do servidor: os 13 pares (exercício, origem) iguais ao centavo no valor nominal, e a participação igual. Por (exercício, UF, origem), os 332 grupos de eixo1_orcamento_estadual_uf_fonte são iguais ao centavo aos do R rodado sobre o parquet que ele versiona.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "origem",
+          "descricao": "'proprio', 'lab', 'lpg' ou 'pnab'."
+        },
+        {
+          "nome": "fonte_recurso",
+          "descricao": "Rótulo da origem, como na publicação."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Empenho em reais correntes (Fig. 4)."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "Empenho em reais do ano-base do IPCA (2024)."
+        },
+        {
+          "nome": "participacao",
+          "descricao": "Fração do valor real do ano que veio desta origem (Fig. 5), de 0 a 1. Soma 1 em cada exercício."
+        }
+      ],
+      "colunas_descritas": 6,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_estadual_uf_fonte"
+      ],
+      "sources": [],
+      "linhas_sql": 33
+    },
+    {
+      "nome": "eixo1_orcamento_estadual_rcl",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_estadual_rcl.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Fig. 6 da publicação: a participação da cultura no orçamento dos estados, o empenho próprio em cultura (origem 'proprio') como fração da Receita Corrente Líquida, contra a meta de 1,5% do PNC.\nGRÃO: uma linha por (exercicio, cod_ibge) do estado ou DF que tem empenho em cultura (de qualquer origem) ou RCL.\nA RCL é a do RREO, Anexo 03, 6º bimestre, coluna \"TOTAL (ÚLTIMOS 12 MESES)\", conta de código RREO3ReceitaCorrenteLiquida. O R estadual filtra pelo texto \"receita corrente líquida (iii)\" num CSV baixado do SICONFI; nos estados o texto e o código pegam a mesma linha.\nPRÓPRIO = 0 NÃO É NULO: o estado que empenhou cultura só com emenda, LAB, LPG ou PNAB tem o próprio igual a zero, e fica com 0%. Nulo é só o estado sem nenhuma linha de cultura no ano.\nDIFERENTE DO R: onde falta o numerador ou a RCL, o R põe 0% e aqui fica nulo (ADR 0010, regra 1). É o caso do Ceará em 2019 a 2021 e de Roraima em 2022, cuja MSC de dezembro não informa a função em nenhuma linha de empenho: não é que o estado não gastou com cultura, é que a MSC não diz. O R mostra 2019 a 2024; aqui entra todo exercício com MSC ou RCL, e quem consome corta.\nCONFERIDO em 09/11/2026 contra o CSV da Fig. 6 do R (commit d28de40): 157 dos 162 pares (ano, UF) de 2019 a 2024 iguais a menos de 0,00005 p.p. Dos 5 restantes, 4 são os nulos acima, onde o R põe 0%, e 1 é São Paulo em 2020 (-0,00085 p.p.): o CSV que o R lê traz a RCL arredondada (R$ 165,0 bi) e a API, o valor exato (R$ 165,23 bi).",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do estado (2 dígitos)."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF, a sigla_uf de silver_entes."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, por extenso."
+        },
+        {
+          "nome": "valor_proprio_nominal",
+          "descricao": "Empenho de origem 'proprio' em cultura, em reais correntes. Zero quando o estado empenhou cultura só com emenda, LAB, LPG ou PNAB; nulo quando não tem nenhuma linha de cultura no ano."
+        },
+        {
+          "nome": "rcl",
+          "descricao": "Receita Corrente Líquida dos últimos 12 meses, em reais correntes."
+        },
+        {
+          "nome": "participacao_rcl",
+          "descricao": "valor_proprio_nominal dividido pela RCL, como fração (0.015 é 1,5%). Nulo quando falta um dos dois ou a RCL não é positiva."
+        },
+        {
+          "nome": "atinge_meta_pnc",
+          "descricao": "Verdadeiro quando participacao_rcl é pelo menos 0.015 (a meta de 1,5% do PNC). Nulo quando participacao_rcl é nula."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_estadual_uf_fonte",
+        "silver_entes",
+        "silver_rreo"
+      ],
+      "sources": [],
+      "linhas_sql": 74
+    },
+    {
+      "nome": "eixo1_orcamento_estadual_uf_fonte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_estadual_uf_fonte.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. O empenho estadual em cultura por exercício, UF e origem do recurso, em reais correntes e de 2024, com todas as origens, inclusive as emendas parlamentares. É o estadual_final.csv de gasto_estadual.R.\nGRÃO: uma linha por (exercicio, uf, origem) com empenho. UNIVERSO: a esfera estadual de eixo1_orcamento_empenho_cultura (26 estados e DF).\nPARA QUE SERVE: a tabela por UF da publicação e a consolidação das três esferas (nacional.R). Só agrega a gold-base.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do estado (2 dígitos)."
+        },
+        {
+          "nome": "origem",
+          "descricao": "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        },
+        {
+          "nome": "fonte_recurso",
+          "descricao": "Rótulo da origem, como na publicação: 'Execução direta Estadual (recursos próprios)', 'Emendas Parlamentares', 'Lei Aldir Blanc (LAB)', 'Lei Paulo Gustavo (LPG)', 'Política Nacional Aldir Blanc (PNAB)'."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Empenho em reais correntes."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "Empenho em reais do ano-base do IPCA (2024)."
+        },
+        {
+          "nome": "linhas_msc",
+          "descricao": "Quantas linhas da MSC somam no valor. Na municipal (eixo1_orcamento_municipal_municipio_fonte) a coluna se chama linhas, porque lá a LAB 1 soma lançamentos do extrato do BB Ágil."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_empenho_cultura"
+      ],
+      "sources": [],
+      "linhas_sql": 32
+    },
+    {
       "nome": "eixo1_orcamento_federal_empenho_cultura",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -2449,6 +2720,225 @@
       ],
       "sources": [],
       "linhas_sql": 12
+    },
+    {
+      "nome": "eixo1_orcamento_municipal_faixa_rcl",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_faixa_rcl.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Fig. 9 da publicação: o percentual de municípios em cada faixa de destinação da RCL à cultura, por exercício e grande região.\nGRÃO: uma linha por (exercicio, regiao, faixa_rcl) com município. Conta os municípios de eixo1_orcamento_municipal_rcl com faixa; a proporção é dentro do (exercício, região). Somando as regiões, é o Indicador_3 de gasto_municipal.R.\nCONFERIDO em 10/11/2026 no recorte de eixo1_orcamento_municipal_rcl: 93 dos 112 grupos (exercício, região, faixa) iguais ao R. Dos 19 restantes, 13 são de 2025 e 6 de 2019 a 2024, cada um com 1 ou 2 municípios: os 4 sem RREO no servidor, o de 2023 que mudou de faixa e os que só têm faixa aqui.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, por extenso. O município sem região (fora de silver_entes) não entra."
+        },
+        {
+          "nome": "faixa_rcl",
+          "descricao": "Faixa do percentual da RCL, como em eixo1_orcamento_municipal_rcl."
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": "Quantos municípios caem na faixa no ano e na região."
+        },
+        {
+          "nome": "proporcao_municipios",
+          "descricao": "Fração dos municípios da região no ano que caem na faixa, de 0 a 1. Soma 1 em cada (exercício, região)."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_municipal_rcl"
+      ],
+      "sources": [],
+      "linhas_sql": 24
+    },
+    {
+      "nome": "eixo1_orcamento_municipal_fonte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_fonte.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. Figs. 7 e 8 da publicação: o investimento municipal em cultura por exercício e origem do recurso, em reais correntes (Fig. 7) e de 2024, e a participação de cada origem no total do ano (Fig. 8).\nGRÃO: uma linha por (exercicio, origem) com empenho. Diferente do estadual, as emendas parlamentares entram, como no R. A participação é sobre o valor real.\nA LAB 1 ('lab') é a do extrato do BB Ágil, acima da Fig. 7 pela cobertura do cubo do R (ver eixo1_orcamento_municipal_municipio_fonte): R$ 989.400.811,65 contra 930.658.307,98 em 2020, 481.308.380,15 contra 440.324.208,13 em 2021, 74.813.895,40 contra 73.462.851,26 em 2022, 14.415.752,22 contra 13.593.567,67 em 2023, 3.228.041,89 contra 3.195.730,40 em 2024 e 2.007.483,58 contra 1.823.432,60 em 2025. A participação das outras origens de 2020 a 2022 fica, por isso, um pouco menor que a do R.\nCONFERIDO em 10/11/2026 no mesmo recorte de eixo1_orcamento_municipal_municipio_fonte: por (exercício, origem), igual ao centavo ao R de 2019 a 2022. Em 2023 (+R$ 403.649,80) e 2024 (-R$ 11.750,00) a diferença é a de um município no recurso próprio; em 2025, a dos reenvios da MSC posteriores à extração do R.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "origem",
+          "descricao": "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        },
+        {
+          "nome": "fonte_recurso",
+          "descricao": "Rótulo da origem, como na publicação."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Empenho em reais correntes (Fig. 7)."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "Empenho em reais do ano-base do IPCA (2024)."
+        },
+        {
+          "nome": "municipios",
+          "descricao": "Quantos municípios têm empenho desta origem no ano."
+        },
+        {
+          "nome": "participacao",
+          "descricao": "Fração do valor real do ano que veio desta origem (Fig. 8), de 0 a 1. Soma 1 em cada exercício."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_municipal_municipio_fonte"
+      ],
+      "sources": [],
+      "linhas_sql": 34
+    },
+    {
+      "nome": "eixo1_orcamento_municipal_municipio_fonte",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_municipio_fonte.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. O empenho municipal em cultura por exercício, município e origem do recurso, em reais correntes e de 2024, com a população do Censo 2022 e o porte do município. É a municipal_final.csv de gasto_municipal.R.\nGRÃO: uma linha por (exercicio, cod_ibge, origem) com empenho. Agrega eixo1_orcamento_empenho_cultura (esfera municipal: na MSC, DF fora; na LAB 1, o DF entra como Brasília, 5300108, como no R) e junta, pelo cod_ibge, o nome, a UF, a região e a população do Censo 2022 de int_ibge_sidra_siconfi (os municípios de silver_entes, esfera 'M'). Brasília está lá: o SICONFI lista 5300108 como município do DF (esfera 'M', UF DF, região CO). Por isso o ente da linha de Brasília é 'Brasília' aqui e 'Distrito Federal' na gold-base, que guarda o ente do código de origem (53). uf e regiao têm not_null.\nPORTE: faixas da PNAS (macro eixo1_porte_pnas) sobre a população residente do Censo 2022, as mesmas da MUNIC_FINAL.xlsx que o R lê.\nDIFERENTE DO R: o município é o cod_ibge do item da MSC ou o da conta do BB Ágil; o R casa o nome do município da MSC com a malha do IBGE e perde o código de quem não casa.\nA LAB 1 E O CUBO DO R: o R lê a LAB 1 de um cubo do BB Ágil (cubo_execucao_lab1_municipios), e aqui ela vem do extrato das mesmas contas, pela mesma regra. A diferença entre os dois é de cobertura do cubo, não erro: o extrato nunca fica abaixo do cubo, e todo município que o R tem, o extrato também tem. O que sobra é de dois tipos. Lançamentos que o cubo não tem em alguns municípios: em 357 dos 618 pares (exercício, município) acima do R, a diferença é a soma inteira de um ou dois tipos de lançamento, o mais comum 132 (Emissão de Ordem Bancária), depois 470, 393, 500 e 490. E municípios que o cubo não identifica: o R tem uma linha sem código IBGE ('NA') de R$ 361,0 mi em 2020, 159,1 mi em 2021 e 2,5 mi em 2022, e aqui os municípios dela aparecem com o próprio código. Por isso a LAB 1 daqui fica acima da Fig. 7: R$ 989,4 mi contra 930,7 mi em 2020, 481,3 mi contra 440,3 mi em 2021 e 74,8 mi contra 73,5 mi em 2022.\nCONFERIDO em 11/11/2026, LAB 1, por (exercício, município), contra a municipal_final.csv do R (commit d28de40), sobre o extrato do programa 30882120200002 copiado do servidor (extração de 2020 a 2022 concluída em 11/11/2026). Municípios do R iguais ao centavo: 2.534 de 2.791 em 2020, 2.164 de 2.476 em 2021, 2.302 de 2.340 em 2022, 380 de 390 em 2023, 112 de 112 em 2024 e 69 de 70 em 2025. Os demais ficam acima do R, nenhum abaixo. Só aqui: 203 municípios em 2020, 330 em 2021, 52 em 2022, 29 em 2023, 9 em 2024 e 3 em 2025. O DF entra como Brasília (5300108) de 2020 a 2022; o R só o identifica em 2022, com R$ 73.206,03 contra 146.412,06 aqui: as duas ordens bancárias do ano voltaram (uma cancelada, outra estornada), o pagamento saiu por autoatendimento, e o cubo só tem o pagamento.\nCONFERIDO em 10/11/2026 contra a municipal_final.csv do R (commit d28de40), sem a LAB 1, nos municípios de AC, RR, AP, SE, SC e MS (MSC de 2019 a 2025 copiada do servidor). De 2019 a 2022, os 1.819 grupos (exercício, município, origem) são iguais ao centavo. Em 2023 e 2024, todos menos um por ano. Em 2025, 1.003 de 1.055: 43 grupos só aqui, 1 só no R e 8 com valor diferente. O que difere é data de extração: pelo extrato de entregas do SICONFI, todo município-ano de 2023 a 2025 cujo último envio da MSC de dezembro foi até 27/04/2026 bate com o R, e todos os que diferem reenviaram a partir de 28/04/2026. O R baixou a MSC por volta dessa data, e o servidor, de 02 a 05/10/2026.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do município, 7 dígitos."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do município em silver_entes, via int_ibge_sidra_siconfi. Na LAB 1 do DF, 'Brasília' (na gold-base, 'Distrito Federal')."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do município, de int_ibge_sidra_siconfi. Brasília (5300108), que só aparece na LAB 1, está lá como município do DF."
+        },
+        {
+          "nome": "origem",
+          "descricao": "'proprio', 'emenda', 'lab', 'lpg' ou 'pnab'."
+        },
+        {
+          "nome": "valor_nominal",
+          "descricao": "Empenho em reais correntes."
+        },
+        {
+          "nome": "valor_real",
+          "descricao": "Empenho em reais do ano-base do IPCA (2024)."
+        },
+        {
+          "nome": "linhas",
+          "descricao": "Quantas linhas somaram no grupo: itens da MSC, ou, na LAB 1, lançamentos do extrato do BB Ágil. Na estadual (eixo1_orcamento_estadual_uf_fonte) a coluna continua linhas_msc, porque lá só há MSC."
+        },
+        {
+          "nome": "populacao_censo_2022",
+          "descricao": "População residente do município no Censo 2022."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, por extenso."
+        },
+        {
+          "nome": "fonte_recurso",
+          "descricao": "Rótulo da origem, como na publicação."
+        },
+        {
+          "nome": "porte",
+          "descricao": "Porte do município pela PNAS: 'Pequeno Porte I', 'Pequeno Porte II', 'Médio Porte', 'Grande Porte' ou 'Metrópole'. Nulo sem população do Censo 2022."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 10,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_empenho_cultura",
+        "int_ibge_sidra_siconfi"
+      ],
+      "sources": [],
+      "linhas_sql": 59
+    },
+    {
+      "nome": "eixo1_orcamento_municipal_rcl",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_municipal_rcl.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento. A participação da cultura no orçamento dos municípios: o empenho próprio em cultura (origem 'proprio') como fração da Receita Corrente Líquida, e a faixa em que o município cai. Base da Fig. 9 e dos Indicadores 1 a 4 de gasto_municipal.R.\nGRÃO: uma linha por (exercicio, cod_ibge) do município (DF fora) que tem empenho próprio em cultura ou RCL.\nA RCL é a do RREO, Anexo 03, 6º bimestre, coluna \"TOTAL (ÚLTIMOS 12 MESES)\", conta de código RREO3ReceitaCorrenteLiquida, do RREO completo ou do simplificado: cerca de 2.200 municípios por ano entregam só o 'RREO Simplificado', e nenhum entrega os dois no mesmo ano.\nDIFERENTE DO R: o R pega o maior valor entre as linhas cujo texto casa com \"RECEITA CORRENTE LÍQUIDA\", o que inclui as duas RCL ajustadas. Nos CSVs de RCL municipal que o R versiona (2018 a 2025), isso muda o valor em 17 de 43.714 pares (ano, município), todos em 2020 e 2021, e nenhum muda de faixa.\nFAIXA: (próprio / RCL) * 100, como o R: até 0,5%, de 0,5% a 1,0%, de 1,0% a 2,0% (fechadas em cima) e mais de 2,0%. Só tem faixa quem tem empenho próprio e RCL positiva, o mesmo universo do R: município sem empenho próprio em cultura não conta como \"até 0,5%\".\nDIFERENTE DA FIG. 6, DE PROPÓSITO: no estadual, o estado com cultura só de emenda, LAB, LPG ou PNAB fica com 0%. Aqui, o município nessa situação fica com valor_proprio_nominal, participacao_rcl e faixa_rcl nulos e sai da Fig. 9, porque é assim que o R faz: o passo 8 de gasto_municipal.R (df_esforco) parte só das linhas de origem \"Recurso Próprio\", e o município sem nenhuma delas não entra na conta.\nCONFERIDO em 10/11/2026 contra a RCL dos CSVs que o R lê, com a regra dele, nos municípios de AC, RR, AP, SE, SC e MS: 3.161 faixas iguais, 1 diferente (2023, 5003454: o empenho próprio mudou na MSC), 4 só no R e 48 só aqui (45 em 2025). As 4 só no R são municípios sem página do RREO Anexo 03 no servidor naquele ano (4209003 e 4219150 em 2019, 4207601 e 4219150 em 2020): entregaram, porque o Finbra de 25/03/2026 que o R lê tem a RCL, mas o extrato de entregas baixado em outubro não lista o 6º bimestre deles, e a DAG só pede o que o extrato lista. Antes de aceitar o RREO Simplificado, eram 673 só no R.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do município, 7 dígitos."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do município em silver_entes."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do município."
+        },
+        {
+          "nome": "valor_proprio_nominal",
+          "descricao": "Empenho de origem 'proprio' em cultura, em reais correntes. Nulo quando o município não tem nenhuma linha que conte no ano."
+        },
+        {
+          "nome": "rcl",
+          "descricao": "Receita Corrente Líquida dos últimos 12 meses, em reais correntes."
+        },
+        {
+          "nome": "participacao_rcl",
+          "descricao": "valor_proprio_nominal dividido pela RCL, como fração (0.02 é 2%). Nulo quando falta um dos dois ou a RCL não é positiva."
+        },
+        {
+          "nome": "populacao_censo_2022",
+          "descricao": "População residente do município no Censo 2022."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, por extenso. Nula quando o município não está em silver_entes; nas linhas com faixa, que vão para a Fig. 9, o not_null acusa."
+        },
+        {
+          "nome": "porte",
+          "descricao": "Porte do município pela PNAS, sobre o Censo 2022."
+        },
+        {
+          "nome": "faixa_rcl",
+          "descricao": "Faixa do percentual da RCL: '1. Até 0,5%', '2. Entre 0,5% e 1,0%', '3. Entre 1,0% e 2,0%' ou '4. Mais de 2,0%'. Nula quando participacao_rcl é nula."
+        },
+        {
+          "nome": "acima_de_2_porcento_rcl",
+          "descricao": "Verdadeiro quando o próprio passa de 2% da RCL (o Indicador_1 do R, \"Meta 2% RCL\"). Nulo quando participacao_rcl é nula."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_municipal_municipio_fonte",
+        "int_ibge_sidra_siconfi",
+        "silver_rreo"
+      ],
+      "sources": [],
+      "linhas_sql": 88
     },
     {
       "nome": "eixo1_snc_adesao_idh",
@@ -14840,6 +15330,23 @@
       "linhas_sql": 6
     },
     {
+      "nome": "bronze_resultados",
+      "dominio": "ibge_sidra",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge_sidra/bronze_resultados.sql",
+      "descricao": "Camada Bronze — cópia fiel de ibge_sidra.resultados, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como na origem, em text.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "ibge_sidra.resultados"
+      ],
+      "linhas_sql": 7
+    },
+    {
       "nome": "silver_agregados_catalogo",
       "dominio": "ibge_sidra",
       "camada": "silver",
@@ -15028,6 +15535,68 @@
       ],
       "sources": [],
       "linhas_sql": 13
+    },
+    {
+      "nome": "silver_resultados",
+      "dominio": "ibge_sidra",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/ibge_sidra/silver_resultados.sql",
+      "descricao": "Camada Silver — valores das tabelas do SIDRA, tipados. Uma linha por agregado, variável, nível territorial, localidade, período e classificação, a chave com que a DAG grava.\n\nPARA QUE SERVE no Eixo 1: a população residente do Censo 2022 por município (agregado_id 4709, variavel_id 93, nivel 'N6', periodo '2022'), que dá o porte do município nas golds do orçamento (via int_ibge_sidra_siconfi).\n\nOs símbolos do SIDRA no lugar do número: '-' é zero absoluto e vira 0; '..', '...' e 'X' viram nulo. O texto original fica em valor_original.",
+      "colunas": [
+        {
+          "nome": "agregado_id",
+          "descricao": "Código da tabela (agregado) do SIDRA. 4709 = Censo 2022, população."
+        },
+        {
+          "nome": "variavel_id",
+          "descricao": "Código da variável no agregado. 93 = população residente."
+        },
+        {
+          "nome": "variavel_nome",
+          "descricao": "Nome da variável, como o SIDRA devolve."
+        },
+        {
+          "nome": "unidade",
+          "descricao": "Unidade de medida da variável (por exemplo, 'Pessoas')."
+        },
+        {
+          "nome": "nivel",
+          "descricao": "Nível territorial pedido à API: 'N1' Brasil, 'N2' grande região, 'N3' UF, 'N6' município."
+        },
+        {
+          "nome": "localidade_id",
+          "descricao": "Código da localidade no nível: no N6, o código IBGE de 7 dígitos do município (o mesmo cod_ibge do SICONFI)."
+        },
+        {
+          "nome": "localidade_nome",
+          "descricao": "Nome da localidade, como o SIDRA devolve ('Cidade - UF' no N6)."
+        },
+        {
+          "nome": "periodo",
+          "descricao": "Período do valor, como rótulo ('2022'). Texto, não número."
+        },
+        {
+          "nome": "valor",
+          "descricao": "O valor, numérico. 0 onde o SIDRA põe '-' (zero absoluto); nulo onde põe '..', '...' ou 'X'."
+        },
+        {
+          "nome": "valor_original",
+          "descricao": "O valor como o SIDRA devolve, com os símbolos."
+        },
+        {
+          "nome": "classificacoes",
+          "descricao": "As classificações (e categorias) da linha, como texto do JSON da API. Nulo no agregado sem classificação, como a 4709."
+        }
+      ],
+      "colunas_descritas": 11,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_resultados"
+      ],
+      "sources": [],
+      "linhas_sql": 30
     },
     {
       "nome": "bronze_cadastro_museus",
@@ -15371,6 +15940,158 @@
       ],
       "sources": [],
       "linhas_sql": 29
+    },
+    {
+      "nome": "int_bacen_bbagil_siconfi",
+      "dominio": "intermediate",
+      "camada": "intermediate",
+      "meta": null,
+      "caminho": "dbt/minc/models/intermediate/int_bacen_bbagil_siconfi.sql",
+      "descricao": "Camada Intermediate. O gasto dos entes numa forma só: a Matriz de Saldos Contábeis orçamentária do SICONFI (silver_msc_orcamentaria) e o extrato bancário do BB Ágil (silver_extrato_bbagil), empilhados linha a linha e sem filtro, com o nome, a UF, a esfera e a região do ente (silver_entes, pelo cod_ibge) e o IPCA do exercício (SGS 433, silver_serie_sgs do BACEN).\nGRÃO: uma linha por item da MSC (base_origem 'siconfi_msc') ou por lançamento do extrato (base_origem 'bbagil_extrato'). UNIVERSO: toda linha das duas silvers, de todo ente, matriz, mês, classe, programa e indicador de débito e crédito. Nada é descartado aqui.\nUMA FORMA SÓ: as colunas da MSC ficam nulas na linha do extrato, e as do extrato na linha da MSC. Do extrato não vem nenhuma coluna do beneficiário (nome, documento, agência, conta).\nO EXERCÍCIO do lançamento do extrato é o ano da data do lançamento (bookingdate, dd/mm/aaaa, pela macro data_texto). Nulo quando a data não é data de calendário.\nO IPCA: ipca_indice_medio_ano é a média, nos meses do exercício, do número-índice que encadeia as variações mensais da série 433 desde o primeiro mês dela. O nível do índice é arbitrário; só a razão entre dois anos tem sentido, e é ela que a Gold usa como deflator, com o ano-base que escolher. ipca_meses_ano diz quantos meses o ano tem na série (12 no ano fechado, menos no ano corrente). Nulo no exercício sem IPCA.\nPARA QUE SERVE: dá à Gold eixo1_orcamento_empenho_cultura, numa tabela só, o empenho da MSC, a LAB 1 municipal do BB Ágil e o deflator, que vêm de fontes diferentes (ADR 0010, regra 2). Qual matriz, mês, conta, função, fonte, programa e lançamento contam é regra de negócio e fica lá.\nATUALIZAÇÃO: view. A linha é a da MSC inteira mais o extrato inteiro; materializar duplicaria as silvers. A Gold, que filtra, é que é tabela. O filtro da Gold em base_origem vira constante em cada ramo do union all, e o Postgres não lê o ramo que não serve.\nSEM TESTE DE UNICIDADE AQUI, de propósito: numa view, ele refaria a deduplicação da silver inteira a cada build. A chave da MSC é testada em silver_msc_orcamentaria, a do lançamento na Gold, e os dois joins não multiplicam linha: silver_entes tem cod_ibge único (testado) e o IPCA é agrupado por ano. Dois testes leem esta view: o not_null de base_origem, que não lê linha nenhuma (ver a coluna), e o singular eixo1_orcamento_lab1_debito_sem_data (aviso), que lê só o ramo do extrato, com os filtros da LAB 1 descendo até a silver.",
+      "colunas": [
+        {
+          "nome": "base_origem",
+          "descricao": "De qual silver a linha veio: 'siconfi_msc' (silver_msc_orcamentaria) ou 'bbagil_extrato' (silver_extrato_bbagil). Constante em cada ramo do union all: o not_null não lê nenhuma linha, porque o Postgres resolve `base_origem is null` como falso em cada ramo e não lê nenhum deles (1,5 ms no banco local). Ele não falha enquanto cada ramo gravar um literal; pega o ramo novo que deixar a coluna nula."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente: o do item da MSC, ou o da conta do BB Ágil. No extrato, o DF vem com o código da UF (53)."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do ente em silver_entes. Nulo se o código não está lá."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do ente: a sigla_uf de silver_entes, não a uf do SICONFI, que é 'BR' nos estados e no DF."
+        },
+        {
+          "nome": "esfera",
+          "descricao": "Esfera do ente em silver_entes: 'E', 'D', 'M' ou 'U'."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Sigla da região do ente em silver_entes."
+        },
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício: o da MSC, ou o ano da data do lançamento do extrato."
+        },
+        {
+          "nome": "codigo_programa",
+          "descricao": "Só no extrato: código do programa do TransfereGov da conta (30882120200002 é a Aldir Blanc dos municípios)."
+        },
+        {
+          "nome": "id_plano_acao",
+          "descricao": "Só no extrato. Plano de ação do TransfereGov dono da conta."
+        },
+        {
+          "nome": "id_plano_acao_dado_bancario",
+          "descricao": "Só no extrato. A conta bancária do plano de ação."
+        },
+        {
+          "nome": "id_transacao",
+          "descricao": "Só no extrato. O id do lançamento no BB Ágil (o id de silver_extrato_bbagil); a chave é (id_plano_acao, id_plano_acao_dado_bancario, id_transacao)."
+        },
+        {
+          "nome": "data_lancamento",
+          "descricao": "Só no extrato. A data do lançamento (bookingdate), como date. Nula quando o texto não é data de calendário."
+        },
+        {
+          "nome": "creditdebitindicator",
+          "descricao": "Só no extrato. 'C' é crédito; 'D', débito."
+        },
+        {
+          "nome": "descriptioncode",
+          "descricao": "Só no extrato. Código do tipo de lançamento do BB (271, 345 e 248 são movimentos de aplicação financeira)."
+        },
+        {
+          "nome": "descriptionname",
+          "descricao": "Só no extrato. Nome do tipo de lançamento."
+        },
+        {
+          "nome": "valor",
+          "descricao": "O valor da MSC (saldo, com sinal), ou o value do lançamento do extrato."
+        },
+        {
+          "nome": "ipca_indice_medio_ano",
+          "descricao": "Média do número-índice do IPCA nos meses do exercício. Escala arbitrária; use a razão entre dois anos."
+        },
+        {
+          "nome": "ipca_meses_ano",
+          "descricao": "Quantos meses do exercício a série 433 tem."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "Só na MSC. A página de onde o item veio."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Só na MSC. Posição do item na página."
+        }
+      ],
+      "colunas_descritas": 20,
+      "testes": 1,
+      "materializacao": "view",
+      "depende_de": [
+        "silver_entes",
+        "silver_extrato_bbagil",
+        "silver_msc_orcamentaria",
+        "silver_serie_sgs"
+      ],
+      "sources": [],
+      "linhas_sql": 197
+    },
+    {
+      "nome": "int_ibge_sidra_siconfi",
+      "dominio": "intermediate",
+      "camada": "intermediate",
+      "meta": null,
+      "caminho": "dbt/minc/models/intermediate/int_ibge_sidra_siconfi.sql",
+      "descricao": "Camada Intermediate — os municípios do SICONFI (silver_entes, esfera 'M') com a população residente do Censo 2022 (silver_resultados, agregado 4709, variável 93, nível N6), pelo código IBGE.\n\nCruza as duas fontes e não decide nada: o porte do município (faixas da PNAS) é regra e fica nas golds eixo1_orcamento_municipal_*. Município sem linha no Censo fica com populacao_censo_2022 nula.\n\nGRÃO: uma linha por município de silver_entes (cod_ibge).",
+      "colunas": [
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do município, 7 dígitos."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do município em silver_entes."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla da UF do município."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Sigla da região em silver_entes ('NO', 'NE', 'CO', 'SE', 'SU')."
+        },
+        {
+          "nome": "capital",
+          "descricao": "Se o município é capital de UF."
+        },
+        {
+          "nome": "populacao_siconfi",
+          "descricao": "A população que o SICONFI informa no cadastro de entes (estimativa do ano da consulta, não o Censo)."
+        },
+        {
+          "nome": "exercicio_populacao_siconfi",
+          "descricao": "O exercício do cadastro de entes de onde vem populacao_siconfi."
+        },
+        {
+          "nome": "populacao_censo_2022",
+          "descricao": "População residente no Censo 2022 (SIDRA 4709, variável 93). Nula para município sem linha no Censo."
+        }
+      ],
+      "colunas_descritas": 8,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "silver_entes",
+        "silver_resultados"
+      ],
+      "sources": [],
+      "linhas_sql": 33
     },
     {
       "nome": "bronze_bcr_acoes_de_salvaguarda",
@@ -61570,6 +62291,307 @@
       "linhas_sql": 5
     },
     {
+      "nome": "silver_entes",
+      "dominio": "siconfi",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/siconfi/silver_entes.sql",
+      "descricao": "Camada Silver — entes da federação do SICONFI (/entes), tipados: código IBGE, nome, UF, esfera (U União, E estado, D Distrito Federal, M município), região (NO, NE, CO, SE, SU), capital, CNPJ e população do ano da consulta.\nGRÃO: uma linha por ente (cod_ibge). A /entes não tem parâmetro, então é uma requisição só, baixada a cada run: fica a do run de fetched_at mais recente.\nPARA QUE SERVE: dá UF, esfera e região à MSC, que só traz o código IBGE (int_bacen_bbagil_siconfi), e região às golds do orçamento.",
+      "colunas": [
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente: 1 a União, 2 dígitos o estado e o DF, 7 dígitos o município. Valor que não é inteiro vira nulo."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do ente, como o SICONFI escreve."
+        },
+        {
+          "nome": "uf",
+          "descricao": "A UF como o SICONFI devolve: a sigla nos municípios e 'BR' na União, nos estados e no DF (a UF a que o ente pertence)."
+        },
+        {
+          "nome": "sigla_uf",
+          "descricao": "Sigla da UF do ente, inclusive nos estados e no DF, tirada do código IBGE (o próprio cod_ibge no estado, os dois primeiros dígitos no município). Nula na União. O teste siconfi_entes_sigla_uf_confere confere o mapa contra a uf dos municípios."
+        },
+        {
+          "nome": "esfera",
+          "descricao": "'U' União, 'E' estado, 'D' Distrito Federal, 'M' município."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Sigla da grande região: 'NO', 'NE', 'CO', 'SE', 'SU' (e 'BR' na União)."
+        },
+        {
+          "nome": "capital",
+          "descricao": "Verdadeiro na capital. Valor fora de 0/1 vira nulo, nunca falso."
+        },
+        {
+          "nome": "cnpj",
+          "descricao": "CNPJ do ente, como texto e com o zero à esquerda."
+        },
+        {
+          "nome": "exercicio",
+          "descricao": "Ano a que a população se refere, segundo a API."
+        },
+        {
+          "nome": "populacao",
+          "descricao": "População do ente no ano de exercicio."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "A página de onde o item veio (pagina_id de bronze_siconfi_paginas)."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Posição do item na página, a partir de 1."
+        },
+        {
+          "nome": "request_hash",
+          "descricao": "Hash da requisição (endpoint e parâmetros) da página."
+        },
+        {
+          "nome": "run_id",
+          "descricao": "Run da ingestão que buscou a página, o da tentativa que vale."
+        },
+        {
+          "nome": "fetched_at",
+          "descricao": "Quando a página foi buscada na API, em UTC."
+        }
+      ],
+      "colunas_descritas": 15,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_entes",
+        "bronze_siconfi_paginas"
+      ],
+      "sources": [],
+      "linhas_sql": 104
+    },
+    {
+      "nome": "silver_msc_orcamentaria",
+      "dominio": "siconfi",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/siconfi/silver_msc_orcamentaria.sql",
+      "descricao": "Camada Silver — Matriz de Saldos Contábeis, classes orçamentárias (/msc_orcamentaria), tipada. Uma linha por item da API: ente, exercício, mês, matriz (MSCC agregada, MSCE de encerramento), classe, tipo de valor, conta contábil e as informações complementares, com o valor e a natureza do saldo.\nGRÃO: uma linha por (_pagina_id, _item) da tentativa que vale de cada requisição. A MSC não tem chave natural: duas linhas podem ter a mesma conta e as mesmas informações complementares com valores diferentes.\nOS CÓDIGOS FICAM COMO TEXTO, como a API manda (função '13', fonte '1500', complemento '1001', conta '622130100'): o zero à esquerda é parte do código. A MSC não traz a UF do ente; ela vem de silver_entes, pelo cod_ibge, em int_bacen_bbagil_siconfi.\nPARA QUE SERVE: a conta 62213 (crédito empenhado), credora, de dezembro, classe 6, saldo final, é o empenho de estados e municípios que eixo1_orcamento_empenho_cultura filtra por função e classifica por fonte.",
+      "colunas": [
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente (2 dígitos o estado e o DF, 7 o município)."
+        },
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "mes_referencia",
+          "descricao": "Mês da matriz (12 é dezembro, o saldo do ano)."
+        },
+        {
+          "nome": "data_referencia",
+          "descricao": "Último dia do mês da matriz."
+        },
+        {
+          "nome": "tipo_matriz",
+          "descricao": "'MSCC' (agregada) ou 'MSCE' (de encerramento)."
+        },
+        {
+          "nome": "classe_conta",
+          "descricao": "Classe do plano de contas (5 e 6 são as orçamentárias)."
+        },
+        {
+          "nome": "tipo_valor",
+          "descricao": "'beginning_balance', 'period_change' ou 'ending_balance'."
+        },
+        {
+          "nome": "conta_contabil",
+          "descricao": "Conta contábil do PCASP, 9 dígitos, como '622130100'."
+        },
+        {
+          "nome": "natureza_conta",
+          "descricao": "Natureza do saldo: 'D' devedora, 'C' credora."
+        },
+        {
+          "nome": "poder_orgao",
+          "descricao": "Código de poder e órgão."
+        },
+        {
+          "nome": "funcao",
+          "descricao": "Função de governo, 2 dígitos ('13' é Cultura). Nula nas contas que não a informam."
+        },
+        {
+          "nome": "subfuncao",
+          "descricao": "Subfunção de governo, 3 dígitos."
+        },
+        {
+          "nome": "educacao_saude",
+          "descricao": "Marcador de despesa com educação e saúde."
+        },
+        {
+          "nome": "natureza_despesa",
+          "descricao": "Natureza da despesa, 8 dígitos."
+        },
+        {
+          "nome": "natureza_receita",
+          "descricao": "Natureza da receita."
+        },
+        {
+          "nome": "ano_fonte_recursos",
+          "descricao": "Indicador do exercício da fonte (1 corrente, 2 anteriores), como a API manda."
+        },
+        {
+          "nome": "fonte_recursos",
+          "descricao": "Fonte de recursos, como a API manda (a codificação muda em 2023)."
+        },
+        {
+          "nome": "complemento_fonte",
+          "descricao": "Complemento da fonte (o de emenda parlamentar começa com 3)."
+        },
+        {
+          "nome": "ano_inscricao",
+          "descricao": "Ano de inscrição em restos a pagar."
+        },
+        {
+          "nome": "entrada_msc",
+          "descricao": "Identificador da entrega da MSC no SICONFI."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor do saldo, em reais. Valor que não é número vira nulo."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "A página de onde o item veio (pagina_id de bronze_siconfi_paginas)."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Posição do item na página, a partir de 1."
+        },
+        {
+          "nome": "request_hash",
+          "descricao": "Hash da requisição (endpoint e parâmetros) da página."
+        },
+        {
+          "nome": "run_id",
+          "descricao": "Run da ingestão que buscou a página, o da tentativa que vale."
+        },
+        {
+          "nome": "fetched_at",
+          "descricao": "Quando a página foi buscada na API, em UTC."
+        }
+      ],
+      "colunas_descritas": 26,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_msc_orcamentaria",
+        "bronze_siconfi_paginas"
+      ],
+      "sources": [],
+      "linhas_sql": 62
+    },
+    {
+      "nome": "silver_rreo",
+      "dominio": "siconfi",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/siconfi/silver_rreo.sql",
+      "descricao": "Camada Silver — Relatório Resumido da Execução Orçamentária (/rreo), tipado. Uma linha por item da API: ente, exercício, período, anexo, coluna e conta (código e texto), com o valor.\nGRÃO: uma linha por (_pagina_id, _item) da tentativa que vale de cada requisição. No recorte do Eixo 1 (Anexo 03, 6º bimestre), uma linha por (ente, exercício, coluna, cod_conta) na maioria das contas.\nPARA QUE SERVE: a Receita Corrente Líquida (cod_conta RREO3ReceitaCorrenteLiquida, coluna \"TOTAL (ÚLTIMOS 12 MESES)\") é o denominador da participação da cultura no orçamento (eixo1_orcamento_estadual_rcl). Filtre pelo código da conta, não pelo texto: \"RECEITA CORRENTE LÍQUIDA\" também casa com as RCL ajustadas.",
+      "colunas": [
+        {
+          "nome": "exercicio",
+          "descricao": "Ano do exercício."
+        },
+        {
+          "nome": "periodo",
+          "descricao": "Bimestre (1 a 6) do RREO."
+        },
+        {
+          "nome": "periodicidade",
+          "descricao": "'B' (bimestral), como a API manda."
+        },
+        {
+          "nome": "demonstrativo",
+          "descricao": "'RREO' (ou 'RREO Simplificado')."
+        },
+        {
+          "nome": "anexo",
+          "descricao": "Anexo do RREO, como 'RREO-Anexo 03'."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF do ente."
+        },
+        {
+          "nome": "esfera",
+          "descricao": "Esfera do ente, como na silver_entes."
+        },
+        {
+          "nome": "instituicao",
+          "descricao": "Nome da instituição que declarou."
+        },
+        {
+          "nome": "populacao",
+          "descricao": "População do ente informada no relatório."
+        },
+        {
+          "nome": "rotulo",
+          "descricao": "Rótulo da linha no relatório ('Padrão' na maioria)."
+        },
+        {
+          "nome": "coluna",
+          "descricao": "Coluna do anexo, como 'TOTAL (ÚLTIMOS 12 MESES)' ou '<MR-1>'."
+        },
+        {
+          "nome": "cod_conta",
+          "descricao": "Código da conta do anexo, como 'RREO3ReceitaCorrenteLiquida'."
+        },
+        {
+          "nome": "conta",
+          "descricao": "Texto da conta, como 'RECEITA CORRENTE LÍQUIDA (III) = (I - II)'."
+        },
+        {
+          "nome": "valor",
+          "descricao": "Valor em reais. Valor que não é número vira nulo."
+        },
+        {
+          "nome": "_pagina_id",
+          "descricao": "A página de onde o item veio (pagina_id de bronze_siconfi_paginas)."
+        },
+        {
+          "nome": "_item",
+          "descricao": "Posição do item na página, a partir de 1."
+        },
+        {
+          "nome": "request_hash",
+          "descricao": "Hash da requisição (endpoint e parâmetros) da página."
+        },
+        {
+          "nome": "run_id",
+          "descricao": "Run da ingestão que buscou a página, o da tentativa que vale."
+        },
+        {
+          "nome": "fetched_at",
+          "descricao": "Quando a página foi buscada na API, em UTC."
+        }
+      ],
+      "colunas_descritas": 20,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_rreo",
+        "bronze_siconfi_paginas"
+      ],
+      "sources": [],
+      "linhas_sql": 45
+    },
+    {
       "nome": "bronze_execucao_orcamentaria",
       "dominio": "siop",
       "camada": "bronze",
@@ -63386,10 +64408,10 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 59,
-      "testes": 302,
+      "modelos": 67,
+      "testes": 351,
       "camadas": {
-        "gold": 59
+        "gold": 67
       }
     },
     "ibge": {
@@ -63401,11 +64423,11 @@
       }
     },
     "ibge_sidra": {
-      "modelos": 10,
-      "testes": 5,
+      "modelos": 12,
+      "testes": 11,
       "camadas": {
-        "bronze": 5,
-        "silver": 5
+        "bronze": 6,
+        "silver": 6
       }
     },
     "ibram": {
@@ -63416,10 +64438,10 @@
       }
     },
     "intermediate": {
-      "modelos": 2,
-      "testes": 7,
+      "modelos": 4,
+      "testes": 11,
       "camadas": {
-        "intermediate": 2
+        "intermediate": 4
       }
     },
     "iphan": {
@@ -63465,10 +64487,11 @@
       }
     },
     "siconfi": {
-      "modelos": 10,
-      "testes": 0,
+      "modelos": 13,
+      "testes": 10,
       "camadas": {
-        "bronze": 10
+        "bronze": 10,
+        "silver": 3
       }
     },
     "siop": {
@@ -66384,7 +67407,7 @@
       "tabelas": [
         {
           "nome": "serie_sgs",
-          "descricao": "Séries temporais do SGS/BACEN: uma linha por (``codigo_serie``, ``data``), com ``data`` em ISO (aaaa-mm-dd) e ``valor`` no significado da série (a 10844, IPCA-Serviços, é variação % no mês). Persistida por ``bacen_sgs_ingest_dag``."
+          "descricao": "Séries temporais do SGS/BACEN: uma linha por (``codigo_serie``, ``data``), com ``data`` em ISO (aaaa-mm-dd) e ``valor`` no significado da série (a 10844, IPCA-Serviços, e a 433, IPCA, são variação % no mês). Persistida por ``bacen_sgs_ingest_dag``."
         }
       ]
     },
@@ -66761,6 +67784,10 @@
         {
           "nome": "pesquisas",
           "descricao": "Pesquisas do IBGE com tabelas no SIDRA: uma linha por pesquisa, com a lista dos seus agregados em JSON. GET /agregados. Tudo text."
+        },
+        {
+          "nome": "resultados",
+          "descricao": "Valores das tabelas do SIDRA, para os agregados da Variable ibge_config (resultados_agregados_ids): uma linha por agregado, variável, nível, localidade, período e classificação, que é a chave da tabela (a DAG regrava sem duplicar). GET /agregados/{id}/periodos/{per}/variaveis/{var}, achatado. Tudo text. O Eixo 1 lê a população residente do Censo 2022 (agregado 4709, variável 93, nível N6)."
         }
       ]
     },
@@ -66885,9 +67912,9 @@
     }
   ],
   "totais": {
-    "modelos": 891,
-    "testes": 1230,
-    "com_descricao": 890,
-    "sources": 812
+    "modelos": 906,
+    "testes": 1299,
+    "com_descricao": 905,
+    "sources": 813
   }
 }
