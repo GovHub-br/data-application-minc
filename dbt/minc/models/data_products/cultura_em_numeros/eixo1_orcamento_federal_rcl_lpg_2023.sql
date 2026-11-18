@@ -15,6 +15,10 @@
 --
 -- Como em eixo1_orcamento_federal_impacto_rcl, o exercício sem RCL fica, com a
 -- participação nula; hoje são os de 2018 em diante, 2022 e 2023 inclusive.
+--
+-- A LPG vem do rótulo categoria_origem da gold-base, onde a regra (UO 73117 a
+-- partir de 2022) mora. Se o rótulo mudar lá, lpg_2022 vira 0: o teste
+-- eixo1_orcamento_federal_lpg_2023_ajuste_presente acusa.
 with
 
     lpg_2022 as (
