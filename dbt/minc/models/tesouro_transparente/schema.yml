@@ -1,0 +1,105 @@
+version: 2
+
+# tesouro_transparente, na estrutura do ADR 0010: bronze_<entidade> é a cópia
+# fiel do que a tesouro_transparente_dag grava em
+# seeds.tesouro_transparente_<entidade>; silver_<entidade> tipa. A source está
+# no sources.yml desta pasta.
+models:
+  - name: bronze_lrf_uniao_dcl
+    description: >
+      Camada Bronze — cópia fiel de seeds.tesouro_transparente_lrf_uniao_dcl,
+      sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como texto.
+    config:
+      tags:
+        - bronze
+        - tesouro_transparente
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier3
+        owner: minc-data-engineering
+
+  - name: silver_lrf_uniao_dcl
+    description: >
+      Limites da LRF para a União (Relatório de Gestão Fiscal, Tesouro
+      Transparente), tipados: dívida consolidada, deduções, dívida
+      consolidada líquida e Receita Corrente Líquida da União, acumuladas nos
+      12 meses até o fim de cada quadrimestre. Uma linha por ano e
+      quadrimestre, de 2000 (só o 3º) ao 2º quadrimestre de 2018, 54 linhas
+      na versão de 20/11/2018. O 3º quadrimestre é o ano fechado.
+
+      Os valores ficam em milhares de reais, como o Tesouro publica; a gold
+      que usa a RCL converte para reais. Lida de bronze_lrf_uniao_dcl.
+    config:
+      tags:
+        - silver
+        - tesouro_transparente
+      meta:
+        status: Active
+        origem_dados: 'bronze_lrf_uniao_dcl'
+        openmetadata:
+          domain: Cultura.Indicadores
+          tier: Tier.Tier2
+          owner: minc-data-engineering
+    tests:
+      - unique:
+          column_name: "ano || '|' || quadrimestre"
+    columns:
+      - name: periodo
+        description: >
+          Ano e quadrimestre no texto do Tesouro ('2011 - Até o 3º
+          Quadrimestre').
+        data_type: text
+        tests:
+          - not_null
+      - name: ano
+        description: >
+          Ano do período, dos 4 primeiros caracteres. Nulo se o texto não
+          segue 'AAAA - Até o Nº Quadrimestre'.
+        data_type: integer
+        tests:
+          - not_null
+      - name: quadrimestre
+        description: >
+          Quadrimestre do período (1, 2 ou 3). Os valores são dos 12 meses até
+          o fim dele; o 3º é o ano fechado.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3]
+                quote: false
+      - name: divida_consolidada_mil
+        description: Dívida consolidada (I), em milhares de reais.
+        data_type: numeric
+      - name: deducoes_mil
+        description: Deduções (II), em milhares de reais.
+        data_type: numeric
+      - name: divida_consolidada_liquida_mil
+        description: Dívida consolidada líquida (III = I - II), em milhares de reais.
+        data_type: numeric
+      - name: receita_corrente_liquida_mil
+        description: >
+          Receita Corrente Líquida da União nos 12 meses até o fim do
+          quadrimestre, em milhares de reais.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: razao_dc_rcl
+        description: Dívida consolidada sobre a RCL, como razão (5,7 é 570%).
+        data_type: numeric
+      - name: razao_dcl_rcl
+        description: Dívida consolidada líquida sobre a RCL, como razão.
+        data_type: numeric
+      - name: versao
+        description: >
+          Data da última modificação do recurso no CKAN, que é a versão do
+          arquivo carregado.
+        data_type: date
+      - name: recurso_id
+        description: Id do recurso no CKAN.
+        data_type: text
+      - name: dt_ingest
+        description: Momento da carga pela tesouro_transparente_dag, em texto.
+        data_type: text
