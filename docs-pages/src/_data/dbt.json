@@ -276,7 +276,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/bbagil/silver_extrato_bbagil.sql",
-      "descricao": "Camada Silver / BB Ágil. Extrato bancário das contas dos planos de ação administradas no BB Gestão Ágil, tipado, com todas as colunas da API.\nGRÃO: uma linha por transação do extrato; a chave da origem é (id_plano_acao, id_plano_acao_dado_bancario, id). UNIVERSO: todo lançamento, débito e crédito, das contas extraídas pela DAG do BB Ágil, sem filtro.\nPARA QUE SERVE: é a base de silver_pagamento_extrato_bbagil e a transação-mãe de silver_pagamento_subtransacao_bbagil. Não limpa nem recorta — só tipa.\nTIPAGEM: lida de bronze_extrato_bbagil. 22 das 42 colunas recebem cast; o cast vem do padrão medido no dado (scripts/perfilar_padroes.py), não do nome da coluna, e exige 100% dos valores preenchidos casando. beneficiarydocumentid fica texto mesmo casando com inteiro: é CPF/CNPJ, identificador e não número, e como integer perdia o zero à esquerda.\nLIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do Brasil; pagamento que o ente fez por outro banco não aparece. A extração começa em 2023.\nZONA RESTRITA. Carrega documento, nome, agência e conta do beneficiário em claro: não publicável e proibida em corpus de RAG. A anonimização no momento do acesso é responsabilidade do Apache Ranger (ADR 0009).\nATUALIZAÇÃO: view sobre a bronze; reflete o extrato carregado no momento da consulta.",
+      "descricao": "Camada Silver / BB Ágil. Extrato bancário das contas dos planos de ação administradas no BB Gestão Ágil, tipado, com todas as colunas da API.\nGRÃO: uma linha por transação do extrato; a chave da origem é (id_plano_acao, id_plano_acao_dado_bancario, id). UNIVERSO: todo lançamento, débito e crédito, das contas extraídas pela DAG do BB Ágil, sem filtro.\nPARA QUE SERVE: é a base de silver_pagamento_extrato_bbagil e a transação-mãe de silver_pagamento_subtransacao_bbagil. Não limpa nem recorta — só tipa.\nTIPAGEM: lida de bronze_extrato_bbagil. 23 das 42 colunas recebem cast; o cast vem do padrão medido no dado (scripts/perfilar_padroes.py), não do nome da coluna, e exige 100% dos valores preenchidos casando. beneficiarydocumentid fica texto mesmo casando com inteiro: é CPF/CNPJ, identificador e não número, e como integer perdia o zero à esquerda.\nLIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do Brasil; pagamento que o ente fez por outro banco não aparece. A extração começa em 2023.\nZONA RESTRITA. Carrega documento, nome, agência e conta do beneficiário em claro: não publicável e proibida em corpus de RAG. A anonimização no momento do acesso é responsabilidade do Apache Ranger (ADR 0009).\nATUALIZAÇÃO: view sobre a bronze; reflete o extrato carregado no momento da consulta.",
       "colunas": [
         {
           "nome": "errors",
@@ -364,7 +364,7 @@
         },
         {
           "nome": "accountbalance",
-          "descricao": "Tipagem: 407260 valores 'NaN' gravados como texto."
+          "descricao": "Saldo da conta depois da transação. Tipagem: 100% dos 185.092 valores com saldo casam com decimal. A linha sem saldo chega como NULL ou como o texto 'NaN', que o ClientPostgresDB gravava para a chave ausente até o PR #112; os dois viram NULL aqui. Medido em 11/11/2026 sobre 1.037.805 lançamentos, com 538.892 'NaN' e 313.821 NULL na origem. O teste bbagil_extrato_saldo_sem_tipar avisa se um saldo da origem em outro formato virar NULL."
         },
         {
           "nome": "descriptioncode",
@@ -454,7 +454,7 @@
         "bronze_extrato_bbagil"
       ],
       "sources": [],
-      "linhas_sql": 54
+      "linhas_sql": 61
     },
     {
       "nome": "silver_pagamento_bbagil",
