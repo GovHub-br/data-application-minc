@@ -30,7 +30,8 @@
 -- • o valor como o extrato manda, sem módulo (o R soma o value);
 -- • o DF recebe a LAB 1 dos municípios com o código da UF, 53. Aqui ele vira
 -- o de Brasília (5300108), como no R, e entra na esfera municipal (na MSC o
--- DF fica fora do municipal).
+-- DF fica fora do municipal). O ente vira 'Brasília' junto; uf (DF) e regiao
+-- (CO) já são as mesmas.
 --
 -- DE ONDE VEIO O RECURSO (origem), na MSC, pela fonte sem pontos, nesta ordem:
 -- • pnab: fonte começando com 1719, 2719, 1720, 2720, 719 ou 720;
@@ -221,7 +222,7 @@ with
             'bbagil_extrato' as base_origem,
             'municipal' as esfera_eixo1,
             case when cod_ibge = 53 then 5300108 else cod_ibge end as cod_ibge,
-            ente,
+            case when cod_ibge = 53 then 'Brasília' else ente end as ente,
             uf,
             regiao,
             exercicio,

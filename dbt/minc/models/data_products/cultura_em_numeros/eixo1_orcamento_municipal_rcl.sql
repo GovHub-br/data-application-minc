@@ -20,7 +20,10 @@
 -- FAIXA: o percentual da RCL, (próprio / RCL) * 100, como o R: até 0,5%, de
 -- 0,5% a 1,0%, de 1,0% a 2,0% (cada uma fechada em cima) e mais de 2,0%. Só tem
 -- faixa quem tem empenho próprio e RCL positiva, o mesmo universo do R: o
--- município sem empenho próprio em cultura não entra como "até 0,5%".
+-- município sem empenho próprio em cultura não entra como "até 0,5%". Nem
+-- como 0%: diferente da Fig. 6 estadual, o município com cultura só de emenda,
+-- LAB, LPG ou PNAB fica com faixa nula, como no passo 8 do R (df_esforco só
+-- tem as linhas de "Recurso Próprio").
 -- O DF fica fora, como no empenho.
 -- GRÃO: uma linha por (exercicio, cod_ibge) do município que tem empenho
 -- próprio em cultura ou RCL.

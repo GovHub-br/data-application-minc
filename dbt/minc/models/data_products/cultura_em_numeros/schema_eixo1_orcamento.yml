@@ -153,8 +153,8 @@ models:
           - not_null
       - name: ente
         description: >-
-          Nome do ente em silver_entes, pelo código de origem (na LAB 1 do DF,
-          'Distrito Federal').
+          Nome do ente em silver_entes, pelo código de origem. Na LAB 1 do DF,
+          'Brasília', junto com o cod_ibge 5300108.
         data_type: text
       - name: uf
         description: Sigla da UF do ente.
@@ -716,6 +716,13 @@ models:
       1,0% a 2,0% (fechadas em cima) e mais de 2,0%. Só tem faixa quem tem
       empenho próprio e RCL positiva, o mesmo universo do R: município sem
       empenho próprio em cultura não conta como "até 0,5%".
+
+      DIFERENTE DA FIG. 6, DE PROPÓSITO: no estadual, o estado com cultura só
+      de emenda, LAB, LPG ou PNAB fica com 0%. Aqui, o município nessa
+      situação fica com valor_proprio_nominal, participacao_rcl e faixa_rcl
+      nulos e sai da Fig. 9, porque é assim que o R faz: o passo 8 de
+      gasto_municipal.R (df_esforco) parte só das linhas de origem "Recurso
+      Próprio", e o município sem nenhuma delas não entra na conta.
 
       CONFERIDO em 10/11/2026 contra a RCL dos CSVs que o R lê, com a regra
       dele, nos municípios de AC, RR, AP, SE, SC e MS: 3.161 faixas iguais, 1
