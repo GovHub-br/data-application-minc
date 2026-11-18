@@ -40,5 +40,5 @@ select
     {{ bronze_texto("a441") }} as a441,
     {{ bronze_texto("a442") }} as a442,
     {{ bronze_texto("edicao") }} as edicao,
-    {{ bronze_texto("dt_ingest") }} as dt_ingest
+    {{ bronze_timestamptz("dt_ingest") }} as dt_ingest
 from {{ ref("bronze_munic_cultura_2014_equipamentos") }}
