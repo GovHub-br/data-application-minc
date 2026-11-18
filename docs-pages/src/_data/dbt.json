@@ -3061,6 +3061,50 @@
       "linhas_sql": 88
     },
     {
+      "nome": "eixo1_paridade_conselho_serie",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_paridade_conselho_serie.sql",
+      "descricao": "Gold / Eixo 1. Composição dos conselhos municipais de cultura, a Figura 15 da publicação inteira, com os nomes de coluna do CSV dela; no repositório do Eixo 1 essa figura é mantida à mão em outputs/. GRÃO: ano e composição. 2014, 2018 e 2021 são a MUNIC (eixo1_munic_paridade_conselho); o ponto de 2026 é a Plataforma SNC, a linha 'Conselho paritário?' de eixo1_snc_perfil_conselho, com 'Sim' como 'Paritário' e 'Não' como 'Não Paritário', no ano da versão da lista de entes do portal. Conta só 'Paritário' e 'Não Paritário', e a proporção é dentro do ano.\nO UNIVERSO MUDA ENTRE AS FONTES. Na MUNIC é o município que respondeu ao IBGE que tem conselho de cultura e informou a composição (pesquisa, autodeclarada): 2.151 em 2014, 2.352 em 2018 e 1.941 em 2021, quando 863 dos 2.804 municípios com conselho não informaram a composição. No SNC é o município com a lei do conselho 'Concluída' na Plataforma, isto é, com o documento enviado e validado (registro administrativo): 1.556 na versão de 28/05/2026. Os pontos não medem a mesma população, e a variação de 2021 para 2026 mistura mudança real com mudança de fonte.\nCONFERÊNCIA (11/11/2026): 2014, 2018 e 2021 iguais ao CSV publicado. 2026 igual à regra do R aplicada ao portal (1.256 paritários e 300 não paritários); a publicação, com a planilha interna, tem 1.787 e 460 (79,5% contra 80,7% de paritários aqui).",
+      "colunas": [
+        {
+          "nome": "ano_pesquisa",
+          "descricao": "Ano da edição da MUNIC ou da versão da lista de entes do SNC."
+        },
+        {
+          "nome": "fonte",
+          "descricao": "'MUNIC' (IBGE) ou 'SNC' (Plataforma do Sistema Nacional de Cultura)."
+        },
+        {
+          "nome": "composicao_conselho",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "total_municipios",
+          "descricao": "Paritários e não paritários do ano, o denominador da proporção."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_paridade_conselho",
+        "eixo1_snc_painel_municipio",
+        "eixo1_snc_perfil_conselho"
+      ],
+      "sources": [],
+      "linhas_sql": 63
+    },
+    {
       "nome": "eixo1_snc_adesao_idh",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -3195,6 +3239,148 @@
       ],
       "sources": [],
       "linhas_sql": 12
+    },
+    {
+      "nome": "eixo1_snc_componente_criado_ano",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_componente_criado_ano.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Conselhos, fundos e planos de cultura municipais criados por ano, pelo ano da lei (do plano, no caso do plano): as Figuras 12 (fundos), 13 (conselhos) e 14 (planos) da publicação (seção 7 do snc_figuras_tabelas.R), com os nomes de coluna dos CSVs delas, e o eda_10 do SNC.R. GRÃO: componente e ano. Como no R: só municípios, só o componente 'Concluída', aderido o município ou não, e sem ano da lei fica de fora; cada componente tem todos os anos entre o primeiro e o último com lei, com zero onde nenhum foi criado. O eda_10 é esta série entre 2012 e 2026, com o acumulado somado desde o primeiro ano; lá ano sem lei nova não aparece, e na versão de 28/05/2026 nenhum ano de 2012 a 2025 fica sem lei. DIFERENÇA PARA A PUBLICAÇÃO: o portal tem 1.509 fundos, 1.553 conselhos e 685 planos com ano, contra 2.150, 2.245 e 1.113 publicados; em cada um, mais da metade da diferença é de 2022 em diante (planos de 2024: 112 contra 306).",
+      "colunas": [
+        {
+          "nome": "componente",
+          "descricao": ""
+        },
+        {
+          "nome": "ano_criacao",
+          "descricao": "Ano da lei do componente."
+        },
+        {
+          "nome": "quantidade_criados",
+          "descricao": "Municípios cuja lei do componente é desse ano. Zero no ano sem lei."
+        },
+        {
+          "nome": "quantidade_acumulada",
+          "descricao": "Soma de quantidade_criados do primeiro ano até este, a linha \"Adesões acumuladas\" do eda_10."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_componente_ente"
+      ],
+      "sources": [],
+      "linhas_sql": 62
+    },
+    {
+      "nome": "eixo1_snc_componente_ente",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_componente_ente.sql",
+      "descricao": "Camada Gold / Eixo 1, frente SNC, do Cultura em Números. Gold-base: os componentes do sistema de cultura de cada ente na lista de entes do Sistema Nacional de Cultura.\nGRÃO: uma linha por ente e componente ('Conselho', 'Fundo', 'Plano', 'Lei do sistema', 'CPF completo'), na versão mais recente do arquivo no portal. UNIVERSO: os 27 entes estaduais, com o DF (código 53), e os municípios: 5.594 entes e 27.970 linhas na versão de 28/05/2026. No portal estados e municípios vêm na mesma aba, com código IBGE de 2 e de 7 dígitos, e uma linha a mais que não é ente ('Não cadastrado'), que fica de fora. O R lê duas abas da planilha interna, \"SNC - MUNICÍPIOS\" e \"SNC - ESTADOS\".\nA REGRA, a da seção 2 do snc_figuras_tabelas.R: aderente é situação 'Publicado no DOU'; o ente tem o componente quando a situação do documento é 'Concluída'; CPF completo é ter conselho, plano e fundo. O ano da lei é o ano da data do documento, e ano antes de 1900 fica NULL, como no extrair_ano do R (\"descarta erros de digitação\"). Na versão de 28/05/2026, entre os municípios com o componente 'Concluída', 3 conselhos, 3 fundos, 3 planos e 4 leis do sistema têm a data 'Não informada', e um plano tem ano 1018: ficam sem ano_lei. Aderente e versão são a mesma regra de eixo1_snc_painel_municipio, que é só dos municípios e não traz as datas.\nCONFERÊNCIA (11/11/2026): a Tabela 1.2, as Figuras 12 a 14 e o eda_10 são iguais, linha a linha, à regra do R reescrita em Python e aplicada aos mesmos 5.594 entes do portal. Essa reescrita, aplicada à planilha interna que o R leu, reproduz os CSVs publicados da Tabela 1.2, das Figuras 12 a 14 e do ponto de 2026 da Figura 15.\nDIFERENÇA PARA A PUBLICAÇÃO: o portal está atrasado em relação à planilha interna (a description de eixo1_snc_painel_municipio tem o diagnóstico). Municípios: 3.722 aderentes contra 3.945; entre eles, conselho 1.556 contra 2.247, fundo 1.512 contra 2.155, plano 689 contra 1.117, lei do sistema 1.551 contra 2.024 e CPF completo 569 contra 920. Estados e DF: conselho 27 contra 24 (MG, RS e SP 'Concluída' no portal e em análise na planilha), plano 17 contra 18 (PB e PI só na planilha, RS só no portal), lei do sistema 20 contra 21 (AL só na planilha); fundo 27 e CPF completo 17 nos dois, mas o CPF de PB e PI só na planilha e o de MG e RS só no portal. Das seis UFs, cinco foram atualizadas na planilha depois da última atualização no portal; o PI tem a mesma data nos dois (28/02/2020), e o atraso não explica.",
+      "colunas": [
+        {
+          "nome": "versao",
+          "descricao": "Versão do arquivo no portal de onde a linha veio (a mais recente)."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente, com 2 dígitos no estado e no DF e 7 no município."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do ente federado na Plataforma SNC."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, como a Plataforma escreve ('Centro Oeste', sem hífen)."
+        },
+        {
+          "nome": "esfera",
+          "descricao": "'estadual' para os 27 entes de código IBGE de 2 dígitos, com o DF; 'municipal' para os de 7."
+        },
+        {
+          "nome": "situacao_adesao",
+          "descricao": "Situação da adesão ao SNC, como a Plataforma escreve."
+        },
+        {
+          "nome": "aderente",
+          "descricao": "Se aderiu ao SNC, isto é, situação 'Publicado no DOU'. NULL sem situação; o teste avisa, porque o ente sem situação sai do denominador da Tabela 1.2."
+        },
+        {
+          "nome": "componente",
+          "descricao": "'Conselho' (lei do conselho de política cultural), 'Fundo' (lei do fundo de cultura), 'Plano' (plano de cultura), 'Lei do sistema' (lei do sistema de cultura) e 'CPF completo' (conselho, plano e fundo)."
+        },
+        {
+          "nome": "situacao_componente",
+          "descricao": "Situação do documento do componente, como a Plataforma escreve ('Concluída', 'Não Possui', 'Arquivo incorreto'...). NULL no CPF completo, que não tem documento próprio. O teste avisa se faltar nos outros, porque o componente sem situação não conta como 'Concluída'."
+        },
+        {
+          "nome": "tem_componente",
+          "descricao": "Se o ente tem o componente: situação 'Concluída'. No CPF completo, os três; NULL só quando falta alguma situação e as conhecidas são 'Concluída' (ADR 0010, regra 1)."
+        },
+        {
+          "nome": "data_lei",
+          "descricao": "Data da lei do componente (do plano, no caso do plano), como a silver a tipa: NULL quando não é data dd/mm/aaaa ('Não informada'). NULL no CPF completo."
+        },
+        {
+          "nome": "ano_lei",
+          "descricao": "Ano de data_lei, de 1900 em diante. Ano anterior é erro de digitação e fica NULL, como no extrair_ano do R."
+        }
+      ],
+      "colunas_descritas": 13,
+      "testes": 9,
+      "materializacao": "",
+      "depende_de": [
+        "silver_snc_entes"
+      ],
+      "sources": [],
+      "linhas_sql": 148
+    },
+    {
+      "nome": "eixo1_snc_componentes_adesao",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_componentes_adesao.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Conselho, plano, fundo, lei do sistema e CPF completo entre os entes que aderiram ao SNC, nos municípios e nos estados com o DF: a Tabela 1.2 da publicação (seção 5 do snc_figuras_tabelas.R), com os rótulos e os nomes de coluna do CSV dela. GRÃO: esfera e componente. O denominador são os aderentes da esfera, e a adesão entra como sexta linha, com proporção 1, como no R.",
+      "colunas": [
+        {
+          "nome": "esfera",
+          "descricao": ""
+        },
+        {
+          "nome": "componente",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade",
+          "descricao": "Aderentes com o componente 'Concluída'."
+        },
+        {
+          "nome": "total_aderentes",
+          "descricao": "Entes da esfera com situação 'Publicado no DOU', o denominador."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "quantidade / total_aderentes, como proporção (0,57 e não 57%)."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_componente_ente"
+      ],
+      "sources": [],
+      "linhas_sql": 59
     },
     {
       "nome": "eixo1_snc_evolucao_adesao",
@@ -64611,10 +64797,10 @@
       }
     },
     "cultura_em_numeros": {
-      "modelos": 70,
-      "testes": 364,
+      "modelos": 74,
+      "testes": 392,
       "camadas": {
-        "gold": 70
+        "gold": 74
       }
     },
     "ibge": {
@@ -68134,9 +68320,9 @@
     }
   ],
   "totais": {
-    "modelos": 911,
-    "testes": 1318,
-    "com_descricao": 910,
+    "modelos": 915,
+    "testes": 1346,
+    "com_descricao": 914,
     "sources": 814
   }
 }
