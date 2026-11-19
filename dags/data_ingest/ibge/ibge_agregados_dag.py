@@ -2,8 +2,21 @@
 
 ``extrair_catalogo`` grava ``pesquisas`` e ``agregados_catalogo``. As tasks
 mapeadas gravam ``metadados``, ``periodos``, ``variaveis`` e ``localidades``,
-um lote de agregados por task. ``extrair_resultados`` grava os valores dos
-agregados listados em ``ibge_config``.
+um lote de agregados por task. ``extrair_resultados`` grava em ``resultados``
+os valores dos agregados da Variable ``ibge_config``, uma task por agregado.
+
+Os agregados de ``resultados`` vêm da chave ``resultados`` da Variable, um item
+por agregado, cada um com suas variáveis, períodos, categorias e níveis::
+
+    {"resultados": [
+        {"agregado": "9605", "variaveis": "1000093", "periodos": "2022",
+         "classificacao": "86[2776,2777,2778,2779,2780]", "niveis": ["N6", "N3"]}
+    ]}
+
+Só ``agregado`` é obrigatório: sem o resto, valem todas as variáveis
+(``allxp``), o último período e o nível de ``resultados_nivel``. O formato
+antigo (``resultados_agregados_ids`` com um período e um nível para todos)
+continua aceito, mas o mesmo agregado nos dois formatos faz o run falhar.
 
 Reexecutar não duplica e não derruba tabela: o dbt tem views em cima delas
 (``ibge_sidra.bronze_*``), e o Postgres recusa o ``DROP``. Cada carga
@@ -13,7 +26,10 @@ substitui, numa transação, o que ela traz de novo:
 - ``periodos``, ``variaveis`` e ``localidades``: as linhas dos agregados que
   voltaram da API no lote. O agregado em que a API falhou fica com as linhas
   do run anterior;
-- ``metadados`` e ``resultados``: upsert pela chave.
+- ``resultados``: as linhas do agregado, em todos os níveis. A tabela espelha a
+  Variable: período ou categoria que sai dela sai do banco. Se um nível vier
+  vazio, a task falha sem gravar, e o agregado fica com as linhas anteriores;
+- ``metadados``: upsert pela chave.
 
 ``localidades`` é substituída por agregado, não por nível: trocar
 ``localidades_nivel`` apaga o nível anterior dos agregados que têm o novo.
@@ -29,7 +45,11 @@ from airflow.sdk import Variable
 from airflow.sdk.exceptions import AirflowFailException
 
 from cliente_postgres import ClientPostgresDB
-from extracao_ibge import ClienteIBGE
+from extracao_ibge import (
+    ClienteIBGE,
+    EspecificacaoResultados,
+    especificacoes_resultados,
+)
 from postgres_helpers import get_postgres_conn
 
 logger = logging.getLogger(__name__)
@@ -46,11 +66,14 @@ default_args = {
 _IBGE_CONFIG_DEFAULTS: dict[str, Any] = {
     "batch_size": 50,
     "localidades_nivel": "N3",
-    # Agregados cujos valores entram em ibge_sidra.resultados. Exemplo: a
-    # população residente do Censo 2022 por município, que o Eixo 1 do Cultura
-    # em Números usa no per capita e no porte municipal:
-    #   {"resultados_agregados_ids": ["4709"], "resultados_periodos": "2022",
-    #    "resultados_nivel": "N6"}
+    # Agregados cujos valores entram em ibge_sidra.resultados, um item por
+    # agregado (ver especificacoes_resultados). Exemplo: a população residente
+    # do Censo 2022 por município, que o Eixo 1 do Cultura em Números usa no
+    # per capita e no porte municipal:
+    #   {"resultados": [{"agregado": "4709", "periodos": "2022",
+    #                    "niveis": ["N6"]}]}
+    "resultados": [],
+    # Formato antigo, ainda aceito: os mesmos período e nível para todos.
     "resultados_agregados_ids": [],
     "resultados_periodos": "ultimo",
     "resultados_nivel": "N3",
@@ -112,6 +135,10 @@ def _ids_em_batches(
     schedule="0 3 * * 0",  # toda semana às 3h de domingo
     start_date=datetime(2024, 1, 1),
     catchup=False,
+    # O catálogo leva horas. Um run manual no meio do semanal gravava os mesmos
+    # agregados ao mesmo tempo: em resultados, a chave primária barra o
+    # segundo, que falha (visto no teste local de 19/11/2026).
+    max_active_runs=1,
     default_args=default_args,
     tags=["extração", "ibge", "agregados", "raw"],
     doc_md=__doc__,
@@ -243,54 +270,72 @@ def ibge_agregados_dag() -> None:
     # ------------------------------------------------------------------
 
     @task
-    def extrair_resultados() -> None:
-        """GET /agregados/{id}/periodos/{per}/variaveis/{var} para IDs configurados.
+    def preparar_resultados() -> list[EspecificacaoResultados]:
+        """Os agregados de ``ibge_config`` cujos valores vão para ``resultados``.
 
-        Ativada somente quando ``ibge_resultados_agregados_ids`` estiver
-        preenchida com ao menos um ID. Caso contrário, ignora silenciosamente.
+        Configuração inválida falha sem retry: tentar de novo não a conserta.
+        Lista vazia deixa ``extrair_resultados`` sem nada a fazer (pulada).
         """
-        cfg = _get_config()
-        ids_alvo: list[str] = cfg["resultados_agregados_ids"]
-        if not ids_alvo:
-            logger.info(
-                "[ibge_dag] resultados: 'resultados_agregados_ids' vazia em "
-                "ibge_config — task ignorada"
-            )
-            return
+        try:
+            especificacoes = especificacoes_resultados(_get_config())
+        except ValueError as erro:
+            raise AirflowFailException(
+                f"[ibge_dag] ibge_config inválida para resultados: {erro}"
+            ) from erro
+        logger.info(
+            "[ibge_dag] resultados: %s agregados configurados: %s",
+            len(especificacoes),
+            [e["agregado"] for e in especificacoes],
+        )
+        return especificacoes
 
-        periodos = cfg["resultados_periodos"]
-        nivel = cfg["resultados_nivel"]
+    @task(max_active_tis_per_dagrun=2)
+    def extrair_resultados(spec: EspecificacaoResultados) -> None:
+        """GET /agregados/{id}/periodos/{per}/variaveis/{var} de um agregado,
+        em cada nível pedido, gravados juntos no lugar das linhas anteriores.
 
+        Nível vazio é falha, não dado: a API devolve ``[]`` quando responde com
+        erro. A task falha antes de gravar (o retry tenta de novo), e o agregado
+        fica com as linhas do run anterior.
+        """
         api = ClienteIBGE()
-        db = ClientPostgresDB(get_postgres_conn())
-
-        total = 0
-        for agregado_id in ids_alvo:
+        agregado = spec["agregado"]
+        linhas: list[dict[str, Any]] = []
+        for nivel in spec["niveis"]:
             dados = api.get_resultados_achatar(
-                agregado_id=agregado_id,
-                periodos=periodos,
+                agregado_id=agregado,
+                periodos=spec["periodos"],
+                variaveis=spec["variaveis"],
                 nivel=nivel,
+                classificacao=spec["classificacao"],
             )
-            if dados:
-                db.insert_data(
-                    dados,
-                    table_name="resultados",
-                    primary_key=CHAVE_RESULTADOS,
-                    conflict_fields=CHAVE_RESULTADOS,
-                    schema=SCHEMA,
+            if not dados:
+                raise RuntimeError(
+                    f"[ibge_dag] resultados: agregado={agregado} nivel={nivel} "
+                    "sem dados; nada foi gravado e ficam as linhas do run anterior"
                 )
-                total += len(dados)
-                logger.info(
-                    "[ibge_dag] resultados: agregado=%s → %s linhas",
-                    agregado_id,
-                    len(dados),
-                )
-            else:
-                logger.warning(
-                    "[ibge_dag] resultados: agregado=%s sem dados", agregado_id
-                )
+            logger.info(
+                "[ibge_dag] resultados: agregado=%s nivel=%s → %s linhas, %s localidades",
+                agregado,
+                nivel,
+                len(dados),
+                len({linha["localidade_id"] for linha in dados}),
+            )
+            linhas += dados
 
-        logger.info("[ibge_dag] resultados: total inserido = %s linhas", total)
+        with ClientPostgresDB(get_postgres_conn()) as db:
+            db.substituir_dados(
+                linhas,
+                table_name="resultados",
+                schema=SCHEMA,
+                coluna_recorte="agregado_id",
+                primary_key=CHAVE_RESULTADOS,
+            )
+        logger.info(
+            "[ibge_dag] resultados: agregado=%s → %s linhas gravadas",
+            agregado,
+            len(linhas),
+        )
 
     # ------------------------------------------------------------------
     # Grafo da DAG
@@ -304,10 +349,10 @@ def ibge_agregados_dag() -> None:
     extrair_variaveis.expand(batch=batches)
     extrair_localidades.expand(batch=batches)
 
-    resultados_done = extrair_resultados()
-
     # Resultados só corre após o catálogo estar carregado
-    catalogo >> resultados_done
+    especificacoes = preparar_resultados()
+    catalogo >> especificacoes
+    extrair_resultados.expand(spec=especificacoes)
 
 
 ibge_agregados_dag()

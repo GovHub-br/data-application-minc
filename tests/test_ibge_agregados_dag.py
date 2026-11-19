@@ -92,6 +92,57 @@ class _IbgeFalso(ClienteIBGE):
             for uf, nome in (("11", "Rondônia"), ("53", "Distrito Federal"))
         ]
 
+    # Resultados: duas localidades por nível, um valor por período pedido e
+    # uma linha por categoria da classificação (só a primeira classificação).
+    niveis_vazios: set[str] = set()
+    pedidos: list[dict[str, Any]] = []
+
+    def get_resultados(
+        self,
+        agregado_id: int | str,
+        periodos: str = "ultimo",
+        variaveis: str = "allxp",
+        nivel: str = "N3",
+        localidades: str = "all",
+        classificacao: str | None = None,
+        timeout: float = 0,
+    ) -> list[dict[str, Any]]:
+        self.pedidos.append(
+            {"agregado": str(agregado_id), "nivel": nivel, "classificacao": classificacao}
+        )
+        if nivel in self.niveis_vazios or str(agregado_id) in self.falham:
+            return []
+        locais = {"N3": ("11", "53"), "N6": ("1100205", "5300108")}[nivel]
+        if classificacao:
+            cls, cats = classificacao.split("|")[0].rstrip("]").split("[")
+            combinacoes = [
+                [{"id": cls, "nome": "C", "categoria": {cat: f"cat {cat}"}}]
+                for cat in cats.split(",")
+            ]
+        else:
+            combinacoes = [[]]
+        return [
+            {
+                "id": var,
+                "variavel": f"Variável {var}",
+                "unidade": "Pessoas",
+                "resultados": [
+                    {
+                        "classificacoes": combinacao,
+                        "series": [
+                            {
+                                "localidade": {"id": local, "nome": local},
+                                "serie": {p: "10" for p in periodos.split("|")},
+                            }
+                            for local in locais
+                        ],
+                    }
+                    for combinacao in combinacoes
+                ],
+            }
+            for var in variaveis.split("|")
+        ]
+
 
 _PESQUISAS = [
     {
@@ -118,9 +169,29 @@ def dag(modulo: Any, monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setattr(_IbgeFalso, "pesquisas", [dict(p) for p in _PESQUISAS])
     monkeypatch.setattr(_IbgeFalso, "periodos", ["2010", "2022"])
     monkeypatch.setattr(_IbgeFalso, "falham", set())
+    monkeypatch.setattr(_IbgeFalso, "niveis_vazios", set())
+    monkeypatch.setattr(_IbgeFalso, "pedidos", [])
     monkeypatch.setattr(modulo, "ClienteIBGE", _IbgeFalso)
     monkeypatch.setattr(modulo, "_get_config", lambda: dict(modulo._IBGE_CONFIG_DEFAULTS))
     return modulo.ibge_agregados_dag()
+
+
+def _configurar(modulo: Any, monkeypatch: pytest.MonkeyPatch, **config: Any) -> None:
+    """A Variable ibge_config com ``config`` por cima dos defaults."""
+    monkeypatch.setattr(
+        modulo, "_get_config", lambda: {**modulo._IBGE_CONFIG_DEFAULTS, **config}
+    )
+
+
+# Cor ou raça (9605) em dois níveis e a população estimada (6579) em um.
+_COR_OU_RACA = {
+    "agregado": "9605",
+    "variaveis": "1000093",
+    "periodos": "2022",
+    "classificacao": "86[2776,2777]",
+    "niveis": ["N6", "N3"],
+}
+_ESTIMATIVA = {"agregado": "6579", "variaveis": "9324", "periodos": "2025|2026"}
 
 
 def _rodar(dag: Any, task_id: str, **kwargs: Any) -> Any:
@@ -136,12 +207,17 @@ def test_dag_carrega_e_o_catalogo_vem_antes_de_tudo() -> None:
     bag = DagBag(str(_ARQUIVO), include_examples=False)
     assert not bag.import_errors, bag.import_errors
     dag = bag.dags["ibge_agregados_dag"]
+    # Dois runs juntos gravariam os mesmos agregados ao mesmo tempo.
+    assert dag.max_active_runs == 1
 
     assert dag.get_task("extrair_catalogo").downstream_task_ids == {
         "preparar_batches",
-        "extrair_resultados",
+        "preparar_resultados",
     }
     assert dag.get_task("preparar_batches").downstream_task_ids == set(_TASKS_DO_LOTE)
+    assert dag.get_task("preparar_resultados").downstream_task_ids == {
+        "extrair_resultados"
+    }
 
 
 def test_preparar_batches_sem_o_xcom_do_catalogo_falha_sem_retry(
@@ -170,7 +246,7 @@ class _BancoQueRegistra:
 
     def __init__(self, conn_str: str) -> None:
         self.chamadas: list[tuple[str, str, dict[str, Any]]] = []
-        _BancoQueRegistra.ultimo = self
+        type(self).ultimo = self
 
     def substituir_dados(self, data: list, table_name: str, **kwargs: Any) -> None:
         self.chamadas.append(("substituir_dados", table_name, kwargs))
@@ -209,6 +285,89 @@ def test_nenhuma_task_derruba_tabela_e_cada_uma_substitui_o_seu_recorte(
     # metadados já tinha chave e upsert: não duplicava.
     metodo, kwargs = por_tabela["metadados"]
     assert metodo == "insert_data" and kwargs["conflict_fields"] == ["agregado_id"]
+
+
+# ---------------------------------------------------------------------------
+# Resultados
+# ---------------------------------------------------------------------------
+
+
+def test_preparar_resultados_com_configuracao_invalida_falha_sem_retry(
+    dag: Any, modulo: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _configurar(
+        modulo,
+        monkeypatch,
+        resultados=[{"agregado": "4709"}],
+        resultados_agregados_ids=["4709"],
+    )
+    with pytest.raises(AirflowFailException, match="duas vezes"):
+        _rodar(dag, "preparar_resultados")
+
+
+def test_preparar_resultados_junta_o_formato_novo_e_o_antigo(
+    dag: Any, modulo: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _configurar(
+        modulo,
+        monkeypatch,
+        resultados=[_COR_OU_RACA],
+        resultados_agregados_ids=["4709"],
+        resultados_periodos="2022",
+        resultados_nivel="N6",
+    )
+    especificacoes = _rodar(dag, "preparar_resultados")
+    assert [(e["agregado"], e["niveis"]) for e in especificacoes] == [
+        ("9605", ["N6", "N3"]),
+        ("4709", ["N6"]),
+    ]
+
+
+class _BancoComContexto(_BancoQueRegistra):
+    def __enter__(self) -> "_BancoComContexto":
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        pass
+
+
+def test_resultados_do_agregado_gravados_juntos_em_todos_os_niveis(
+    dag: Any, modulo: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(modulo, "ClientPostgresDB", _BancoComContexto)
+    monkeypatch.setattr(modulo, "get_postgres_conn", lambda: "")
+    (espec,) = _especificacoes(modulo, [_COR_OU_RACA])
+
+    _rodar(dag, "extrair_resultados", spec=espec)
+
+    assert [p["classificacao"] for p in _IbgeFalso.pedidos] == ["86[2776,2777]"] * 2
+    ((metodo, tabela, kwargs),) = _BancoComContexto.ultimo.chamadas
+    assert (metodo, tabela) == ("substituir_dados", "resultados")
+    assert kwargs["coluna_recorte"] == "agregado_id"
+    assert kwargs["primary_key"] == modulo.CHAVE_RESULTADOS
+
+
+def test_nivel_vazio_falha_sem_gravar_nada(
+    dag: Any, modulo: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A API devolve ``[]`` quando responde com erro: gravar o N6 sem o N3
+    apagaria as linhas de UF do run anterior."""
+    monkeypatch.setattr(modulo, "ClientPostgresDB", _BancoComContexto)
+    monkeypatch.setattr(modulo, "get_postgres_conn", lambda: "")
+    _BancoComContexto.ultimo = _BancoComContexto("")
+    _IbgeFalso.niveis_vazios = {"N3"}
+    (espec,) = _especificacoes(modulo, [_COR_OU_RACA])
+
+    with pytest.raises(RuntimeError, match="nivel=N3 sem dados"):
+        _rodar(dag, "extrair_resultados", spec=espec)
+
+    assert _BancoComContexto.ultimo.chamadas == []
+
+
+def _especificacoes(modulo: Any, resultados: list[dict[str, Any]]) -> list[Any]:
+    return modulo.especificacoes_resultados(
+        {**modulo._IBGE_CONFIG_DEFAULTS, "resultados": resultados}
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -307,3 +466,57 @@ def test_agregado_em_que_a_api_falhou_fica_com_as_linhas_anteriores(
     assert _sql(
         f'SELECT agregado_id, id FROM "{schema}".periodos ORDER BY agregado_id, id'
     ) == [("4709", "2023"), ("4714", "2010"), ("4714", "2022")]
+
+
+def _contagem_resultados(schema: str) -> list[Any]:
+    return _sql(
+        f"SELECT agregado_id, nivel, periodo, classificacoes_chave, count(*) "
+        f'FROM "{schema}".resultados GROUP BY 1, 2, 3, 4 ORDER BY 1, 2, 3, 4'
+    )
+
+
+def test_resultados_rodados_de_novo_nao_duplicam_e_seguem_a_variable(
+    dag: Any, modulo: Any, schema: str
+) -> None:
+    cor, estimativa = _especificacoes(modulo, [_COR_OU_RACA, _ESTIMATIVA])
+    _rodar(dag, "extrair_resultados", spec=cor)
+    _rodar(dag, "extrair_resultados", spec=estimativa)
+    antes = _contagem_resultados(schema)
+    _view_do_dbt(schema, "resultados")
+
+    _rodar(dag, "extrair_resultados", spec=cor)
+    _rodar(dag, "extrair_resultados", spec=estimativa)
+    assert _contagem_resultados(schema) == antes
+    # 2 localidades × (N6 + N3) × 2 categorias; 2 localidades × N3 × 2 períodos.
+    assert sum(n for agregado, *_, n in antes if agregado == "9605") == 8
+    assert sum(n for agregado, *_, n in antes if agregado == "6579") == 4
+
+    # Período que sai da Variable sai do banco; o outro agregado fica.
+    (so_2026,) = _especificacoes(modulo, [{**_ESTIMATIVA, "periodos": "2026"}])
+    _rodar(dag, "extrair_resultados", spec=so_2026)
+    depois = _contagem_resultados(schema)
+    assert {(a, p) for a, _, p, _, _ in depois if a == "6579"} == {("6579", "2026")}
+    assert [linha for linha in depois if linha[0] == "9605"] == [
+        linha for linha in antes if linha[0] == "9605"
+    ]
+
+
+def test_linha_com_a_chave_no_formato_antigo_e_trocada_e_nao_duplicada(
+    dag: Any, modulo: Any, schema: str
+) -> None:
+    """Antes, a chave era o str() das classificações, com os nomes. A carga
+    substitui o agregado inteiro, então a linha antiga sai."""
+    (cor,) = _especificacoes(modulo, [{**_COR_OU_RACA, "niveis": ["N3"]}])
+    _rodar(dag, "extrair_resultados", spec=cor)
+    antigo = "[{'id': '86', 'nome': 'C', 'categoria': {'2776': 'cat 2776'}}]"
+    _sql(
+        f'UPDATE "{schema}".resultados SET classificacoes_chave = $${antigo}$$ '
+        "WHERE classificacoes_chave = '86[2776]'"
+    )
+
+    _rodar(dag, "extrair_resultados", spec=cor)
+
+    assert _sql(
+        f'SELECT DISTINCT classificacoes_chave FROM "{schema}".resultados ORDER BY 1'
+    ) == [("86[2776]",), ("86[2777]",)]
+    assert _sql(f'SELECT count(*) FROM "{schema}".resultados') == [(4,)]
