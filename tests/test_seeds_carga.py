@@ -83,6 +83,11 @@ def test_copy_csv_escreve_nulo_como_campo_vazio() -> None:
     assert seeds_carga._copy_csv(df).getvalue() == 'x,"com ""aspas"""\n,y\n'
 
 
+def test_copy_csv_tira_o_byte_nulo_que_o_postgres_recusa() -> None:
+    df = pd.DataFrame({"a": ["ante\x00rior", None], "b": ["ok", "\x00"]})
+    assert seeds_carga._copy_csv(df).getvalue() == "anterior,ok\n,\n"
+
+
 def _carga(origem: int, parquet: int, banco: int) -> dict[str, object]:
     return {
         "entidade": "munic_2021_cultura",
