@@ -18,6 +18,9 @@
 -- fica com saldo zero ou negativo nao conta como incentivador nem entra no total.
 -- O total de referencia das partes e a soma dos saldos positivos, que pode diferir
 -- da soma bruta da captacao do projeto.
+--
+-- As fracoes sao calculadas em numeric e saem em double precision, que o pandas
+-- le como float; numeric chegaria como Decimal, com dezenas de casas.
 with
 
     recibo as (
@@ -47,8 +50,8 @@ with
 select
     pronac,
     count(*) as qt_incentivadores,
-    max(parte) as parte_do_maior_incentivador,
-    sum(parte) filter (where posicao <= 3) as parte_dos_3_maiores,
-    sum(parte * parte) as indice_hhi
+    max(parte)::double precision as parte_do_maior_incentivador,
+    (sum(parte) filter (where posicao <= 3))::double precision as parte_dos_3_maiores,
+    sum(parte * parte)::double precision as indice_hhi
 from parte
 group by pronac

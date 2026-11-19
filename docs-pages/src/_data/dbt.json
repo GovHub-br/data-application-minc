@@ -1064,7 +1064,7 @@
       "camada": "gold",
       "meta": null,
       "caminho": "dbt/minc/models/data_products/analise_rouanet/concentracao_incentivadores.sql",
-      "descricao": "Uma linha por PRONAC que captou, com o quanto a captação do projeto dependeu de poucos incentivadores. São 55.043 linhas, todos os PRONACs com recibo em silver_sac_captacao_rouanet, montadas sobre 668.765 recibos e 442.060 pares de projeto e incentivador (269.512 de pessoa física e 172.548 de jurídica), que somam R$ 35,49 bilhões nominais.\n\nPOR QUE AGREGADO. O pedido original era o recibo com um id de incentivador pseudonimizado por HMAC. Isso fica bloqueado enquanto não houver segredo gerenciado e decisão sobre a chave ser publicável, porque o plano a classifica como dado linkável e sensível. Esta tabela responde à concentração dentro do projeto, não ao padrão do mesmo incentivador entre projetos.\n\nCOMO O INCENTIVADOR É CONTADO. Pelo cgccpfmecena de silver_sac_captacao, normalizado para dígitos, lido só para agrupar e nunca exposto. Todo recibo tem documento de 11 ou 14 dígitos. Os recibos de cada incentivador são somados com o estorno descontado, e quem fica com saldo zero ou negativo sai da conta. Hoje nenhum par cai nesse caso, e o total das partes é a captação bruta do projeto.\n\nARMADILHAS. Projeto com um incentivador só (24.345, 44%) tem parte do maior e HHI iguais a 1 por definição: concentração máxima ali é o caso mais comum, não sinal de anomalia. CNPJ de filial conta separado da matriz, então um grupo empresarial que patrocina por várias filiais parece menos concentrado do que é. As frações são numeric sem arredondamento, com dezenas de casas decimais.\n\nCOMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com as outras golds do produto. PRONAC que nunca captou não tem linha, e o left join dá nulo, que quer dizer \"não captou\", não concentração zero.",
+      "descricao": "Uma linha por PRONAC que captou, com o quanto a captação do projeto dependeu de poucos incentivadores. Entra todo PRONAC de silver_sac_captacao_rouanet com ao menos um incentivador de saldo positivo. Em 18/11/2026 eram 55.043 linhas, que coincidiam com todos os PRONACs com recibo porque nenhum par tinha saldo zero ou negativo, montadas sobre 668.765 recibos e 442.060 pares de projeto e incentivador (269.512 de pessoa física e 172.548 de jurídica), que somam R$ 35,49 bilhões nominais.\n\nPOR QUE AGREGADO. O pedido original era o recibo com um id de incentivador pseudonimizado por HMAC. Isso fica bloqueado enquanto não houver segredo gerenciado e decisão sobre a chave ser publicável, porque o plano a classifica como dado linkável e sensível. Esta tabela responde à concentração dentro do projeto, não ao padrão do mesmo incentivador entre projetos.\n\nCOMO O INCENTIVADOR É CONTADO. Pelo cgccpfmecena de silver_sac_captacao, normalizado para dígitos, lido só para agrupar e nunca exposto. Todo recibo tem documento de 11 ou 14 dígitos. Os recibos de cada incentivador são somados com o estorno descontado, e quem fica com saldo zero ou negativo sai da conta. Em 18/11/2026 nenhum par caía nesse caso, e o total das partes era a captação bruta do projeto.\n\nARMADILHAS. Projeto com um incentivador só (24.345, 44%) tem parte do maior e HHI iguais a 1 por definição: concentração máxima ali é o caso mais comum, não sinal de anomalia. CNPJ de filial conta separado da matriz, então um grupo empresarial que patrocina por várias filiais parece menos concentrado do que é. As frações são calculadas em numeric e saem em double precision, que o pandas lê como float.\n\nCOMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com as outras golds do produto. PRONAC que nunca captou não tem linha, e o left join dá nulo, que quer dizer \"não captou\", não concentração zero.",
       "colunas": [
         {
           "nome": "pronac",
@@ -1095,7 +1095,7 @@
         "silver_sac_captacao_rouanet"
       ],
       "sources": [],
-      "linhas_sql": 55
+      "linhas_sql": 58
     },
     {
       "nome": "desfecho_prestacao_contas",
@@ -1111,7 +1111,7 @@
         },
         {
           "nome": "desfecho_pc",
-          "descricao": "A pior classe de desfecho que o projeto alcançou nas duas fontes. 'aprovada' em 26.171 linhas (9,5%), 'aprovada com prejuízo' em 282 (0,1%), 'reprovada ou TCE' em 6.760 (2,4%) e 'sem desfecho' em 243.653 (88,0%). Sempre preenchida. Projeto reprovado e depois aprovado em recurso fica 'reprovada ou TCE'; a flag passou_por_reprovacao_e_aprovacao acha esses casos."
+          "descricao": "A pior classe de desfecho que o projeto alcançou nas duas fontes. 'aprovada' em 26.171 linhas (9,5%), 'aprovada com prejuízo' em 282 (0,1%), 'reprovada ou TCE' em 6.760 (2,4%) e 'sem desfecho' em 243.653 (88,0%). Sempre preenchida. Projeto com reprovação e aprovação fica 'reprovada ou TCE' em qualquer ordem; a flag passou_por_reprovacao_e_aprovacao acha esses casos."
         },
         {
           "nome": "data_desfecho",
@@ -1123,11 +1123,11 @@
         },
         {
           "nome": "passou_por_reprovacao_e_aprovacao",
-          "descricao": "true quando o projeto tem código de reprovação ou TCE e também de aprovação, com ou sem prejuízo, em qualquer ordem: 2.402 projetos. Todos terminam 'reprovada ou TCE', porque a pior classe vence; 2.086 deles têm data de código de aprovada. Marca o desfecho revisto em recurso ou depois de ressarcimento. Nula nos mesmos 2 projetos de passou_por_inadimplencia."
+          "descricao": "true quando o projeto tem código de reprovação ou TCE e também de aprovação, com ou sem prejuízo, em qualquer ordem: 2.402 projetos. Todos terminam 'reprovada ou TCE', porque a pior classe vence; 2.086 deles têm data de código de aprovada. Não olha a ordem, então marca tanto o desfecho revisto em recurso ou depois de ressarcimento quanto o projeto aprovado que depois foi reprovado ou virou TCE. Para separar os dois, compare data_primeira_aprovada com data_primeira_reprovada; com uma delas nula, a ordem é desconhecida. Nula nos mesmos 2 projetos de passou_por_inadimplencia."
         },
         {
           "nome": "fonte",
-          "descricao": "Onde a classe de desfecho_pc foi vista. Das 33.213 linhas com desfecho, 'situação atual' em 18.773, 'histórico' em 5.667 e 'ambos' em 8.773. Nula em todo 'sem desfecho'. 'histórico' quer dizer que a situação atual do projeto é outro código, fora daquela classe."
+          "descricao": "Onde a classe de desfecho_pc foi vista. Das 33.213 linhas com desfecho, 'situação atual' em 18.773, 'histórico' em 5.667 e 'ambos' em 8.773. Nula se e só se desfecho_pc é 'sem desfecho'; o teste analise_rouanet_desfecho_coerente confere isso e que data_desfecho é a data_primeira_* da classe final. 'histórico' quer dizer que a situação atual do projeto é outro código, fora daquela classe."
         },
         {
           "nome": "data_primeira_aprovada",
@@ -1150,7 +1150,7 @@
         "silver_sac_projeto_rouanet"
       ],
       "sources": [],
-      "linhas_sql": 183
+      "linhas_sql": 185
     },
     {
       "nome": "historico_proponente",
@@ -1182,7 +1182,7 @@
         },
         {
           "nome": "valor_captado_anterior_reais",
-          "descricao": "Soma dos recibos dos projetos anteriores datados antes da referência, em reais nominais da data de cada recibo, sem correção monetária e com estorno descontado. Zero quando não houve recibo. Somar valores de décadas diferentes sem corrigir pesa mais o proponente recente; para comparar entre anos, corrija na análise. Maior que zero em 67.255 linhas (44,5%); entre elas, mediana de R$ 976,8 mil, percentil 90 de R$ 10,2 milhões e máximo de R$ 399,2 milhões. Nenhuma linha negativa."
+          "descricao": "Soma dos recibos dos projetos anteriores datados antes da referência, em reais nominais da data de cada recibo, sem correção monetária e com estorno descontado. Só soma os projetos anteriores que captaram (saldo maior que zero antes da referência), a mesma regra de qt_captaram_anteriores, então um estorno maior que a captação não puxa a soma para baixo e ela nunca é negativa. Zero quando nenhum captou. Somar valores de décadas diferentes sem corrigir pesa mais o proponente recente; para comparar entre anos, corrija na análise. Em 18/11/2026, antes desse filtro, era maior que zero em 67.255 linhas (44,5%); entre elas, mediana de R$ 976,8 mil, percentil 90 de R$ 10,2 milhões e máximo de R$ 399,2 milhões. O filtro só pode aumentar a soma de uma linha."
         },
         {
           "nome": "qt_pc_aprovadas_anteriores",
@@ -1207,7 +1207,7 @@
         "silver_sac_projeto_rouanet"
       ],
       "sources": [],
-      "linhas_sql": 194
+      "linhas_sql": 197
     },
     {
       "nome": "eixo1_estadic_competencia_conselho",

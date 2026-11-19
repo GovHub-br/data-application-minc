@@ -17,7 +17,8 @@
 -- v2 nao foi ingerida);
 -- * aprovado: primeira aprovacao antes da referencia;
 -- * captou: soma dos recibos com data antes da referencia maior que zero, com
--- estorno descontado. O valor e essa soma, em reais nominais;
+-- estorno descontado. O valor soma so os projetos que captaram, a mesma regra
+-- da contagem, em reais nominais;
 -- * prestacao de contas: a pior classe de `desfecho_prestacao_contas` cuja
 -- primeira data e anterior a referencia. Projeto aprovado em 2010 e reprovado
 -- em 2018 conta como aprovado para uma referencia de 2012. Classe sem data
@@ -165,7 +166,9 @@ with
             count(ano_inicio_outro) as qt_projetos_anteriores,
             count(aprovacao_antes) as qt_aprovados_anteriores,
             count(*) filter (where valor_captado_antes > 0) as qt_captaram_anteriores,
-            sum(valor_captado_antes) as valor_captado_anterior_reais,
+            sum(valor_captado_antes) filter (
+                where valor_captado_antes > 0
+            ) as valor_captado_anterior_reais,
             count(*) filter (where gravidade_pc_antes = 1) as qt_pc_aprovadas_anteriores,
             count(*) filter (
                 where gravidade_pc_antes in (2, 3)

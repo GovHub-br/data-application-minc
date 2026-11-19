@@ -1354,6 +1354,21 @@ Bronze; as views `vrenuncia*` medem o captado. O limite anual vem da LOA e o
 Demonstrativo dos Gastos Tributários da Receita traz a estimativa por ano;
 entraria como seed (ADR 0012).
 
+**Revisão do PR #201 (19/11).** Aprovado, com sugestões aplicadas no mesmo PR.
+`valor_captado_anterior_reais` passou a somar só os projetos anteriores que
+captaram, a mesma regra de `qt_captaram_anteriores`. As frações da
+concentração saem em `double precision`. O teste singular
+`analise_rouanet_desfecho_coerente` confere que `fonte` é nula se e só se o
+desfecho é 'sem desfecho' e que `data_desfecho` é a primeira data da classe
+final. Ficou registrado que `passou_por_reprovacao_e_aprovacao` não olha a
+ordem, e que o recurso de verdade sai da comparação das datas por classe.
+
+**Custo a vigiar.** O `par` do `historico_proponente` é um autojoin por
+agente, quadrático. O agente com mais PRONACs (1.519) gera sozinho cerca de
+2,3 milhões de pares. O build de 104 s está folgado, mas se a ponte crescer ou
+o build passar de alguns minutos na `minc_cosmos_dag`, é este o modelo a olhar
+primeiro.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG

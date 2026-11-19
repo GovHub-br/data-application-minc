@@ -21,8 +21,10 @@
 -- projeto) e o historico (`silver_sac_historicosituacao`). O historico e
 -- incompleto: registra aprovacao para menos de 1/4 dos projetos hoje aprovados,
 -- e por isso as duas entram. Ordem: reprovada ou TCE > aprovada com prejuizo >
--- aprovada. Projeto reprovado e depois aprovado em recurso fica reprovado, e
--- `passou_por_reprovacao_e_aprovacao` marca o caso.
+-- aprovada. Projeto com reprovacao e aprovacao fica reprovado em qualquer ordem,
+-- e `passou_por_reprovacao_e_aprovacao` marca o caso sem olhar a ordem: tanto o
+-- recurso (aprovada depois da reprovacao) quanto a TCE depois da aprovacao. Para
+-- separar, compare `data_primeira_aprovada` com `data_primeira_reprovada`.
 --
 -- DATAS. Para cada classe, a primeira vez que ela aparece: no historico pela
 -- `dtsituacao`, na situacao atual pela `data_situacao` do projeto. Data antes de
