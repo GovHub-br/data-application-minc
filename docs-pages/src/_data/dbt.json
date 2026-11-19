@@ -1059,6 +1059,157 @@
       "linhas_sql": 86
     },
     {
+      "nome": "concentracao_incentivadores",
+      "dominio": "analise_rouanet",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/analise_rouanet/concentracao_incentivadores.sql",
+      "descricao": "Uma linha por PRONAC que captou, com o quanto a captação do projeto dependeu de poucos incentivadores. Entra todo PRONAC de silver_sac_captacao_rouanet com ao menos um incentivador de saldo positivo. Em 18/11/2026 eram 55.043 linhas, que coincidiam com todos os PRONACs com recibo porque nenhum par tinha saldo zero ou negativo, montadas sobre 668.765 recibos e 442.060 pares de projeto e incentivador (269.512 de pessoa física e 172.548 de jurídica), que somam R$ 35,49 bilhões nominais.\n\nPOR QUE AGREGADO. O pedido original era o recibo com um id de incentivador pseudonimizado por HMAC. Isso fica bloqueado enquanto não houver segredo gerenciado e decisão sobre a chave ser publicável, porque o plano a classifica como dado linkável e sensível. Esta tabela responde à concentração dentro do projeto, não ao padrão do mesmo incentivador entre projetos.\n\nCOMO O INCENTIVADOR É CONTADO. Pelo cgccpfmecena de silver_sac_captacao, normalizado para dígitos, lido só para agrupar e nunca exposto. Todo recibo tem documento de 11 ou 14 dígitos. Os recibos de cada incentivador são somados com o estorno descontado, e quem fica com saldo zero ou negativo sai da conta. Em 18/11/2026 nenhum par caía nesse caso, e o total das partes era a captação bruta do projeto.\n\nARMADILHAS. Projeto com um incentivador só (24.345, 44%) tem parte do maior e HHI iguais a 1 por definição: concentração máxima ali é o caso mais comum, não sinal de anomalia. CNPJ de filial conta separado da matriz, então um grupo empresarial que patrocina por várias filiais parece menos concentrado do que é. As frações são calculadas em numeric e saem em double precision, que o pandas lê como float.\n\nCOMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com as outras golds do produto. PRONAC que nunca captou não tem linha, e o left join dá nulo, que quer dizer \"não captou\", não concentração zero.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, em texto de 5 a 7 dígitos, ano com duas posições seguido do sequencial sem padding artificial. Único. Chave de junção um para um com silver_sac_projeto_rouanet."
+        },
+        {
+          "nome": "qt_incentivadores",
+          "descricao": "Incentivadores distintos com saldo positivo no projeto, contados pelo CPF ou CNPJ normalizado. Um em 24.345 projetos, de 2 a 5 em 20.660, de 6 a 20 em 7.824, de 21 a 100 em 1.673 e mais de 100 em 541. Mediana 2, percentil 90 igual a 9 e máximo 12.216."
+        },
+        {
+          "nome": "parte_do_maior_incentivador",
+          "descricao": "Fração do total captado que veio do maior incentivador, maior que 0 e até 1. Igual a 1 nos 24.345 projetos de um incentivador só. Acima de 0,5 em 42.517 projetos (77%). Mediana 0,882, média 0,758, mínimo 0,002."
+        },
+        {
+          "nome": "parte_dos_3_maiores",
+          "descricao": "Fração do total que veio dos três maiores incentivadores, até 1. Igual a 1 em todo projeto com até três incentivadores, por isso a mediana é 1; média 0,934. Empate de valor entre o terceiro e o quarto não muda a soma."
+        },
+        {
+          "nome": "indice_hhi",
+          "descricao": "Índice Herfindahl-Hirschman, a soma dos quadrados das frações de cada incentivador, na escala de 0 a 1 e não na de 0 a 10.000. Vai de 1 dividido por qt_incentivadores, quando todos aportam igual, até 1, quando um só aporta tudo. Mediana 0,789, média 0,698, mínimo 0,0005."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "silver_sac_captacao",
+        "silver_sac_captacao_rouanet"
+      ],
+      "sources": [],
+      "linhas_sql": 58
+    },
+    {
+      "nome": "desfecho_prestacao_contas",
+      "dominio": "analise_rouanet",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/analise_rouanet/desfecho_prestacao_contas.sql",
+      "descricao": "Uma linha por PRONAC, com o desfecho da prestação de contas do projeto lido dos códigos de situação do SALIC. São 276.866 linhas, todo PRONAC de silver_sac_projeto_rouanet, e é o rótulo dos modelos de risco na prestação de contas do analytics_minc.\n\nO QUE SIGNIFICA. O SALIC não tem um campo com o resultado da prestação de contas. O desfecho aparece como código de situação, e há dezenas de códigos com prestação de contas na descrição. A classe de cada código está numa tabela dentro do SQL deste modelo, o único lugar da regra. Ela veio do notebook 04 do analytics_minc, lida da descrição de cada código em silver_sac_situacao, e ainda não foi validada pela área. Aprovada é E19, L01, L02 e L03. Aprovada com prejuízo é L04 (ressalva material ou prejuízo) e L08 (aprovada após ressarcimento ao erário). Reprovada ou TCE é L05, L06, L07, L09, L10, L11, E22, E67, E73, E78 e D42, o que inclui recolhimento integral, débito parcelado e débito abaixo do mínimo para TCE. Inadimplência (E20, E23, E38, E66, E69, E71, E80, E81, E82, D38) é fase do processo e não desfecho, porque o projeto sai dela quando responde.\n\nDUAS FONTES, VALE A PIOR CLASSE. A situação atual do projeto e o histórico de situações (silver_sac_historicosituacao) entram juntos, porque o histórico é incompleto e registra aprovação para menos de um quarto dos projetos hoje aprovados. A ordem é reprovada ou TCE, depois aprovada com prejuízo, depois aprovada. Do histórico, de 5,25 milhões de linhas, só as 96.930 dos códigos da tabela são lidas; providenciatomada e logon não são.\n\nCOBERTURA POR ANO DO PRONAC, entre os 55.043 projetos que captaram. Têm desfecho 66% dos de 1992 a 1996, 73% dos de 1997 a 2005, 73% dos de 2006 a 2015, 37% dos de 2016 a 2020 e 1% dos de 2021 em diante. Projeto recente ainda não prestou contas ou não foi julgado, e treinar com ele ensina que todo projeto novo fica sem desfecho.\n\nARMADILHAS. 'sem desfecho' junta projeto que ainda não prestou contas, projeto arquivado sem código de desfecho e projeto de convênio do FNC, cuja série G de códigos não tem classe (36.708 PRONACs estão hoje num código G). Há desfecho sem captação: 6.678 projetos têm código de desfecho e nenhum recibo em silver_sac_captacao_rouanet, entre eles 854 dos 1.046 aprovados vistos só no histórico. E21 (inadimplência suspensa), E43 (relatório aprovado pela UNB), R24 (apresentou prestação de contas após reprovação) e D56 (encerrado sem prestação de contas da edição anterior) ficaram sem classe e esperam a área.\n\nCOMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com as outras golds do produto. historico_proponente lê as três datas por classe para saber o desfecho que um projeto tinha numa data passada.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, em texto de 5 a 7 dígitos, ano com duas posições seguido do sequencial sem padding artificial. Único e preenchido em todas as linhas. Chave de junção um para um com silver_sac_projeto_rouanet."
+        },
+        {
+          "nome": "desfecho_pc",
+          "descricao": "A pior classe de desfecho que o projeto alcançou nas duas fontes. 'aprovada' em 26.171 linhas (9,5%), 'aprovada com prejuízo' em 282 (0,1%), 'reprovada ou TCE' em 6.760 (2,4%) e 'sem desfecho' em 243.653 (88,0%). Sempre preenchida. Projeto com reprovação e aprovação fica 'reprovada ou TCE' em qualquer ordem; a flag passou_por_reprovacao_e_aprovacao acha esses casos."
+        },
+        {
+          "nome": "data_desfecho",
+          "descricao": "Primeira data em que a classe de desfecho_pc aparece: no histórico, a data da mudança de situação; na situação atual, a data da situação do projeto. É a data do registro do código no SALIC, que pode vir depois do julgamento. Preenchida em 33.089 linhas, de 11/10/1998 a 19/08/2026. Nula em todo 'sem desfecho' e em 124 projetos com desfecho sem data válida em nenhuma das fontes (o histórico tem 249 linhas de classe sem data). O 1900-01-01, sentinela de \"sem data\" do SQL Server, vira nulo (2 linhas no histórico e 7 na situação atual)."
+        },
+        {
+          "nome": "passou_por_inadimplencia",
+          "descricao": "true quando algum código de inadimplência aparece em alguma das duas fontes: 28.733 projetos (10,4%), entre eles 13.876 que terminaram aprovados e 10.393 que seguem sem desfecho. false (248.131) é não observado, e o histórico é incompleto. Nula nos 2 projetos sem situação atual e sem nenhuma linha de classe no histórico."
+        },
+        {
+          "nome": "passou_por_reprovacao_e_aprovacao",
+          "descricao": "true quando o projeto tem código de reprovação ou TCE e também de aprovação, com ou sem prejuízo, em qualquer ordem: 2.402 projetos. Todos terminam 'reprovada ou TCE', porque a pior classe vence; 2.086 deles têm data de código de aprovada. Não olha a ordem, então marca tanto o desfecho revisto em recurso ou depois de ressarcimento quanto o projeto aprovado que depois foi reprovado ou virou TCE. Para separar os dois, compare data_primeira_aprovada com data_primeira_reprovada; com uma delas nula, a ordem é desconhecida. Nula nos mesmos 2 projetos de passou_por_inadimplencia."
+        },
+        {
+          "nome": "fonte",
+          "descricao": "Onde a classe de desfecho_pc foi vista. Das 33.213 linhas com desfecho, 'situação atual' em 18.773, 'histórico' em 5.667 e 'ambos' em 8.773. Nula se e só se desfecho_pc é 'sem desfecho'; o teste analise_rouanet_desfecho_coerente confere isso e que data_desfecho é a data_primeira_* da classe final. 'histórico' quer dizer que a situação atual do projeto é outro código, fora daquela classe."
+        },
+        {
+          "nome": "data_primeira_aprovada",
+          "descricao": "Primeira data com código da classe aprovada, mesmo quando a classe final é pior. Preenchida em 28.371 linhas, a partir de 11/10/1998. Existe para historico_proponente saber o desfecho que um projeto anterior tinha numa data dada, sem olhar o futuro."
+        },
+        {
+          "nome": "data_primeira_com_prejuizo",
+          "descricao": "Primeira data com código da classe aprovada com prejuízo, mesmo quando a classe final é outra. Preenchida em 798 linhas, a partir de 31/08/2000. Mesmo uso de data_primeira_aprovada."
+        },
+        {
+          "nome": "data_primeira_reprovada",
+          "descricao": "Primeira data com código da classe reprovada ou TCE. Preenchida em 6.718 linhas, de 16/11/1998 a 18/08/2026; as 42 reprovadas restantes não têm data válida em nenhuma das fontes. Mesmo uso de data_primeira_aprovada."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "silver_sac_historicosituacao",
+        "silver_sac_projeto_rouanet"
+      ],
+      "sources": [],
+      "linhas_sql": 185
+    },
+    {
+      "nome": "historico_proponente",
+      "dominio": "analise_rouanet",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/analise_rouanet/historico_proponente.sql",
+      "descricao": "Uma linha por PRONAC aprovado com proponente na ponte, com o histórico do proponente até a primeira aprovação deste projeto: quantos projetos ele já tinha, quantos foram aprovados, quantos captaram, quanto captaram e como foram as prestações de contas. Feita para os modelos de captação e de risco na prestação de contas do analytics_minc, que hoje não têm nada do proponente. São 151.078 linhas (medido em 18/11/2026 num build de dev sobre as silvers de produção), com referência de 01/02/1992 a 24/08/2026. 46.870 projetos (31,0%) são do primeiro projeto do proponente; nos outros 104.208 a mediana é de 5 projetos anteriores.\n\nUNIVERSO. Os PRONACs de silver_sac_projeto_rouanet com data de primeira aprovação e com agente em silver_sac_projeto_proponente_rouanet. Dos 181.292 PRONACs aprovados, 151.078 (83,3%) estão aqui; 30.214 aprovados não têm agente na ponte, e os 95.574 nunca aprovados não têm data de referência. Esses ficam fora: quem cruza por left join recebe nulo, que é desconhecido. Zero quer dizer proponente conhecido sem nenhum projeto anterior.\n\nSEM VAZAMENTO. A data de referência é a primeira aprovação deste PRONAC, e cada projeto anterior conta só pelo que tinha acontecido estritamente antes dela. Existia se há prova datada antes da referência: PRONAC de ano civil anterior ao dela, ou aprovação, recibo ou classe de prestação de contas datados antes dela. A data de cadastro do projeto não está na Bronze, e a ordem dos PRONACs não a substitui (ver armadilhas). Aprovado, pela primeira aprovação. Captou, pela soma dos recibos anteriores à referência, com estorno descontado. Prestação de contas, pela pior classe de desfecho_prestacao_contas já alcançada antes da referência: projeto aprovado em 2010 e reprovado em 2018 conta como aprovado para uma referência de 2012. As colunas só servem para previsão feita na primeira aprovação ou depois dela.\n\nSEM IDENTIDADE. Lê id_agente da ponte restrita silver_sac_projeto_proponente_rouanet só para achar os outros projetos do mesmo agente. Nenhum documento, nome ou id sai. Em 33 PRONACs a ponte liga dois agentes, e os anteriores são a união dos dois, sem repetir projeto. PF e PJ têm o mesmo tratamento e não há supressão. Cada linha é um projeto, não uma célula de pessoas, e o que ela diz já é público no SALIC para quem sabe o proponente do PRONAC. Suprimir contagem pequena apagaria a variável para os 40.928 agentes de um projeto só. O limiar de supressão do ADR 0006 segue aberto e vale para resultado demográfico.\n\nARMADILHAS. A ponte não garante que todo agente ligado ao projeto seja o proponente, e não outro papel (gate G1). A pessoa física e a empresa dela são agentes diferentes no cadastro, então o histórico de uma não passa para a outra. O ano do PRONAC não data o cadastro: em 807 dos 181.292 PRONACs aprovados a primeira aprovação é de ano anterior ao do próprio PRONAC (709 deles, um ano antes). A primeira versão deste modelo usava a ordem dos PRONACs e contava como anterior projeto numerado depois da referência; o teste analise_rouanet_historico_coerente pegou 36 casos. Valores em reais nominais, sem correção, somados ao longo de décadas. Somar uma coluna da tabela inteira não dá total nenhum: o mesmo projeto anterior conta de novo em cada projeto posterior do proponente (a soma de valor_captado_anterior_reais dá R$ 301 bilhões, mais de oito vezes os R$ 35,5 bilhões captados na história da Rouanet).\n\nCOMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com as outras golds do produto. Lê desfecho_prestacao_contas e silver_sac_captacao_rouanet.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, em texto de 5 a 7 dígitos, ano com duas posições seguido do sequencial sem padding artificial. Único. Chave de junção um para um com silver_sac_projeto_rouanet."
+        },
+        {
+          "nome": "data_referencia",
+          "descricao": "Primeira aprovação deste PRONAC, a data_primeira_aprovacao de silver_sac_projeto_rouanet. Tudo o que as outras colunas contam aconteceu estritamente antes dela, e o que aconteceu no mesmo dia fica de fora. Sempre preenchida, porque define o universo; vai de 01/02/1992 a 24/08/2026."
+        },
+        {
+          "nome": "qt_projetos_anteriores",
+          "descricao": "Outros projetos do mesmo proponente que já existiam na data de referência, isto é, com PRONAC de ano civil anterior ao dela ou com aprovação, recibo ou classe de prestação de contas datados antes dela. Zero é proponente estreante. Projeto do mesmo ano da referência que ainda não tinha sido aprovado nem captado fica de fora, mesmo que já estivesse cadastrado, porque a data de cadastro não está na Bronze. Maior que zero em 104.208 linhas (69,0%); entre elas, mediana 5, percentil 90 igual a 32 e máximo 1.518, de um agente com 1.519 PRONACs."
+        },
+        {
+          "nome": "qt_aprovados_anteriores",
+          "descricao": "Dos projetos anteriores, quantos tinham a primeira aprovação antes da data de referência. Nunca passa de qt_projetos_anteriores (teste analise_rouanet_historico_coerente). Maior que zero em 99.683 linhas (66,0%); entre elas, mediana 5, percentil 90 igual a 27 e máximo 790."
+        },
+        {
+          "nome": "qt_captaram_anteriores",
+          "descricao": "Dos projetos anteriores, quantos somavam captação positiva nos recibos datados antes da referência, com estorno descontado. Projeto que captou e estornou tudo antes da referência não conta. Maior que zero em 67.263 linhas (44,5%); entre elas, mediana 3, percentil 90 igual a 17 e máximo 126. Proponente com projeto anterior aprovado e nenhum captado é comum: aprovação não é captação."
+        },
+        {
+          "nome": "valor_captado_anterior_reais",
+          "descricao": "Soma dos recibos dos projetos anteriores datados antes da referência, em reais nominais da data de cada recibo, sem correção monetária e com estorno descontado. Só soma os projetos anteriores que captaram (saldo maior que zero antes da referência), a mesma regra de qt_captaram_anteriores, então um estorno maior que a captação não puxa a soma para baixo e ela nunca é negativa. Zero quando nenhum captou. Somar valores de décadas diferentes sem corrigir pesa mais o proponente recente; para comparar entre anos, corrija na análise. Em 18/11/2026, antes desse filtro, era maior que zero em 67.255 linhas (44,5%); entre elas, mediana de R$ 976,8 mil, percentil 90 de R$ 10,2 milhões e máximo de R$ 399,2 milhões. O filtro só pode aumentar a soma de uma linha."
+        },
+        {
+          "nome": "qt_pc_aprovadas_anteriores",
+          "descricao": "Projetos anteriores cuja pior classe de prestação de contas já registrada antes da referência era aprovada. Classe sem data válida não conta, porque não se sabe quando aconteceu. A regra de classes é a de desfecho_prestacao_contas, ainda não validada pela área. Maior que zero em 27.032 linhas (17,9%); entre elas, mediana 2, percentil 90 igual a 9 e máximo 88. Baixo porque a prestação de contas leva anos e o histórico de situações é incompleto."
+        },
+        {
+          "nome": "qt_pc_com_problema_anteriores",
+          "descricao": "Projetos anteriores cuja pior classe já registrada antes da referência era aprovada com prejuízo ou reprovada ou TCE. É o mesmo conceito de problema do notebook 05. Somada a qt_pc_aprovadas_anteriores, nunca passa de qt_projetos_anteriores; a diferença são os anteriores ainda sem desfecho na referência. Maior que zero em 9.670 linhas (6,4%); entre elas, mediana 1, percentil 90 igual a 3 e máximo 22."
+        },
+        {
+          "nome": "anos_desde_primeiro_projeto",
+          "descricao": "Ano da data de referência menos o ano em que o projeto anterior mais antigo aparece pela primeira vez, o menor entre o ano do PRONAC, o da primeira aprovação, o do primeiro recibo e o da primeira classe de prestação de contas, contando só o que é anterior à referência. Zero quando não há projeto anterior ou quando o mais antigo é do mesmo ano. A conta é por ano, não por data. Nunca negativo por construção; o teste analise_rouanet_historico_coerente confere. Maior que zero em 96.864 linhas (64,1%); entre elas, mediana 6, percentil 90 igual a 17 e máximo 34."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 10,
+      "materializacao": "",
+      "depende_de": [
+        "desfecho_prestacao_contas",
+        "silver_sac_captacao_rouanet",
+        "silver_sac_projeto_proponente_rouanet",
+        "silver_sac_projeto_rouanet"
+      ],
+      "sources": [],
+      "linhas_sql": 197
+    },
+    {
       "nome": "eixo1_estadic_competencia_conselho",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -64796,6 +64947,13 @@
         "silver": 1
       }
     },
+    "analise_rouanet": {
+      "modelos": 3,
+      "testes": 21,
+      "camadas": {
+        "gold": 3
+      }
+    },
     "cultura_em_numeros": {
       "modelos": 74,
       "testes": 392,
@@ -68320,9 +68478,9 @@
     }
   ],
   "totais": {
-    "modelos": 915,
-    "testes": 1346,
-    "com_descricao": 914,
+    "modelos": 918,
+    "testes": 1367,
+    "com_descricao": 917,
     "sources": 814
   }
 }

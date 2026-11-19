@@ -72,7 +72,8 @@ vem depois dela.
 | SALIC — silvers migradas (F17) | ✅ `models/salic/silver_<banco>_<tabela>.sql`, documentadas com o banco aberto: `controledeacesso` 3, `bdcorporativo` 4, `agentes` 23, `tabelas` 75, `sac` núcleo 13, proposta 37, bancário 51, planilha 23 e prestação de contas e readequação 32, parecer e análise 38, documentos 30, Programa Rouanet, pessoas, CNIC e editais 52, painéis 40, cópias datadas e DBA 42, domínios e outros (parte 1) 57 e (parte 2, views) 65: o `sac` inteiro migrou; `dtproperties` fica só na Bronze. Os modelos manuais (core, meta3–5) saíram de `salic_dbt/` para `salic/silver_sac_*` e a gold `eixo2_meta5_proponente_ano_rouanet`. Os defeitos que mudavam número foram corrigidos. Limpeza final feita em 2026-11-03: `salic_dbt/` e a ingestão v1 saíram |
 | SALIC — modelos manuais | ✅ migrados para `salic/silver_sac_*` e `cultura_em_numeros`; defeitos corrigidos (diário de 2026-10-30) |
 | SALIC — silvers M3/M4/M5 | 🟡 **8 de 14 modelos**: fato restrito de pagamento (F13) e bridge de local (F14) acrescentados. Perfil, município/IBGE, vulnerabilidade computável, execução municipal, proponente-ano e alvo seguem bloqueados. Ver §18 |
-| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic/` |
+| SALIC — guarda de governança | ✅ `tests/test_salic_silver_governance.py` cobre `salic/` e `data_products/analise_rouanet/` |
+| SALIC — produto `analise_rouanet` | 🟡 F18: três golds por PRONAC para o analytics_minc (desfecho da PC, histórico do proponente, concentração de incentivadores), `Disabled`. Pseudônimo do incentivador e teto da renúncia bloqueados. Ver §10, 2026-11-18 |
 
 **Direção do fluxo histórico:** Cidades (`origin/refactor/openmetadata`, 2026-08-18)
 → MinC portou e evoluiu → Cidades recuperou de volta em `fixture/ajustes-conjuntura`.
@@ -389,6 +390,7 @@ disjuntos rodam em paralelo sem conflito.** Marque o estado ao assumir.
 | F15 | Meta 5 — histórico do proponente e golds de primeiro acesso | minc | 🟢 LIVRE — depende de `fct_evento_acesso_rouanet` e da chave HMAC |
 | F16 | Unificar `salic_bronze` e `salic_dbt` sob um único grupo de modelos dbt | minc | ✅ FEITO · Claude · 2026-09-02 20:20 -03 |
 | F17 | Migrar `salic_dbt/` para `salic/` na estrutura do ADR 0010 (6 PRs + ADR 0016) | minc | ✅ FEITO · Claude + Luiza · 2026-11-03 — todos os bancos, os modelos manuais, os defeitos e a limpeza final · plano em docs/superpowers/plans/2026-10-27-salic-adr-0010.md |
+| F18 | Produto `analise_rouanet`: variáveis e rótulos por PRONAC para a ciência de dados da Rouanet | minc | 🟠 PARCIAL · Claude + Luiza · 2026-11-18 — 3 golds validadas em dev (25 testes); HMAC do incentivador, teto da renúncia e validação da regra de desfecho pela área pendentes |
 
 ### F1 — Credencial (cidades) 🔴
 **Arquivos/refs:** HEAD e histórico de
@@ -1300,6 +1302,72 @@ Os redundantes saíram (#145) e o resto ganhou task própria com
 `control` fica, a v2 e o Mapas gravam nele); as dependências `pymssql` e
 `apache-airflow-providers-microsoft-mssql`, que só a v1 usava, saem num PR
 que possa regenerar o lock.
+
+---
+
+### 2026-11-18 · Claude + Luiza · F18 — produto `analise_rouanet` para a ciência de dados
+
+**Pedido.** A frente de ciência de dados da Rouanet (repositório
+`analytics_minc`) lê só o publicável e pediu quatro modelos em `models/salic`.
+Três aplicam regra de produto (classe de desfecho, data de referência, o que é
+"captou", estorno na concentração), e pelo ADR 0015 isso é Gold. Luiza decidiu
+por um produto novo: `data_products/analise_rouanet/`, schema
+`analise_rouanet`. Entrou nas três recipes, no anotador e no template de
+issue; o coletor do site o acha pela pasta. A guarda
+`test_salic_silver_governance.py` passou a cobrir a pasta, para o
+`pii_lido_sem_expor` valer nela.
+
+**Modelos, todos `Disabled` e `eligible_after_security_validation`.**
+`desfecho_prestacao_contas` (276.866 linhas, uma por PRONAC; regra de códigos
+do notebook 04, não validada pela área) é a gold-base.
+`historico_proponente` lê `id_agente` da ponte restrita e só devolve contagens
+por PRONAC, até a primeira aprovação dele. `concentracao_incentivadores`
+(55.043 linhas) lê `cgccpfmecena` só para agrupar. O histórico passa dos
+60 s da sessão de leitura e foi medido por `dbt build --defer` num schema de
+dev, rodado pela Luiza: 151.078 linhas (dos 181.292 aprovados, 30.214 sem
+agente na ponte), 25 de 25 testes, build de 104 s, schema apagado no fim.
+
+**O teste singular pegou um defeito.** `analise_rouanet_historico_coerente`
+falhou com 36 linhas na primeira rodada: `anos_desde_primeiro_projeto`
+negativo. A versão inicial usava a ordem dos PRONACs como data de cadastro,
+mas em 807 dos 181.292 PRONACs aprovados a primeira aprovação é de ano
+anterior ao do PRONAC. Além dos anos negativos, isso contava como anterior
+projeto numerado depois da referência. Agora projeto anterior só existe com
+prova datada antes da referência (PRONAC de ano civil anterior, aprovação,
+recibo ou classe de prestação de contas), e o ano de início é o menor ano
+dessas provas.
+
+**Documentação.** O `schema.yml` do produto segue o template da skill
+`silver-salic-dbt`, com grão, volume, cobertura por ano do PRONAC, armadilhas e
+como cruza. Medir para documentar achou o 1900-01-01 (sentinela do SQL Server)
+na data da situação atual de 7 projetos, que passou a virar nulo como já virava
+no histórico. Termo novo no glossário: `MinC.IncentivoFiscal.DesfechoPrestacaoContas`.
+As medidas do `historico_proponente` entram na descrição quando o script de
+validação rodar. Entraram depois da rodada de dev.
+
+**Bloqueado, e o que falta decidir.** Pseudônimo do incentivador por recibo:
+não há segredo gerenciado; o banco não tem `pgcrypto`; passar o segredo por
+`env_var` o gravaria no SQL compilado (`target/`, manifest que o OpenMetadata
+lê); e o §13 classifica a chave HMAC como sensível, o que tornaria o fato
+restrito e ilegível para o `analytics_minc`. Teto da renúncia: não há fonte na
+Bronze; as views `vrenuncia*` medem o captado. O limite anual vem da LOA e o
+Demonstrativo dos Gastos Tributários da Receita traz a estimativa por ano;
+entraria como seed (ADR 0012).
+
+**Revisão do PR #201 (19/11).** Aprovado, com sugestões aplicadas no mesmo PR.
+`valor_captado_anterior_reais` passou a somar só os projetos anteriores que
+captaram, a mesma regra de `qt_captaram_anteriores`. As frações da
+concentração saem em `double precision`. O teste singular
+`analise_rouanet_desfecho_coerente` confere que `fonte` é nula se e só se o
+desfecho é 'sem desfecho' e que `data_desfecho` é a primeira data da classe
+final. Ficou registrado que `passou_por_reprovacao_e_aprovacao` não olha a
+ordem, e que o recurso de verdade sai da comparação das datas por classe.
+
+**Custo a vigiar.** O `par` do `historico_proponente` é um autojoin por
+agente, quadrático. O agente com mais PRONACs (1.519) gera sozinho cerca de
+2,3 milhões de pares. O build de 104 s está folgado, mas se a ponte crescer ou
+o build passar de alguns minutos na `minc_cosmos_dag`, é este o modelo a olhar
+primeiro.
 
 ---
 

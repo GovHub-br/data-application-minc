@@ -79,6 +79,8 @@ DOMINIO_POR_PASTA = {
     "ibge_sidra": INDICADORES,
     "intermediate": FOMENTO,
     "cultura_em_numeros": FOMENTO,
+    # le so o SALIC: e incentivo fiscal, nunca fomento direto
+    "analise_rouanet": INCENTIVO,
 }
 
 # Numa pasta de fonte cabem origens de subdominios diferentes: em
