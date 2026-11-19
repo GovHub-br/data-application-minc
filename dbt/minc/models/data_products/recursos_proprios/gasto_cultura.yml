@@ -6,9 +6,11 @@ models:
       gasto_cultura: quanto cada ente (estado, DF ou município) empenhou na
       função Cultura (13) em cada ano, em reais correntes, pela MSC
       orçamentária do SICONFI. GRÃO: uma linha por ente (cod_ibge) e
-      exercício. Ano sem a MSC de dezembro ainda não aparece. Não separa a
-      origem do recurso e não deflaciona: para isso, use
-      eixo1_orcamento_empenho_cultura.
+      exercício. Ano sem a MSC de dezembro ainda não aparece. A União fica de
+      fora, e o DF conta uma vez, como estado (53), sem Brasília (5300108) como
+      município. Não separa a origem do recurso e não deflaciona: para isso,
+      use eixo1_orcamento_empenho_cultura. As duas somas são comparadas por
+      ente e ano no teste recursos_proprios_gasto_cultura_confere_eixo1.
     tests:
       - unique:
           column_name: "cod_ibge || '|' || exercicio"
@@ -23,6 +25,12 @@ models:
           dígitos o município.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_entes')
+                field: cod_ibge
+              config:
+                severity: warn
       - name: ente
         description: >-
           Nome do ente, como o SICONFI escreve (silver_entes). Nulo se o código
@@ -45,7 +53,14 @@ models:
         description: >-
           Quantas linhas da MSC somaram para o gasto_cultura do ente no ano.
           Serve para conferir a soma, não é indicador.
+        tests:
+          - not_null
       - name: esfera
         description: >-
           'estadual' para código de 2 dígitos (estados e o DF) e 'municipal'
           para código de 7 dígitos, pelo cod_ibge.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['estadual', 'municipal']
