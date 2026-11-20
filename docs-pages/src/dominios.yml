@@ -435,6 +435,61 @@ dominios:
       domicílios e os complementos de endereço, ficam só no arquivo
       original guardado no datalakehouse.
 
+  - slug: ibge_territorial
+    rotulo: Áreas, rede urbana e regiões metropolitanas
+    subtitulo: O tamanho de cada município, o lugar dele na rede de cidades e a região metropolitana de que faz parte
+    sem_modelos: true
+    contexto: |
+      O Eixo 3 do Cultura em Números descreve o território de cada município
+      antes de olhar para patrimônio e memória: qual a área dele, se é uma
+      cidade que atrai as vizinhas ou que depende de outra, e se faz parte de
+      uma região metropolitana. Essas respostas vêm de três publicações do
+      IBGE que não têm API: as áreas territoriais, as Regiões de Influência
+      das Cidades (REGIC) e a composição dos recortes metropolitanos. O
+      script do eixo lia cópias das planilhas guardadas no computador de quem
+      o rodava, e de duas delas não havia registro de onde tinham sido
+      baixadas.
+    o_que_faz: |
+      Baixa as cinco planilhas do servidor de arquivos do IBGE e guarda cada
+      uma como veio. Leva ao schema seeds uma tabela por aba de dados: a área
+      por município e por UF (2025); a hierarquia urbana de cada município, a
+      base de dados por cidade e os arranjos populacionais (REGIC 2018); e os
+      municípios de cada região metropolitana e de cada aglomeração urbana
+      (2025). Confere, em cada aba, se o número de linhas é o esperado e se é
+      o mesmo na planilha, no staging e no banco. Roda só quando alguém a
+      dispara, porque essas publicações saem uma vez por versão. Ainda não há
+      tabela de uso final: os derivados, como densidade e porte do município,
+      ficam para a etapa seguinte.
+    perguntas:
+      - Qual a área de cada município e de cada UF?
+      - Que lugar cada município ocupa na rede urbana (metrópole, capital regional, centro local) e de que cidade ele depende?
+      - Quais municípios formam um mesmo arranjo populacional?
+      - Que municípios fazem parte de cada região metropolitana ou aglomeração urbana, e desde que lei?
+    sistemas: [IBGE]
+    armadilhas: |
+      A tabela de áreas por município tem duas linhas que não são município:
+      as áreas operacionais da Lagoa Mirim e da Lagoa dos Patos, no Rio
+      Grande do Sul (códigos 4300001 e 4300002). Contar municípios ou somar
+      área sem tirá-las erra. A REGIC é de 2018 e as áreas são de 2025:
+      município criado depois de 2018, como Boa Esperança do Norte (MT),
+      está nas áreas e não está na REGIC, e um cruzamento das duas o deixa
+      sem hierarquia. Na base por cidade da REGIC, uma linha é uma cidade como
+      a REGIC a define, e ela pode ser um arranjo populacional inteiro, e não
+      um município: o código, nesse caso, é o do município principal do
+      arranjo. As variáveis dessa base se chamam VAR01, VAR02 e assim por
+      diante; o que cada uma mede está no dicionário, que fica só no arquivo
+      original. Na tabela de hierarquia, a coluna hierarquia junta o nível
+      com uma observação ("Capital Regional A (2A) - Município integrante do
+      Arranjo Populacional de Aracaju/SE"), então agrupar por ela separa
+      municípios do mesmo nível. Na composição das regiões metropolitanas, um
+      município aparece uma vez em cada recorte de que faz parte, e São
+      Paulo, por exemplo, aparece em mais de uma linha: contar linhas não
+      conta municípios. Todo valor chega como texto. A área usa ponto
+      decimal, e códigos com zero à esquerda, como o do recorte
+      metropolitano, perdem o zero se forem convertidos em número. As áreas
+      das regiões intermediárias e imediatas, das grandes regiões e do país
+      ficam só no arquivo original guardado no datalakehouse.
+
   - slug: metadata
     rotulo: Metadados do pipeline
     subtitulo: O que o próprio pipeline registra sobre sua execução

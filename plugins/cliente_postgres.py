@@ -450,6 +450,7 @@ class ClientPostgresDB:
         table_name: str,
         schema: str = "raw",
         coluna_recorte: Optional[str] = None,
+        primary_key: Optional[List[str]] = None,
     ) -> None:
         """Troca o conteúdo da tabela pelas linhas de ``data``, sem derrubá-la.
 
@@ -475,6 +476,10 @@ class ClientPostgresDB:
             schema: Schema do banco.
             coluna_recorte: Coluna que delimita o que é substituído. Toda
                 linha precisa ter valor nela.
+            primary_key: Chave primária da tabela, se ela for criada agora.
+                Tabela que já existe fica como está. Com a chave, linha
+                repetida em ``data`` desfaz a transação inteira, e o conteúdo
+                anterior fica.
 
         Raises:
             ValueError: alguma linha sem valor em ``coluna_recorte``. Ela
@@ -501,7 +506,9 @@ class ClientPostgresDB:
             recorte = list(dict.fromkeys(valores))
 
         with self._transacao() as cursor:
-            linhas = self._preparar_tabela(cursor, linhas, table_name, None, schema, None)
+            linhas = self._preparar_tabela(
+                cursor, linhas, table_name, primary_key, schema, None
+            )
         with self._transacao() as cursor:
             alvo = _tabela(schema, table_name)
             if coluna is None:
