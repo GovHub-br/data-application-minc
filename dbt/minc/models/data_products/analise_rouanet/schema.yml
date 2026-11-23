@@ -17,7 +17,8 @@ version: 2
 # pode querer outra classificação de desfecho ou outra data de referência.
 # desfecho_prestacao_contas é a gold-base, e historico_proponente lê dela.
 #
-# Medições de 18/11/2026 no dbanalytics, por agregados, sem valor de linha.
+# Medições de 18/11/2026 (20/11 para fornecedores_pagamento) no dbanalytics,
+# por agregados, sem valor de linha.
 
 models:
   - name: desfecho_prestacao_contas
@@ -506,5 +507,251 @@ models:
           1 dividido por qt_incentivadores, quando todos aportam igual, até 1,
           quando um só aporta tudo. Mediana 0,789, média 0,698, mínimo 0,0005.
         data_type: double precision
+        tests:
+          - not_null
+
+  - name: fornecedores_pagamento
+    description: >
+      Uma linha por PRONAC que pagou fornecedor, com quanto foi pago, quanto
+      foi a pessoa jurídica e como esses CNPJs estão na base de empresas do
+      SALIC: situação irregular na data do pagamento, empresa baixada há
+      muito tempo, pagamento antes da abertura, empresa recém-aberta, MEI e
+      Simples de hoje e documento com dígito verificador inválido. Entram os
+      pagamentos de silver_sac_pagamento_profissional_rouanet com valor
+      maior que zero, na primeira ocorrência da chave candidata e com data
+      de 2013 até hoje, os mesmos filtros dos notebooks do analytics_minc.
+      São 21.060 linhas (dos 276.866 PRONACs de silver_sac_projeto_rouanet),
+      com 4.112.316 pagamentos e R$ 18,25 bilhões nominais, dos quais
+      3.331.301 a PJ (R$ 16,73 bilhões). O corte vai até hoje, e não até
+      2026, por isso ficam fora 98 pagamentos a PJ com data futura dentro de
+      2026, que o filtro de 2013 a 2026 do notebook 08 inclui (ele conta
+      3.331.399), e 477 de anos posteriores.
+
+
+      A BASE DE EMPRESAS. É silver_agentes_vwempresajuridica, cópia única de
+      24/08/2026 com 273.447 CNPJs, um por linha. Ela casa com 90,5% do valor
+      pago a PJ de 2013 a 2026 (86,7% das linhas), mas a cobertura depende do
+      ano: de 49,5% a 64,3% do valor de 2013 a 2017, de 71,8% a 90,7% de 2018
+      a 2022 e de 98,7% a 100% de 2023 em diante. Ela parece encher quando o
+      SALIC consulta a Receita, o que só vale para todo comprovante desde
+      2023. Por isso taxa de irregularidade por ano não é comparável antes de
+      2023, e valor_pago_pj_sem_base diz, por projeto, quanto ficou sem
+      classificação.
+
+
+      SITUAÇÃO DE HOJE, NÃO HISTÓRICO. A base guarda só a situação de
+      24/08/2026 e a data em que ela começou. "Irregular na data" é situação
+      de hoje não ativa com data anterior ou igual à do pagamento; empresa
+      que ficou inapta e voltou a ativa antes da cópia não aparece. MEI e
+      Simples também são de hoje, daí o sufixo _atual. A baixa apaga a marca
+      de MEI: das 7.170 baixadas, só 16 aparecem como MEI, contra 1.138 das
+      2.403 inaptas. Estas colunas não respondem se o fornecedor era MEI
+      quando recebeu. Quem responde é o extrato dos Dados Abertos do CNPJ da
+      Receita que o analytics_minc está montando fora do datalake, com as
+      datas de entrada e saída do MEI.
+
+
+      O QUE FICOU DE FORA. A natureza jurídica (grupos de empresário
+      individual, sociedade, associação, administração pública) e as quebras
+      dos irregulares do SALIC por MEI e por empresário individual. Em 82,7%
+      dos CNPJs da base o campo de natureza guarda o código da situação
+      cadastral, com a descrição vazia, e só 4,2% do valor pago a PJ tem
+      natureza válida, quase nada de 2024 em diante. O defeito vem do SALIC; a
+      Bronze copia o texto como está.
+
+
+      CHECAGEM CONTRA O SALIC. A visão
+      silver_sac_vwpagamentofornecedorirregularreceitafederal (4.397
+      pagamentos) é calculada sobre esta mesma base: todos os CNPJs dela casam
+      com situação, data da situação e abertura iguais, então ela não é uma
+      checagem independente. Aplicada a todos os pagamentos a PJ, a regra
+      deste modelo acha 5.605 pagamentos a empresa irregular na data (R$ 17,15
+      milhões, 1.701 projetos), contra 4.376 da visão; 1.663 pagamentos antes
+      da abertura, contra 138; e R$ 0,85 milhão a empresa baixada há mais de
+      cinco anos (621 pagamentos com o filtro do notebook), contra 185
+      pagamentos achados pelo notebook 08 na visão. Com o filtro de 2013 a
+      2026 do notebook, os irregulares na data seriam 5.608; os três a mais
+      estão entre os 98 pagamentos de data futura.
+
+
+      ARMADILHAS. O rótulo de matriz e filial da base está invertido (o código
+      1, descrito como FILIAL, é matriz em 221.103 de 223.458 CNPJs); o
+      casamento é pelo CNPJ inteiro e não depende dele. A base marca
+      1901-01-01 como "sem data", que aqui vira nulo. O CNPJ alfanumérico da
+      Receita, que começa em julho de 2026, perde as letras no
+      normaliza_documento da silver e não casa.
+
+
+      COMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com
+      as outras golds do produto. Projeto sem pagamento não tem linha, e o
+      left join dá nulo, que quer dizer "sem pagamento", não zero.
+    config:
+      tags: [gold, salic, rouanet, analise_rouanet]
+      meta:
+        status: Disabled
+        origem_dados: 'silver_sac_pagamento_profissional_rouanet + silver_agentes_vwempresajuridica'
+        governance:
+          produto_dados: 'Análise da Rouanet'
+          classificacao_uso: interno
+          rag_publication: eligible_after_security_validation
+          pii_lido_sem_expor:
+            - silver_sac_pagamento_profissional_rouanet.documento_prestador
+            - silver_sac_pagamento_profissional_rouanet.tipo_pessoa_prestador
+            - silver_agentes_vwempresajuridica.nrcnpj
+          # contagens por projeto; o nome cita documento, o conteúdo não
+          derivadas_nao_identificantes:
+            - qt_pagamentos_documento_invalido_pf
+            - qt_pagamentos_documento_invalido_pj
+            - qt_pagamentos_sem_documento
+        openmetadata:
+          tier: "Tier.Tier3"
+          domain: "Cultura.Incentivo Fiscal"
+          owner: "minc-data-engineering"
+          glossary:
+            - MinC.Politicas.Rouanet
+            - MinC.IncentivoFiscal.ExecucaoFinanceira
+    columns:
+      - name: pronac
+        description: >
+          PRONAC do projeto, em texto de 5 a 7 dígitos. Único. Chave de junção
+          um para um com silver_sac_projeto_rouanet.
+        data_type: text
+        meta:
+          openmetadata:
+            glossary:
+              - MinC.Identificadores.PRONAC
+        tests:
+          - not_null
+          - unique
+      - name: qt_pagamentos
+        description: >
+          Pagamentos do projeto que passam nos filtros, de pessoa física,
+          jurídica ou sem documento. Denominador das contagens abaixo. Mediana
+          81, percentil 90 igual a 408 e máximo 13.898.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: valor_pago
+        description: >
+          Soma desses pagamentos, em reais nominais da data de cada um, sem
+          correção monetária. Mediana de R$ 305,5 mil, percentil 90 de R$ 1,65
+          milhão e máximo de R$ 131,0 milhões.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: qt_pagamentos_pj
+        description: >
+          Pagamentos a CNPJ (documento de 14 dígitos). Denominador das colunas
+          que olham a base de empresas.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: valor_pago_pj
+        description: >
+          Valor pago a CNPJ. Zero quando o projeto só pagou pessoa física ou
+          sem documento, o que acontece em 32 projetos.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: valor_pago_pj_sem_base
+        description: >
+          Parte de valor_pago_pj cujo CNPJ não está na base de empresas do
+          SALIC. Esse valor não entra em nenhuma das colunas de situação, MEI
+          ou abertura, que por isso são piso, não total. É alto nos projetos
+          com pagamento antes de 2018. Maior que zero em 10.720 projetos
+          (50,9%), e soma 9,5% do valor pago a PJ.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: qt_pagamentos_a_mei_atual
+        description: >
+          Pagamentos a CNPJ que é MEI hoje (sioptantemei da cópia de
+          24/08/2026), não na data do pagamento. MEI que já foi baixado não
+          conta, porque a baixa apaga a marca. São 592.230 pagamentos, em
+          17.131 projetos (81,3%).
+        data_type: bigint
+        tests:
+          - not_null
+      - name: valor_pago_a_mei_atual
+        description: >
+          Valor desses pagamentos a CNPJ que é MEI hoje. Mesma ressalva de
+          qt_pagamentos_a_mei_atual. Soma R$ 1,54 bilhão.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: valor_pago_a_optante_simples_atual
+        description: >
+          Valor pago a CNPJ optante pelo Simples hoje (sioptantesimples).
+          Inclui os MEI: na base, todo MEI é optante pelo Simples. Soma R$ 8,02
+          bilhões, em 20.552 projetos (97,6%).
+        data_type: numeric
+        tests:
+          - not_null
+      - name: qt_pagamentos_a_empresa_irregular_na_data
+        description: >
+          Pagamentos a CNPJ cuja situação de hoje não é ativa (nula, suspensa,
+          inapta ou baixada) e começou antes do pagamento ou no mesmo dia.
+          Vale para todo pagamento a PJ, não só para os que o SALIC marcou na
+          sua visão de irregulares. São 5.605 pagamentos, em 1.701 projetos
+          (8,1%).
+        data_type: bigint
+        tests:
+          - not_null
+      - name: valor_pago_a_empresa_irregular_na_data
+        description: >
+          Valor desses pagamentos a empresa irregular na data. Soma R$ 17,15
+          milhões.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: valor_pago_a_empresa_baixada_ha_mais_de_5_anos
+        description: >
+          Valor pago a CNPJ baixado mais de cinco anos antes do pagamento.
+          Empresa fechada há tanto tempo não presta serviço, então o caso
+          indica CNPJ registrado errado no comprovante, mais que fraude. Soma
+          R$ 0,85 milhão, em 120 projetos.
+        data_type: numeric
+        tests:
+          - not_null
+      - name: qt_pagamentos_antes_da_abertura
+        description: >
+          Pagamentos com data anterior à abertura do CNPJ. Também indica
+          documento errado no comprovante ou data de pagamento digitada
+          errada. Abertura 1901-01-01 (sem data) não conta. São 1.663
+          pagamentos, em 660 projetos.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: valor_pago_a_empresa_aberta_ha_menos_de_180_dias
+        description: >
+          Valor pago a CNPJ aberto há menos de 180 dias na data de cada
+          pagamento, contando o dia da abertura. Soma R$ 362,8 milhões, em
+          11.198 projetos (53,2%).
+        data_type: numeric
+        tests:
+          - not_null
+      - name: qt_pagamentos_documento_invalido_pf
+        description: >
+          Pagamentos a CPF de 11 dígitos com dígito verificador inválido, ou
+          com um dígito só repetido. Conferido pela macro documento_valido,
+          que o teste documento_valido_exemplos verifica. Raro: 11 pagamentos,
+          em 2 projetos.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: qt_pagamentos_documento_invalido_pj
+        description: >
+          Pagamentos a CNPJ de 14 dígitos com dígito verificador inválido, ou
+          com um dígito só repetido. Raro: 27 pagamentos, em 3 projetos.
+        data_type: bigint
+        tests:
+          - not_null
+      - name: qt_pagamentos_sem_documento
+        description: >
+          Pagamentos sem documento do prestador, ou com tamanho diferente de 11
+          e de 14. São 15.288 pagamentos (R$ 271,7 milhões), em 1.287
+          projetos, e todos têm o documento vazio; nenhum tem CNPJ com zeros
+          perdidos.
+        data_type: bigint
         tests:
           - not_null
