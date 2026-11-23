@@ -25,10 +25,12 @@ pytest.importorskip("airflow.sdk", reason="DAGs do Airflow 3: rodam dentro da im
 from airflow.dag_processing.dagbag import DagBag  # noqa: E402
 
 import cliente_ibge_perfil as ibge  # noqa: E402
+import cliente_ibge_territorial as ibge_territorial  # noqa: E402
 
 _DAGS = Path(__file__).resolve().parents[1] / "dags" / "data_ingest"
 _ARQUIVOS = {
     "ibge_perfil_dag": _DAGS / "ibge" / "ibge_perfil_dag.py",
+    "ibge_territorial_dag": _DAGS / "ibge" / "ibge_territorial_dag.py",
     "siop_execucao_dag": _DAGS / "siop" / "siop_execucao_dag.py",
     "tesouro_transparente_dag": _DAGS / "tesouro" / "tesouro_transparente_dag.py",
     "dados_cultura_dag": _DAGS / "dados_cultura" / "dados_cultura_dag.py",
@@ -38,6 +40,7 @@ _ARQUIVOS = {
 }
 _DAGS_DE_SEEDS = (
     "ibge_perfil_dag",
+    "ibge_territorial_dag",
     "siop_execucao_dag",
     "tesouro_transparente_dag",
     "dados_cultura_dag",
@@ -94,6 +97,17 @@ def test_ibge_e_tesouro_sao_manuais(dags: dict[str, Any]) -> None:
         assert type(dags[dag_id].timetable).__name__ == "NullTimetable", dag_id
     assert dags["ibge_perfil_dag"].params["edicoes"] == []
     assert dags["siop_execucao_dag"].params["anos"] == []
+
+
+@requer_openmetadata
+def test_ibge_territorial_e_manual_e_declara_as_tabelas(dags: dict[str, Any]) -> None:
+    dag = dags["ibge_territorial_dag"]
+    assert type(dag.timetable).__name__ == "NullTimetable"
+    assert dag.params["arquivos"] == []
+    nomes = " ".join(_outlets(dag))
+    for tabela in ibge_territorial.tabelas_seeds():
+        assert tabela in nomes
+    assert "ibge_controle_carga" in nomes
 
 
 @requer_openmetadata

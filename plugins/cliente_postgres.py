@@ -450,6 +450,7 @@ class ClientPostgresDB:
         table_name: str,
         schema: str = "raw",
         coluna_recorte: Optional[str] = None,
+        primary_key: Optional[List[str]] = None,
     ) -> None:
         """Troca o conteúdo da tabela pelas linhas de ``data``, sem derrubá-la.
 
@@ -475,6 +476,10 @@ class ClientPostgresDB:
             schema: Schema do banco.
             coluna_recorte: Coluna que delimita o que é substituído. Toda
                 linha precisa ter valor nela.
+            primary_key: Chave primária da tabela, se ela for criada agora.
+                Tabela que já existe fica como está. Com a chave, linha
+                repetida em ``data`` desfaz a transação inteira, e o conteúdo
+                anterior fica.
 
         Raises:
             ValueError: alguma linha sem valor em ``coluna_recorte``. Ela
@@ -501,7 +506,9 @@ class ClientPostgresDB:
             recorte = list(dict.fromkeys(valores))
 
         with self._transacao() as cursor:
-            linhas = self._preparar_tabela(cursor, linhas, table_name, None, schema, None)
+            linhas = self._preparar_tabela(
+                cursor, linhas, table_name, primary_key, schema, None
+            )
         with self._transacao() as cursor:
             alvo = _tabela(schema, table_name)
             if coluna is None:
@@ -519,6 +526,50 @@ class ClientPostgresDB:
             + (f" em {len(recorte)} valores de {coluna}" if coluna else "")
             + f": {apagadas} linhas apagadas, {len(linhas)} gravadas"
         )
+
+    def apagar_fora_do_recorte(
+        self,
+        table_name: str,
+        schema: str,
+        coluna_recorte: str,
+        manter: Sequence[Any],
+    ) -> int:
+        """Apaga as linhas cujo valor em ``coluna_recorte`` não está em ``manter``.
+
+        Complementa o ``substituir_dados`` por recorte, que só alcança os
+        valores que a carga traz: o recorte que deixou de ser carregado fica
+        para sempre. Isto o tira.
+
+        Sem ``manter``, nada é apagado: lista vazia é mais provável de ser
+        configuração que sumiu do que pedido para esvaziar a tabela. Tabela
+        que ainda não existe também não é erro.
+
+        Returns:
+            As linhas apagadas.
+        """
+        if not manter:
+            logging.warning(
+                f"[cliente_postgres.py] {schema}.{table_name}: nada a manter, "
+                "então nada é apagado"
+            )
+            return 0
+        alvo = _tabela(schema, table_name)
+        with self._transacao() as cursor:
+            cursor.execute("SELECT to_regclass(%s)", (alvo,))
+            existe = cursor.fetchone()
+            if not existe or existe[0] is None:
+                return 0
+            cursor.execute(
+                f"DELETE FROM {alvo} "
+                f"WHERE {_ident(coluna_recorte.lower())}::text <> ALL(%s::text[])",
+                ([str(valor) for valor in manter],),
+            )
+            apagadas = int(cursor.rowcount)
+        logging.info(
+            f"[cliente_postgres.py] {schema}.{table_name}: {apagadas} linhas fora "
+            f"de {len(manter)} valores de {coluna_recorte} apagadas"
+        )
+        return apagadas
 
     @staticmethod
     def _mover_para_payload_origem(

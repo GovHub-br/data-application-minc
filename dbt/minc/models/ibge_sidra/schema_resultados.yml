@@ -31,8 +31,20 @@ models:
       int_ibge_sidra_siconfi).
 
 
+      Nos Eixos 3 e 5 (issue #170), o contexto territorial de municípios (N6) e
+      UFs (N3): população do Censo 2022 (4714) e estimada 2025-2026 (6579),
+      situação urbana/rural (9923), cor ou raça (9605), quilombolas (9578),
+      indígenas (9718), envelhecimento e idade mediana (9756), alfabetização
+      (9543), PIB 2023 (5938) e umbanda e candomblé (9537). Um indicador é um
+      agregado, uma variável e as categorias: % de pretos é agregado_id 9605,
+      variavel_id 1000093, categorias '86[2777]'.
+
+
       Os símbolos do SIDRA no lugar do número: '-' é zero absoluto e vira 0;
       '..', '...' e 'X' viram nulo. O texto original fica em valor_original.
+      As estimativas de população (6579) têm 5.571 municípios, um a mais que o
+      Censo 2022: o município criado depois do Censo não tem linha nos
+      agregados do Censo.
     config:
       tags:
         - silver
@@ -46,7 +58,7 @@ models:
       - unique:
           column_name: >-
             agregado_id || '|' || variavel_id || '|' || nivel || '|' || localidade_id
-            || '|' || periodo || '|' || coalesce(classificacoes, '')
+            || '|' || periodo || '|' || coalesce(categorias, '')
     columns:
       - name: agregado_id
         description: Código da tabela (agregado) do SIDRA. 4709 = Censo 2022, população.
@@ -94,8 +106,18 @@ models:
       - name: valor_original
         description: O valor como o SIDRA devolve, com os símbolos.
         data_type: text
+      - name: categorias
+        description: >
+          As categorias da linha só pelos IDs, na sintaxe do SIDRA: '86[2776]'
+          (classificação 86, cor ou raça, categoria 2776, branca), ou
+          '1714[60024]|2661[32776]' com mais de uma classificação, em ordem de
+          ID. Faz parte da chave e é por ela que se filtra um indicador. Nulo no
+          agregado sem classificação, como a 4709.
+        data_type: text
       - name: classificacoes
         description: >
-          As classificações (e categorias) da linha, como texto do JSON da API.
-          Nulo no agregado sem classificação, como a 4709.
+          As mesmas categorias com os nomes, em JSON
+          ('[{"id": "86", "nome": "Cor ou raça", "categoria": {"2776": "Branca"}}]').
+          Nulo no agregado sem classificação. Linha gravada antes de 11/2026
+          pode trazer o formato antigo, que não é JSON.
         data_type: text

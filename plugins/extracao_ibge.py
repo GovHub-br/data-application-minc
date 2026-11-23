@@ -13,9 +13,11 @@ Endpoints suportados:
 """
 
 import http
+import json
 import logging
+import re
 import time
-from typing import Any, Optional
+from typing import Any, Optional, TypedDict
 
 from cliente_base import ClienteBase
 from safe_request import request_safe
@@ -37,6 +39,152 @@ NIVEIS_GEOGRAFICOS: dict[str, str] = {
 }
 
 _RETRY_SLEEP_S = 1.0
+
+# Uma consulta no nível municipal (N6) leva de 1 a 6 s e passa de 3 MB (medido
+# em 19/11/2026): os 10 s do ClienteBase não dão folga.
+TIMEOUT_RESULTADOS_S = 120.0
+
+# Sintaxe do parâmetro ``classificacao`` do SIDRA: ``86[2776,2777]`` ou, com
+# mais de uma, ``1714[60024]|2661[32776,12869]``.
+_CLASSIFICACAO = re.compile(r"^\d+\[[^\[\]]+\](\|\d+\[[^\[\]]+\])*$")
+
+
+class EspecificacaoResultados(TypedDict):
+    """O que pedir ao SIDRA para um agregado (uma task de resultados)."""
+
+    agregado: str
+    variaveis: str
+    periodos: str
+    classificacao: Optional[str]
+    niveis: list[str]
+
+
+def chave_classificacoes(classificacoes: list[dict[str, Any]]) -> str:
+    """As categorias de uma linha só pelos IDs, na sintaxe do SIDRA.
+
+    ``[{"id": "86", "nome": "Cor ou raça", "categoria": {"2776": "Branca"}}]``
+    vira ``86[2776]``; com mais de uma classificação, em ordem de ID e unidas
+    por ``|``. Sem os nomes, a chave não muda quando o IBGE renomeia uma
+    categoria. Sem classificação, ``""``: a coluna entra na chave da tabela, e
+    o Postgres recusa nulo em chave primária.
+    """
+    partes = []
+    for classificacao in sorted(classificacoes, key=lambda c: int(c["id"])):
+        categorias = sorted(classificacao.get("categoria", {}), key=int)
+        partes.append(f"{classificacao['id']}[{','.join(categorias)}]")
+    return "|".join(partes)
+
+
+def _juntar(valor: Any, campo: str, agregado: str) -> str:
+    """Texto ou lista de textos (unida com ``|``), nunca vazio."""
+    if isinstance(valor, (list, tuple)):
+        valor = "|".join(str(v).strip() for v in valor)
+    texto = str(valor).strip() if valor is not None else ""
+    if not texto:
+        raise ValueError(f"agregado {agregado}: '{campo}' vazio")
+    return texto
+
+
+def _lista(config: dict[str, Any], chave: str) -> list[Any]:
+    """A lista em ``config[chave]``. Texto seria percorrido letra a letra."""
+    valor = config.get(chave) or []
+    if not isinstance(valor, list):
+        raise ValueError(f"'{chave}' precisa ser uma lista, veio {valor!r}")
+    return valor
+
+
+def _item_resultados(item: Any) -> dict[str, Any]:
+    """Um item da lista ``resultados``, que precisa ser um objeto.
+
+    ``dict()`` de um número ou de ``[4714]`` dá ``TypeError``, que escaparia da
+    validação e iria para o retry, que não conserta configuração.
+    """
+    if not isinstance(item, dict):
+        raise ValueError(
+            f"resultados: item {item!r} não é um objeto; " 'use {"agregado": "4714", ...}'
+        )
+    return dict(item)
+
+
+def especificacoes_resultados(
+    config: dict[str, Any],
+) -> list[EspecificacaoResultados]:
+    """Os agregados cujos valores a DAG grava, a partir da Variable ``ibge_config``.
+
+    Dois formatos convivem:
+
+    - ``resultados``: lista de ``{"agregado", "variaveis", "periodos",
+      "classificacao", "niveis"}``, um item por agregado. Só ``agregado`` é
+      obrigatório; ``variaveis`` e ``periodos`` aceitam texto (``"2025|2026"``)
+      ou lista;
+    - o antigo: ``resultados_agregados_ids`` com ``resultados_periodos`` e
+      ``resultados_nivel`` valendo para todos.
+
+    Um agregado aparece uma vez só: a carga substitui as linhas do agregado
+    inteiro, e duas especificações dele apagariam uma a outra.
+
+    Raises:
+        ValueError: configuração que a API recusaria ou que a carga não
+            consegue gravar sem perda.
+    """
+    nivel_padrao = str(config.get("resultados_nivel", "N3"))
+    periodos_padrao = config.get("resultados_periodos", "ultimo")
+    itens: list[tuple[str, dict[str, Any]]] = [
+        ("resultados", _item_resultados(item)) for item in _lista(config, "resultados")
+    ]
+    itens += [
+        (
+            "resultados_agregados_ids",
+            {"agregado": agregado, "periodos": periodos_padrao},
+        )
+        for agregado in _lista(config, "resultados_agregados_ids")
+    ]
+
+    especificacoes: list[EspecificacaoResultados] = []
+    origem_de: dict[str, str] = {}
+    for origem, item in itens:
+        agregado = str(item.get("agregado", "")).strip()
+        if not agregado.isdigit():
+            raise ValueError(f"{origem}: agregado {agregado!r} não é um código numérico")
+        if agregado in origem_de:
+            dica = (
+                " Tire-o de resultados_agregados_ids: a lista 'resultados' já o tem."
+                if "resultados_agregados_ids" in (origem, origem_de[agregado])
+                and origem != origem_de[agregado]
+                else ""
+            )
+            raise ValueError(f"agregado {agregado} aparece duas vezes.{dica}")
+        origem_de[agregado] = origem
+
+        niveis = item.get("niveis") or [nivel_padrao]
+        if isinstance(niveis, str):
+            niveis = [niveis]
+        niveis = [str(n).strip() for n in niveis]
+        desconhecidos = [n for n in niveis if n not in NIVEIS_GEOGRAFICOS]
+        if desconhecidos:
+            raise ValueError(f"agregado {agregado}: nível desconhecido {desconhecidos}")
+
+        classificacao = item.get("classificacao")
+        if classificacao is not None:
+            classificacao = str(classificacao).replace(" ", "")
+            if not _CLASSIFICACAO.match(classificacao):
+                raise ValueError(
+                    f"agregado {agregado}: classificação {classificacao!r} fora da "
+                    "sintaxe do SIDRA, como 86[2776,2777] ou 1714[60024]|2661[32776]"
+                )
+
+        especificacoes.append(
+            {
+                "agregado": agregado,
+                "variaveis": _juntar(
+                    item.get("variaveis", "allxp"), "variaveis", agregado
+                ),
+                "periodos": _juntar(item.get("periodos", "ultimo"), "periodos", agregado),
+                "classificacao": classificacao or None,
+                "niveis": list(dict.fromkeys(niveis)),
+            }
+        )
+    return especificacoes
 
 
 class ClienteIBGE(ClienteBase):
@@ -62,9 +210,7 @@ class ClienteIBGE(ClienteBase):
                 type(data).__name__,
             )
             return []
-        logger.info(
-            "[extracao_ibge] get_pesquisas: %s pesquisas retornadas", len(data)
-        )
+        logger.info("[extracao_ibge] get_pesquisas: %s pesquisas retornadas", len(data))
         return data
 
     def listar_agregados(
@@ -117,9 +263,7 @@ class ClienteIBGE(ClienteBase):
             return None
         return data
 
-    def get_metadados_batch(
-        self, ids: list[int | str]
-    ) -> list[dict[str, Any]]:
+    def get_metadados_batch(self, ids: list[int | str]) -> list[dict[str, Any]]:
         """Chama get_metadados para cada ID e achata o resultado.
 
         Campos aninhados complexos (listas) são convertidos para string JSON
@@ -133,7 +277,11 @@ class ClienteIBGE(ClienteBase):
             if meta:
                 plano: dict[str, Any] = {"agregado_id": str(agregado_id)}
                 for k, v in meta.items():
-                    plano[k] = json.dumps(v, ensure_ascii=False) if isinstance(v, (list, dict)) else v
+                    plano[k] = (
+                        json.dumps(v, ensure_ascii=False)
+                        if isinstance(v, (list, dict))
+                        else v
+                    )
                 resultados.append(plano)
             if self.sleep_entre_requests:
                 time.sleep(self.sleep_entre_requests)
@@ -157,9 +305,7 @@ class ClienteIBGE(ClienteBase):
             return []
         return data
 
-    def get_periodos_batch(
-        self, ids: list[int | str]
-    ) -> list[dict[str, Any]]:
+    def get_periodos_batch(self, ids: list[int | str]) -> list[dict[str, Any]]:
         """Busca períodos para cada agregado ID e adiciona ``agregado_id`` em cada registro."""
         import json
 
@@ -169,7 +315,11 @@ class ClienteIBGE(ClienteBase):
             for p in periodos:
                 row: dict[str, Any] = {"agregado_id": str(agregado_id)}
                 for k, v in p.items():
-                    row[k] = json.dumps(v, ensure_ascii=False) if isinstance(v, (list, dict)) else v
+                    row[k] = (
+                        json.dumps(v, ensure_ascii=False)
+                        if isinstance(v, (list, dict))
+                        else v
+                    )
                 resultados.append(row)
             if self.sleep_entre_requests:
                 time.sleep(self.sleep_entre_requests)
@@ -193,9 +343,7 @@ class ClienteIBGE(ClienteBase):
             return []
         return data
 
-    def get_variaveis_batch(
-        self, ids: list[int | str]
-    ) -> list[dict[str, Any]]:
+    def get_variaveis_batch(self, ids: list[int | str]) -> list[dict[str, Any]]:
         """Busca variáveis para cada agregado ID."""
         import json
 
@@ -205,7 +353,11 @@ class ClienteIBGE(ClienteBase):
             for v in variaveis:
                 row: dict[str, Any] = {"agregado_id": str(agregado_id)}
                 for k, val in v.items():
-                    row[k] = json.dumps(val, ensure_ascii=False) if isinstance(val, (list, dict)) else val
+                    row[k] = (
+                        json.dumps(val, ensure_ascii=False)
+                        if isinstance(val, (list, dict))
+                        else val
+                    )
                 resultados.append(row)
             if self.sleep_entre_requests:
                 time.sleep(self.sleep_entre_requests)
@@ -244,7 +396,11 @@ class ClienteIBGE(ClienteBase):
             for loc in localidades:
                 row: dict[str, Any] = {"agregado_id": str(agregado_id), "nivel": nivel}
                 for k, v in loc.items():
-                    row[k] = json.dumps(v, ensure_ascii=False) if isinstance(v, (list, dict)) else v
+                    row[k] = (
+                        json.dumps(v, ensure_ascii=False)
+                        if isinstance(v, (list, dict))
+                        else v
+                    )
                 resultados.append(row)
             if self.sleep_entre_requests:
                 time.sleep(self.sleep_entre_requests)
@@ -261,6 +417,8 @@ class ClienteIBGE(ClienteBase):
         variaveis: str = "allxp",
         nivel: str = "N3",
         localidades: str = "all",
+        classificacao: Optional[str] = None,
+        timeout: float = TIMEOUT_RESULTADOS_S,
     ) -> list[dict[str, Any]]:
         """GET /agregados/{id}/periodos/{per}/variaveis/{var}
 
@@ -272,21 +430,32 @@ class ClienteIBGE(ClienteBase):
                 para todas.
             nivel: Código de nível geográfico (ex.: ``"N3"`` para UF).
             localidades: Código de localidade dentro do nível, ou ``"all"``.
+            classificacao: Categorias pedidas, na sintaxe do SIDRA
+                (``86[2776,2777]|2[6794]``). Sem ela, a API devolve só o total
+                de cada classificação.
+            timeout: Segundos de espera pela resposta.
 
         Returns:
             Lista de registros de séries de resultados.
         """
         path = f"/agregados/{agregado_id}/periodos/{periodos}/variaveis/{variaveis}"
         params = {"localidades": f"{nivel}[{localidades}]"}
+        if classificacao:
+            params["classificacao"] = classificacao
         status, data = request_safe(
-            self, http.HTTPMethod.GET, path, params=params
+            self, http.HTTPMethod.GET, path, params=params, timeout=timeout
         )
         if status != http.HTTPStatus.OK or not isinstance(data, list):
+            # A mensagem de erro da API (classificação inválida, consulta grande
+            # demais) vem no corpo: sem ela, o log só diz que falhou.
             logger.warning(
-                "[extracao_ibge] get_resultados: agregado=%s periodos=%s status=%s",
+                "[extracao_ibge] get_resultados: agregado=%s periodos=%s nivel=%s "
+                "status=%s resposta=%r",
                 agregado_id,
                 periodos,
+                nivel,
                 status,
+                str(data)[:300],
             )
             return []
         return data
@@ -298,13 +467,18 @@ class ClienteIBGE(ClienteBase):
         variaveis: str = "allxp",
         nivel: str = "N3",
         localidades: str = "all",
+        classificacao: Optional[str] = None,
     ) -> list[dict[str, Any]]:
         """Achata a resposta de get_resultados em linhas observacionais.
 
         A API retorna uma estrutura aninhada:
-          variavel → localidade → [{ id, periodo, valor }]
+          variavel → resultado (uma combinação de categorias) → localidade →
+          { periodo: valor }
 
-        Este método produz uma linha por combinação (variavel, localidade, período).
+        Este método produz uma linha por combinação (variável, categorias,
+        localidade, período). ``classificacoes`` guarda as categorias da linha
+        em JSON, com os nomes; ``classificacoes_chave``, só os IDs (ver
+        ``chave_classificacoes``).
         """
         raw = self.get_resultados(
             agregado_id=agregado_id,
@@ -312,6 +486,7 @@ class ClienteIBGE(ClienteBase):
             variaveis=variaveis,
             nivel=nivel,
             localidades=localidades,
+            classificacao=classificacao,
         )
 
         linhas: list[dict[str, Any]] = []
@@ -321,6 +496,12 @@ class ClienteIBGE(ClienteBase):
             var_unidade = variavel.get("unidade")
             for resultado in variavel.get("resultados", []):
                 classificacoes = resultado.get("classificacoes", [])
+                classificacoes_json = (
+                    json.dumps(classificacoes, ensure_ascii=False)
+                    if classificacoes
+                    else None
+                )
+                chave = chave_classificacoes(classificacoes)
                 for serie in resultado.get("series", []):
                     localidade = serie.get("localidade", {})
                     for periodo, valor in serie.get("serie", {}).items():
@@ -335,13 +516,8 @@ class ClienteIBGE(ClienteBase):
                                 "nivel": nivel,
                                 "periodo": periodo,
                                 "valor": valor,
-                                "classificacoes": str(classificacoes) if classificacoes else None,
-                                # A mesma coisa sem nulo, para entrar na chave da
-                                # tabela: agregado sem classificação (o Censo 2022
-                                # na 4709) teria NULL na chave, e o Postgres recusa.
-                                "classificacoes_chave": (
-                                    str(classificacoes) if classificacoes else ""
-                                ),
+                                "classificacoes": classificacoes_json,
+                                "classificacoes_chave": chave,
                             }
                         )
         return linhas

@@ -16086,7 +16086,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/ibge_sidra/silver_resultados.sql",
-      "descricao": "Camada Silver — valores das tabelas do SIDRA, tipados. Uma linha por agregado, variável, nível territorial, localidade, período e classificação, a chave com que a DAG grava.\n\nPARA QUE SERVE no Eixo 1: a população residente do Censo 2022 por município (agregado_id 4709, variavel_id 93, nivel 'N6', periodo '2022'), que dá o porte do município nas golds do orçamento (via int_ibge_sidra_siconfi).\n\nOs símbolos do SIDRA no lugar do número: '-' é zero absoluto e vira 0; '..', '...' e 'X' viram nulo. O texto original fica em valor_original.",
+      "descricao": "Camada Silver — valores das tabelas do SIDRA, tipados. Uma linha por agregado, variável, nível territorial, localidade, período e classificação, a chave com que a DAG grava.\n\nPARA QUE SERVE no Eixo 1: a população residente do Censo 2022 por município (agregado_id 4709, variavel_id 93, nivel 'N6', periodo '2022'), que dá o porte do município nas golds do orçamento (via int_ibge_sidra_siconfi).\n\nNos Eixos 3 e 5 (issue #170), o contexto territorial de municípios (N6) e UFs (N3): população do Censo 2022 (4714) e estimada 2025-2026 (6579), situação urbana/rural (9923), cor ou raça (9605), quilombolas (9578), indígenas (9718), envelhecimento e idade mediana (9756), alfabetização (9543), PIB 2023 (5938) e umbanda e candomblé (9537). Um indicador é um agregado, uma variável e as categorias: % de pretos é agregado_id 9605, variavel_id 1000093, categorias '86[2777]'.\n\nOs símbolos do SIDRA no lugar do número: '-' é zero absoluto e vira 0; '..', '...' e 'X' viram nulo. O texto original fica em valor_original. As estimativas de população (6579) têm 5.571 municípios, um a mais que o Censo 2022: o município criado depois do Censo não tem linha nos agregados do Censo.",
       "colunas": [
         {
           "nome": "agregado_id",
@@ -16129,18 +16129,22 @@
           "descricao": "O valor como o SIDRA devolve, com os símbolos."
         },
         {
+          "nome": "categorias",
+          "descricao": "As categorias da linha só pelos IDs, na sintaxe do SIDRA: '86[2776]' (classificação 86, cor ou raça, categoria 2776, branca), ou '1714[60024]|2661[32776]' com mais de uma classificação, em ordem de ID. Faz parte da chave e é por ela que se filtra um indicador. Nulo no agregado sem classificação, como a 4709."
+        },
+        {
           "nome": "classificacoes",
-          "descricao": "As classificações (e categorias) da linha, como texto do JSON da API. Nulo no agregado sem classificação, como a 4709."
+          "descricao": "As mesmas categorias com os nomes, em JSON ('[{\"id\": \"86\", \"nome\": \"Cor ou raça\", \"categoria\": {\"2776\": \"Branca\"}}]'). Nulo no agregado sem classificação. Linha gravada antes de 11/2026 pode trazer o formato antigo, que não é JSON."
         }
       ],
-      "colunas_descritas": 11,
+      "colunas_descritas": 12,
       "testes": 6,
       "materializacao": "",
       "depende_de": [
         "bronze_resultados"
       ],
       "sources": [],
-      "linhas_sql": 30
+      "linhas_sql": 35
     },
     {
       "nome": "bronze_cadastro_museus",
@@ -68429,7 +68433,7 @@
         },
         {
           "nome": "resultados",
-          "descricao": "Valores das tabelas do SIDRA, para os agregados da Variable ibge_config (resultados_agregados_ids): uma linha por agregado, variável, nível, localidade, período e classificação, que é a chave da tabela (a DAG regrava sem duplicar). GET /agregados/{id}/periodos/{per}/variaveis/{var}, achatado. Tudo text. O Eixo 1 lê a população residente do Censo 2022 (agregado 4709, variável 93, nível N6)."
+          "descricao": "Valores das tabelas do SIDRA, para os agregados da Variable ibge_config (lista resultados, um item por agregado com variáveis, períodos, classificação e níveis; o formato antigo resultados_agregados_ids ainda vale): uma linha por agregado, variável, nível, localidade, período e categorias (classificacoes_chave, só os IDs), que é a chave da tabela. Cada run substitui as linhas do agregado inteiro e apaga os agregados que saíram da Variable, então a tabela a espelha (com a lista vazia, nada é apagado). GET /agregados/{id}/periodos/{per}/variaveis/{var}, achatado. Tudo text. O Eixo 1 lê a população residente do Censo 2022 (agregado 4709, variável 93, nível N6); os Eixos 3 e 5, os indicadores territoriais da issue #170."
         }
       ]
     },
