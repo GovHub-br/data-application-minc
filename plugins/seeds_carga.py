@@ -115,16 +115,28 @@ def _ident(nome: str) -> str:
     return '"' + nome.replace('"', '""') + '"'
 
 
+def _sem_byte_nulo(valor: Any) -> Any:
+    if pd.isna(valor):
+        return ""
+    return valor.replace("\x00", "") if isinstance(valor, str) else valor
+
+
 def _copy_csv(df: pd.DataFrame) -> io.StringIO:
     """CSV para ``COPY ... (FORMAT csv)``: nulo é campo vazio sem aspas.
 
     Valor vazio não chega aqui (já virou nulo), então não há como confundir
     os dois.
+
+    O byte nulo (``\\x00``) sai do texto: o Postgres não guarda esse caractere
+    em ``text`` e recusa o ``COPY`` inteiro. A coleção do Iphan que vira
+    ``seeds.iphan_bcr_documentos_do_process`` traz um, e a carga dela falhava.
+    O raw e o Parquet seguem com o valor original. Um valor que era só o byte
+    nulo vira campo vazio, isto é, nulo.
     """
     buffer = io.StringIO()
     escritor = csv.writer(buffer, lineterminator="\n")
     for linha in df.itertuples(index=False, name=None):
-        escritor.writerow(["" if pd.isna(v) else v for v in linha])
+        escritor.writerow([_sem_byte_nulo(v) for v in linha])
     buffer.seek(0)
     return buffer
 
