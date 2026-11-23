@@ -1369,6 +1369,44 @@ agente, quadrático. O agente com mais PRONACs (1.519) gera sozinho cerca de
 o build passar de alguns minutos na `minc_cosmos_dag`, é este o modelo a olhar
 primeiro.
 
+### 2026-11-20 · Claude + Luiza · F18 — `fornecedores_pagamento` e a base de empresas do SALIC
+
+**Pedido.** O notebook 08 do `analytics_minc` quer cruzar o CNPJ do fornecedor
+com a Receita. A medição veio antes de qualquer modelo, e a base
+`silver_agentes_vwempresajuridica` (cópia única de 24/08/2026, 273.447 CNPJs)
+tem três limites.
+- **Cobertura.** Casa com 90,5% do valor pago a PJ de 2013 a 2026, mas só de
+  49,5% a 64,3% de 2013 a 2017, e de 98,7% a 100% de 2023 em diante.
+- **Natureza jurídica.** Em 82,7% dos CNPJs o campo de natureza guarda o código
+  da situação cadastral, com a descrição vazia, e só 4,2% do valor pago a PJ tem
+  natureza válida. O defeito vem do SALIC, porque a Bronze copia o texto como
+  está.
+- **MEI.** O `sioptantemei` é o de hoje, e a baixa apaga a marca: das 7.170
+  baixadas, só 16 aparecem como MEI.
+
+Também medido: a visão `vwpagamentofornecedorirregularreceitafederal` é
+calculada sobre esta mesma base, então não é checagem independente. A
+`bronze_sac_tbnotafiscaleletronica` está vazia na origem (o log de controle
+registra 0 linhas na origem nas três cargas de 25/08/2026). Não há CNAE em
+nenhum outro lugar do banco.
+
+**Decisão.** A Luiza decidiu não levar a base aberta de CNPJ da Receita para o
+datalake. Um extrato dos fornecedores da Rouanet fica no `analytics_minc`, em
+`data/` (fora do git), e responde natureza, CNAE e MEI na data. Aqui ficou o
+que a base do SALIC sustenta: `fornecedores_pagamento`, uma linha por PRONAC
+(21.060), com irregular na data, baixada há mais de 5 anos, pagamento antes
+da abertura, aberta há menos de 180 dias, MEI e Simples de hoje (sufixo
+`_atual`), documento com DV inválido e o pago a PJ sem base. A macro nova
+`documento_valido` confere o DV de CPF e CNPJ. As colunas do pedido anterior de
+`fornecedores_pagamento` (fornecedor que é proponente ou incentivador,
+concentração, recorrência) esperam o texto do pedido.
+
+**Validação.** O classificador da sessão não deixa rodar script que lê o
+`.env`, então o modelo foi medido pelo SQL renderizado na sessão de leitura:
+PRONAC único, as checagens dos dois testes singulares com zero linhas e 5.605
+pagamentos a empresa irregular na data. Falta o `dbt build`, que a
+`minc_cosmos_dag` faz depois do merge.
+
 ---
 
 ## 11. Frente SALIC — bronze e silver para o RAG
