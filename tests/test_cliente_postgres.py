@@ -534,6 +534,34 @@ def test_substituir_dados_por_recorte_compara_como_texto(
     assert consultar(f'SELECT k, v FROM "{schema}".t') == [("7", "b")]
 
 
+def test_apagar_fora_do_recorte_so_tira_o_que_saiu(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    db.insert_data(
+        [{"agregado_id": a, "v": "x"} for a in ("1", "1", "2", "3")], "t", schema=schema
+    )
+    _view_sobre(schema, "t")
+
+    assert db.apagar_fora_do_recorte("t", schema, "agregado_id", [1, "3"]) == 1
+
+    assert consultar(f'SELECT agregado_id FROM "{schema}".v_t ORDER BY 1') == [
+        ("1",),
+        ("1",),
+        ("3",),
+    ]
+
+
+def test_apagar_fora_do_recorte_sem_lista_ou_sem_tabela_nao_apaga(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    assert db.apagar_fora_do_recorte("nao_existe", schema, "agregado_id", ["1"]) == 0
+    db.insert_data([{"agregado_id": "1"}], "t", schema=schema)
+
+    assert db.apagar_fora_do_recorte("t", schema, "agregado_id", []) == 0
+
+    assert consultar(f'SELECT count(*) FROM "{schema}".t') == [(1,)]
+
+
 def test_substituir_dados_cria_a_tabela_com_a_chave_e_recusa_repetida(
     db: ClientPostgresDB, schema: str
 ) -> None:

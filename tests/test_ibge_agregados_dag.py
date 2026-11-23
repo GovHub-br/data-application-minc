@@ -216,7 +216,8 @@ def test_dag_carrega_e_o_catalogo_vem_antes_de_tudo() -> None:
     }
     assert dag.get_task("preparar_batches").downstream_task_ids == set(_TASKS_DO_LOTE)
     assert dag.get_task("preparar_resultados").downstream_task_ids == {
-        "extrair_resultados"
+        "extrair_resultados",
+        "apagar_resultados_fora_da_config",
     }
 
 
@@ -253,6 +254,18 @@ class _BancoQueRegistra:
 
     def insert_data(self, data: list, table_name: str, **kwargs: Any) -> None:
         self.chamadas.append(("insert_data", table_name, kwargs))
+
+    def apagar_fora_do_recorte(
+        self, table_name: str, schema: str, coluna_recorte: str, manter: list
+    ) -> int:
+        self.chamadas.append(
+            (
+                "apagar_fora_do_recorte",
+                table_name,
+                {"coluna_recorte": coluna_recorte, "manter": manter},
+            )
+        )
+        return 0
 
     def drop_table_if_exists(self, *args: Any, **kwargs: Any) -> None:
         raise AssertionError("DROP derruba as views do dbt em cima da tabela")
@@ -358,10 +371,34 @@ def test_nivel_vazio_falha_sem_gravar_nada(
     _IbgeFalso.niveis_vazios = {"N3"}
     (espec,) = _especificacoes(modulo, [_COR_OU_RACA])
 
-    with pytest.raises(RuntimeError, match="nivel=N3 sem dados"):
+    # O nível pode não existir para o agregado: a mensagem diz onde conferir.
+    with pytest.raises(
+        RuntimeError, match=r"nivel=N3 sem dados.*/agregados/9605/localidades/N3"
+    ):
         _rodar(dag, "extrair_resultados", spec=espec)
 
     assert _BancoComContexto.ultimo.chamadas == []
+
+
+def test_agregados_fora_da_config_sao_apagados_de_resultados(
+    dag: Any, modulo: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(modulo, "ClientPostgresDB", _BancoComContexto)
+    monkeypatch.setattr(modulo, "get_postgres_conn", lambda: "")
+
+    _rodar(
+        dag,
+        "apagar_resultados_fora_da_config",
+        especificacoes=_especificacoes(modulo, [_COR_OU_RACA, _ESTIMATIVA]),
+    )
+
+    assert _BancoComContexto.ultimo.chamadas == [
+        (
+            "apagar_fora_do_recorte",
+            "resultados",
+            {"coluna_recorte": "agregado_id", "manter": ["9605", "6579"]},
+        )
+    ]
 
 
 def _especificacoes(modulo: Any, resultados: list[dict[str, Any]]) -> list[Any]:
@@ -499,6 +536,21 @@ def test_resultados_rodados_de_novo_nao_duplicam_e_seguem_a_variable(
     assert [linha for linha in depois if linha[0] == "9605"] == [
         linha for linha in antes if linha[0] == "9605"
     ]
+
+
+def test_agregado_que_sai_da_variable_sai_do_banco(
+    dag: Any, modulo: Any, schema: str
+) -> None:
+    cor, estimativa = _especificacoes(modulo, [_COR_OU_RACA, _ESTIMATIVA])
+    _rodar(dag, "extrair_resultados", spec=cor)
+    _rodar(dag, "extrair_resultados", spec=estimativa)
+
+    # Variable vazia (ou sumida) não apaga nada.
+    _rodar(dag, "apagar_resultados_fora_da_config", especificacoes=[])
+    assert {linha[0] for linha in _contagem_resultados(schema)} == {"6579", "9605"}
+
+    _rodar(dag, "apagar_resultados_fora_da_config", especificacoes=[cor])
+    assert {linha[0] for linha in _contagem_resultados(schema)} == {"9605"}
 
 
 def test_linha_com_a_chave_no_formato_antigo_e_trocada_e_nao_duplicada(

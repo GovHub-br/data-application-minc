@@ -282,6 +282,11 @@ def test_padroes_e_listas_unidas() -> None:
             {"resultados": [{"agregado": "4709"}], "resultados_agregados_ids": ["4709"]},
             "Tire-o de resultados_agregados_ids",
         ),
+        # dict() de [4714] ou de 4714 dava TypeError, que ia para o retry.
+        ({"resultados": [[4714]]}, "não é um objeto"),
+        ({"resultados": [4714]}, "não é um objeto"),
+        ({"resultados": "4714"}, "precisa ser uma lista"),
+        ({"resultados_agregados_ids": "4714"}, "precisa ser uma lista"),
     ],
 )
 def test_configuracao_invalida(config: dict[str, Any], mensagem: str) -> None:

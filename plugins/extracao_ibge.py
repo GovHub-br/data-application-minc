@@ -85,6 +85,27 @@ def _juntar(valor: Any, campo: str, agregado: str) -> str:
     return texto
 
 
+def _lista(config: dict[str, Any], chave: str) -> list[Any]:
+    """A lista em ``config[chave]``. Texto seria percorrido letra a letra."""
+    valor = config.get(chave) or []
+    if not isinstance(valor, list):
+        raise ValueError(f"'{chave}' precisa ser uma lista, veio {valor!r}")
+    return valor
+
+
+def _item_resultados(item: Any) -> dict[str, Any]:
+    """Um item da lista ``resultados``, que precisa ser um objeto.
+
+    ``dict()`` de um número ou de ``[4714]`` dá ``TypeError``, que escaparia da
+    validação e iria para o retry, que não conserta configuração.
+    """
+    if not isinstance(item, dict):
+        raise ValueError(
+            f"resultados: item {item!r} não é um objeto; " 'use {"agregado": "4714", ...}'
+        )
+    return dict(item)
+
+
 def especificacoes_resultados(
     config: dict[str, Any],
 ) -> list[EspecificacaoResultados]:
@@ -109,14 +130,14 @@ def especificacoes_resultados(
     nivel_padrao = str(config.get("resultados_nivel", "N3"))
     periodos_padrao = config.get("resultados_periodos", "ultimo")
     itens: list[tuple[str, dict[str, Any]]] = [
-        ("resultados", dict(item)) for item in config.get("resultados") or []
+        ("resultados", _item_resultados(item)) for item in _lista(config, "resultados")
     ]
     itens += [
         (
             "resultados_agregados_ids",
             {"agregado": agregado, "periodos": periodos_padrao},
         )
-        for agregado in config.get("resultados_agregados_ids") or []
+        for agregado in _lista(config, "resultados_agregados_ids")
     ]
 
     especificacoes: list[EspecificacaoResultados] = []
