@@ -2,8 +2,8 @@
 
 Como escrever `schema.yml` para que o modelo apareca completo no OpenMetadata.
 
-> **Versoes deste repositorio:** `dbt-core 1.10.23` e
-> `openmetadata-ingestion 1.13.3.2`. O guia equivalente do
+> **Versoes deste repositorio:** `dbt-core 1.12.7` e
+> `openmetadata-ingestion 2.0.7.2`. O guia equivalente do
 > `data-application-cidades` foi escrito para dbt 1.7 — copiar de la sem
 > adaptar gera avisos de depreciacao. As diferencas estao em
 > [dbt 1.10](#o-que-muda-no-dbt-110).
