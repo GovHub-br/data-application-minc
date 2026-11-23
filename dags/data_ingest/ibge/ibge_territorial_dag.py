@@ -149,8 +149,12 @@ def ibge_territorial_dag() -> None:
     def parquet_para_seeds(convertidos: list[dict[str, Any]]) -> None:
         """Substitui a versão em cada tabela de ``seeds`` e registra a conferência.
 
-        Confere tudo antes de trocar qualquer tabela: com uma aba divergente,
-        as outras do mesmo arquivo também ficam na versão anterior.
+        Origem × Parquet é conferido para todas as abas antes de trocar qualquer
+        tabela: se uma diverge nessa etapa, nenhuma é tocada. A contagem no banco
+        é conferida depois, tabela por tabela, cada uma na sua transação. Se a
+        de uma aba falha, essa aba volta à versão anterior, mas as que já foram
+        carregadas antes dela ficam na nova, e ``registrar_carga`` não roda, então
+        a divergência não chega a ``ibge_controle_carga`` — fica no log da task.
         """
         conn = get_postgres_conn()
         lidos: list[tuple[dict[str, Any], Any]] = []
