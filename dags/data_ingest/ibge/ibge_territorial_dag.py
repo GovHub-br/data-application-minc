@@ -15,7 +15,9 @@ uma tabela por aba de dados. Cada versão substitui só a si mesma
 
 Os arquivos, as abas e quantas linhas cada aba deve ter estão em
 ``cliente_ibge_territorial.ARQUIVOS``. A conferência contra a origem vai para
-``seeds.ibge_controle_carga``, a mesma tabela da MUNIC.
+``seeds.ibge_controle_carga``, a mesma tabela da MUNIC. Ela acontece antes de
+trocar a versão: Parquet que não bate com a origem falha sem tocar em
+``seeds``, e a contagem no banco é conferida antes do commit.
 
 Manual: são publicações únicas. Dispare com ``{"arquivos": ["regic_cidades"]}``
 para um arquivo, ou vazio para todos.
@@ -145,11 +147,19 @@ def ibge_territorial_dag() -> None:
         + [tabela(schemas.SCHEMA_SEEDS, seeds_carga.tabela_controle(schemas.FONTE_IBGE))],
     )
     def parquet_para_seeds(convertidos: list[dict[str, Any]]) -> None:
-        """Substitui a versão em cada tabela de ``seeds`` e registra a conferência."""
+        """Substitui a versão em cada tabela de ``seeds`` e registra a conferência.
+
+        Confere tudo antes de trocar qualquer tabela: com uma aba divergente,
+        as outras do mesmo arquivo também ficam na versão anterior.
+        """
         conn = get_postgres_conn()
-        cargas = []
+        lidos: list[tuple[dict[str, Any], Any]] = []
         for item in convertidos:
             df = datalakehouse.ler_parquet(item["key_staging"])
+            lidos.append(({**item, "linhas_parquet": len(df)}, df))
+        seeds_carga.conferir_staging([item for item, _ in lidos])
+        cargas = []
+        for item, df in lidos:
             carregadas = seeds_carga.substituir_periodo(
                 conn,
                 df,
@@ -157,10 +167,9 @@ def ibge_territorial_dag() -> None:
                 item["tabela"],
                 ibge.COLUNA_VERSAO,
                 item["periodo"],
+                linhas_esperadas=len(df),
             )
-            cargas.append(
-                {**item, "linhas_parquet": len(df), "linhas_carregadas": carregadas}
-            )
+            cargas.append({**item, "linhas_carregadas": carregadas})
         seeds_carga.registrar_carga(
             conn, schemas.SCHEMA_SEEDS, schemas.FONTE_IBGE, cargas
         )

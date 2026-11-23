@@ -6,6 +6,9 @@ texto sem mudar o que diz, linha vazia não vira registro, e a conferência
 falha quando origem, Parquet e banco divergem.
 """
 
+import os
+import uuid
+from collections.abc import Iterator
 from datetime import date, datetime
 
 import pandas as pd
@@ -100,3 +103,53 @@ def test_conferencia_passa_quando_as_tres_contagens_batem() -> None:
 def test_conferencia_falha_e_diz_onde_divergiu() -> None:
     with pytest.raises(ValueError, match="munic_2021 munic_2021_cultura: 5570/5570/5569"):
         seeds_carga.conferir_contagens([_carga(5570, 5570, 5569)])
+
+
+def test_conferencia_do_staging_olha_so_origem_e_parquet() -> None:
+    # Antes da carga ainda não há contagem do banco.
+    seeds_carga.conferir_staging([_carga(5570, 5570, 0)])
+    with pytest.raises(ValueError, match="nada foi carregado: munic_2021 .*: 5570/5569"):
+        seeds_carga.conferir_staging([_carga(5570, 5569, 0)])
+
+
+# ---------------------------------------------------------------------------
+# Num Postgres de verdade (TEST_POSTGRES_DSN), pulado sem ele
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def banco() -> Iterator[tuple[str, str]]:
+    import psycopg2
+
+    dsn = os.environ.get("TEST_POSTGRES_DSN")
+    if not dsn:
+        pytest.skip("TEST_POSTGRES_DSN não definido — sem Postgres para testar")
+    schema = f"teste_{uuid.uuid4().hex[:10]}"
+    with psycopg2.connect(dsn) as conn, conn.cursor() as cursor:
+        cursor.execute(f'CREATE SCHEMA "{schema}"')
+    conn.close()
+    yield dsn, schema
+    with psycopg2.connect(dsn) as conn, conn.cursor() as cursor:
+        cursor.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
+    conn.close()
+
+
+def test_contagem_que_nao_bate_desfaz_a_carga_e_deixa_a_versao_anterior(
+    banco: tuple[str, str],
+) -> None:
+    import psycopg2
+
+    dsn, schema = banco
+    antes = pd.DataFrame({"versao": ["2025"] * 3, "cd": ["1", "2", "3"]})
+    seeds_carga.substituir_periodo(dsn, antes, schema, "t", "versao", "2025")
+
+    nova = pd.DataFrame({"versao": ["2025"] * 2, "cd": ["4", "5"]})
+    with pytest.raises(ValueError, match="2 linhas no banco, 3 esperadas"):
+        seeds_carga.substituir_periodo(
+            dsn, nova, schema, "t", "versao", "2025", linhas_esperadas=3
+        )
+
+    with psycopg2.connect(dsn) as conn, conn.cursor() as cursor:
+        cursor.execute(f'SELECT cd FROM "{schema}".t ORDER BY cd')
+        assert cursor.fetchall() == [("1",), ("2",), ("3",)]
+    conn.close()

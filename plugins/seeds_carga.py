@@ -136,11 +136,16 @@ def substituir_periodo(
     tabela: str,
     coluna_periodo: str,
     periodo: str,
+    linhas_esperadas: int | None = None,
 ) -> int:
     """Substitui ``periodo`` em ``schema.tabela`` pelas linhas de ``df``.
 
     ``df`` precisa ter ``coluna_periodo`` com ``periodo`` em toda linha.
     Devolve as linhas do período no banco, contadas depois do ``COPY``.
+
+    Com ``linhas_esperadas``, a contagem é conferida antes do commit: se não
+    bater, a transação é desfeita e o período anterior fica. Sem ele, quem
+    chama confere depois (``conferir_contagens``), com o período já trocado.
     """
     import psycopg2
 
@@ -177,6 +182,12 @@ def substituir_periodo(
         )
         contagem = cursor.fetchone()
         carregadas = int(contagem[0]) if contagem else 0
+        if linhas_esperadas is not None and carregadas != linhas_esperadas:
+            # Sai do with com erro: o psycopg2 desfaz o DELETE e o COPY.
+            raise ValueError(
+                f"{schema}.{tabela} {coluna_periodo}={periodo}: {carregadas} linhas "
+                f"no banco, {linhas_esperadas} esperadas; a carga foi desfeita"
+            )
     logging.info(
         "[seeds_carga] %s.%s %s=%s: %d linhas",
         schema,
@@ -238,6 +249,25 @@ def registrar_carga(
                 )
                 for c in cargas
             ],
+        )
+
+
+def conferir_staging(cargas: list[dict[str, Any]]) -> None:
+    """Falha se origem e Parquet não tiverem as mesmas linhas.
+
+    Para chamar antes de ``substituir_periodo``: a divergência entre a origem
+    e o staging aparece sem ter trocado nada em ``seeds``.
+    """
+    divergentes = [c for c in cargas if c["linhas_origem"] != c["linhas_parquet"]]
+    if divergentes:
+        raise ValueError(
+            "contagem do staging diverge da origem (origem/parquet), nada foi "
+            "carregado: "
+            + "; ".join(
+                f"{c['periodo']} {c['entidade']}: "
+                f"{c['linhas_origem']}/{c['linhas_parquet']}"
+                for c in divergentes
+            )
         )
 
 
