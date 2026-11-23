@@ -1,12 +1,17 @@
 -- Silver bbagil — extrato_bbagil.
--- Origem: bronze_extrato_bbagil, cópia fiel de bbagil.extrato_bbagil, onde tudo chega como text da ingestão via API.
+-- Origem: bronze_extrato_bbagil, cópia fiel de bbagil.extrato_bbagil, onde tudo chega
+-- como text da ingestão via API.
 -- Tipar é o trabalho desta camada.
--- 42 colunas: 22 tipadas, 20 mantidas como texto.
+-- 42 colunas: 23 tipadas, 19 mantidas como texto.
 -- beneficiarydocumentid fica texto mesmo casando 100% com inteiro: é CPF/CNPJ,
 -- identificador e não número. Como integer perdia o zero à esquerda e estourava
 -- a faixa do tipo em todo CPF acima de 2.147.483.647.
 -- O cast vem do padrão medido no dado (scripts/perfilar_padroes.py),
 -- não do nome da coluna: exige 100% dos valores preenchidos casando.
+-- accountbalance: a linha sem saldo chega como NULL ou como o texto 'NaN', que o
+-- ClientPostgresDB gravava para a chave ausente até o PR #112. O resto é decimal
+-- com ponto, e bronze_numerico deixa o 'NaN' como NULL.
+-- value é palavra reservada, mas é o nome da API: o noqa: RF04 da linha é por isso.
 select
     {{ bronze_texto("errors") }} as errors,
     {{ bronze_texto("error") }} as error,
@@ -28,20 +33,22 @@ select
     {{ bronze_inteiro("orderindex") }} as orderindex,
     {{ bronze_texto("valuedate") }} as valuedate,
     {{ bronze_inteiro("referencenumber", "bigint") }} as referencenumber,
-    {{ bronze_numerico("value") }} as value,
-    {{ bronze_texto("accountbalance") }} as accountbalance,
+    {{ bronze_numerico("value") }} as value,  -- noqa: RF04
+    {{ bronze_numerico("accountbalance") }} as accountbalance,
     {{ bronze_inteiro("descriptioncode") }} as descriptioncode,
     {{ bronze_texto("descriptionname") }} as descriptionname,
     {{ bronze_inteiro("descriptionbatchnumber") }} as descriptionbatchnumber,
     {{ bronze_texto("creditdebitindicator") }} as creditdebitindicator,
-    {{ bronze_inteiro("beneficiarybankidentifiercode") }} as beneficiarybankidentifiercode,
+    {{ bronze_inteiro("beneficiarybankidentifiercode") }}
+    as beneficiarybankidentifiercode,
     {{ bronze_inteiro("beneficiarybranchcode") }} as beneficiarybranchcode,
     {{ bronze_inteiro("beneficiaryaccountnumber") }} as beneficiaryaccountnumber,
     {{ bronze_inteiro("beneficiarypersontype") }} as beneficiarypersontype,
     {{ bronze_texto("beneficiarydocumentid") }} as beneficiarydocumentid,
     {{ bronze_texto("beneficiaryname") }} as beneficiaryname,
     {{ bronze_booleano("pendingexpenseconciliation") }} as pendingexpenseconciliation,
-    {{ bronze_booleano("attachedexpensedocumentindicator") }} as attachedexpensedocumentindicator,
+    {{ bronze_booleano("attachedexpensedocumentindicator") }}
+    as attachedexpensedocumentindicator,
     {{ bronze_inteiro("expensecategorycode") }} as expensecategorycode,
     {{ bronze_texto("expenseidentificationstatus") }} as expenseidentificationstatus,
     {{ bronze_inteiro("subtransactionquantity") }} as subtransactionquantity,

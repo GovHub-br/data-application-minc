@@ -461,6 +461,130 @@ def test_insert_csv_data_que_falha_preserva_a_tabela_antiga(
 
 
 # ---------------------------------------------------------------------------
+# substituir_dados
+# ---------------------------------------------------------------------------
+
+
+def _view_sobre(schema: str, tabela: str) -> None:
+    """Uma view em cima da tabela, como as ``bronze_*`` do dbt."""
+    with psycopg2.connect(DSN) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            f'CREATE VIEW "{schema}".v_{tabela} AS SELECT * FROM "{schema}".{tabela}'
+        )
+    conn.close()
+
+
+def test_substituir_dados_troca_a_tabela_inteira_sem_derrubar_a_view(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    """O DROP que a ibge_agregados_dag fazia aqui era recusado pelo Postgres."""
+    db.insert_data([{"id": "1"}, {"id": "1"}, {"id": "2"}], "t", schema=schema)
+    _view_sobre(schema, "t")
+
+    db.substituir_dados([{"id": "2"}, {"id": "3"}], "t", schema=schema)
+
+    assert consultar(f'SELECT id FROM "{schema}".v_t ORDER BY id') == [("2",), ("3",)]
+
+
+def test_substituir_dados_duas_vezes_nao_duplica(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    linhas = [{"id": "1", "nome": "a"}, {"id": "2", "nome": "b"}]
+    db.substituir_dados(linhas, "t", schema=schema)
+    db.substituir_dados(linhas, "t", schema=schema)
+
+    assert consultar(f'SELECT count(*) FROM "{schema}".t') == [(2,)]
+
+
+def test_substituir_dados_por_recorte_so_toca_o_recorte(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    """Duas tasks paralelas, cada uma com o seu lote de agregados."""
+    db.insert_data(
+        [
+            {"agregado_id": "1", "id": "2020"},
+            {"agregado_id": "1", "id": "2020"},
+            {"agregado_id": "2", "id": "2020"},
+        ],
+        "t",
+        schema=schema,
+    )
+    _view_sobre(schema, "t")
+
+    db.substituir_dados(
+        [{"agregado_id": "1", "id": "2021"}],
+        "t",
+        schema=schema,
+        coluna_recorte="agregado_id",
+    )
+
+    assert consultar(
+        f'SELECT agregado_id, id FROM "{schema}".v_t ORDER BY agregado_id'
+    ) == [("1", "2021"), ("2", "2020")]
+
+
+def test_substituir_dados_por_recorte_compara_como_texto(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    """Valor inteiro grava como texto; o recorte tem de achar o mesmo texto."""
+    db.substituir_dados([{"k": 7, "v": "a"}], "t", schema=schema, coluna_recorte="k")
+    db.substituir_dados([{"k": 7, "v": "b"}], "t", schema=schema, coluna_recorte="k")
+
+    assert consultar(f'SELECT k, v FROM "{schema}".t') == [("7", "b")]
+
+
+def test_substituir_dados_sem_linhas_nao_apaga(db: ClientPostgresDB, schema: str) -> None:
+    db.insert_data([{"id": "1"}], "t", schema=schema)
+
+    db.substituir_dados([], "t", schema=schema)
+
+    assert consultar(f'SELECT id FROM "{schema}".t') == [("1",)]
+
+
+def test_substituir_dados_com_coluna_nova_mantem_a_view(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    db.insert_data([{"id": "1"}], "t", schema=schema)
+    _view_sobre(schema, "t")
+
+    db.substituir_dados([{"id": "2", "extra": "x"}], "t", schema=schema)
+
+    assert colunas(schema, "t") == ["id", "extra"]
+    assert consultar(f'SELECT id FROM "{schema}".v_t') == [("2",)]
+
+
+def test_substituir_dados_que_falha_preserva_o_conteudo_anterior(
+    db: ClientPostgresDB, schema: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db.insert_data([{"id": "1"}], "t", schema=schema)
+
+    def explode(*args: Any, **kwargs: Any) -> None:
+        raise psycopg2.OperationalError("caiu no meio")
+
+    monkeypatch.setattr(psycopg2.extras, "execute_values", explode)
+    with pytest.raises(RuntimeError):
+        db.substituir_dados([{"id": "2"}], "t", schema=schema)
+
+    assert consultar(f'SELECT id FROM "{schema}".t') == [("1",)]
+
+
+def test_substituir_dados_recusa_linha_sem_valor_no_recorte(
+    db: ClientPostgresDB, schema: str
+) -> None:
+    db.insert_data([{"agregado_id": "1"}], "t", schema=schema)
+
+    with pytest.raises(ValueError, match="agregado_id"):
+        db.substituir_dados(
+            [{"agregado_id": "1"}, {"outra": "x"}],
+            "t",
+            schema=schema,
+            coluna_recorte="agregado_id",
+        )
+
+    assert consultar(f'SELECT agregado_id FROM "{schema}".t') == [("1",)]
+
+
+# ---------------------------------------------------------------------------
 # execute_query e execute_statement
 # ---------------------------------------------------------------------------
 

@@ -24,12 +24,15 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # plana, documentadas em schema.yml e schema_<banco>.yml. As sources_*.yml da
 # mesma pasta declaram a Bronze e nao tem bloco `models:`.
 SALIC_NOVO_DIR = REPO_ROOT / "dbt/minc/models/salic"
+# Produto que le so silvers do SALIC, inclusive a ponte restrita de proponente:
+# segue a mesma politica, e a guarda de PII lido sem expor vale para ele.
+ANALISE_ROUANET_DIR = REPO_ROOT / "dbt/minc/models/data_products/analise_rouanet"
 GLOSSARIO_CSV = REPO_ROOT / "helpers/openmetadata/glossaries/minc.csv"
 
 
 def _arquivos(padrao: str) -> list[Path]:
-    """Os arquivos da silver do SALIC: a pasta plana models/salic/."""
-    return sorted(SALIC_NOVO_DIR.glob(padrao))
+    """A silver do SALIC (models/salic/) e o produto analise_rouanet."""
+    return sorted([*SALIC_NOVO_DIR.glob(padrao), *ANALISE_ROUANET_DIR.glob(padrao)])
 
 
 def _sem_acento(texto: str) -> str:

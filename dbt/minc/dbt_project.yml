@@ -70,6 +70,11 @@ models:
       cultura_em_numeros:
         +schema: cultura_em_numeros
         +materialized: table
+      # Analise da Rouanet: variaveis e rotulos por PRONAC para a ciencia de
+      # dados (repositorio analytics_minc). Convencao de nome no schema.yml.
+      analise_rouanet:
+        +schema: analise_rouanet
+        +materialized: table
       # Recursos próprios: quanto cada ente (estado, DF, município) empenha na
       # função Cultura, lendo as Silvers do siconfi.
       recursos_proprios:
@@ -146,4 +151,11 @@ models:
     # seguinte.
     senado:
       +schema: senado
+      +materialized: view
+    # Tesouro Transparente: a tesouro_transparente_dag grava cada CSV do CKAN em
+    # seeds.tesouro_transparente_<entidade> (ADR 0012), toda coluna text.
+    # bronze_<entidade> e a copia fiel e silver_<entidade> tipa; caem no schema
+    # tesouro_transparente, e o seeds fica so com o que a ingestao grava.
+    tesouro_transparente:
+      +schema: tesouro_transparente
       +materialized: view

@@ -276,7 +276,7 @@
       "camada": "silver",
       "meta": null,
       "caminho": "dbt/minc/models/bbagil/silver_extrato_bbagil.sql",
-      "descricao": "Camada Silver / BB Ágil. Extrato bancário das contas dos planos de ação administradas no BB Gestão Ágil, tipado, com todas as colunas da API.\nGRÃO: uma linha por transação do extrato; a chave da origem é (id_plano_acao, id_plano_acao_dado_bancario, id). UNIVERSO: todo lançamento, débito e crédito, das contas extraídas pela DAG do BB Ágil, sem filtro.\nPARA QUE SERVE: é a base de silver_pagamento_extrato_bbagil e a transação-mãe de silver_pagamento_subtransacao_bbagil. Não limpa nem recorta — só tipa.\nTIPAGEM: lida de bronze_extrato_bbagil. 22 das 42 colunas recebem cast; o cast vem do padrão medido no dado (scripts/perfilar_padroes.py), não do nome da coluna, e exige 100% dos valores preenchidos casando. beneficiarydocumentid fica texto mesmo casando com inteiro: é CPF/CNPJ, identificador e não número, e como integer perdia o zero à esquerda.\nLIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do Brasil; pagamento que o ente fez por outro banco não aparece. A extração começa em 2023.\nZONA RESTRITA. Carrega documento, nome, agência e conta do beneficiário em claro: não publicável e proibida em corpus de RAG. A anonimização no momento do acesso é responsabilidade do Apache Ranger (ADR 0009).\nATUALIZAÇÃO: view sobre a bronze; reflete o extrato carregado no momento da consulta.",
+      "descricao": "Camada Silver / BB Ágil. Extrato bancário das contas dos planos de ação administradas no BB Gestão Ágil, tipado, com todas as colunas da API.\nGRÃO: uma linha por transação do extrato; a chave da origem é (id_plano_acao, id_plano_acao_dado_bancario, id). UNIVERSO: todo lançamento, débito e crédito, das contas extraídas pela DAG do BB Ágil, sem filtro.\nPARA QUE SERVE: é a base de silver_pagamento_extrato_bbagil e a transação-mãe de silver_pagamento_subtransacao_bbagil. Não limpa nem recorta — só tipa.\nTIPAGEM: lida de bronze_extrato_bbagil. 23 das 42 colunas recebem cast; o cast vem do padrão medido no dado (scripts/perfilar_padroes.py), não do nome da coluna, e exige 100% dos valores preenchidos casando. beneficiarydocumentid fica texto mesmo casando com inteiro: é CPF/CNPJ, identificador e não número, e como integer perdia o zero à esquerda.\nLIMITAÇÕES: o BB Ágil só enxerga contas administradas pelo Banco do Brasil; pagamento que o ente fez por outro banco não aparece. A extração começa em 2023.\nZONA RESTRITA. Carrega documento, nome, agência e conta do beneficiário em claro: não publicável e proibida em corpus de RAG. A anonimização no momento do acesso é responsabilidade do Apache Ranger (ADR 0009).\nATUALIZAÇÃO: view sobre a bronze; reflete o extrato carregado no momento da consulta.",
       "colunas": [
         {
           "nome": "errors",
@@ -364,7 +364,7 @@
         },
         {
           "nome": "accountbalance",
-          "descricao": "Tipagem: 407260 valores 'NaN' gravados como texto."
+          "descricao": "Saldo da conta depois da transação. Tipagem: 100% dos 185.092 valores com saldo casam com decimal. A linha sem saldo chega como NULL ou como o texto 'NaN', que o ClientPostgresDB gravava para a chave ausente até o PR #112; os dois viram NULL aqui. Medido em 11/11/2026 sobre 1.037.805 lançamentos, com 538.892 'NaN' e 313.821 NULL na origem. O teste bbagil_extrato_saldo_sem_tipar avisa se um saldo da origem em outro formato virar NULL."
         },
         {
           "nome": "descriptioncode",
@@ -454,7 +454,7 @@
         "bronze_extrato_bbagil"
       ],
       "sources": [],
-      "linhas_sql": 54
+      "linhas_sql": 61
     },
     {
       "nome": "silver_pagamento_bbagil",
@@ -1057,6 +1057,157 @@
       ],
       "sources": [],
       "linhas_sql": 86
+    },
+    {
+      "nome": "concentracao_incentivadores",
+      "dominio": "analise_rouanet",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/analise_rouanet/concentracao_incentivadores.sql",
+      "descricao": "Uma linha por PRONAC que captou, com o quanto a captação do projeto dependeu de poucos incentivadores. Entra todo PRONAC de silver_sac_captacao_rouanet com ao menos um incentivador de saldo positivo. Em 18/11/2026 eram 55.043 linhas, que coincidiam com todos os PRONACs com recibo porque nenhum par tinha saldo zero ou negativo, montadas sobre 668.765 recibos e 442.060 pares de projeto e incentivador (269.512 de pessoa física e 172.548 de jurídica), que somam R$ 35,49 bilhões nominais.\n\nPOR QUE AGREGADO. O pedido original era o recibo com um id de incentivador pseudonimizado por HMAC. Isso fica bloqueado enquanto não houver segredo gerenciado e decisão sobre a chave ser publicável, porque o plano a classifica como dado linkável e sensível. Esta tabela responde à concentração dentro do projeto, não ao padrão do mesmo incentivador entre projetos.\n\nCOMO O INCENTIVADOR É CONTADO. Pelo cgccpfmecena de silver_sac_captacao, normalizado para dígitos, lido só para agrupar e nunca exposto. Todo recibo tem documento de 11 ou 14 dígitos. Os recibos de cada incentivador são somados com o estorno descontado, e quem fica com saldo zero ou negativo sai da conta. Em 18/11/2026 nenhum par caía nesse caso, e o total das partes era a captação bruta do projeto.\n\nARMADILHAS. Projeto com um incentivador só (24.345, 44%) tem parte do maior e HHI iguais a 1 por definição: concentração máxima ali é o caso mais comum, não sinal de anomalia. CNPJ de filial conta separado da matriz, então um grupo empresarial que patrocina por várias filiais parece menos concentrado do que é. As frações são calculadas em numeric e saem em double precision, que o pandas lê como float.\n\nCOMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com as outras golds do produto. PRONAC que nunca captou não tem linha, e o left join dá nulo, que quer dizer \"não captou\", não concentração zero.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, em texto de 5 a 7 dígitos, ano com duas posições seguido do sequencial sem padding artificial. Único. Chave de junção um para um com silver_sac_projeto_rouanet."
+        },
+        {
+          "nome": "qt_incentivadores",
+          "descricao": "Incentivadores distintos com saldo positivo no projeto, contados pelo CPF ou CNPJ normalizado. Um em 24.345 projetos, de 2 a 5 em 20.660, de 6 a 20 em 7.824, de 21 a 100 em 1.673 e mais de 100 em 541. Mediana 2, percentil 90 igual a 9 e máximo 12.216."
+        },
+        {
+          "nome": "parte_do_maior_incentivador",
+          "descricao": "Fração do total captado que veio do maior incentivador, maior que 0 e até 1. Igual a 1 nos 24.345 projetos de um incentivador só. Acima de 0,5 em 42.517 projetos (77%). Mediana 0,882, média 0,758, mínimo 0,002."
+        },
+        {
+          "nome": "parte_dos_3_maiores",
+          "descricao": "Fração do total que veio dos três maiores incentivadores, até 1. Igual a 1 em todo projeto com até três incentivadores, por isso a mediana é 1; média 0,934. Empate de valor entre o terceiro e o quarto não muda a soma."
+        },
+        {
+          "nome": "indice_hhi",
+          "descricao": "Índice Herfindahl-Hirschman, a soma dos quadrados das frações de cada incentivador, na escala de 0 a 1 e não na de 0 a 10.000. Vai de 1 dividido por qt_incentivadores, quando todos aportam igual, até 1, quando um só aporta tudo. Mediana 0,789, média 0,698, mínimo 0,0005."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "silver_sac_captacao",
+        "silver_sac_captacao_rouanet"
+      ],
+      "sources": [],
+      "linhas_sql": 58
+    },
+    {
+      "nome": "desfecho_prestacao_contas",
+      "dominio": "analise_rouanet",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/analise_rouanet/desfecho_prestacao_contas.sql",
+      "descricao": "Uma linha por PRONAC, com o desfecho da prestação de contas do projeto lido dos códigos de situação do SALIC. São 276.866 linhas, todo PRONAC de silver_sac_projeto_rouanet, e é o rótulo dos modelos de risco na prestação de contas do analytics_minc.\n\nO QUE SIGNIFICA. O SALIC não tem um campo com o resultado da prestação de contas. O desfecho aparece como código de situação, e há dezenas de códigos com prestação de contas na descrição. A classe de cada código está numa tabela dentro do SQL deste modelo, o único lugar da regra. Ela veio do notebook 04 do analytics_minc, lida da descrição de cada código em silver_sac_situacao, e ainda não foi validada pela área. Aprovada é E19, L01, L02 e L03. Aprovada com prejuízo é L04 (ressalva material ou prejuízo) e L08 (aprovada após ressarcimento ao erário). Reprovada ou TCE é L05, L06, L07, L09, L10, L11, E22, E67, E73, E78 e D42, o que inclui recolhimento integral, débito parcelado e débito abaixo do mínimo para TCE. Inadimplência (E20, E23, E38, E66, E69, E71, E80, E81, E82, D38) é fase do processo e não desfecho, porque o projeto sai dela quando responde.\n\nDUAS FONTES, VALE A PIOR CLASSE. A situação atual do projeto e o histórico de situações (silver_sac_historicosituacao) entram juntos, porque o histórico é incompleto e registra aprovação para menos de um quarto dos projetos hoje aprovados. A ordem é reprovada ou TCE, depois aprovada com prejuízo, depois aprovada. Do histórico, de 5,25 milhões de linhas, só as 96.930 dos códigos da tabela são lidas; providenciatomada e logon não são.\n\nCOBERTURA POR ANO DO PRONAC, entre os 55.043 projetos que captaram. Têm desfecho 66% dos de 1992 a 1996, 73% dos de 1997 a 2005, 73% dos de 2006 a 2015, 37% dos de 2016 a 2020 e 1% dos de 2021 em diante. Projeto recente ainda não prestou contas ou não foi julgado, e treinar com ele ensina que todo projeto novo fica sem desfecho.\n\nARMADILHAS. 'sem desfecho' junta projeto que ainda não prestou contas, projeto arquivado sem código de desfecho e projeto de convênio do FNC, cuja série G de códigos não tem classe (36.708 PRONACs estão hoje num código G). Há desfecho sem captação: 6.678 projetos têm código de desfecho e nenhum recibo em silver_sac_captacao_rouanet, entre eles 854 dos 1.046 aprovados vistos só no histórico. E21 (inadimplência suspensa), E43 (relatório aprovado pela UNB), R24 (apresentou prestação de contas após reprovação) e D56 (encerrado sem prestação de contas da edição anterior) ficaram sem classe e esperam a área.\n\nCOMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com as outras golds do produto. historico_proponente lê as três datas por classe para saber o desfecho que um projeto tinha numa data passada.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, em texto de 5 a 7 dígitos, ano com duas posições seguido do sequencial sem padding artificial. Único e preenchido em todas as linhas. Chave de junção um para um com silver_sac_projeto_rouanet."
+        },
+        {
+          "nome": "desfecho_pc",
+          "descricao": "A pior classe de desfecho que o projeto alcançou nas duas fontes. 'aprovada' em 26.171 linhas (9,5%), 'aprovada com prejuízo' em 282 (0,1%), 'reprovada ou TCE' em 6.760 (2,4%) e 'sem desfecho' em 243.653 (88,0%). Sempre preenchida. Projeto com reprovação e aprovação fica 'reprovada ou TCE' em qualquer ordem; a flag passou_por_reprovacao_e_aprovacao acha esses casos."
+        },
+        {
+          "nome": "data_desfecho",
+          "descricao": "Primeira data em que a classe de desfecho_pc aparece: no histórico, a data da mudança de situação; na situação atual, a data da situação do projeto. É a data do registro do código no SALIC, que pode vir depois do julgamento. Preenchida em 33.089 linhas, de 11/10/1998 a 19/08/2026. Nula em todo 'sem desfecho' e em 124 projetos com desfecho sem data válida em nenhuma das fontes (o histórico tem 249 linhas de classe sem data). O 1900-01-01, sentinela de \"sem data\" do SQL Server, vira nulo (2 linhas no histórico e 7 na situação atual)."
+        },
+        {
+          "nome": "passou_por_inadimplencia",
+          "descricao": "true quando algum código de inadimplência aparece em alguma das duas fontes: 28.733 projetos (10,4%), entre eles 13.876 que terminaram aprovados e 10.393 que seguem sem desfecho. false (248.131) é não observado, e o histórico é incompleto. Nula nos 2 projetos sem situação atual e sem nenhuma linha de classe no histórico."
+        },
+        {
+          "nome": "passou_por_reprovacao_e_aprovacao",
+          "descricao": "true quando o projeto tem código de reprovação ou TCE e também de aprovação, com ou sem prejuízo, em qualquer ordem: 2.402 projetos. Todos terminam 'reprovada ou TCE', porque a pior classe vence; 2.086 deles têm data de código de aprovada. Não olha a ordem, então marca tanto o desfecho revisto em recurso ou depois de ressarcimento quanto o projeto aprovado que depois foi reprovado ou virou TCE. Para separar os dois, compare data_primeira_aprovada com data_primeira_reprovada; com uma delas nula, a ordem é desconhecida. Nula nos mesmos 2 projetos de passou_por_inadimplencia."
+        },
+        {
+          "nome": "fonte",
+          "descricao": "Onde a classe de desfecho_pc foi vista. Das 33.213 linhas com desfecho, 'situação atual' em 18.773, 'histórico' em 5.667 e 'ambos' em 8.773. Nula se e só se desfecho_pc é 'sem desfecho'; o teste analise_rouanet_desfecho_coerente confere isso e que data_desfecho é a data_primeira_* da classe final. 'histórico' quer dizer que a situação atual do projeto é outro código, fora daquela classe."
+        },
+        {
+          "nome": "data_primeira_aprovada",
+          "descricao": "Primeira data com código da classe aprovada, mesmo quando a classe final é pior. Preenchida em 28.371 linhas, a partir de 11/10/1998. Existe para historico_proponente saber o desfecho que um projeto anterior tinha numa data dada, sem olhar o futuro."
+        },
+        {
+          "nome": "data_primeira_com_prejuizo",
+          "descricao": "Primeira data com código da classe aprovada com prejuízo, mesmo quando a classe final é outra. Preenchida em 798 linhas, a partir de 31/08/2000. Mesmo uso de data_primeira_aprovada."
+        },
+        {
+          "nome": "data_primeira_reprovada",
+          "descricao": "Primeira data com código da classe reprovada ou TCE. Preenchida em 6.718 linhas, de 16/11/1998 a 18/08/2026; as 42 reprovadas restantes não têm data válida em nenhuma das fontes. Mesmo uso de data_primeira_aprovada."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "silver_sac_historicosituacao",
+        "silver_sac_projeto_rouanet"
+      ],
+      "sources": [],
+      "linhas_sql": 185
+    },
+    {
+      "nome": "historico_proponente",
+      "dominio": "analise_rouanet",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/analise_rouanet/historico_proponente.sql",
+      "descricao": "Uma linha por PRONAC aprovado com proponente na ponte, com o histórico do proponente até a primeira aprovação deste projeto: quantos projetos ele já tinha, quantos foram aprovados, quantos captaram, quanto captaram e como foram as prestações de contas. Feita para os modelos de captação e de risco na prestação de contas do analytics_minc, que hoje não têm nada do proponente. São 151.078 linhas (medido em 18/11/2026 num build de dev sobre as silvers de produção), com referência de 01/02/1992 a 24/08/2026. 46.870 projetos (31,0%) são do primeiro projeto do proponente; nos outros 104.208 a mediana é de 5 projetos anteriores.\n\nUNIVERSO. Os PRONACs de silver_sac_projeto_rouanet com data de primeira aprovação e com agente em silver_sac_projeto_proponente_rouanet. Dos 181.292 PRONACs aprovados, 151.078 (83,3%) estão aqui; 30.214 aprovados não têm agente na ponte, e os 95.574 nunca aprovados não têm data de referência. Esses ficam fora: quem cruza por left join recebe nulo, que é desconhecido. Zero quer dizer proponente conhecido sem nenhum projeto anterior.\n\nSEM VAZAMENTO. A data de referência é a primeira aprovação deste PRONAC, e cada projeto anterior conta só pelo que tinha acontecido estritamente antes dela. Existia se há prova datada antes da referência: PRONAC de ano civil anterior ao dela, ou aprovação, recibo ou classe de prestação de contas datados antes dela. A data de cadastro do projeto não está na Bronze, e a ordem dos PRONACs não a substitui (ver armadilhas). Aprovado, pela primeira aprovação. Captou, pela soma dos recibos anteriores à referência, com estorno descontado. Prestação de contas, pela pior classe de desfecho_prestacao_contas já alcançada antes da referência: projeto aprovado em 2010 e reprovado em 2018 conta como aprovado para uma referência de 2012. As colunas só servem para previsão feita na primeira aprovação ou depois dela.\n\nSEM IDENTIDADE. Lê id_agente da ponte restrita silver_sac_projeto_proponente_rouanet só para achar os outros projetos do mesmo agente. Nenhum documento, nome ou id sai. Em 33 PRONACs a ponte liga dois agentes, e os anteriores são a união dos dois, sem repetir projeto. PF e PJ têm o mesmo tratamento e não há supressão. Cada linha é um projeto, não uma célula de pessoas, e o que ela diz já é público no SALIC para quem sabe o proponente do PRONAC. Suprimir contagem pequena apagaria a variável para os 40.928 agentes de um projeto só. O limiar de supressão do ADR 0006 segue aberto e vale para resultado demográfico.\n\nARMADILHAS. A ponte não garante que todo agente ligado ao projeto seja o proponente, e não outro papel (gate G1). A pessoa física e a empresa dela são agentes diferentes no cadastro, então o histórico de uma não passa para a outra. O ano do PRONAC não data o cadastro: em 807 dos 181.292 PRONACs aprovados a primeira aprovação é de ano anterior ao do próprio PRONAC (709 deles, um ano antes). A primeira versão deste modelo usava a ordem dos PRONACs e contava como anterior projeto numerado depois da referência; o teste analise_rouanet_historico_coerente pegou 36 casos. Valores em reais nominais, sem correção, somados ao longo de décadas. Somar uma coluna da tabela inteira não dá total nenhum: o mesmo projeto anterior conta de novo em cada projeto posterior do proponente (a soma de valor_captado_anterior_reais dá R$ 301 bilhões, mais de oito vezes os R$ 35,5 bilhões captados na história da Rouanet).\n\nCOMO CRUZA. Pelo pronac, um para um com silver_sac_projeto_rouanet e com as outras golds do produto. Lê desfecho_prestacao_contas e silver_sac_captacao_rouanet.",
+      "colunas": [
+        {
+          "nome": "pronac",
+          "descricao": "PRONAC do projeto, em texto de 5 a 7 dígitos, ano com duas posições seguido do sequencial sem padding artificial. Único. Chave de junção um para um com silver_sac_projeto_rouanet."
+        },
+        {
+          "nome": "data_referencia",
+          "descricao": "Primeira aprovação deste PRONAC, a data_primeira_aprovacao de silver_sac_projeto_rouanet. Tudo o que as outras colunas contam aconteceu estritamente antes dela, e o que aconteceu no mesmo dia fica de fora. Sempre preenchida, porque define o universo; vai de 01/02/1992 a 24/08/2026."
+        },
+        {
+          "nome": "qt_projetos_anteriores",
+          "descricao": "Outros projetos do mesmo proponente que já existiam na data de referência, isto é, com PRONAC de ano civil anterior ao dela ou com aprovação, recibo ou classe de prestação de contas datados antes dela. Zero é proponente estreante. Projeto do mesmo ano da referência que ainda não tinha sido aprovado nem captado fica de fora, mesmo que já estivesse cadastrado, porque a data de cadastro não está na Bronze. Maior que zero em 104.208 linhas (69,0%); entre elas, mediana 5, percentil 90 igual a 32 e máximo 1.518, de um agente com 1.519 PRONACs."
+        },
+        {
+          "nome": "qt_aprovados_anteriores",
+          "descricao": "Dos projetos anteriores, quantos tinham a primeira aprovação antes da data de referência. Nunca passa de qt_projetos_anteriores (teste analise_rouanet_historico_coerente). Maior que zero em 99.683 linhas (66,0%); entre elas, mediana 5, percentil 90 igual a 27 e máximo 790."
+        },
+        {
+          "nome": "qt_captaram_anteriores",
+          "descricao": "Dos projetos anteriores, quantos somavam captação positiva nos recibos datados antes da referência, com estorno descontado. Projeto que captou e estornou tudo antes da referência não conta. Maior que zero em 67.263 linhas (44,5%); entre elas, mediana 3, percentil 90 igual a 17 e máximo 126. Proponente com projeto anterior aprovado e nenhum captado é comum: aprovação não é captação."
+        },
+        {
+          "nome": "valor_captado_anterior_reais",
+          "descricao": "Soma dos recibos dos projetos anteriores datados antes da referência, em reais nominais da data de cada recibo, sem correção monetária e com estorno descontado. Só soma os projetos anteriores que captaram (saldo maior que zero antes da referência), a mesma regra de qt_captaram_anteriores, então um estorno maior que a captação não puxa a soma para baixo e ela nunca é negativa. Zero quando nenhum captou. Somar valores de décadas diferentes sem corrigir pesa mais o proponente recente; para comparar entre anos, corrija na análise. Em 18/11/2026, antes desse filtro, era maior que zero em 67.255 linhas (44,5%); entre elas, mediana de R$ 976,8 mil, percentil 90 de R$ 10,2 milhões e máximo de R$ 399,2 milhões. O filtro só pode aumentar a soma de uma linha."
+        },
+        {
+          "nome": "qt_pc_aprovadas_anteriores",
+          "descricao": "Projetos anteriores cuja pior classe de prestação de contas já registrada antes da referência era aprovada. Classe sem data válida não conta, porque não se sabe quando aconteceu. A regra de classes é a de desfecho_prestacao_contas, ainda não validada pela área. Maior que zero em 27.032 linhas (17,9%); entre elas, mediana 2, percentil 90 igual a 9 e máximo 88. Baixo porque a prestação de contas leva anos e o histórico de situações é incompleto."
+        },
+        {
+          "nome": "qt_pc_com_problema_anteriores",
+          "descricao": "Projetos anteriores cuja pior classe já registrada antes da referência era aprovada com prejuízo ou reprovada ou TCE. É o mesmo conceito de problema do notebook 05. Somada a qt_pc_aprovadas_anteriores, nunca passa de qt_projetos_anteriores; a diferença são os anteriores ainda sem desfecho na referência. Maior que zero em 9.670 linhas (6,4%); entre elas, mediana 1, percentil 90 igual a 3 e máximo 22."
+        },
+        {
+          "nome": "anos_desde_primeiro_projeto",
+          "descricao": "Ano da data de referência menos o ano em que o projeto anterior mais antigo aparece pela primeira vez, o menor entre o ano do PRONAC, o da primeira aprovação, o do primeiro recibo e o da primeira classe de prestação de contas, contando só o que é anterior à referência. Zero quando não há projeto anterior ou quando o mais antigo é do mesmo ano. A conta é por ano, não por data. Nunca negativo por construção; o teste analise_rouanet_historico_coerente confere. Maior que zero em 96.864 linhas (64,1%); entre elas, mediana 6, percentil 90 igual a 17 e máximo 34."
+        }
+      ],
+      "colunas_descritas": 9,
+      "testes": 10,
+      "materializacao": "",
+      "depende_de": [
+        "desfecho_prestacao_contas",
+        "silver_sac_captacao_rouanet",
+        "silver_sac_projeto_proponente_rouanet",
+        "silver_sac_projeto_rouanet"
+      ],
+      "sources": [],
+      "linhas_sql": 197
     },
     {
       "nome": "eixo1_estadic_competencia_conselho",
@@ -2692,6 +2843,45 @@
       "linhas_sql": 90
     },
     {
+      "nome": "eixo1_orcamento_federal_impacto_rcl",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_federal_impacto_rcl.sql",
+      "descricao": "Gold / Eixo 1, frente orçamento, esfera federal. O gasto federal direto em cultura como fração da Receita Corrente Líquida da União, por exercício (gráfico VI do gasto_federal.R, grafico_impacto_rcl). Numerador: o empenhado nominal de toda a gold-base eixo1_orcamento_federal_empenho_cultura no exercício (o siop_direto do R), com a LPG de 2022 em 2022. Denominador: a RCL de eixo1_orcamento_federal_rcl_uniao.\nGRÃO: um exercício, 2003 a 2025. Hoje a RCL cobre 2003 a 2017; de 2018 em diante, rcl, fonte_rcl e participacao_rcl ficam nulos até o PR do SICONFI, e este modelo não muda.\nDIFERENTE DO R: o R tira os exercícios sem RCL; aqui eles ficam, com a participação nula (ADR 0010, regra 1), e quem consome corta.\nCONFERÊNCIA (11/11/2026): de 2003 a 2017, onde a LPG não muda nada, é igual ao CSV da Figura 3 do R (commit d28de40) na 3ª casa do percentual nos 15 anos; ver eixo1_orcamento_federal_rcl_lpg_2023. O R não grava CSV deste gráfico, e o PNG dele começa em 2011, porque a planilha de RCL que o gasto_federal.R lê (RCL_2011_2025_Uniao_Resumido.xlsx) começa ali.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Exercício da LOA."
+        },
+        {
+          "nome": "valor_empenhado",
+          "descricao": "Empenhado em cultura no exercício, em reais nominais."
+        },
+        {
+          "nome": "rcl",
+          "descricao": "RCL da União no ano, em reais nominais. Nula de 2018 em diante, por ora."
+        },
+        {
+          "nome": "fonte_rcl",
+          "descricao": "A fonte_rcl de eixo1_orcamento_federal_rcl_uniao."
+        },
+        {
+          "nome": "participacao_rcl",
+          "descricao": "valor_empenhado / rcl, como fração (0,003 é 0,3%). Nula sem RCL."
+        }
+      ],
+      "colunas_descritas": 5,
+      "testes": 3,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_federal_empenho_cultura",
+        "eixo1_orcamento_federal_rcl_uniao"
+      ],
+      "sources": [],
+      "linhas_sql": 33
+    },
+    {
       "nome": "eixo1_orcamento_federal_origem_direto",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -2720,6 +2910,87 @@
       ],
       "sources": [],
       "linhas_sql": 12
+    },
+    {
+      "nome": "eixo1_orcamento_federal_rcl_lpg_2023",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_federal_rcl_lpg_2023.sql",
+      "descricao": "Gold / Eixo 1, frente orçamento, esfera federal. Figura 3 da publicação, \"Participação da cultura no orçamento da União\": o gasto federal direto em cultura como fração da RCL da União, com o empenho da Lei Paulo Gustavo de 2022 contado em 2023, o ano em que foi executado, como na Figura 1 (gráfico IX do gasto_federal.R, grafico_rcl_lpg_2023). É eixo1_orcamento_federal_impacto_rcl com o ajuste_lpg.\nGRÃO: um exercício, 2003 a 2025; a participação é nula onde falta a RCL (hoje, de 2018 em diante, 2022 e 2023 inclusive).\nDIFERENTE DO R: nas linhas 461 a 468 do gasto_federal.R, o valor da LPG de 2022 é calculado por linha com ifelse(ano == 2022, ..., 0), e na linha de 2023 ele vale 0. O R tira a LPG de 2022 e não a soma em 2023: ela some da série, e o numerador de 2023 fica R$ 3.862.000.000,00 menor que o da Figura 1. Aqui ela entra em 2023. O numerador de 2022 é igual ao do R. Com a RCL de 2023 da planilha do R (R$ 1.233.714.884.820,18), a participação de 2023 passa de 0,5053% para 0,8184%; a de 2022 fica em 0,0992%.\nCONFERÊNCIA (11/11/2026) contra o CSV da Figura 3 do R (commit d28de40), 2003 a 2017: os 15 anos iguais na 3ª casa do percentual. Na precisão do double, 6 iguais (2003 a 2006, 2011 e 2013); 8 diferem em menos de 1 bilionésimo, relativo, porque o Tesouro publica a RCL arredondada e a do R tem mais casas (2015: 674.522.742 mil contra 674.522.742,0497 mil); e 2009 difere em 2 milionésimos (0,0000006 p.p.): a RCL implícita no CSV do R é 437.200.336,33 mil, e a do Tesouro, 437.199.421 mil. O numerador (valor_empenhado) é igual, ao centavo, à soma das origens do SIOP na Figura 1 nos 23 anos, 2022 e 2023 inclusive.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Exercício da LOA; para a LPG de 2022, o de execução (2023)."
+        },
+        {
+          "nome": "valor_empenhado_exercicio",
+          "descricao": "Empenhado em cultura no exercício, em reais nominais: o valor_empenhado de eixo1_orcamento_federal_impacto_rcl."
+        },
+        {
+          "nome": "ajuste_lpg",
+          "descricao": "O empenho da LPG de 2022 que muda de ano: negativo em 2022, positivo em 2023, zero nos outros. Soma zero na série (eixo1_orcamento_federal_lpg_2023_soma_zero), e não pode ser zero em 2022 nem em 2023 (eixo1_orcamento_federal_lpg_2023_ajuste_presente), que é o que acontece se o rótulo da LPG mudar na gold-base."
+        },
+        {
+          "nome": "rcl",
+          "descricao": "RCL da União no ano, em reais nominais. Nula de 2018 em diante, por ora."
+        },
+        {
+          "nome": "fonte_rcl",
+          "descricao": "A fonte_rcl de eixo1_orcamento_federal_rcl_uniao."
+        },
+        {
+          "nome": "valor_empenhado",
+          "descricao": "valor_empenhado_exercicio + ajuste_lpg, em reais nominais: o numerador da Figura 3, igual à soma das origens do SIOP na Figura 1."
+        },
+        {
+          "nome": "participacao_rcl",
+          "descricao": "valor_empenhado / rcl, como fração (0,003 é 0,3%): o percentual_rcl do CSV da Figura 3. Nula sem RCL."
+        }
+      ],
+      "colunas_descritas": 7,
+      "testes": 4,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_orcamento_federal_empenho_cultura",
+        "eixo1_orcamento_federal_impacto_rcl"
+      ],
+      "sources": [],
+      "linhas_sql": 58
+    },
+    {
+      "nome": "eixo1_orcamento_federal_rcl_uniao",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_orcamento_federal_rcl_uniao.sql",
+      "descricao": "Camada Gold / Eixo 1, frente orçamento, esfera federal, do Cultura em Números. Gold-base: a Receita Corrente Líquida da União por ano, em reais, com a fonte de cada ano. É o denominador das golds federais que medem o gasto em cultura como fração da RCL.\nGRÃO: um ano. UNIVERSO: 2000 a 2017, 18 linhas, todas do Tesouro Transparente.\nA REGRA: cada fonte é um ramo, com o seu intervalo de anos, e a var eixo1_orcamento_federal_rcl_siconfi_desde (2018) é a fronteira. Antes dela, o conjunto \"Limites da LRF para a União: Dívida Consolidada Líquida\" do Tesouro Transparente (RGF), só o 3º quadrimestre, que acumula os 12 meses do ano, convertido de milhares de reais para reais. O conjunto para no 2º quadrimestre de 2018, então 2018 não tem ano fechado no Tesouro.\nDE 2018 EM DIANTE A RCL ENTRA NUM PR SEGUINTE, depois do merge do #163: o RREO da União no SICONFI (silver_rreo, esfera 'U', 6º bimestre, Anexo 03, conta RREO3ReceitaCorrenteLiquida, coluna 'TOTAL (ÚLTIMOS 12 MESES)'), como um segundo ramo, com fonte_rcl 'siconfi_rreo'. Os modelos que leem daqui não mudam.",
+      "colunas": [
+        {
+          "nome": "ano",
+          "descricao": "Ano da RCL (exercício)."
+        },
+        {
+          "nome": "periodo_fonte",
+          "descricao": "O período da linha na fonte, para conferir: no Tesouro, '2011 - Até o 3º Quadrimestre'."
+        },
+        {
+          "nome": "fonte_rcl",
+          "descricao": "De onde veio a RCL do ano: 'tesouro_transparente' (Limites da LRF, 3º quadrimestre). O PR do SICONFI acrescenta 'siconfi_rreo'."
+        },
+        {
+          "nome": "rcl",
+          "descricao": "Receita Corrente Líquida da União no ano, em reais nominais (a do Tesouro vezes 1.000)."
+        }
+      ],
+      "colunas_descritas": 4,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "silver_lrf_uniao_dcl"
+      ],
+      "sources": [],
+      "linhas_sql": 32
     },
     {
       "nome": "eixo1_orcamento_municipal_faixa_rcl",
@@ -2941,6 +3212,50 @@
       "linhas_sql": 88
     },
     {
+      "nome": "eixo1_paridade_conselho_serie",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_paridade_conselho_serie.sql",
+      "descricao": "Gold / Eixo 1. Composição dos conselhos municipais de cultura, a Figura 15 da publicação inteira, com os nomes de coluna do CSV dela; no repositório do Eixo 1 essa figura é mantida à mão em outputs/. GRÃO: ano e composição. 2014, 2018 e 2021 são a MUNIC (eixo1_munic_paridade_conselho); o ponto de 2026 é a Plataforma SNC, a linha 'Conselho paritário?' de eixo1_snc_perfil_conselho, com 'Sim' como 'Paritário' e 'Não' como 'Não Paritário', no ano da versão da lista de entes do portal. Conta só 'Paritário' e 'Não Paritário', e a proporção é dentro do ano.\nO UNIVERSO MUDA ENTRE AS FONTES. Na MUNIC é o município que respondeu ao IBGE que tem conselho de cultura e informou a composição (pesquisa, autodeclarada): 2.151 em 2014, 2.352 em 2018 e 1.941 em 2021, quando 863 dos 2.804 municípios com conselho não informaram a composição. No SNC é o município com a lei do conselho 'Concluída' na Plataforma, isto é, com o documento enviado e validado (registro administrativo): 1.556 na versão de 28/05/2026. Os pontos não medem a mesma população, e a variação de 2021 para 2026 mistura mudança real com mudança de fonte.\nCONFERÊNCIA (11/11/2026): 2014, 2018 e 2021 iguais ao CSV publicado. 2026 igual à regra do R aplicada ao portal (1.256 paritários e 300 não paritários); a publicação, com a planilha interna, tem 1.787 e 460 (79,5% contra 80,7% de paritários aqui).",
+      "colunas": [
+        {
+          "nome": "ano_pesquisa",
+          "descricao": "Ano da edição da MUNIC ou da versão da lista de entes do SNC."
+        },
+        {
+          "nome": "fonte",
+          "descricao": "'MUNIC' (IBGE) ou 'SNC' (Plataforma do Sistema Nacional de Cultura)."
+        },
+        {
+          "nome": "composicao_conselho",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade_municipios",
+          "descricao": ""
+        },
+        {
+          "nome": "total_municipios",
+          "descricao": "Paritários e não paritários do ano, o denominador da proporção."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": ""
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_munic_paridade_conselho",
+        "eixo1_snc_painel_municipio",
+        "eixo1_snc_perfil_conselho"
+      ],
+      "sources": [],
+      "linhas_sql": 63
+    },
+    {
       "nome": "eixo1_snc_adesao_idh",
       "dominio": "cultura_em_numeros",
       "camada": "gold",
@@ -3075,6 +3390,148 @@
       ],
       "sources": [],
       "linhas_sql": 12
+    },
+    {
+      "nome": "eixo1_snc_componente_criado_ano",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_componente_criado_ano.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Conselhos, fundos e planos de cultura municipais criados por ano, pelo ano da lei (do plano, no caso do plano): as Figuras 12 (fundos), 13 (conselhos) e 14 (planos) da publicação (seção 7 do snc_figuras_tabelas.R), com os nomes de coluna dos CSVs delas, e o eda_10 do SNC.R. GRÃO: componente e ano. Como no R: só municípios, só o componente 'Concluída', aderido o município ou não, e sem ano da lei fica de fora; cada componente tem todos os anos entre o primeiro e o último com lei, com zero onde nenhum foi criado. O eda_10 é esta série entre 2012 e 2026, com o acumulado somado desde o primeiro ano; lá ano sem lei nova não aparece, e na versão de 28/05/2026 nenhum ano de 2012 a 2025 fica sem lei. DIFERENÇA PARA A PUBLICAÇÃO: o portal tem 1.509 fundos, 1.553 conselhos e 685 planos com ano, contra 2.150, 2.245 e 1.113 publicados; em cada um, mais da metade da diferença é de 2022 em diante (planos de 2024: 112 contra 306).",
+      "colunas": [
+        {
+          "nome": "componente",
+          "descricao": ""
+        },
+        {
+          "nome": "ano_criacao",
+          "descricao": "Ano da lei do componente."
+        },
+        {
+          "nome": "quantidade_criados",
+          "descricao": "Municípios cuja lei do componente é desse ano. Zero no ano sem lei."
+        },
+        {
+          "nome": "quantidade_acumulada",
+          "descricao": "Soma de quantidade_criados do primeiro ano até este, a linha \"Adesões acumuladas\" do eda_10."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 5,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_componente_ente"
+      ],
+      "sources": [],
+      "linhas_sql": 62
+    },
+    {
+      "nome": "eixo1_snc_componente_ente",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_componente_ente.sql",
+      "descricao": "Camada Gold / Eixo 1, frente SNC, do Cultura em Números. Gold-base: os componentes do sistema de cultura de cada ente na lista de entes do Sistema Nacional de Cultura.\nGRÃO: uma linha por ente e componente ('Conselho', 'Fundo', 'Plano', 'Lei do sistema', 'CPF completo'), na versão mais recente do arquivo no portal. UNIVERSO: os 27 entes estaduais, com o DF (código 53), e os municípios: 5.594 entes e 27.970 linhas na versão de 28/05/2026. No portal estados e municípios vêm na mesma aba, com código IBGE de 2 e de 7 dígitos, e uma linha a mais que não é ente ('Não cadastrado'), que fica de fora. O R lê duas abas da planilha interna, \"SNC - MUNICÍPIOS\" e \"SNC - ESTADOS\".\nA REGRA, a da seção 2 do snc_figuras_tabelas.R: aderente é situação 'Publicado no DOU'; o ente tem o componente quando a situação do documento é 'Concluída'; CPF completo é ter conselho, plano e fundo. O ano da lei é o ano da data do documento, e ano antes de 1900 fica NULL, como no extrair_ano do R (\"descarta erros de digitação\"). Na versão de 28/05/2026, entre os municípios com o componente 'Concluída', 3 conselhos, 3 fundos, 3 planos e 4 leis do sistema têm a data 'Não informada', e um plano tem ano 1018: ficam sem ano_lei. Aderente e versão são a mesma regra de eixo1_snc_painel_municipio, que é só dos municípios e não traz as datas.\nCONFERÊNCIA (11/11/2026): a Tabela 1.2, as Figuras 12 a 14 e o eda_10 são iguais, linha a linha, à regra do R reescrita em Python e aplicada aos mesmos 5.594 entes do portal. Essa reescrita, aplicada à planilha interna que o R leu, reproduz os CSVs publicados da Tabela 1.2, das Figuras 12 a 14 e do ponto de 2026 da Figura 15.\nDIFERENÇA PARA A PUBLICAÇÃO: o portal está atrasado em relação à planilha interna (a description de eixo1_snc_painel_municipio tem o diagnóstico). Municípios: 3.722 aderentes contra 3.945; entre eles, conselho 1.556 contra 2.247, fundo 1.512 contra 2.155, plano 689 contra 1.117, lei do sistema 1.551 contra 2.024 e CPF completo 569 contra 920. Estados e DF: conselho 27 contra 24 (MG, RS e SP 'Concluída' no portal e em análise na planilha), plano 17 contra 18 (PB e PI só na planilha, RS só no portal), lei do sistema 20 contra 21 (AL só na planilha); fundo 27 e CPF completo 17 nos dois, mas o CPF de PB e PI só na planilha e o de MG e RS só no portal. Das seis UFs, cinco foram atualizadas na planilha depois da última atualização no portal; o PI tem a mesma data nos dois (28/02/2020), e o atraso não explica.",
+      "colunas": [
+        {
+          "nome": "versao",
+          "descricao": "Versão do arquivo no portal de onde a linha veio (a mais recente)."
+        },
+        {
+          "nome": "cod_ibge",
+          "descricao": "Código IBGE do ente, com 2 dígitos no estado e no DF e 7 no município."
+        },
+        {
+          "nome": "ente",
+          "descricao": "Nome do ente federado na Plataforma SNC."
+        },
+        {
+          "nome": "uf",
+          "descricao": "Sigla da UF."
+        },
+        {
+          "nome": "regiao",
+          "descricao": "Grande região, como a Plataforma escreve ('Centro Oeste', sem hífen)."
+        },
+        {
+          "nome": "esfera",
+          "descricao": "'estadual' para os 27 entes de código IBGE de 2 dígitos, com o DF; 'municipal' para os de 7."
+        },
+        {
+          "nome": "situacao_adesao",
+          "descricao": "Situação da adesão ao SNC, como a Plataforma escreve."
+        },
+        {
+          "nome": "aderente",
+          "descricao": "Se aderiu ao SNC, isto é, situação 'Publicado no DOU'. NULL sem situação; o teste avisa, porque o ente sem situação sai do denominador da Tabela 1.2."
+        },
+        {
+          "nome": "componente",
+          "descricao": "'Conselho' (lei do conselho de política cultural), 'Fundo' (lei do fundo de cultura), 'Plano' (plano de cultura), 'Lei do sistema' (lei do sistema de cultura) e 'CPF completo' (conselho, plano e fundo)."
+        },
+        {
+          "nome": "situacao_componente",
+          "descricao": "Situação do documento do componente, como a Plataforma escreve ('Concluída', 'Não Possui', 'Arquivo incorreto'...). NULL no CPF completo, que não tem documento próprio. O teste avisa se faltar nos outros, porque o componente sem situação não conta como 'Concluída'."
+        },
+        {
+          "nome": "tem_componente",
+          "descricao": "Se o ente tem o componente: situação 'Concluída'. No CPF completo, os três; NULL só quando falta alguma situação e as conhecidas são 'Concluída' (ADR 0010, regra 1)."
+        },
+        {
+          "nome": "data_lei",
+          "descricao": "Data da lei do componente (do plano, no caso do plano), como a silver a tipa: NULL quando não é data dd/mm/aaaa ('Não informada'). NULL no CPF completo."
+        },
+        {
+          "nome": "ano_lei",
+          "descricao": "Ano de data_lei, de 1900 em diante. Ano anterior é erro de digitação e fica NULL, como no extrair_ano do R."
+        }
+      ],
+      "colunas_descritas": 13,
+      "testes": 9,
+      "materializacao": "",
+      "depende_de": [
+        "silver_snc_entes"
+      ],
+      "sources": [],
+      "linhas_sql": 148
+    },
+    {
+      "nome": "eixo1_snc_componentes_adesao",
+      "dominio": "cultura_em_numeros",
+      "camada": "gold",
+      "meta": null,
+      "caminho": "dbt/minc/models/data_products/cultura_em_numeros/eixo1_snc_componentes_adesao.sql",
+      "descricao": "Gold / Eixo 1, frente SNC. Conselho, plano, fundo, lei do sistema e CPF completo entre os entes que aderiram ao SNC, nos municípios e nos estados com o DF: a Tabela 1.2 da publicação (seção 5 do snc_figuras_tabelas.R), com os rótulos e os nomes de coluna do CSV dela. GRÃO: esfera e componente. O denominador são os aderentes da esfera, e a adesão entra como sexta linha, com proporção 1, como no R.",
+      "colunas": [
+        {
+          "nome": "esfera",
+          "descricao": ""
+        },
+        {
+          "nome": "componente",
+          "descricao": ""
+        },
+        {
+          "nome": "quantidade",
+          "descricao": "Aderentes com o componente 'Concluída'."
+        },
+        {
+          "nome": "total_aderentes",
+          "descricao": "Entes da esfera com situação 'Publicado no DOU', o denominador."
+        },
+        {
+          "nome": "proporcao",
+          "descricao": "quantidade / total_aderentes, como proporção (0,57 e não 57%)."
+        }
+      ],
+      "colunas_descritas": 3,
+      "testes": 7,
+      "materializacao": "",
+      "depende_de": [
+        "eixo1_snc_componente_ente"
+      ],
+      "sources": [],
+      "linhas_sql": 59
     },
     {
       "nome": "eixo1_snc_evolucao_adesao",
@@ -62691,6 +63148,89 @@
       "linhas_sql": 25
     },
     {
+      "nome": "bronze_lrf_uniao_dcl",
+      "dominio": "tesouro_transparente",
+      "camada": "bronze",
+      "meta": null,
+      "caminho": "dbt/minc/models/tesouro_transparente/bronze_lrf_uniao_dcl.sql",
+      "descricao": "Camada Bronze — cópia fiel de seeds.tesouro_transparente_lrf_uniao_dcl, sem cast, filtro nem join (ADR 0010). Todas as colunas chegam como texto.",
+      "colunas": [],
+      "colunas_descritas": 0,
+      "testes": 0,
+      "materializacao": "",
+      "depende_de": [],
+      "sources": [
+        "tesouro_transparente.lrf_uniao_dcl"
+      ],
+      "linhas_sql": 7
+    },
+    {
+      "nome": "silver_lrf_uniao_dcl",
+      "dominio": "tesouro_transparente",
+      "camada": "silver",
+      "meta": null,
+      "caminho": "dbt/minc/models/tesouro_transparente/silver_lrf_uniao_dcl.sql",
+      "descricao": "Limites da LRF para a União (Relatório de Gestão Fiscal, Tesouro Transparente), tipados: dívida consolidada, deduções, dívida consolidada líquida e Receita Corrente Líquida da União, acumuladas nos 12 meses até o fim de cada quadrimestre. Uma linha por ano e quadrimestre, de 2000 (só o 3º) ao 2º quadrimestre de 2018, 54 linhas na versão de 20/11/2018. O 3º quadrimestre é o ano fechado.\nOs valores ficam em milhares de reais, como o Tesouro publica; a gold que usa a RCL converte para reais. Lida de bronze_lrf_uniao_dcl.",
+      "colunas": [
+        {
+          "nome": "periodo",
+          "descricao": "Ano e quadrimestre no texto do Tesouro ('2011 - Até o 3º Quadrimestre')."
+        },
+        {
+          "nome": "ano",
+          "descricao": "Ano do período, dos 4 primeiros caracteres. Nulo se o texto não segue 'AAAA - Até o Nº Quadrimestre'."
+        },
+        {
+          "nome": "quadrimestre",
+          "descricao": "Quadrimestre do período (1, 2 ou 3). Os valores são dos 12 meses até o fim dele; o 3º é o ano fechado."
+        },
+        {
+          "nome": "divida_consolidada_mil",
+          "descricao": "Dívida consolidada (I), em milhares de reais."
+        },
+        {
+          "nome": "deducoes_mil",
+          "descricao": "Deduções (II), em milhares de reais."
+        },
+        {
+          "nome": "divida_consolidada_liquida_mil",
+          "descricao": "Dívida consolidada líquida (III = I - II), em milhares de reais."
+        },
+        {
+          "nome": "receita_corrente_liquida_mil",
+          "descricao": "Receita Corrente Líquida da União nos 12 meses até o fim do quadrimestre, em milhares de reais."
+        },
+        {
+          "nome": "razao_dc_rcl",
+          "descricao": "Dívida consolidada sobre a RCL, como razão (5,7 é 570%)."
+        },
+        {
+          "nome": "razao_dcl_rcl",
+          "descricao": "Dívida consolidada líquida sobre a RCL, como razão."
+        },
+        {
+          "nome": "versao",
+          "descricao": "Data da última modificação do recurso no CKAN, que é a versão do arquivo carregado."
+        },
+        {
+          "nome": "recurso_id",
+          "descricao": "Id do recurso no CKAN."
+        },
+        {
+          "nome": "dt_ingest",
+          "descricao": "Momento da carga pela tesouro_transparente_dag, em texto."
+        }
+      ],
+      "colunas_descritas": 12,
+      "testes": 6,
+      "materializacao": "",
+      "depende_de": [
+        "bronze_lrf_uniao_dcl"
+      ],
+      "sources": [],
+      "linhas_sql": 58
+    },
+    {
       "nome": "bronze_anexos_relatorios",
       "dominio": "transferegov",
       "camada": "bronze",
@@ -64407,11 +64947,18 @@
         "silver": 1
       }
     },
-    "cultura_em_numeros": {
-      "modelos": 67,
-      "testes": 351,
+    "analise_rouanet": {
+      "modelos": 3,
+      "testes": 21,
       "camadas": {
-        "gold": 67
+        "gold": 3
+      }
+    },
+    "cultura_em_numeros": {
+      "modelos": 74,
+      "testes": 392,
+      "camadas": {
+        "gold": 74
       }
     },
     "ibge": {
@@ -64495,6 +65042,14 @@
       }
     },
     "siop": {
+      "modelos": 2,
+      "testes": 6,
+      "camadas": {
+        "bronze": 1,
+        "silver": 1
+      }
+    },
+    "tesouro_transparente": {
       "modelos": 2,
       "testes": 6,
       "camadas": {
@@ -67909,12 +68464,23 @@
           "descricao": "Aba \"Recursos humanos\" da ESTADIC 2014, suplemento de cultura (IBGE, base_cultura_ESTADIC_xls_2014.zip), uma linha por UF, toda coluna em texto, gravada pela ibge_perfil_dag (ADR 0012)."
         }
       ]
+    },
+    {
+      "nome": "tesouro_transparente",
+      "schema": "seeds",
+      "descricao": "CSVs do portal de dados abertos do Tesouro Transparente (tesourotransparente.gov.br/ckan), gravados pela tesouro_transparente_dag. Um recurso por tabela, listados em cliente_tesouro_transparente.RECURSOS.",
+      "tabelas": [
+        {
+          "nome": "lrf_uniao_dcl",
+          "descricao": "\"Limites da LRF para a União: Dívida Consolidada Líquida\", do Relatório de Gestão Fiscal: a dívida consolidada, as deduções, a dívida consolidada líquida e a Receita Corrente Líquida da União em cada quadrimestre, acumuladas em 12 meses. Valores em milhares de reais, com vírgula decimal. 54 linhas, de '2000 - Até o 3º Quadrimestre' a '2018 - Até o 2º Quadrimestre': o conjunto parou de ser atualizado em 2021, e a versão carregada é a de 20/11/2018. O \"Até o 3º Quadrimestre\" é o ano fechado."
+        }
+      ]
     }
   ],
   "totais": {
-    "modelos": 906,
-    "testes": 1299,
-    "com_descricao": 905,
-    "sources": 813
+    "modelos": 918,
+    "testes": 1367,
+    "com_descricao": 917,
+    "sources": 814
   }
 }

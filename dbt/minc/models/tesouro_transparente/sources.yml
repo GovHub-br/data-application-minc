@@ -1,0 +1,76 @@
+version: 2
+
+# Tesouro Transparente: a tesouro_transparente_dag baixa cada CSV do CKAN do
+# Tesouro e grava em seeds.tesouro_transparente_<entidade>, toda coluna em
+# texto, com a data de modificação do arquivo em `versao` e o id do recurso em
+# `recurso_id` (ADR 0012). Cada versão traz a série inteira e substitui a
+# anterior. Este arquivo fica na pasta da fonte, e não no sources.yml da raiz,
+# como o sources_sac.yml do SALIC.
+sources:
+  - name: tesouro_transparente
+    schema: seeds
+    description: >
+      CSVs do portal de dados abertos do Tesouro Transparente
+      (tesourotransparente.gov.br/ckan), gravados pela
+      tesouro_transparente_dag. Um recurso por tabela, listados em
+      cliente_tesouro_transparente.RECURSOS.
+    meta:
+      openmetadata:
+        domain: Cultura.Indicadores
+        tier: Tier.Tier4
+        owner: minc-data-engineering
+    tables:
+      - name: lrf_uniao_dcl
+        identifier: tesouro_transparente_lrf_uniao_dcl
+        description: >
+          "Limites da LRF para a União: Dívida Consolidada Líquida", do
+          Relatório de Gestão Fiscal: a dívida consolidada, as deduções, a
+          dívida consolidada líquida e a Receita Corrente Líquida da União em
+          cada quadrimestre, acumuladas em 12 meses. Valores em milhares de
+          reais, com vírgula decimal. 54 linhas, de '2000 - Até o 3º
+          Quadrimestre' a '2018 - Até o 2º Quadrimestre': o conjunto parou de
+          ser atualizado em 2021, e a versão carregada é a de 20/11/2018. O
+          "Até o 3º Quadrimestre" é o ano fechado.
+        columns:
+          - name: periodo
+            description: >
+              Ano e quadrimestre, no texto do Tesouro: '2011 - Até o 3º
+              Quadrimestre'.
+            data_type: text
+          - name: divida_consolidada_dc_i
+            description: Dívida consolidada (I), em R$ mil, com vírgula decimal.
+            data_type: text
+          - name: deducoes_ii
+            description: Deduções (II), em R$ mil, com vírgula decimal.
+            data_type: text
+          - name: divida_consolidada_liquida_dcl_iii_i_ii
+            description: >
+              Dívida consolidada líquida (III = I - II), em R$ mil, com vírgula
+              decimal.
+            data_type: text
+          - name: receita_corrente_liquida_rcl
+            description: >
+              Receita Corrente Líquida dos 12 meses até o fim do quadrimestre,
+              em R$ mil, com vírgula decimal.
+            data_type: text
+          - name: da_dc_sobre_a_rcl_i_rcl
+            description: >
+              Dívida consolidada sobre a RCL (I / RCL), como razão (5,7 é 570%),
+              com vírgula decimal.
+            data_type: text
+          - name: da_dcl_sobre_a_rcl_iii_rcl
+            description: >
+              Dívida consolidada líquida sobre a RCL (III / RCL), como razão,
+              com vírgula decimal.
+            data_type: text
+          - name: versao
+            description: >
+              Data da última modificação do recurso no CKAN (AAAA-MM-DD), que é
+              a versão do arquivo.
+            data_type: text
+          - name: recurso_id
+            description: Id do recurso no CKAN, o período da carga.
+            data_type: text
+          - name: dt_ingest
+            description: Momento da carga pela tesouro_transparente_dag, em texto.
+            data_type: text
