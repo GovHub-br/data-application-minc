@@ -40,6 +40,8 @@ import pyarrow as pa
 import pyarrow.csv as pa_csv
 import pyarrow.parquet as pq
 
+from byte_nulo import sem_byte_nulo
+
 URL_PAGINA = (
     "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/"
     "microdados/censo-escolar"
@@ -290,7 +292,11 @@ def linhas_para_destino(
         return
     fixas = set(colunas) - {COLUNA_JSONB}
     for registro in registros:
-        dados = {k: v for k, v in registro.items() if k not in fixas and v is not None}
+        dados = {
+            k: limpo
+            for k, v in registro.items()
+            if k not in fixas and (limpo := sem_byte_nulo(v)) is not None
+        }
         yield [registro.get(c) for c in colunas if c != COLUNA_JSONB] + [
             json.dumps(dados, ensure_ascii=False)
         ]
@@ -300,12 +306,13 @@ def _copy_csv(linhas: Iterator[list[str | None]]) -> io.StringIO:
     """CSV para ``COPY ... (FORMAT csv)``: nulo é campo vazio sem aspas.
 
     Valor vazio não chega aqui (o Parquet já o converteu em nulo), então
-    não há como confundir os dois.
+    não há como confundir os dois. O byte nulo sai do texto (ver
+    ``byte_nulo``).
     """
     buffer = io.StringIO()
     escritor = csv.writer(buffer, lineterminator="\n")
     for linha in linhas:
-        escritor.writerow(["" if v is None else v for v in linha])
+        escritor.writerow(["" if (v := sem_byte_nulo(c)) is None else v for c in linha])
     buffer.seek(0)
     return buffer
 

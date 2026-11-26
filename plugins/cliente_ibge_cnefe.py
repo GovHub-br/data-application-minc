@@ -52,6 +52,7 @@ import pyarrow.csv as pa_csv
 import pyarrow.parquet as pq
 import requests
 
+from byte_nulo import tabela_sem_byte_nulo
 from retry_helpers import retry_on_exception
 
 URL_BASE = (
@@ -365,10 +366,12 @@ def csv_para_copy(tabela: pa.Table) -> io.BytesIO:
     O pyarrow põe toda string entre aspas e deixa o nulo sem nada, que é como
     o ``COPY`` distingue os dois. Valor vazio não chega aqui (a leitura já o
     converteu em nulo).
+
+    O byte nulo sai do texto (ver ``byte_nulo``).
     """
     buffer = io.BytesIO()
     pa_csv.write_csv(
-        tabela,
+        tabela_sem_byte_nulo(tabela),
         buffer,
         write_options=pa_csv.WriteOptions(include_header=False, quoting_style="needed"),
     )
