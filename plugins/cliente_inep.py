@@ -40,6 +40,8 @@ import pyarrow as pa
 import pyarrow.csv as pa_csv
 import pyarrow.parquet as pq
 
+from byte_nulo import sem_byte_nulo
+
 URL_PAGINA = (
     "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/"
     "microdados/censo-escolar"
@@ -291,38 +293,26 @@ def linhas_para_destino(
     fixas = set(colunas) - {COLUNA_JSONB}
     for registro in registros:
         dados = {
-            k: _sem_byte_nulo(v)
+            k: limpo
             for k, v in registro.items()
-            if k not in fixas and _sem_byte_nulo(v) is not None
+            if k not in fixas and (limpo := sem_byte_nulo(v)) is not None
         }
         yield [registro.get(c) for c in colunas if c != COLUNA_JSONB] + [
             json.dumps(dados, ensure_ascii=False)
         ]
 
 
-def _sem_byte_nulo(valor: Any) -> Any:
-    """``valor`` sem o byte nulo (``\\x00``); se só havia ele, ``None``.
-
-    O Postgres não guarda esse caractere em ``text`` nem em ``jsonb`` (no JSON
-    ele vira ``\\u0000``, que o ``jsonb`` também recusa) e recusa o ``COPY``
-    inteiro. O raw e o Parquet seguem com o valor original.
-    """
-    if not isinstance(valor, str) or "\x00" not in valor:
-        return valor
-    return valor.replace("\x00", "") or None
-
-
 def _copy_csv(linhas: Iterator[list[str | None]]) -> io.StringIO:
     """CSV para ``COPY ... (FORMAT csv)``: nulo é campo vazio sem aspas.
 
     Valor vazio não chega aqui (o Parquet já o converteu em nulo), então
-    não há como confundir os dois. O byte nulo sai do texto, como em
-    ``seeds_carga``: um valor que era só ele vira nulo.
+    não há como confundir os dois. O byte nulo sai do texto (ver
+    ``byte_nulo``).
     """
     buffer = io.StringIO()
     escritor = csv.writer(buffer, lineterminator="\n")
     for linha in linhas:
-        escritor.writerow(["" if (v := _sem_byte_nulo(c)) is None else v for c in linha])
+        escritor.writerow(["" if (v := sem_byte_nulo(c)) is None else v for c in linha])
     buffer.seek(0)
     return buffer
 

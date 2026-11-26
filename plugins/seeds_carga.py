@@ -27,6 +27,8 @@ from typing import Any
 
 import pandas as pd
 
+from byte_nulo import sem_byte_nulo
+
 # Postgres corta identificador acima disto sem avisar, e duas tabelas cortadas
 # no mesmo prefixo virariam uma só.
 LIMITE_IDENTIFICADOR = 63
@@ -115,10 +117,9 @@ def _ident(nome: str) -> str:
     return '"' + nome.replace('"', '""') + '"'
 
 
-def _sem_byte_nulo(valor: Any) -> Any:
-    if pd.isna(valor):
-        return ""
-    return valor.replace("\x00", "") if isinstance(valor, str) else valor
+def _campo(valor: Any) -> Any:
+    limpo = None if pd.isna(valor) else sem_byte_nulo(valor)
+    return "" if limpo is None else limpo
 
 
 def _copy_csv(df: pd.DataFrame) -> io.StringIO:
@@ -136,7 +137,7 @@ def _copy_csv(df: pd.DataFrame) -> io.StringIO:
     buffer = io.StringIO()
     escritor = csv.writer(buffer, lineterminator="\n")
     for linha in df.itertuples(index=False, name=None):
-        escritor.writerow([_sem_byte_nulo(v) for v in linha])
+        escritor.writerow([_campo(v) for v in linha])
     buffer.seek(0)
     return buffer
 
