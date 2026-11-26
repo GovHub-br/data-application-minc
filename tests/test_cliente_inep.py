@@ -253,6 +253,19 @@ def test_payload_do_copy_distingue_nulo_e_escapa_separador() -> None:
     assert buffer.getvalue() == '1,,"Escola ""A"", Centro"\n'
 
 
+def test_copy_csv_tira_o_byte_nulo_que_o_postgres_recusa() -> None:
+    buffer = inep._copy_csv(iter([["ante\x00rior", "\x00", None]]))
+    assert buffer.getvalue() == "anterior,,\n"
+
+
+def test_dados_do_censoesc_sem_byte_nulo() -> None:
+    lote = pa.RecordBatch.from_pylist(
+        [{"ano_censo": "1995", "vpe1001": "3\x00", "vpe1002": "\x00"}]
+    )
+    [linha] = list(inep.linhas_para_destino("censoesc", lote, ["ano_censo", "dados"]))
+    assert json.loads(linha[1]) == {"vpe1001": "3"}
+
+
 def test_lote_do_copy_cabe_em_dois_milhoes_de_celulas() -> None:
     assert inep._linhas_por_lote(426) == 4694
     assert inep._linhas_por_lote(3808) == 525

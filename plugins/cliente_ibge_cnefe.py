@@ -359,16 +359,30 @@ def _ident(nome: str) -> str:
     return '"' + nome.replace('"', '""') + '"'
 
 
+def _sem_byte_nulo(tabela: pa.Table) -> pa.Table:
+    colunas = []
+    for coluna in tabela.columns:
+        if pa.types.is_string(coluna.type) or pa.types.is_large_string(coluna.type):
+            limpa = pc.replace_substring(coluna, "\x00", "")
+            coluna = pc.if_else(pc.equal(limpa, ""), None, limpa)
+        colunas.append(coluna)
+    return pa.Table.from_arrays(colunas, schema=tabela.schema)
+
+
 def csv_para_copy(tabela: pa.Table) -> io.BytesIO:
     """CSV para ``COPY ... (FORMAT csv)``: nulo é campo vazio sem aspas.
 
     O pyarrow põe toda string entre aspas e deixa o nulo sem nada, que é como
     o ``COPY`` distingue os dois. Valor vazio não chega aqui (a leitura já o
     converteu em nulo).
+
+    O byte nulo (``\\x00``) sai do texto, como em ``seeds_carga``: o Postgres
+    não guarda esse caractere em ``text`` e recusa o ``COPY`` inteiro. Um valor
+    que era só ele vira nulo. O raw e o Parquet seguem com o valor original.
     """
     buffer = io.BytesIO()
     pa_csv.write_csv(
-        tabela,
+        _sem_byte_nulo(tabela),
         buffer,
         write_options=pa_csv.WriteOptions(include_header=False, quoting_style="needed"),
     )

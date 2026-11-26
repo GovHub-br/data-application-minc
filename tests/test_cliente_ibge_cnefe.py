@@ -309,6 +309,14 @@ def test_csv_para_copy_escreve_nulo_sem_aspas_e_texto_entre_aspas() -> None:
     )
 
 
+def test_csv_para_copy_tira_o_byte_nulo_que_o_postgres_recusa() -> None:
+    tabela = pa.table(
+        {"a": ["ANTE\x00RIOR", "\x00", None]},
+        schema=pa.schema([("a", pa.string())]),
+    )
+    assert cnefe.csv_para_copy(tabela).read() == b'"ANTERIOR"\n\n\n'
+
+
 def test_conferir_parte_recusa_outra_uf_e_outras_colunas() -> None:
     cnefe.conferir_parte(_tabela(3), "RR")
     cnefe.conferir_parte(_tabela(0), "RR")
